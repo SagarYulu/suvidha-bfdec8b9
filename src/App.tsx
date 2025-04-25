@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
+import Employees from "./pages/admin/Employees";
 import AdminIssues from "./pages/admin/Issues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
 import AdminAnalytics from "./pages/admin/Analytics";
@@ -35,7 +34,7 @@ const App = () => {
               
               {/* Admin Routes */}
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/employees" element={<Employees />} />
               <Route path="/admin/issues" element={<AdminIssues />} />
               <Route path="/admin/issues/:id" element={<AdminIssueDetails />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
