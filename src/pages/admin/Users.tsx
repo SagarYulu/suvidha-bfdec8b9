@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -187,6 +188,16 @@ const AdminUsers = () => {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
+                    <Label htmlFor="id">User ID *</Label>
+                    <Input
+                      id="id"
+                      name="id"
+                      value={newUser.id}
+                      onChange={handleInputChange}
+                      placeholder="User ID"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     <Label htmlFor="name">Name *</Label>
                     <Input
                       id="name"
@@ -196,6 +207,9 @@ const AdminUsers = () => {
                       placeholder="John Doe"
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email *</Label>
                     <Input
@@ -207,9 +221,6 @@ const AdminUsers = () => {
                       placeholder="john@yulu.com"
                     />
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee ID *</Label>
                     <Input
@@ -220,6 +231,9 @@ const AdminUsers = () => {
                       placeholder="YL001"
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="role">Role *</Label>
                     <Select
@@ -235,9 +249,6 @@ const AdminUsers = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="dateOfJoining">Date of Joining</Label>
                     <Input
@@ -248,6 +259,9 @@ const AdminUsers = () => {
                       onChange={handleInputChange}
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone *</Label>
                     <Input
@@ -258,9 +272,6 @@ const AdminUsers = () => {
                       placeholder="9876543210"
                     />
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -271,6 +282,9 @@ const AdminUsers = () => {
                       placeholder="Bangalore"
                     />
                   </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cluster">Cluster</Label>
                     <Input
@@ -281,9 +295,6 @@ const AdminUsers = () => {
                       placeholder="North"
                     />
                   </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="manager">Manager</Label>
                     <Input
@@ -294,17 +305,18 @@ const AdminUsers = () => {
                       placeholder="Manager name"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password *</Label>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      value={newUser.password}
-                      onChange={handleInputChange}
-                      placeholder="Password"
-                    />
-                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password *</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={handleInputChange}
+                    placeholder="Password"
+                  />
                 </div>
               </div>
               <DialogFooter>
@@ -328,6 +340,7 @@ const AdminUsers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>User ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Employee ID</TableHead>
                   <TableHead>Email</TableHead>
@@ -342,6 +355,7 @@ const AdminUsers = () => {
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell>{user.id}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.employeeId}</TableCell>
                     <TableCell>{user.email}</TableCell>
@@ -371,7 +385,7 @@ const AdminUsers = () => {
                 
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-6">
+                    <TableCell colSpan={10} className="text-center py-6">
                       No users found
                     </TableCell>
                   </TableRow>
