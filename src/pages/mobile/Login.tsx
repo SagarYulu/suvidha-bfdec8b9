@@ -8,8 +8,8 @@ import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
 
 const MobileLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("admin@yulu.com");
+  const [password, setPassword] = useState("admin123");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -19,13 +19,14 @@ const MobileLogin = () => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting login with:", { email, password });
       const success = await login(email, password);
       if (success) {
         toast({
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/mobile/issues");
+        navigate("/admin/dashboard");
       } else {
         toast({
           title: "Login failed",
@@ -34,6 +35,7 @@ const MobileLogin = () => {
         });
       }
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login error",
         description: "An unexpected error occurred. Please try again.",
@@ -90,7 +92,7 @@ const MobileLogin = () => {
           </form>
           
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>For demo: Use employee@yulu.com / password123</p>
+            <p>Demo credentials are pre-filled: admin@yulu.com / admin123</p>
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home

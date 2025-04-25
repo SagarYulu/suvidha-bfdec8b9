@@ -39,18 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    console.log('Login attempt:', { email, password }); // Added logging
+    console.log('Login attempt:', { email, password });
 
     // Log all mock users for debugging
     console.log('Available mock users:', MOCK_USERS);
 
-    // Find user with exact match, case-sensitive
+    // Find user with matching email (case-insensitive) and exact password
     const user = MOCK_USERS.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
     );
 
     if (user) {
-      console.log('User found:', user); // Added logging for successful match
+      console.log('User found:', user);
       setAuthState({
         isAuthenticated: true,
         user,
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("yuluUser", JSON.stringify(user));
       return true;
     } else {
-      console.log('No matching user found'); // Added logging for failed login
+      console.log('No matching user found');
       return false;
     }
   };

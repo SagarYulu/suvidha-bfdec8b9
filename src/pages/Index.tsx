@@ -16,20 +16,21 @@ const Index = () => {
         title: "Welcome back!",
         description: `You are logged in as ${authState.user?.name}`,
       });
+      console.log("User is authenticated:", authState.user);
     }
   }, [authState]);
 
   const handleAdminClick = () => {
+    console.log("Admin button clicked, current auth state:", authState);
+    
     // If the user is already authenticated and is an admin, navigate directly
     if (authState.isAuthenticated && authState.role === "admin") {
+      console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
-      // For demo purposes, navigating to the dashboard even if not logged in
-      // The AdminLayout component will redirect to / if not an admin
-      navigate("/admin/dashboard");
-      
-      // In a real app with login page, you might want to:
-      // navigate("/login?redirect=/admin/dashboard");
+      // For demo purposes, navigate to mobile login
+      console.log("User is not admin or not authenticated, navigating to mobile login");
+      navigate("/mobile/login");
     }
   };
   

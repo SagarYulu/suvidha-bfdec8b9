@@ -14,9 +14,21 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authState.isAuthenticated || authState.role !== "admin") {
-      navigate("/");
+    console.log("AdminLayout auth check:", authState);
+    
+    if (!authState.isAuthenticated) {
+      console.log("Not authenticated, redirecting to login");
+      navigate("/mobile/login");
+      return;
     }
+    
+    if (authState.role !== "admin") {
+      console.log("Not an admin, role is:", authState.role);
+      navigate("/");
+      return;
+    }
+    
+    console.log("Admin authentication successful");
   }, [authState, navigate]);
 
   return (
