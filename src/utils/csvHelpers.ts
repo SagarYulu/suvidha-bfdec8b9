@@ -26,31 +26,15 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): boolean => {
          isValidDate(data.date_of_birth);
 };
 
-interface CSVEmployeeData {
-  emp_id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  city?: string;
-  cluster?: string;
-  role: string;
-  manager?: string;
-  date_of_joining?: string;
-  date_of_birth?: string;
-  blood_group?: string;
-  account_number?: string;
-  ifsc_code?: string;
-}
-
 export const parseEmployeeCSV = (file: File): Promise<EmployeeData[]> => {
   return new Promise((resolve, reject) => {
-    Papa.parse<CSVEmployeeData>(file, {
+    Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
         const validEmployees = results.data
-          .filter((employee) => validateEmployeeData(employee as unknown as Partial<EmployeeData>))
-          .map((employee) => ({
+          .filter(validateEmployeeData)
+          .map(employee => ({
             emp_id: employee.emp_id,
             name: employee.name,
             email: employee.email,
