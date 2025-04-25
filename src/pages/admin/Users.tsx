@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -40,7 +39,6 @@ const AdminUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
 
-  // Fix: Properly type the newUser state using Omit<User, 'id'> to match createUser parameter type
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     name: "",
     email: "",
@@ -49,8 +47,9 @@ const AdminUsers = () => {
     city: "",
     cluster: "",
     manager: "",
-    role: "employee", // Explicitly set as "employee" | "admin"
+    role: "employee",
     password: "",
+    dateOfJoining: "",
   });
 
   useEffect(() => {
@@ -93,7 +92,6 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    // Simple validation
     if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password) {
       toast({
         title: "Validation error",
@@ -108,7 +106,6 @@ const AdminUsers = () => {
       setUsers([...users, createdUser]);
       setIsAddUserDialogOpen(false);
       
-      // Reset form
       setNewUser({
         name: "",
         email: "",
@@ -119,6 +116,7 @@ const AdminUsers = () => {
         manager: "",
         role: "employee",
         password: "",
+        dateOfJoining: "",
       });
       
       toast({
@@ -213,16 +211,6 @@ const AdminUsers = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={newUser.phone}
-                      onChange={handleInputChange}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label htmlFor="employeeId">Employee ID *</Label>
                     <Input
                       id="employeeId"
@@ -230,6 +218,44 @@ const AdminUsers = () => {
                       value={newUser.employeeId}
                       onChange={handleInputChange}
                       placeholder="YL001"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={newUser.role}
+                      onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="admin">Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dateOfJoining">Date of Joining</Label>
+                    <Input
+                      id="dateOfJoining"
+                      name="dateOfJoining"
+                      type="date"
+                      value={newUser.dateOfJoining}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone *</Label>
+                    <Input
+                      id="phone"
+                      name="phone"
+                      value={newUser.phone}
+                      onChange={handleInputChange}
+                      placeholder="9876543210"
                     />
                   </div>
                 </div>
@@ -269,32 +295,16 @@ const AdminUsers = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={handleInputChange}
+                      placeholder="Password"
+                    />
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    placeholder="Password"
-                  />
                 </div>
               </div>
               <DialogFooter>
