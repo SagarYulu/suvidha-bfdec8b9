@@ -1,5 +1,5 @@
 
-import { parse } from 'papaparse';
+import Papa from 'papaparse';
 
 export interface EmployeeUploadData {
   emp_id: string;
@@ -29,7 +29,7 @@ export const validateEmployeeData = (data: any): data is EmployeeUploadData => {
 
 export const parseEmployeeCSV = (file: File): Promise<EmployeeUploadData[]> => {
   return new Promise((resolve, reject) => {
-    parse(file, {
+    Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
