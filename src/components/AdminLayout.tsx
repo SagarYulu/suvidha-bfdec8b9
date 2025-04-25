@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Bell, ChartBar, File, Home, LogOut, Settings, Users } from "lucide-react";
@@ -32,6 +33,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
 
   return (
     <div className="flex min-h-screen">
+      {/* Sidebar */}
       <div className="w-64 bg-yulu-blue text-white">
         <div className="p-4">
           <h2 className="text-2xl font-bold">Yulu Admin</h2>
@@ -47,11 +49,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             </button>
             
             <button 
-              onClick={() => navigate("/admin/employees")}
+              onClick={() => navigate("/admin/users")}
               className="flex items-center w-full px-4 py-2 mb-1 rounded hover:bg-blue-700 transition-colors"
             >
               <Users className="mr-2 h-5 w-5" />
-              Employees
+              Users
             </button>
             
             <button 
@@ -85,7 +87,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
         </div>
       </div>
 
+      {/* Main content */}
       <div className="flex-1">
+        {/* Header */}
         <header className="bg-white shadow-md border-b">
           <div className="flex justify-between items-center px-8 py-4">
             <h1 className="text-2xl font-semibold">{title}</h1>
@@ -106,6 +110,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
           </div>
         </header>
 
+        {/* Page content */}
         <main className="p-8">
           {children}
         </main>

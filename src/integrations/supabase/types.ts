@@ -9,66 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      employees: {
-        Row: {
-          account_number: string | null
-          blood_group: string | null
-          city: string | null
-          cluster: string | null
-          created_at: string | null
-          date_of_birth: string | null
-          date_of_joining: string | null
-          email: string
-          emp_id: string
-          id: string
-          ifsc_code: string | null
-          manager: string | null
-          name: string
-          password: string
-          phone: string | null
-          role: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          account_number?: string | null
-          blood_group?: string | null
-          city?: string | null
-          cluster?: string | null
-          created_at?: string | null
-          date_of_birth?: string | null
-          date_of_joining?: string | null
-          email: string
-          emp_id: string
-          id?: string
-          ifsc_code?: string | null
-          manager?: string | null
-          name: string
-          password: string
-          phone?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          account_number?: string | null
-          blood_group?: string | null
-          city?: string | null
-          cluster?: string | null
-          created_at?: string | null
-          date_of_birth?: string | null
-          date_of_joining?: string | null
-          email?: string
-          emp_id?: string
-          id?: string
-          ifsc_code?: string | null
-          manager?: string | null
-          name?: string
-          password?: string
-          phone?: string | null
-          role?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
