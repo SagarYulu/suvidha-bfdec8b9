@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -36,7 +37,8 @@ const AdminDashboard = () => {
       setIsLoading(true);
       try {
         console.log("Fetching analytics data");
-        const analyticsData = getAnalytics();
+        // Make sure to await the async getAnalytics function
+        const analyticsData = await getAnalytics();
         setAnalytics(analyticsData);
         
         console.log("Fetching issues data");
@@ -62,15 +64,18 @@ const AdminDashboard = () => {
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
-  const typePieData = analytics ? Object.entries(analytics.typeCounts).map(([name, value]: [string, any]) => ({
-    name,
-    value
-  })) : [];
+  // Add null checks before using Object.entries
+  const typePieData = analytics && analytics.typeCounts ? 
+    Object.entries(analytics.typeCounts).map(([name, value]: [string, any]) => ({
+      name,
+      value
+    })) : [];
 
-  const cityBarData = analytics ? Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
-    name,
-    value
-  })) : [];
+  const cityBarData = analytics && analytics.cityCounts ? 
+    Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
+      name,
+      value
+    })) : [];
 
   const statusData = [
     { name: 'Open', value: analytics?.openIssues || 0, color: '#FF8042' },
