@@ -144,25 +144,31 @@ const AdminDashboard = () => {
                 <CardTitle>Issues by Type</CardTitle>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={typePieData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {typePieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {typePieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={typePieData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {typePieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
               </CardContent>
             </Card>
             
@@ -171,24 +177,30 @@ const AdminDashboard = () => {
                 <CardTitle>Issues by City</CardTitle>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={cityBarData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Issues" fill="#1E40AF" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {cityBarData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={cityBarData}
+                      margin={{
+                        top: 5,
+                        right: 30,
+                        left: 20,
+                        bottom: 5,
+                      }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="value" name="Issues" fill="#1E40AF" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-muted-foreground">
+                    No data available
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -198,48 +210,54 @@ const AdminDashboard = () => {
               <CardTitle>Recent Issues</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr>
-                      <th className="text-left font-medium p-2">ID</th>
-                      <th className="text-left font-medium p-2">Type</th>
-                      <th className="text-left font-medium p-2">Status</th>
-                      <th className="text-left font-medium p-2">Priority</th>
-                      <th className="text-left font-medium p-2">Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentIssues.map(issue => (
-                      <tr key={issue.id} className="border-t">
-                        <td className="p-2">{issue.id}</td>
-                        <td className="p-2">{issue.typeId}</td>
-                        <td className="p-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            issue.status === "open" ? "bg-red-100 text-red-800" :
-                            issue.status === "in_progress" ? "bg-yellow-100 text-yellow-800" :
-                            "bg-green-100 text-green-800"
-                          }`}>
-                            {issue.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="p-2">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            issue.priority === "high" ? "bg-red-100 text-red-800" :
-                            issue.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
-                            "bg-green-100 text-green-800"
-                          }`}>
-                            {issue.priority}
-                          </span>
-                        </td>
-                        <td className="p-2">
-                          {new Date(issue.createdAt).toLocaleDateString()}
-                        </td>
+              {recentIssues.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left font-medium p-2">ID</th>
+                        <th className="text-left font-medium p-2">Type</th>
+                        <th className="text-left font-medium p-2">Status</th>
+                        <th className="text-left font-medium p-2">Priority</th>
+                        <th className="text-left font-medium p-2">Created</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {recentIssues.map(issue => (
+                        <tr key={issue.id} className="border-t">
+                          <td className="p-2">{issue.id}</td>
+                          <td className="p-2">{issue.typeId}</td>
+                          <td className="p-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              issue.status === "open" ? "bg-red-100 text-red-800" :
+                              issue.status === "in_progress" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-green-100 text-green-800"
+                            }`}>
+                              {issue.status.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              issue.priority === "high" ? "bg-red-100 text-red-800" :
+                              issue.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-green-100 text-green-800"
+                            }`}>
+                              {issue.priority}
+                            </span>
+                          </td>
+                          <td className="p-2">
+                            {new Date(issue.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  No recent issues found
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
