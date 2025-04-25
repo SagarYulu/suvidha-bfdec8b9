@@ -3,6 +3,7 @@ import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 
 type EmployeeData = Omit<Tables<'employees'>, 'id' | 'created_at' | 'updated_at'>;
+type CSVEmployeeData = Record<keyof EmployeeData, string | null>;
 
 export const validateEmployeeData = (data: Partial<EmployeeData>): boolean => {
   // Required fields
@@ -28,26 +29,26 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): boolean => {
 
 export const parseEmployeeCSV = (file: File): Promise<EmployeeData[]> => {
   return new Promise((resolve, reject) => {
-    Papa.parse(file, {
+    Papa.parse<CSVEmployeeData>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
         const validEmployees = results.data
           .filter(validateEmployeeData)
           .map(employee => ({
-            emp_id: employee.emp_id,
-            name: employee.name,
-            email: employee.email,
-            phone: employee.phone || null,
-            city: employee.city || null,
-            cluster: employee.cluster || null,
-            role: employee.role,
-            manager: employee.manager || null,
-            date_of_joining: employee.date_of_joining || null,
-            date_of_birth: employee.date_of_birth || null,
-            blood_group: employee.blood_group || null,
-            account_number: employee.account_number || null,
-            ifsc_code: employee.ifsc_code || null,
+            emp_id: employee.emp_id as string,
+            name: employee.name as string,
+            email: employee.email as string,
+            phone: employee.phone,
+            city: employee.city,
+            cluster: employee.cluster,
+            role: employee.role as string,
+            manager: employee.manager,
+            date_of_joining: employee.date_of_joining,
+            date_of_birth: employee.date_of_birth,
+            blood_group: employee.blood_group,
+            account_number: employee.account_number,
+            ifsc_code: employee.ifsc_code,
             password: 'changeme123' // Default password that should be changed on first login
           }));
         resolve(validEmployees);
