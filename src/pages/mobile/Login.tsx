@@ -26,7 +26,17 @@ const MobileLogin = () => {
           title: "Login successful",
           description: "Welcome back!",
         });
-        navigate("/admin/dashboard");
+        
+        // Check if the user is an employee or admin and redirect accordingly
+        const userDataString = localStorage.getItem("yuluUser");
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          if (userData.role === "admin") {
+            navigate("/admin/dashboard");
+          } else if (userData.role === "employee") {
+            navigate("/mobile/issues");
+          }
+        }
       } else {
         toast({
           title: "Login failed",
@@ -92,7 +102,7 @@ const MobileLogin = () => {
           </form>
           
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Demo credentials are pre-filled: admin@yulu.com / admin123</p>
+            <p>For employee login, use: rahul@yulu.com / employee123</p>
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home

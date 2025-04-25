@@ -1,7 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Home, File, FilePlus, User, LogOut } from "lucide-react";
+import { Home, FilePlus, LogOut } from "lucide-react";
 import { useEffect } from "react";
 
 interface MobileLayoutProps {
@@ -14,9 +14,21 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authState.isAuthenticated || authState.role !== "employee") {
+    // Redirect if not authenticated
+    if (!authState.isAuthenticated) {
+      console.log("Not authenticated, redirecting to mobile login");
       navigate("/mobile/login");
+      return;
     }
+    
+    // If user is admin, redirect to admin dashboard
+    if (authState.role === "admin") {
+      console.log("Admin detected in mobile app, redirecting to admin dashboard");
+      navigate("/admin/dashboard");
+      return;
+    }
+
+    console.log("Employee authenticated in mobile app", authState.user);
   }, [authState, navigate]);
 
   return (

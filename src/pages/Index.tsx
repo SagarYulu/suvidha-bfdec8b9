@@ -33,6 +33,20 @@ const Index = () => {
       navigate("/mobile/login");
     }
   };
+
+  const handleEmployeeClick = () => {
+    console.log("Employee button clicked, current auth state:", authState);
+    
+    // If the user is already authenticated and is an employee, navigate directly
+    if (authState.isAuthenticated && authState.role === "employee") {
+      console.log("User is employee, navigating to mobile issues");
+      navigate("/mobile/issues");
+    } else {
+      // For demo purposes, navigate to mobile login with employee credentials prefilled
+      console.log("User is not employee or not authenticated, navigating to mobile login");
+      navigate("/mobile/login");
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
@@ -55,7 +69,7 @@ const Index = () => {
               Admin Dashboard
             </Button>
             <Button 
-              onClick={() => navigate("/mobile/login")}
+              onClick={handleEmployeeClick}
               variant="outline"
               className="py-6 border-2 border-yulu-blue text-yulu-blue hover:bg-gray-100"
             >
