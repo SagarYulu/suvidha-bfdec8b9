@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -40,7 +39,8 @@ const AdminUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
 
-  const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
+  const [newUser, setNewUser] = useState<User>({
+    id: "",
     name: "",
     email: "",
     phone: "",
@@ -93,7 +93,7 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password) {
+    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.id) {
       toast({
         title: "Validation error",
         description: "Please fill out all required fields",
@@ -108,6 +108,7 @@ const AdminUsers = () => {
       setIsAddUserDialogOpen(false);
       
       setNewUser({
+        id: "",
         name: "",
         email: "",
         phone: "",
