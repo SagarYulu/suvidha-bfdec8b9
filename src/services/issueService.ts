@@ -3,6 +3,7 @@ import { Issue, IssueComment } from "@/types";
 import { MOCK_ISSUES } from "@/data/mockData";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { supabase } from "@/integrations/supabase/client";
+import { getUsers } from "@/services/userService";
 
 // In-memory storage for the mock issues
 // Use localStorage to persist the issues between page refreshes
@@ -116,7 +117,7 @@ export const getIssueSubTypeLabel = (typeId: string, subTypeId: string): string 
   return subType?.label || subTypeId;
 };
 
-export const getAnalytics = () => {
+export const getAnalytics = async () => {
   // Calculate various analytics based on the issues data
   const totalIssues = issues.length;
   const resolvedIssues = issues.filter(i => i.status === "closed" || i.status === "resolved").length;
@@ -137,33 +138,47 @@ export const getAnalytics = () => {
     avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
   }
   
+  // Fetch user data to correctly map manager information
+  const users = await getUsers();
+  
   // City-wise issues
   const cityCounts: Record<string, number> = {};
   // Cluster-wise issues
   const clusterCounts: Record<string, number> = {};
-  // Manager-wise issues
+  // Manager-wise issues - fixed to use real user data
   const managerCounts: Record<string, number> = {};
   // Issue type distribution
   const typeCounts: Record<string, number> = {};
   
+  // Process each issue and map it to the correct user data
   issues.forEach(issue => {
-    // For a real implementation, we would join with user data to get these stats
+    // Find the user who created this issue
+    const user = users.find(u => u.id === issue.userId);
     
-    // Mock city data for demo
-    const city = ["Bangalore", "Mumbai", "Delhi"][Math.floor(Math.random() * 3)];
-    cityCounts[city] = (cityCounts[city] || 0) + 1;
-    
-    // Mock cluster data
-    const cluster = ["North", "South", "East", "West"][Math.floor(Math.random() * 4)];
-    clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
-    
-    // Mock manager data
-    const manager = ["Amit", "Priya", "Rahul"][Math.floor(Math.random() * 3)];
-    managerCounts[manager] = (managerCounts[manager] || 0) + 1;
+    if (user) {
+      // Use actual user data for analytics
+      const city = user.city || "Unknown";
+      cityCounts[city] = (cityCounts[city] || 0) + 1;
+      
+      const cluster = user.cluster || "Unknown";
+      clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
+      
+      // Use the actual manager name from user data
+      const manager = user.manager || "Unassigned";
+      managerCounts[manager] = (managerCounts[manager] || 0) + 1;
+    } else {
+      // Fallback for issues without valid user data
+      cityCounts["Unknown"] = (cityCounts["Unknown"] || 0) + 1;
+      clusterCounts["Unknown"] = (clusterCounts["Unknown"] || 0) + 1;
+      managerCounts["Unassigned"] = (managerCounts["Unassigned"] || 0) + 1;
+    }
     
     // Real issue type data
     typeCounts[issue.typeId] = (typeCounts[issue.typeId] || 0) + 1;
   });
+  
+  // Log analytics data for debugging
+  console.log("Analytics data - Manager counts:", managerCounts);
   
   return {
     totalIssues,

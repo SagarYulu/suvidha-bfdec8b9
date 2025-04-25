@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issueService";
@@ -21,7 +20,9 @@ const AdminAnalytics = () => {
     const fetchAnalyticsData = async () => {
       setIsLoading(true);
       try {
-        const analyticsData = getAnalytics();
+        console.log("Fetching analytics data...");
+        const analyticsData = await getAnalytics();
+        console.log("Analytics data received:", analyticsData);
         setAnalytics(analyticsData);
       } catch (error) {
         console.error("Error fetching analytics data:", error);
