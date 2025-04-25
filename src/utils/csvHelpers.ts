@@ -33,21 +33,21 @@ export const parseEmployeeCSV = (file: File): Promise<EmployeeData[]> => {
       skipEmptyLines: true,
       complete: (results) => {
         const validEmployees = results.data
-          .filter(validateEmployeeData)
-          .map(employee => ({
-            emp_id: employee.emp_id,
-            name: employee.name,
-            email: employee.email,
-            phone: employee.phone || null,
-            city: employee.city || null,
-            cluster: employee.cluster || null,
-            role: employee.role,
-            manager: employee.manager || null,
-            date_of_joining: employee.date_of_joining || null,
-            date_of_birth: employee.date_of_birth || null,
-            blood_group: employee.blood_group || null,
-            account_number: employee.account_number || null,
-            ifsc_code: employee.ifsc_code || null,
+          .filter((employee) => validateEmployeeData(employee as Partial<EmployeeData>))
+          .map((employee) => ({
+            emp_id: (employee as any).emp_id,
+            name: (employee as any).name,
+            email: (employee as any).email,
+            phone: (employee as any).phone || null,
+            city: (employee as any).city || null,
+            cluster: (employee as any).cluster || null,
+            role: (employee as any).role,
+            manager: (employee as any).manager || null,
+            date_of_joining: (employee as any).date_of_joining || null,
+            date_of_birth: (employee as any).date_of_birth || null,
+            blood_group: (employee as any).blood_group || null,
+            account_number: (employee as any).account_number || null,
+            ifsc_code: (employee as any).ifsc_code || null,
             password: 'changeme123' // Default password that should be changed on first login
           }));
         resolve(validEmployees);
