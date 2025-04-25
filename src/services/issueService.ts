@@ -2,6 +2,7 @@
 import { Issue, IssueComment } from "@/types";
 import { MOCK_ISSUES } from "@/data/mockData";
 import { ISSUE_TYPES } from "@/config/issueTypes";
+import { supabase } from "@/integrations/supabase/client";
 
 // In-memory storage for the mock issues
 let issues = [...MOCK_ISSUES];
@@ -60,16 +61,26 @@ export const addComment = (issueId: string, comment: Omit<IssueComment, 'id' | '
     createdAt: now,
   };
   
+  // Log the comment being added for debugging purposes
+  console.log(`Adding comment to issue ${issueId}:`, newComment);
+  
   issues = issues.map(issue => {
     if (issue.id === issueId) {
-      return {
+      const updatedIssue = {
         ...issue,
         comments: [...issue.comments, newComment],
         updatedAt: now,
       };
+      console.log(`Updated issue with comments:`, updatedIssue.comments);
+      return updatedIssue;
     }
     return issue;
   });
+  
+  // Log all issues after the update for debugging
+  console.log(`All issues after comment addition:`, 
+    issues.map(i => ({ id: i.id, commentCount: i.comments.length }))
+  );
   
   return getIssueById(issueId);
 };

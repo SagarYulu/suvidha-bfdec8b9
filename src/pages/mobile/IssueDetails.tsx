@@ -45,6 +45,8 @@ const MobileIssueDetails = () => {
         }
         
         setIssue(issueData);
+        console.log("Fetched issue data:", issueData);
+        console.log("Comments count:", issueData.comments?.length || 0);
         
         // Fetch commenter names
         const uniqueUserIds = new Set<string>();
@@ -104,12 +106,15 @@ const MobileIssueDetails = () => {
     setIsSubmitting(true);
     
     try {
+      console.log("Adding comment as user:", authState.user.id);
+      
       const updatedIssue = await addComment(id, {
         userId: authState.user.id,
         content: newComment.trim(),
       });
       
       if (updatedIssue) {
+        console.log("Updated issue after adding comment:", updatedIssue);
         setIssue(updatedIssue);
         setNewComment("");
         toast({
@@ -161,6 +166,56 @@ const MobileIssueDetails = () => {
       minute: "2-digit",
     });
   };
+
+  useEffect(() => {
+    // Poll for updates every 30 seconds to get new comments
+    const intervalId = setInterval(async () => {
+      if (id) {
+        try {
+          const refreshedIssue = await getIssueById(id);
+          
+          if (refreshedIssue && refreshedIssue.comments.length !== issue?.comments.length) {
+            console.log("Refreshed issue with updated comments:", refreshedIssue);
+            setIssue(refreshedIssue);
+            
+            // Update commenter names for any new comments
+            const uniqueUserIds = new Set<string>();
+            refreshedIssue.comments.forEach(comment => {
+              if (!commenterNames[comment.userId]) {
+                uniqueUserIds.add(comment.userId);
+              }
+            });
+            
+            if (uniqueUserIds.size > 0) {
+              const namesPromises = Array.from(uniqueUserIds).map(async (userId) => {
+                try {
+                  const user = await getUserById(userId);
+                  return user ? { userId, name: user.name } : null;
+                } catch (error) {
+                  return null;
+                }
+              });
+              
+              const results = await Promise.all(namesPromises);
+              setCommenterNames(prev => {
+                const updated = { ...prev };
+                results.forEach(result => {
+                  if (result) {
+                    updated[result.userId] = result.name;
+                  }
+                });
+                return updated;
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error polling for updates:", error);
+        }
+      }
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, [id, issue, commenterNames]);
 
   if (isLoading) {
     return (
@@ -228,7 +283,7 @@ const MobileIssueDetails = () => {
                         {commenterNames[comment.userId]?.[0] || "?"}
                       </div>
                       <span className="ml-2 font-medium text-sm">
-                        {commenterNames[comment.userId] || "Unknown user"}
+                        {commenterNames[comment.userId] || (comment.userId === "1" ? "Admin" : "Unknown user")}
                       </span>
                     </div>
                     <span className="text-xs text-gray-500">
