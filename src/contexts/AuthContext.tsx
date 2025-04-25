@@ -10,8 +10,10 @@ interface AuthContextType {
   logout: () => void;
 }
 
+// Create the context with a default undefined value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Export the provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
@@ -74,6 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("User logged out");
   };
 
+  // Provide the context value to children
   return (
     <AuthContext.Provider value={{ authState, login, logout }}>
       {children}
@@ -81,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// Export the useAuth hook
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
