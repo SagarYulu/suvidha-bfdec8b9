@@ -39,22 +39,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // In a real app, this would make an API request
+    console.log('Login attempt:', { email, password }); // Added logging
+
+    // Log all mock users for debugging
+    console.log('Available mock users:', MOCK_USERS);
+
+    // Find user with exact match, case-sensitive
     const user = MOCK_USERS.find(
-      (u) => u.email === email && u.password === password
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
     );
 
     if (user) {
+      console.log('User found:', user); // Added logging for successful match
       setAuthState({
         isAuthenticated: true,
         user,
         role: user.role,
       });
       localStorage.setItem("yuluUser", JSON.stringify(user));
-      console.log("User logged in:", user);
       return true;
+    } else {
+      console.log('No matching user found'); // Added logging for failed login
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
