@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -32,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Search, Trash, UserPlus } from "lucide-react";
+import BulkUserUpload from "@/components/BulkUserUpload";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -40,7 +40,6 @@ const AdminUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
 
-  // Fix: Properly type the newUser state using Omit<User, 'id'> to match createUser parameter type
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     name: "",
     email: "",
@@ -49,7 +48,7 @@ const AdminUsers = () => {
     city: "",
     cluster: "",
     manager: "",
-    role: "employee", // Explicitly set as "employee" | "admin"
+    role: "employee",
     password: "",
   });
 
@@ -93,7 +92,6 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    // Simple validation
     if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password) {
       toast({
         title: "Validation error",
@@ -108,7 +106,6 @@ const AdminUsers = () => {
       setUsers([...users, createdUser]);
       setIsAddUserDialogOpen(false);
       
-      // Reset form
       setNewUser({
         name: "",
         email: "",
@@ -175,138 +172,145 @@ const AdminUsers = () => {
             />
           </div>
           
-          <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-yulu-blue hover:bg-blue-700">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={newUser.name}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={handleInputChange}
-                      placeholder="john@yulu.com"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={newUser.phone}
-                      onChange={handleInputChange}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="employeeId">Employee ID *</Label>
-                    <Input
-                      id="employeeId"
-                      name="employeeId"
-                      value={newUser.employeeId}
-                      onChange={handleInputChange}
-                      placeholder="YL001"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={newUser.city}
-                      onChange={handleInputChange}
-                      placeholder="Bangalore"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cluster">Cluster</Label>
-                    <Input
-                      id="cluster"
-                      name="cluster"
-                      value={newUser.cluster}
-                      onChange={handleInputChange}
-                      placeholder="North"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="manager">Manager</Label>
-                    <Input
-                      id="manager"
-                      name="manager"
-                      value={newUser.manager}
-                      onChange={handleInputChange}
-                      placeholder="Manager name"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    placeholder="Password"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button className="bg-yulu-blue hover:bg-blue-700" onClick={handleAddUser}>
+          <div className="flex space-x-2">
+            <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-yulu-blue hover:bg-blue-700">
+                  <UserPlus className="mr-2 h-4 w-4" />
                   Add User
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Add New User</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={newUser.name}
+                        onChange={handleInputChange}
+                        placeholder="John Doe"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        value={newUser.email}
+                        onChange={handleInputChange}
+                        placeholder="john@yulu.com"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="phone">Phone *</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        value={newUser.phone}
+                        onChange={handleInputChange}
+                        placeholder="9876543210"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="employeeId">Employee ID *</Label>
+                      <Input
+                        id="employeeId"
+                        name="employeeId"
+                        value={newUser.employeeId}
+                        onChange={handleInputChange}
+                        placeholder="YL001"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        value={newUser.city}
+                        onChange={handleInputChange}
+                        placeholder="Bangalore"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="cluster">Cluster</Label>
+                      <Input
+                        id="cluster"
+                        name="cluster"
+                        value={newUser.cluster}
+                        onChange={handleInputChange}
+                        placeholder="North"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="manager">Manager</Label>
+                      <Input
+                        id="manager"
+                        name="manager"
+                        value={newUser.manager}
+                        onChange={handleInputChange}
+                        placeholder="Manager name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select
+                        value={newUser.role}
+                        onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="employee">Employee</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password *</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      value={newUser.password}
+                      onChange={handleInputChange}
+                      placeholder="Password"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button className="bg-yulu-blue hover:bg-blue-700" onClick={handleAddUser}>
+                    Add User
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+        
+        <div className="border rounded-lg p-4 bg-white">
+          <h3 className="text-lg font-medium mb-4">Bulk User Upload</h3>
+          <BulkUserUpload />
         </div>
         
         {isLoading ? (
