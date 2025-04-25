@@ -5,7 +5,20 @@ import { ISSUE_TYPES } from "@/config/issueTypes";
 import { supabase } from "@/integrations/supabase/client";
 
 // In-memory storage for the mock issues
-let issues = [...MOCK_ISSUES];
+// Use localStorage to persist the issues between page refreshes
+const getStoredIssues = (): Issue[] => {
+  const storedIssues = localStorage.getItem('issues');
+  return storedIssues ? JSON.parse(storedIssues) : [...MOCK_ISSUES];
+};
+
+// Initialize issues from localStorage or fallback to MOCK_ISSUES
+let issues = getStoredIssues();
+
+// Helper function to persist issues to localStorage
+const persistIssues = (updatedIssues: Issue[]) => {
+  localStorage.setItem('issues', JSON.stringify(updatedIssues));
+  issues = updatedIssues;
+};
 
 export const getIssues = (): Promise<Issue[]> => {
   return Promise.resolve(issues);
@@ -31,14 +44,16 @@ export const createIssue = (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' 
     comments: [],
   };
   
-  issues = [...issues, newIssue];
+  const updatedIssues = [...issues, newIssue];
+  persistIssues(updatedIssues);
+  
   return Promise.resolve(newIssue);
 };
 
 export const updateIssueStatus = (id: string, status: Issue['status']): Promise<Issue | undefined> => {
   const now = new Date().toISOString();
   
-  issues = issues.map(issue => {
+  const updatedIssues = issues.map(issue => {
     if (issue.id === id) {
       return {
         ...issue,
@@ -49,6 +64,8 @@ export const updateIssueStatus = (id: string, status: Issue['status']): Promise<
     }
     return issue;
   });
+  
+  persistIssues(updatedIssues);
   
   return getIssueById(id);
 };
@@ -64,7 +81,7 @@ export const addComment = (issueId: string, comment: Omit<IssueComment, 'id' | '
   // Log the comment being added for debugging purposes
   console.log(`Adding comment to issue ${issueId}:`, newComment);
   
-  issues = issues.map(issue => {
+  const updatedIssues = issues.map(issue => {
     if (issue.id === issueId) {
       const updatedIssue = {
         ...issue,
@@ -76,6 +93,9 @@ export const addComment = (issueId: string, comment: Omit<IssueComment, 'id' | '
     }
     return issue;
   });
+  
+  // Persist the updated issues to localStorage
+  persistIssues(updatedIssues);
   
   // Log all issues after the update for debugging
   console.log(`All issues after comment addition:`, 
