@@ -1,9 +1,37 @@
 
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { authState } = useAuth();
+  
+  useEffect(() => {
+    // If already logged in, show welcoming toast
+    if (authState.isAuthenticated) {
+      toast({
+        title: "Welcome back!",
+        description: `You are logged in as ${authState.user?.name}`,
+      });
+    }
+  }, [authState]);
+
+  const handleAdminClick = () => {
+    // If the user is already authenticated and is an admin, navigate directly
+    if (authState.isAuthenticated && authState.role === "admin") {
+      navigate("/admin/dashboard");
+    } else {
+      // For demo purposes, navigating to the dashboard even if not logged in
+      // The AdminLayout component will redirect to / if not an admin
+      navigate("/admin/dashboard");
+      
+      // In a real app with login page, you might want to:
+      // navigate("/login?redirect=/admin/dashboard");
+    }
+  };
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
@@ -20,7 +48,7 @@ const Index = () => {
           </div>
           <div className="flex flex-col space-y-4">
             <Button 
-              onClick={() => navigate("/admin/dashboard")}
+              onClick={handleAdminClick}
               className="py-6 bg-yulu-blue hover:bg-blue-700"
             >
               Admin Dashboard

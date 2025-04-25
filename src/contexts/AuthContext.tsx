@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   authState: AuthState;
@@ -29,6 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user,
           role: user.role,
         });
+        console.log("Restored user session:", user);
       } catch (error) {
         console.error("Failed to parse stored user data:", error);
         localStorage.removeItem("yuluUser");
@@ -49,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: user.role,
       });
       localStorage.setItem("yuluUser", JSON.stringify(user));
+      console.log("User logged in:", user);
       return true;
     }
     return false;
@@ -61,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: null,
     });
     localStorage.removeItem("yuluUser");
+    console.log("User logged out");
   };
 
   return (
