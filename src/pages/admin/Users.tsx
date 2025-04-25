@@ -40,8 +40,8 @@ const AdminUsers = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
 
-  // New user form state
-  const [newUser, setNewUser] = useState({
+  // Fix: Properly type the newUser state using Omit<User, 'id'> to match createUser parameter type
+  const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     name: "",
     email: "",
     phone: "",
@@ -49,7 +49,7 @@ const AdminUsers = () => {
     city: "",
     cluster: "",
     manager: "",
-    role: "employee",
+    role: "employee", // Explicitly set as "employee" | "admin"
     password: "",
   });
 
