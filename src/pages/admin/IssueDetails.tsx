@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -31,7 +30,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Clock, Mail, MessageSquare, Phone, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Clock, Mail, MessageSquare, Phone, Send, User as UserIcon } from "lucide-react";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -314,46 +313,75 @@ const AdminIssueDetails = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="flex flex-col space-y-4 max-h-[400px] overflow-y-auto p-2">
                   {issue.comments.length > 0 ? (
-                    issue.comments.map((comment) => (
-                      <div key={comment.id} className="border p-4 rounded-md">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 rounded-full bg-yulu-blue text-white flex items-center justify-center">
-                              {commenterNames[comment.userId]?.[0] || "?"}
+                    issue.comments.map((comment) => {
+                      const isAdmin = comment.userId === "1";
+                      const userName = commenterNames[comment.userId] || "Unknown user";
+                      const userInitial = userName.charAt(0).toUpperCase();
+                      
+                      return (
+                        <div 
+                          key={comment.id} 
+                          className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div 
+                            className={`flex max-w-[75%] ${isAdmin ? 'flex-row-reverse' : 'flex-row'}`}
+                          >
+                            <div 
+                              className={`w-8 h-8 rounded-full flex items-center justify-center text-white shrink-0 ${
+                                isAdmin ? 'ml-2 bg-blue-600' : 'mr-2 bg-yulu-blue'
+                              }`}
+                            >
+                              {isAdmin ? 'A' : userInitial}
                             </div>
-                            <span className="ml-2 font-medium">
-                              {commenterNames[comment.userId] || "Unknown user"}
-                            </span>
+                            
+                            <div 
+                              className={`rounded-lg px-4 py-2 ${
+                                isAdmin 
+                                  ? 'bg-blue-100 text-blue-900' 
+                                  : 'bg-gray-100 text-gray-900'
+                              }`}
+                            >
+                              <div className="text-xs font-semibold mb-1">
+                                {userName}
+                              </div>
+                              <div className="text-sm">{comment.content}</div>
+                              <div className="text-xs text-gray-500 mt-1 text-right">
+                                {formatDate(comment.createdAt)}
+                              </div>
+                            </div>
                           </div>
-                          <span className="text-sm text-gray-500">
-                            {formatDate(comment.createdAt)}
-                          </span>
                         </div>
-                        <p>{comment.content}</p>
-                      </div>
-                    ))
+                      );
+                    })
                   ) : (
-                    <p className="text-gray-500">No comments yet</p>
+                    <div className="text-center py-8 text-gray-500">
+                      No comments yet
+                    </div>
                   )}
                 </div>
               </CardContent>
-              <CardFooter>
-                <form onSubmit={handleAddComment} className="w-full">
-                  <Textarea
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="mb-3"
-                    rows={3}
-                  />
+              <CardFooter className="border-t pt-4">
+                <form onSubmit={handleAddComment} className="w-full flex items-center">
+                  <div className="flex-grow mr-2">
+                    <Textarea
+                      placeholder="Add a comment..."
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="min-h-[60px]"
+                    />
+                  </div>
                   <Button 
                     type="submit" 
-                    className="ml-auto bg-yulu-blue hover:bg-blue-700"
+                    className="bg-yulu-blue hover:bg-blue-700 h-[60px] px-4"
                     disabled={isSubmittingComment}
                   >
-                    {isSubmittingComment ? "Adding..." : "Add Comment"}
+                    {isSubmittingComment ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
                   </Button>
                 </form>
               </CardFooter>
