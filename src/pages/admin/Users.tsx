@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -30,7 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Trash, UserPlus } from "lucide-react";
+import { Search, Trash, UserPlus, Users } from "lucide-react";
+import BulkUserUpload from "@/components/BulkUserUpload";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -51,6 +54,10 @@ const AdminUsers = () => {
     role: "employee",
     password: "",
     dateOfJoining: "",
+    bloodGroup: "",
+    dateOfBirth: "",
+    accountNumber: "",
+    ifscCode: ""
   });
 
   useEffect(() => {
@@ -119,6 +126,10 @@ const AdminUsers = () => {
         role: "employee",
         password: "",
         dateOfJoining: "",
+        bloodGroup: "",
+        dateOfBirth: "",
+        accountNumber: "",
+        ifscCode: ""
       });
       
       toast({
@@ -182,152 +193,209 @@ const AdminUsers = () => {
                 Add User
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-4xl">
               <DialogHeader>
                 <DialogTitle>Add New User</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="id">User ID *</Label>
-                    <Input
-                      id="id"
-                      name="id"
-                      value={newUser.id}
-                      onChange={handleInputChange}
-                      placeholder="User ID"
-                    />
+              <Tabs defaultValue="manual" className="w-full">
+                <TabsList className="mb-4 grid w-full grid-cols-2">
+                  <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+                  <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+                </TabsList>
+                <TabsContent value="manual">
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="id">User ID *</Label>
+                        <Input
+                          id="id"
+                          name="id"
+                          value={newUser.id}
+                          onChange={handleInputChange}
+                          placeholder="User ID"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Name *</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={newUser.name}
+                          onChange={handleInputChange}
+                          placeholder="John Doe"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={newUser.email}
+                          onChange={handleInputChange}
+                          placeholder="john@yulu.com"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="employeeId">Employee ID *</Label>
+                        <Input
+                          id="employeeId"
+                          name="employeeId"
+                          value={newUser.employeeId}
+                          onChange={handleInputChange}
+                          placeholder="YL001"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Role *</Label>
+                        <Select
+                          value={newUser.role}
+                          onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfJoining">Date of Joining</Label>
+                        <Input
+                          id="dateOfJoining"
+                          name="dateOfJoining"
+                          type="date"
+                          value={newUser.dateOfJoining}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone *</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          value={newUser.phone}
+                          onChange={handleInputChange}
+                          placeholder="9876543210"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="city">City</Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          value={newUser.city}
+                          onChange={handleInputChange}
+                          placeholder="Bangalore"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                        <Input
+                          id="dateOfBirth"
+                          name="dateOfBirth"
+                          type="date"
+                          value={newUser.dateOfBirth}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bloodGroup">Blood Group</Label>
+                        <Input
+                          id="bloodGroup"
+                          name="bloodGroup"
+                          value={newUser.bloodGroup}
+                          onChange={handleInputChange}
+                          placeholder="A+, B-, O+, etc."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="accountNumber">Account Number</Label>
+                        <Input
+                          id="accountNumber"
+                          name="accountNumber"
+                          value={newUser.accountNumber}
+                          onChange={handleInputChange}
+                          placeholder="Account Number"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="ifscCode">IFSC Code</Label>
+                        <Input
+                          id="ifscCode"
+                          name="ifscCode"
+                          value={newUser.ifscCode}
+                          onChange={handleInputChange}
+                          placeholder="IFSC Code"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cluster">Cluster</Label>
+                        <Input
+                          id="cluster"
+                          name="cluster"
+                          value={newUser.cluster}
+                          onChange={handleInputChange}
+                          placeholder="North"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manager">Manager</Label>
+                        <Input
+                          id="manager"
+                          name="manager"
+                          value={newUser.manager}
+                          onChange={handleInputChange}
+                          placeholder="Manager name"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        value={newUser.password}
+                        onChange={handleInputChange}
+                        placeholder="Password"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name *</Label>
-                    <Input
-                      id="name"
-                      name="name"
-                      value={newUser.name}
-                      onChange={handleInputChange}
-                      placeholder="John Doe"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={newUser.email}
-                      onChange={handleInputChange}
-                      placeholder="john@yulu.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="employeeId">Employee ID *</Label>
-                    <Input
-                      id="employeeId"
-                      name="employeeId"
-                      value={newUser.employeeId}
-                      onChange={handleInputChange}
-                      placeholder="YL001"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role *</Label>
-                    <Select
-                      value={newUser.role}
-                      onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="employee">Employee</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfJoining">Date of Joining</Label>
-                    <Input
-                      id="dateOfJoining"
-                      name="dateOfJoining"
-                      type="date"
-                      value={newUser.dateOfJoining}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      value={newUser.phone}
-                      onChange={handleInputChange}
-                      placeholder="9876543210"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      name="city"
-                      value={newUser.city}
-                      onChange={handleInputChange}
-                      placeholder="Bangalore"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cluster">Cluster</Label>
-                    <Input
-                      id="cluster"
-                      name="cluster"
-                      value={newUser.cluster}
-                      onChange={handleInputChange}
-                      placeholder="North"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="manager">Manager</Label>
-                    <Input
-                      id="manager"
-                      name="manager"
-                      value={newUser.manager}
-                      onChange={handleInputChange}
-                      placeholder="Manager name"
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={newUser.password}
-                    onChange={handleInputChange}
-                    placeholder="Password"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogClose>
-                <Button className="bg-yulu-blue hover:bg-blue-700" onClick={handleAddUser}>
-                  Add User
-                </Button>
-              </DialogFooter>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button className="bg-yulu-blue hover:bg-blue-700" onClick={handleAddUser}>
+                      Add User
+                    </Button>
+                  </DialogFooter>
+                </TabsContent>
+                <TabsContent value="bulk">
+                  <BulkUserUpload />
+                </TabsContent>
+              </Tabs>
             </DialogContent>
           </Dialog>
         </div>

@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -10,6 +11,10 @@ export interface User {
   role: "employee" | "admin";
   password: string;
   dateOfJoining?: string;
+  bloodGroup?: string;
+  dateOfBirth?: string;
+  accountNumber?: string;
+  ifscCode?: string;
 }
 
 export interface Issue {

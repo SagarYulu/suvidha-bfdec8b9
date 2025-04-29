@@ -18,7 +18,11 @@ const mapEmployeeToUser = (employee: any): User => {
     manager: employee.manager || "",
     role: employee.role as "admin" | "employee" || "employee",
     password: employee.password,
-    dateOfJoining: employee.date_of_joining || ""
+    dateOfJoining: employee.date_of_joining || "",
+    bloodGroup: employee.blood_group || "",
+    dateOfBirth: employee.date_of_birth || "",
+    accountNumber: employee.account_number || "",
+    ifscCode: employee.ifsc_code || ""
   };
 };
 
@@ -64,7 +68,11 @@ const migrateUsersToSupabase = async () => {
     manager: user.manager,
     role: user.role,
     password: user.password,
-    date_of_joining: user.dateOfJoining
+    date_of_joining: user.dateOfJoining,
+    blood_group: user.bloodGroup,
+    date_of_birth: user.dateOfBirth,
+    account_number: user.accountNumber,
+    ifsc_code: user.ifscCode
   }));
   
   return await supabase.from('employees').upsert(employeesData, { 
@@ -127,7 +135,11 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
       manager: user.manager,
       role: user.role,
       password: user.password,
-      date_of_joining: user.dateOfJoining
+      date_of_joining: user.dateOfJoining,
+      date_of_birth: user.dateOfBirth,
+      blood_group: user.bloodGroup,
+      account_number: user.accountNumber,
+      ifsc_code: user.ifscCode
     };
     
     const { data: employee, error } = await supabase
@@ -167,6 +179,10 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     if (userData.role) employeeUpdate.role = userData.role;
     if (userData.password) employeeUpdate.password = userData.password;
     if (userData.dateOfJoining) employeeUpdate.date_of_joining = userData.dateOfJoining;
+    if (userData.dateOfBirth) employeeUpdate.date_of_birth = userData.dateOfBirth;
+    if (userData.bloodGroup) employeeUpdate.blood_group = userData.bloodGroup;
+    if (userData.accountNumber) employeeUpdate.account_number = userData.accountNumber;
+    if (userData.ifscCode) employeeUpdate.ifsc_code = userData.ifscCode;
     
     const { data: employee, error } = await supabase
       .from('employees')
