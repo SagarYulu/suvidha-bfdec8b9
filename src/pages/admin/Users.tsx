@@ -219,6 +219,7 @@ const AdminUsers = () => {
                 </TabsList>
                 <TabsContent value="manual">
                   <div className="grid gap-4 py-4">
+                    {/* Arrange fields in the same order as the CSV template */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="id">User ID *</Label>
@@ -227,31 +228,7 @@ const AdminUsers = () => {
                           name="id"
                           value={newUser.id}
                           onChange={handleInputChange}
-                          placeholder="User ID"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Name *</Label>
-                        <Input
-                          id="name"
-                          name="name"
-                          value={newUser.name}
-                          onChange={handleInputChange}
-                          placeholder="John Doe"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={newUser.email}
-                          onChange={handleInputChange}
-                          placeholder="john@yulu.com"
+                          placeholder="User ID (e.g. USR001)"
                         />
                       </div>
                       <div className="space-y-2">
@@ -261,36 +238,31 @@ const AdminUsers = () => {
                           name="employeeId"
                           value={newUser.employeeId}
                           onChange={handleInputChange}
-                          placeholder="YL001"
+                          placeholder="Employee ID (e.g. YL001)"
                         />
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="role">Role *</Label>
-                        <Select
-                          value={newUser.role}
-                          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ROLE_OPTIONS.map(role => (
-                              <SelectItem key={role} value={role}>{role}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="name">Name *</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={newUser.name}
+                          onChange={handleInputChange}
+                          placeholder="Full Name"
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="dateOfJoining">Date of Joining</Label>
+                        <Label htmlFor="email">Email *</Label>
                         <Input
-                          id="dateOfJoining"
-                          name="dateOfJoining"
-                          type="date"
-                          value={newUser.dateOfJoining}
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={newUser.email}
                           onChange={handleInputChange}
+                          placeholder="email@yulu.com"
                         />
                       </div>
                     </div>
@@ -343,6 +315,48 @@ const AdminUsers = () => {
                         </Select>
                       </div>
                       <div className="space-y-2">
+                        <Label htmlFor="manager">Manager</Label>
+                        <Input
+                          id="manager"
+                          name="manager"
+                          value={newUser.manager}
+                          onChange={handleInputChange}
+                          placeholder="Manager name"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="role">Role *</Label>
+                        <Select
+                          value={newUser.role}
+                          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROLE_OPTIONS.map(role => (
+                              <SelectItem key={role} value={role}>{role}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfJoining">Date of Joining</Label>
+                        <Input
+                          id="dateOfJoining"
+                          name="dateOfJoining"
+                          type="date"
+                          value={newUser.dateOfJoining}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
                         <Label htmlFor="dateOfBirth">Date of Birth</Label>
                         <Input
                           id="dateOfBirth"
@@ -352,9 +366,6 @@ const AdminUsers = () => {
                           onChange={handleInputChange}
                         />
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="bloodGroup">Blood Group</Label>
                         <Input
@@ -363,16 +374,6 @@ const AdminUsers = () => {
                           value={newUser.bloodGroup}
                           onChange={handleInputChange}
                           placeholder="A+, B-, O+, etc."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="manager">Manager</Label>
-                        <Input
-                          id="manager"
-                          name="manager"
-                          value={newUser.manager}
-                          onChange={handleInputChange}
-                          placeholder="Manager name"
                         />
                       </div>
                     </div>

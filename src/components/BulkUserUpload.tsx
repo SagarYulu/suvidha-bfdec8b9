@@ -365,6 +365,7 @@ const BulkUserUpload = () => {
                           
                           <CardContent className="p-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Arrange edit fields in the same order as the CSV template */}
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">User ID</label>
                                 <Input 
@@ -408,23 +409,6 @@ const BulkUserUpload = () => {
                                   onChange={(e) => handleFieldEdit(rowKey, 'phone', e.target.value)}
                                   className="h-8 text-sm"
                                 />
-                              </div>
-                              
-                              <div className="space-y-2">
-                                <label className="text-xs font-medium text-gray-500">Role</label>
-                                <Select
-                                  value={getRowValue(rowKey, 'role', item.rowData.role)}
-                                  onValueChange={(value) => handleFieldEdit(rowKey, 'role', value)}
-                                >
-                                  <SelectTrigger className="h-8 text-sm">
-                                    <SelectValue placeholder="Select role" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {ROLE_OPTIONS.map((role, roleIdx) => (
-                                      <SelectItem key={`role-${rowKey}-${roleIdx}`} value={role}>{role}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
                               </div>
                               
                               <div className="space-y-2">
@@ -474,6 +458,23 @@ const BulkUserUpload = () => {
                                   onChange={(e) => handleFieldEdit(rowKey, 'manager', e.target.value)}
                                   className="h-8 text-sm"
                                 />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Role</label>
+                                <Select
+                                  value={getRowValue(rowKey, 'role', item.rowData.role)}
+                                  onValueChange={(value) => handleFieldEdit(rowKey, 'role', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select role" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ROLE_OPTIONS.map((role, roleIdx) => (
+                                      <SelectItem key={`role-${rowKey}-${roleIdx}`} value={role}>{role}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
                               </div>
                               
                               <div className="space-y-2">
@@ -544,10 +545,11 @@ const BulkUserUpload = () => {
                         <TableHead>Employee ID</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Role</TableHead>
+                        <TableHead>Phone</TableHead>
                         <TableHead>City</TableHead>
                         <TableHead>Cluster</TableHead>
                         <TableHead>Manager</TableHead>
+                        <TableHead>Role</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -557,10 +559,11 @@ const BulkUserUpload = () => {
                           <TableCell>{emp.emp_id}</TableCell>
                           <TableCell>{emp.name}</TableCell>
                           <TableCell>{emp.email}</TableCell>
-                          <TableCell>{emp.role}</TableCell>
+                          <TableCell>{emp.phone || '-'}</TableCell>
                           <TableCell>{emp.city || '-'}</TableCell>
                           <TableCell>{emp.cluster || '-'}</TableCell>
                           <TableCell>{emp.manager || '-'}</TableCell>
+                          <TableCell>{emp.role}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

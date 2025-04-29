@@ -207,8 +207,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             phone: row.phone || null,
             city: row.city || null,
             cluster: row.cluster || null,
-            role: row.role || '',
             manager: row.manager || null,
+            role: row.role || '',
             date_of_joining: row.date_of_joining || null,
             date_of_birth: row.date_of_birth || null,
             blood_group: row.blood_group || null,
@@ -218,15 +218,15 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Generate a structured data object for display
           const rowData: RowData = {
-            id: row.id || '', // Added User ID field
+            id: row.id || '',
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
             phone: row.phone || '',
             city: row.city || '',
             cluster: row.cluster || '',
-            role: row.role || '',
             manager: row.manager || '',
+            role: row.role || '',
             date_of_joining: row.date_of_joining || '',
             date_of_birth: row.date_of_birth || '',
             blood_group: row.blood_group || '',
@@ -264,21 +264,22 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 };
 
 export const getCSVTemplate = () => {
+  // Ensure headers match the exact order shown in the image
   const headers = [
-    'id',         // Added User ID field
-    'emp_id',
-    'name',
-    'email',
-    'phone',
-    'city',
-    'cluster',
-    'manager',     // Reordered manager to be after city/cluster
-    'role',
-    'date_of_joining',
-    'date_of_birth',
-    'blood_group',
-    'account_number',
-    'ifsc_code'
+    'id',          // User ID
+    'emp_id',      // Employee ID
+    'name',        // Name
+    'email',       // Email
+    'phone',       // Phone
+    'city',        // City
+    'cluster',     // Cluster
+    'manager',     // Manager
+    'role',        // Role
+    'date_of_joining', // Date of Joining
+    'date_of_birth',   // Date of Birth
+    'blood_group',     // Blood Group
+    'account_number',  // Account Number
+    'ifsc_code'        // IFSC Code
   ];
 
   const csvContent = [
