@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import {
   ChevronLeft,
   LayoutDashboard,
@@ -18,16 +18,24 @@ import { Toaster } from '@/components/ui/toaster';
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
+  requiresRole?: Array<"hr_admin" | "city_head" | "ops">;
 }
 
 interface SidebarLinkProps {
   href: string;
   icon: React.ElementType;
   label: string;
+  showForRoles: Array<"hr_admin" | "city_head" | "ops">;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) => {
+const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, showForRoles }) => {
+  const { authState } = useAuth();
   const isActive = window.location.pathname === href;
+  
+  // Don't render the link if the user doesn't have the required role
+  if (!authState.user?.role || !showForRoles.includes(authState.user.role as any)) {
+    return null;
+  }
 
   return (
     <Link
@@ -45,13 +53,37 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) =>
   );
 };
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
-  const { logout } = useAuth();
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiresRole = ["hr_admin", "city_head", "ops"] }) => {
+  const { logout, authState } = useAuth();
   const navigate = useNavigate();
+  
+  // Check if the user is authenticated and has the required role
+  if (!authState.isAuthenticated) {
+    return <Navigate to="/mobile/login" />;
+  }
+
+  // Check if the user has the required role for this page
+  if (!requiresRole.includes(authState.role as any)) {
+    return <Navigate to="/admin/dashboard" />;
+  }
   
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/mobile/login');
+  };
+
+  // Map user role to a display name
+  const getRoleDisplayName = (role: string) => {
+    switch(role) {
+      case 'hr_admin':
+        return 'HR Admin';
+      case 'city_head':
+        return 'City Head';
+      case 'ops':
+        return 'Operations';
+      default:
+        return 'Administrator';
+    }
   };
 
   return (
@@ -65,10 +97,30 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
         </div>
 
         <div className="py-3">
-          <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
-          <SidebarLink href="/admin/users" icon={Users} label="Users" />
-          <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+          <SidebarLink 
+            href="/admin/dashboard" 
+            icon={LayoutDashboard} 
+            label="Dashboard" 
+            showForRoles={["hr_admin", "city_head", "ops"]}
+          />
+          <SidebarLink 
+            href="/admin/issues" 
+            icon={TicketCheck} 
+            label="Issues" 
+            showForRoles={["hr_admin", "city_head", "ops"]}
+          />
+          <SidebarLink 
+            href="/admin/users" 
+            icon={Users} 
+            label="Users" 
+            showForRoles={["hr_admin"]} // Only HR Admin can access Users page
+          />
+          <SidebarLink 
+            href="/admin/analytics" 
+            icon={BarChart3} 
+            label="Analytics" 
+            showForRoles={["hr_admin", "city_head", "ops"]}
+          />
         </div>
 
         <div className="mt-auto p-4 border-t">
@@ -96,10 +148,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-gray-700">
-                Administrator
+                {authState.user?.name} ({getRoleDisplayName(authState.role as string)})
               </span>
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                A
+                {authState.user?.name ? authState.user.name[0].toUpperCase() : 'A'}
               </div>
             </div>
           </div>

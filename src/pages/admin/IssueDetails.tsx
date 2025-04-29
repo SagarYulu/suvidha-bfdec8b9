@@ -231,7 +231,7 @@ const AdminIssueDetails = () => {
   }
 
   return (
-    <AdminLayout title="Issue Details">
+    <AdminLayout title="Issue Details" requiresRole={["hr_admin", "city_head", "ops"]}>
       <div className="space-y-6">
         <div className="flex items-center mb-8">
           <Button 

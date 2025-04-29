@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -83,7 +82,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <AdminLayout title="Dashboard">
+    <AdminLayout title="Dashboard" requiresRole={["hr_admin", "city_head", "ops"]}>
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>

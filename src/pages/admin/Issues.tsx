@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -128,7 +127,7 @@ const AdminIssues = () => {
   };
 
   return (
-    <AdminLayout title="Issues Management">
+    <AdminLayout title="Issues Management" requiresRole={["hr_admin", "city_head", "ops"]}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex space-x-4 items-center">

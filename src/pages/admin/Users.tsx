@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -187,7 +186,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <AdminLayout title="Users Management">
+    <AdminLayout title="User Management" requiresRole={["hr_admin"]}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="relative w-64">
