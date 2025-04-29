@@ -10,7 +10,7 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   const errors: string[] = [];
   
   // Required fields
-  const requiredFields = ['emp_id', 'name', 'email', 'role'];
+  const requiredFields = ['id', 'emp_id', 'name', 'email', 'role'];
   const missingFields = requiredFields.filter(field => !data[field as keyof EmployeeData]);
   
   if (missingFields.length > 0) {
@@ -200,6 +200,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           
           // Convert CSV data to employee format
           const employeeData: Partial<EmployeeData> = {
+            id: row.id || '', // Added User ID field
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -217,6 +218,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Generate a structured data object for display
           const rowData: RowData = {
+            id: row.id || '', // Added User ID field
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -263,14 +265,15 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
 export const getCSVTemplate = () => {
   const headers = [
+    'id',         // Added User ID field
     'emp_id',
     'name',
     'email',
     'phone',
     'city',
     'cluster',
+    'manager',     // Reordered manager to be after city/cluster
     'role',
-    'manager',
     'date_of_joining',
     'date_of_birth',
     'blood_group',
@@ -280,8 +283,8 @@ export const getCSVTemplate = () => {
 
   const csvContent = [
     headers.join(','),
-    'YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Mechanic,Jane Smith,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
-    'YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Zone Screener,Mark Johnson,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
+    'USR001,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
+    'USR002,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
   ].join('\n');
 
   return csvContent;

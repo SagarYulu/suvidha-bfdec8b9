@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -119,6 +118,7 @@ const BulkUserUpload = () => {
       
       // Convert the edited row data to the employee data format
       const employeeData: Partial<CSVEmployeeData> = {
+        id: editedRow.id || undefined, // Include user ID from CSV
         emp_id: editedRow.emp_id || '',
         name: editedRow.name || '',
         email: editedRow.email || '',
@@ -189,6 +189,7 @@ const BulkUserUpload = () => {
       
       // Map CSV fields to employees table structure
       const employeesData = employees.map(emp => ({
+        id: emp.id || undefined, // Include user ID from CSV
         name: emp.name,
         email: emp.email,
         phone: emp.phone || null,
@@ -294,7 +295,7 @@ const BulkUserUpload = () => {
       <div className="text-sm text-muted-foreground">
         <p className="font-medium mb-2">CSV Format Instructions:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Required fields: Employee ID (emp_id), Name, Email, Role</li>
+          <li>Required fields: User ID (id), Employee ID (emp_id), Name, Email, Role</li>
           <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
           <li>Valid cities: Bangalore, Delhi, Mumbai</li>
           <li>Each city has specific valid clusters</li>
@@ -364,6 +365,15 @@ const BulkUserUpload = () => {
                           
                           <CardContent className="p-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">User ID</label>
+                                <Input 
+                                  value={getRowValue(rowKey, 'id', item.rowData.id)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'id', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Employee ID</label>
                                 <Input 
@@ -530,25 +540,27 @@ const BulkUserUpload = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>ID</TableHead>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Employee ID</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>City</TableHead>
                         <TableHead>Cluster</TableHead>
-                        <TableHead>Date of Joining</TableHead>
+                        <TableHead>Manager</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {validationResults.validEmployees.map((emp, idx) => (
                         <TableRow key={`valid-employee-${idx}`}>
+                          <TableCell>{emp.id}</TableCell>
                           <TableCell>{emp.emp_id}</TableCell>
                           <TableCell>{emp.name}</TableCell>
                           <TableCell>{emp.email}</TableCell>
                           <TableCell>{emp.role}</TableCell>
                           <TableCell>{emp.city || '-'}</TableCell>
                           <TableCell>{emp.cluster || '-'}</TableCell>
-                          <TableCell>{emp.date_of_joining || '-'}</TableCell>
+                          <TableCell>{emp.manager || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
