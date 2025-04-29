@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -33,10 +34,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
+interface RowData {
+  emp_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  cluster: string;
+  role: string;
+  manager: string;
+  date_of_joining: string;
+  date_of_birth: string;
+  blood_group: string;
+  account_number: string;
+  ifsc_code: string;
+}
+
+interface ValidationResult {
+  validEmployees: any[];
+  invalidRows: {
+    row: any;
+    errors: string[];
+    rowData: RowData;
+  }[];
+}
+
 const BulkUserUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
-  const [validationResults, setValidationResults] = useState<any>({ validEmployees: [], invalidRows: [] });
+  const [validationResults, setValidationResults] = useState<ValidationResult>({ 
+    validEmployees: [], 
+    invalidRows: [] 
+  });
   const [editedRows, setEditedRows] = useState<Record<string, Record<string, string>>>({});
   const { toast } = useToast();
 
@@ -252,7 +281,7 @@ const BulkUserUpload = () => {
                   <h3 className="text-lg font-medium mb-2">Invalid Rows ({validationResults.invalidRows.length})</h3>
                   
                   <div className="space-y-4">
-                    {validationResults.invalidRows.map((item: any, index: number) => (
+                    {validationResults.invalidRows.map((item, index) => (
                       <Card key={index} className="border-red-200">
                         <CardHeader className="bg-red-50 p-4 border-b border-red-200">
                           <div className="flex justify-between items-center">
