@@ -7,10 +7,11 @@ import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 // Update EmployeeData type to include id
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
 
-// Helper function to validate UUID format
-const isValidUUID = (id: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
+// Helper function to validate 7-digit number format
+const isValidUserID = (id: string): boolean => {
+  // Check if the ID is a 7-digit number
+  const sevenDigitRegex = /^\d{7}$/;
+  return sevenDigitRegex.test(id);
 };
 
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
@@ -24,10 +25,10 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Missing required fields: ${missingFields.join(', ')}`);
   }
   
-  // UUID validation for id field
+  // User ID validation (7-digit number)
   if (data.id) {
-    if (!isValidUUID(data.id)) {
-      errors.push(`Invalid User ID format: ${data.id}. Must be a valid UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)`);
+    if (!isValidUserID(data.id)) {
+      errors.push(`Invalid User ID format: ${data.id}. Must be a 7-digit number (e.g., 1234567)`);
     }
   }
   
@@ -298,8 +299,8 @@ export const getCSVTemplate = () => {
 
   const csvContent = [
     headers.join(','),
-    '123e4567-e89b-12d3-a456-426614174000,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
-    '223e4567-e89b-12d3-a456-426614174001,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
+    '1234567,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
+    '2345678,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
   ].join('\n');
 
   return csvContent;

@@ -161,7 +161,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           description: string
-          id?: string
+          id: string
           priority: string
           status: string
           sub_type_id: string
