@@ -2,9 +2,9 @@
 import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
+import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 
 type EmployeeData = Omit<Tables<'employees'>, 'id' | 'created_at' | 'updated_at'>;
-type CSVEmployeeData = Record<keyof EmployeeData, string | null>;
 
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -144,17 +144,14 @@ export const formatDateToYYYYMMDD = (dateStr: string | null): string | null => {
   return dateStr; // Return original if can't parse
 };
 
-export const parseEmployeeCSV = (file: File): Promise<{
-  validEmployees: EmployeeData[],
-  invalidRows: {row: CSVEmployeeData, errors: string[], rowData: Record<string, string | null>}[]
-}> => {
+export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
   return new Promise((resolve, reject) => {
-    Papa.parse<CSVEmployeeData>(file, {
+    Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const validEmployees: EmployeeData[] = [];
-        const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: Record<string, string | null>}[] = [];
+        const validEmployees: CSVEmployeeData[] = [];
+        const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
 
         results.data.forEach(row => {
           // Skip empty rows
@@ -180,7 +177,7 @@ export const parseEmployeeCSV = (file: File): Promise<{
           };
 
           // Generate a structured data object for display
-          const rowData = {
+          const rowData: RowData = {
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -201,14 +198,18 @@ export const parseEmployeeCSV = (file: File): Promise<{
           
           if (validation.isValid) {
             validEmployees.push({
-              ...employeeData as EmployeeData,
+              ...employeeData as CSVEmployeeData,
               // Convert dates to YYYY-MM-DD format for database
               date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
               date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
               password: 'changeme123' // Default password
             });
           } else {
-            invalidRows.push({ row, errors: validation.errors, rowData });
+            invalidRows.push({ 
+              row: employeeData as CSVEmployeeData, 
+              errors: validation.errors, 
+              rowData 
+            });
           }
         });
 

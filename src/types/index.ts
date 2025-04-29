@@ -44,3 +44,49 @@ export interface AuthState {
   user: User | null;
   role: string | null; // Changed from specific type to string
 }
+
+// Add a new interface for CSV employee data
+export interface CSVEmployeeData {
+  emp_id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  city?: string | null;
+  cluster?: string | null;
+  role: string;
+  manager?: string | null;
+  date_of_joining?: string | null;
+  date_of_birth?: string | null;
+  blood_group?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  password?: string;
+}
+
+// Add a typed interface for validation results to use in both files
+export interface RowData {
+  emp_id: string;
+  name: string;
+  email: string;
+  phone: string;
+  city: string;
+  cluster: string;
+  role: string;
+  manager: string;
+  date_of_joining: string;
+  date_of_birth: string;
+  blood_group: string;
+  account_number: string;
+  ifsc_code: string;
+}
+
+export interface ValidationError {
+  row: CSVEmployeeData;
+  errors: string[];
+  rowData: RowData;
+}
+
+export interface ValidationResult {
+  validEmployees: CSVEmployeeData[];
+  invalidRows: ValidationError[];
+}
