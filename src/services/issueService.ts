@@ -32,6 +32,15 @@ const mapAppCommentToDbComment = (comment: Omit<IssueComment, 'id' | 'createdAt'
   };
 };
 
+// Helper function to generate a UUID
+const generateUUID = (): string => {
+  return crypto.randomUUID ? crypto.randomUUID() : 
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
+};
+
 // Helper function to log audit trail
 const logAuditTrail = async (
   issueId: string, 
@@ -302,10 +311,14 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
 
 export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'comments'>): Promise<Issue> => {
   try {
-    // Insert issue into the database
+    // Generate a UUID for the new issue
+    const newIssueId = generateUUID();
+    
+    // Insert issue into the database with the generated ID
     const { data: dbIssue, error } = await supabase
       .from('issues')
       .insert({
+        id: newIssueId,
         user_id: issue.userId,
         type_id: issue.typeId,
         sub_type_id: issue.subTypeId,
