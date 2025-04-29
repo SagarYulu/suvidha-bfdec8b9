@@ -263,16 +263,16 @@ const BulkUserUpload = () => {
                   <h3 className="text-lg font-medium mb-2">Invalid Rows ({validationResults.invalidRows.length})</h3>
                   
                   <div className="space-y-4">
-                    {validationResults.invalidRows.map((item, index) => (
-                      <Card key={index} className="border-red-200">
+                    {validationResults.invalidRows.map((item, idx) => (
+                      <Card key={`invalid-row-${idx}`} className="border-red-200">
                         <CardHeader className="bg-red-50 p-4 border-b border-red-200">
                           <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium text-red-800">Row {index + 1} - Validation Errors</h4>
+                            <h4 className="text-sm font-medium text-red-800">Row {idx + 1} - Validation Errors</h4>
                             <Badge variant="destructive" className="text-xs">{item.errors.length} Errors</Badge>
                           </div>
                           <ul className="list-disc list-inside space-y-1 text-red-600 text-xs mt-2">
-                            {item.errors.map((error: string, i: number) => (
-                              <li key={i}>{error}</li>
+                            {item.errors.map((error: string, errorIdx: number) => (
+                              <li key={`error-${idx}-${errorIdx}`}>{error}</li>
                             ))}
                           </ul>
                         </CardHeader>
@@ -283,8 +283,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Employee ID</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'emp_id', item.rowData.emp_id)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'emp_id', e.target.value)}
+                                value={getRowValue(`${idx}`, 'emp_id', item.rowData.emp_id)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'emp_id', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -293,8 +293,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Name</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'name', item.rowData.name)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'name', e.target.value)}
+                                value={getRowValue(`${idx}`, 'name', item.rowData.name)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'name', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -303,8 +303,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Email</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'email', item.rowData.email)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'email', e.target.value)}
+                                value={getRowValue(`${idx}`, 'email', item.rowData.email)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'email', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -313,8 +313,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Phone</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'phone', item.rowData.phone)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'phone', e.target.value)}
+                                value={getRowValue(`${idx}`, 'phone', item.rowData.phone)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'phone', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -322,15 +322,15 @@ const BulkUserUpload = () => {
                             <div className="space-y-2">
                               <label className="text-xs font-medium text-gray-500">Role</label>
                               <Select
-                                value={getRowValue(`${index}`, 'role', item.rowData.role)}
-                                onValueChange={(value) => handleFieldEdit(`${index}`, 'role', value)}
+                                value={getRowValue(`${idx}`, 'role', item.rowData.role)}
+                                onValueChange={(value) => handleFieldEdit(`${idx}`, 'role', value)}
                               >
                                 <SelectTrigger className="h-8 text-sm">
                                   <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {ROLE_OPTIONS.map(role => (
-                                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                                  {ROLE_OPTIONS.map((role, roleIdx) => (
+                                    <SelectItem key={`role-${idx}-${roleIdx}`} value={role}>{role}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -339,19 +339,19 @@ const BulkUserUpload = () => {
                             <div className="space-y-2">
                               <label className="text-xs font-medium text-gray-500">City</label>
                               <Select
-                                value={getRowValue(`${index}`, 'city', item.rowData.city)}
+                                value={getRowValue(`${idx}`, 'city', item.rowData.city)}
                                 onValueChange={(value) => {
-                                  handleFieldEdit(`${index}`, 'city', value);
+                                  handleFieldEdit(`${idx}`, 'city', value);
                                   // Reset cluster when city changes
-                                  handleFieldEdit(`${index}`, 'cluster', '');
+                                  handleFieldEdit(`${idx}`, 'cluster', '');
                                 }}
                               >
                                 <SelectTrigger className="h-8 text-sm">
                                   <SelectValue placeholder="Select city" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {CITY_OPTIONS.map(city => (
-                                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                                  {CITY_OPTIONS.map((city, cityIdx) => (
+                                    <SelectItem key={`city-${idx}-${cityIdx}`} value={city}>{city}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -360,17 +360,17 @@ const BulkUserUpload = () => {
                             <div className="space-y-2">
                               <label className="text-xs font-medium text-gray-500">Cluster</label>
                               <Select
-                                value={getRowValue(`${index}`, 'cluster', item.rowData.cluster)}
-                                onValueChange={(value) => handleFieldEdit(`${index}`, 'cluster', value)}
-                                disabled={!getRowValue(`${index}`, 'city', item.rowData.city)}
+                                value={getRowValue(`${idx}`, 'cluster', item.rowData.cluster)}
+                                onValueChange={(value) => handleFieldEdit(`${idx}`, 'cluster', value)}
+                                disabled={!getRowValue(`${idx}`, 'city', item.rowData.city)}
                               >
                                 <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder={!getRowValue(`${index}`, 'city', item.rowData.city) ? 
+                                  <SelectValue placeholder={!getRowValue(`${idx}`, 'city', item.rowData.city) ? 
                                     "Select city first" : "Select cluster"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {getClustersForCity(getRowValue(`${index}`, 'city', item.rowData.city)).map(cluster => (
-                                    <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                                  {getClustersForCity(getRowValue(`${idx}`, 'city', item.rowData.city)).map((cluster, clusterIdx) => (
+                                    <SelectItem key={`cluster-${idx}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
@@ -380,8 +380,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Manager</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'manager', item.rowData.manager)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'manager', e.target.value)}
+                                value={getRowValue(`${idx}`, 'manager', item.rowData.manager)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'manager', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -390,8 +390,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'date_of_joining', item.rowData.date_of_joining)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'date_of_joining', e.target.value)}
+                                value={getRowValue(`${idx}`, 'date_of_joining', item.rowData.date_of_joining)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'date_of_joining', e.target.value)}
                                 placeholder="DD-MM-YYYY"
                                 className="h-8 text-sm"
                               />
@@ -401,8 +401,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'date_of_birth', item.rowData.date_of_birth)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'date_of_birth', e.target.value)}
+                                value={getRowValue(`${idx}`, 'date_of_birth', item.rowData.date_of_birth)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'date_of_birth', e.target.value)}
                                 placeholder="DD-MM-YYYY"
                                 className="h-8 text-sm"
                               />
@@ -412,8 +412,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Blood Group</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'blood_group', item.rowData.blood_group)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'blood_group', e.target.value)}
+                                value={getRowValue(`${idx}`, 'blood_group', item.rowData.blood_group)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'blood_group', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -422,8 +422,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">Account Number</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'account_number', item.rowData.account_number)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'account_number', e.target.value)}
+                                value={getRowValue(`${idx}`, 'account_number', item.rowData.account_number)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'account_number', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -432,8 +432,8 @@ const BulkUserUpload = () => {
                               <label className="text-xs font-medium text-gray-500">IFSC Code</label>
                               <Input 
                                 size="sm"
-                                value={getRowValue(`${index}`, 'ifsc_code', item.rowData.ifsc_code)}
-                                onChange={(e) => handleFieldEdit(`${index}`, 'ifsc_code', e.target.value)}
+                                value={getRowValue(`${idx}`, 'ifsc_code', item.rowData.ifsc_code)}
+                                onChange={(e) => handleFieldEdit(`${idx}`, 'ifsc_code', e.target.value)}
                                 className="h-8 text-sm"
                               />
                             </div>
@@ -464,8 +464,8 @@ const BulkUserUpload = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {validationResults.validEmployees.map((emp, index) => (
-                        <TableRow key={index}>
+                      {validationResults.validEmployees.map((emp, idx) => (
+                        <TableRow key={`valid-employee-${idx}`}>
                           <TableCell>{emp.emp_id}</TableCell>
                           <TableCell>{emp.name}</TableCell>
                           <TableCell>{emp.email}</TableCell>
