@@ -367,7 +367,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Employee ID</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'emp_id', item.rowData.emp_id)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'emp_id', e.target.value)}
                                   className="h-8 text-sm"
@@ -377,7 +376,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Name</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'name', item.rowData.name)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'name', e.target.value)}
                                   className="h-8 text-sm"
@@ -387,7 +385,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Email</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'email', item.rowData.email)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'email', e.target.value)}
                                   className="h-8 text-sm"
@@ -397,7 +394,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Phone</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'phone', item.rowData.phone)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'phone', e.target.value)}
                                   className="h-8 text-sm"
@@ -464,7 +460,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Manager</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'manager', item.rowData.manager)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'manager', e.target.value)}
                                   className="h-8 text-sm"
@@ -474,7 +469,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'date_of_joining', item.rowData.date_of_joining)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'date_of_joining', e.target.value)}
                                   placeholder="DD-MM-YYYY"
@@ -485,7 +479,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'date_of_birth', item.rowData.date_of_birth)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'date_of_birth', e.target.value)}
                                   placeholder="DD-MM-YYYY"
@@ -496,7 +489,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Blood Group</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'blood_group', item.rowData.blood_group)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'blood_group', e.target.value)}
                                   className="h-8 text-sm"
@@ -506,7 +498,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">Account Number</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'account_number', item.rowData.account_number)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'account_number', e.target.value)}
                                   className="h-8 text-sm"
@@ -516,7 +507,6 @@ const BulkUserUpload = () => {
                               <div className="space-y-2">
                                 <label className="text-xs font-medium text-gray-500">IFSC Code</label>
                                 <Input 
-                                  size="sm"
                                   value={getRowValue(rowKey, 'ifsc_code', item.rowData.ifsc_code)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'ifsc_code', e.target.value)}
                                   className="h-8 text-sm"
