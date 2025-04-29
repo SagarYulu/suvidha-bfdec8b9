@@ -8,7 +8,7 @@ export interface User {
   city: string;
   cluster: string;
   manager: string;
-  role: "employee" | "admin";
+  role: string; // Changed from "employee" | "admin" to string to accommodate more roles
   password: string;
   dateOfJoining?: string;
   bloodGroup?: string;
@@ -42,5 +42,5 @@ export interface IssueComment {
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
-  role: "employee" | "admin" | null;
+  role: string | null; // Changed from specific type to string
 }

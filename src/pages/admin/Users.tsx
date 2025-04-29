@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -31,9 +30,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Trash, UserPlus, Users } from "lucide-react";
+import { Search, Trash, UserPlus } from "lucide-react";
 import BulkUserUpload from "@/components/BulkUserUpload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -41,6 +41,7 @@ const AdminUsers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
+  const [availableClusters, setAvailableClusters] = useState<string[]>([]);
 
   const [newUser, setNewUser] = useState<User>({
     id: "",
@@ -51,7 +52,7 @@ const AdminUsers = () => {
     city: "",
     cluster: "",
     manager: "",
-    role: "employee",
+    role: "",
     password: "",
     dateOfJoining: "",
     bloodGroup: "",
@@ -59,6 +60,19 @@ const AdminUsers = () => {
     accountNumber: "",
     ifscCode: ""
   });
+
+  // Update clusters when city changes
+  useEffect(() => {
+    if (newUser.city && CLUSTER_OPTIONS[newUser.city]) {
+      setAvailableClusters(CLUSTER_OPTIONS[newUser.city]);
+      // Reset cluster if it doesn't belong to the new city
+      if (newUser.cluster && !CLUSTER_OPTIONS[newUser.city].includes(newUser.cluster)) {
+        setNewUser(prev => ({ ...prev, cluster: "" }));
+      }
+    } else {
+      setAvailableClusters([]);
+    }
+  }, [newUser.city]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -100,7 +114,7 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.id) {
+    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.id || !newUser.role) {
       toast({
         title: "Validation error",
         description: "Please fill out all required fields",
@@ -123,7 +137,7 @@ const AdminUsers = () => {
         city: "",
         cluster: "",
         manager: "",
-        role: "employee",
+        role: "",
         password: "",
         dateOfJoining: "",
         bloodGroup: "",
@@ -256,14 +270,15 @@ const AdminUsers = () => {
                         <Label htmlFor="role">Role *</Label>
                         <Select
                           value={newUser.role}
-                          onValueChange={(value) => setNewUser({ ...newUser, role: value as "employee" | "admin" })}
+                          onValueChange={(value) => setNewUser({ ...newUser, role: value })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select role" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="employee">Employee</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
+                            {ROLE_OPTIONS.map(role => (
+                              <SelectItem key={role} value={role}>{role}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -292,17 +307,40 @@ const AdminUsers = () => {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="city">City</Label>
-                        <Input
-                          id="city"
-                          name="city"
+                        <Select
                           value={newUser.city}
-                          onChange={handleInputChange}
-                          placeholder="Bangalore"
-                        />
+                          onValueChange={(value) => setNewUser({ ...newUser, city: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select city" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CITY_OPTIONS.map(city => (
+                              <SelectItem key={city} value={city}>{city}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="cluster">Cluster</Label>
+                        <Select
+                          value={newUser.cluster}
+                          onValueChange={(value) => setNewUser({ ...newUser, cluster: value })}
+                          disabled={!newUser.city || availableClusters.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={!newUser.city ? "Select a city first" : "Select cluster"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {availableClusters.map(cluster => (
+                              <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="dateOfBirth">Date of Birth</Label>
                         <Input
@@ -313,6 +351,9 @@ const AdminUsers = () => {
                           onChange={handleInputChange}
                         />
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="bloodGroup">Blood Group</Label>
                         <Input
@@ -323,8 +364,18 @@ const AdminUsers = () => {
                           placeholder="A+, B-, O+, etc."
                         />
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="manager">Manager</Label>
+                        <Input
+                          id="manager"
+                          name="manager"
+                          value={newUser.manager}
+                          onChange={handleInputChange}
+                          placeholder="Manager name"
+                        />
+                      </div>
                     </div>
-
+                    
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="accountNumber">Account Number</Label>
@@ -344,29 +395,6 @@ const AdminUsers = () => {
                           value={newUser.ifscCode}
                           onChange={handleInputChange}
                           placeholder="IFSC Code"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cluster">Cluster</Label>
-                        <Input
-                          id="cluster"
-                          name="cluster"
-                          value={newUser.cluster}
-                          onChange={handleInputChange}
-                          placeholder="North"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="manager">Manager</Label>
-                        <Input
-                          id="manager"
-                          name="manager"
-                          value={newUser.manager}
-                          onChange={handleInputChange}
-                          placeholder="Manager name"
                         />
                       </div>
                     </div>
@@ -404,6 +432,22 @@ const AdminUsers = () => {
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
           </div>
+        ) : users.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 border rounded-lg">
+            <div className="mb-4">
+              <UserPlus className="h-12 w-12 mx-auto text-gray-400" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900">No users found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Get started by adding your first user
+            </p>
+            <Button 
+              className="mt-4 bg-yulu-blue hover:bg-blue-700"
+              onClick={() => setIsAddUserDialogOpen(true)}
+            >
+              Add User
+            </Button>
+          </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
             <Table>
@@ -434,7 +478,7 @@ const AdminUsers = () => {
                     <TableCell>{user.manager}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.role === "admin" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                        user.role === "Admin" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
                       }`}>
                         {user.role}
                       </span>
@@ -455,7 +499,7 @@ const AdminUsers = () => {
                 {filteredUsers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center py-6">
-                      No users found
+                      No matching users found
                     </TableCell>
                   </TableRow>
                 )}

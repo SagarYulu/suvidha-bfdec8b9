@@ -26,9 +26,15 @@ const BulkUserUpload = () => {
         phone: emp.phone || null,
         emp_id: emp.emp_id,
         city: emp.city || null,
-        role: emp.role || 'employee',
+        cluster: emp.cluster || null,
+        role: emp.role || 'Employee',
         password: emp.password || 'changeme123',
-        date_of_joining: emp.date_of_joining || null
+        date_of_joining: emp.date_of_joining || null,
+        date_of_birth: emp.date_of_birth || null,
+        blood_group: emp.blood_group || null,
+        account_number: emp.account_number || null,
+        ifsc_code: emp.ifsc_code || null,
+        manager: emp.manager || null,
       }));
       
       // Insert employees into Supabase
@@ -102,7 +108,9 @@ const BulkUserUpload = () => {
       <div className="text-sm text-muted-foreground">
         <p className="font-medium mb-2">CSV Format Instructions:</p>
         <ul className="list-disc list-inside space-y-1">
-          <li>Required fields: Employee ID, Name, Email, Role (admin/employee)</li>
+          <li>Required fields: Employee ID (emp_id), Name, Email, Role</li>
+          <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
+          <li>Valid cities: Bangalore, Chennai, Delhi, Mumbai, Pune</li>
           <li>Dates should be in YYYY-MM-DD format</li>
           <li>Phone numbers should not include spaces or special characters</li>
           <li>Default password will be set as 'changeme123'</li>
