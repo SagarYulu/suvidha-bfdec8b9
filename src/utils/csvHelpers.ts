@@ -1,3 +1,4 @@
+
 import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
@@ -5,6 +6,12 @@ import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 
 // Update EmployeeData type to include id
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
+
+// Helper function to validate UUID format
+const isValidUUID = (id: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+};
 
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -15,6 +22,13 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   
   if (missingFields.length > 0) {
     errors.push(`Missing required fields: ${missingFields.join(', ')}`);
+  }
+  
+  // UUID validation for id field
+  if (data.id) {
+    if (!isValidUUID(data.id)) {
+      errors.push(`Invalid User ID format: ${data.id}. Must be a valid UUID (e.g., 123e4567-e89b-12d3-a456-426614174000)`);
+    }
   }
   
   // Role validation
@@ -200,7 +214,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           
           // Convert CSV data to employee format
           const employeeData: Partial<EmployeeData> = {
-            id: row.id || '', // Now this is valid with the updated EmployeeData type
+            id: row.id || '',
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -284,9 +298,53 @@ export const getCSVTemplate = () => {
 
   const csvContent = [
     headers.join(','),
-    'USR001,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
-    'USR002,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
+    '123e4567-e89b-12d3-a456-426614174000,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234',
+    '223e4567-e89b-12d3-a456-426614174001,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234'
   ].join('\n');
 
   return csvContent;
 };
+
+function isValidDate(dateStr: string | null | undefined): boolean {
+  if (!dateStr) return true; // Optional field
+  
+  // Support various date formats including DD/MM/YYYY, DD-MM-YYYY, and YYYY-MM-DD
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+    /^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
+    /^\d{2}\/\d{2}\/\d{4}$/ // DD/MM/YYYY
+  ];
+  
+  if (!datePatterns.some(pattern => pattern.test(dateStr))) {
+    return false;
+  }
+  
+  // Check that the date components make sense
+  let day, month, year;
+  
+  if (dateStr.includes('-')) {
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // YYYY-MM-DD format
+      [year, month, day] = dateStr.split('-').map(Number);
+    } else {
+      // DD-MM-YYYY format
+      [day, month, year] = dateStr.split('-').map(Number);
+    }
+  } else if (dateStr.includes('/')) {
+    // DD/MM/YYYY format
+    [day, month, year] = dateStr.split('/').map(Number);
+  } else {
+    return false;
+  }
+  
+  // Validate date components
+  if (month < 1 || month > 12) return false;
+  
+  // Check days in month (accounting for leap years)
+  const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+    daysInMonth[2] = 29; // Leap year
+  }
+  
+  return day >= 1 && day <= daysInMonth[month];
+}

@@ -1,120 +1,116 @@
 
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Bell, ChartBar, File, Home, LogOut, Settings, Users } from "lucide-react";
-import { useEffect } from "react";
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  ChevronLeft,
+  LayoutDashboard,
+  TicketCheck,
+  Users,
+  BarChart3,
+  LogOut,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Toaster } from '@/components/ui/toaster';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
-  const { authState, logout } = useAuth();
-  const navigate = useNavigate();
+interface SidebarLinkProps {
+  href: string;
+  icon: React.ElementType;
+  label: string;
+}
 
-  useEffect(() => {
-    console.log("AdminLayout auth check:", authState);
-    
-    if (!authState.isAuthenticated) {
-      console.log("Not authenticated, redirecting to login");
-      navigate("/mobile/login");
-      return;
-    }
-    
-    if (authState.role !== "admin") {
-      console.log("Not an admin, role is:", authState.role);
-      navigate("/");
-      return;
-    }
-    
-    console.log("Admin authentication successful");
-  }, [authState, navigate]);
+const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) => {
+  const isActive = window.location.pathname === href;
 
   return (
-    <div className="flex min-h-screen">
+    <Link
+      to={href}
+      className={cn(
+        "flex items-center py-3 px-6 text-sm font-medium border-l-2 transition-colors",
+        isActive
+          ? "bg-blue-50 border-blue-500 text-blue-700"
+          : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+      )}
+    >
+      <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
+      {label}
+    </Link>
+  );
+};
+
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
+  return (
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="w-64 bg-yulu-blue text-white">
-        <div className="p-4">
-          <h2 className="text-2xl font-bold">Yulu Admin</h2>
+      <div className="w-64 bg-white border-r hidden md:block overflow-y-auto">
+        <div className="py-6 px-6 border-b">
+          <Link to="/admin/dashboard" className="flex items-center">
+            <span className="text-xl font-bold text-blue-700">Yulu Admin</span>
+          </Link>
         </div>
-        <nav className="mt-8">
-          <div className="px-4 py-2">
-            <button 
-              onClick={() => navigate("/admin/dashboard")} 
-              className="flex items-center w-full px-4 py-2 mb-1 rounded hover:bg-blue-700 transition-colors"
-            >
-              <Home className="mr-2 h-5 w-5" />
-              Dashboard
-            </button>
-            
-            <button 
-              onClick={() => navigate("/admin/users")}
-              className="flex items-center w-full px-4 py-2 mb-1 rounded hover:bg-blue-700 transition-colors"
-            >
-              <Users className="mr-2 h-5 w-5" />
-              Users
-            </button>
-            
-            <button 
-              onClick={() => navigate("/admin/issues")}
-              className="flex items-center w-full px-4 py-2 mb-1 rounded hover:bg-blue-700 transition-colors"
-            >
-              <File className="mr-2 h-5 w-5" />
-              Issues
-            </button>
-            
-            <button 
-              onClick={() => navigate("/admin/analytics")}
-              className="flex items-center w-full px-4 py-2 mb-1 rounded hover:bg-blue-700 transition-colors"
-            >
-              <ChartBar className="mr-2 h-5 w-5" />
-              Analytics
-            </button>
-          </div>
-        </nav>
-        <div className="absolute bottom-0 w-64 p-4">
-          <button 
-            onClick={() => {
-              logout();
-              navigate("/");
-            }}
-            className="flex items-center w-full px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+
+        <div className="py-3">
+          <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
+          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
+          <SidebarLink href="/admin/users" icon={Users} label="Users" />
+          <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+        </div>
+
+        <div className="mt-auto p-4 border-t">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-gray-500 hover:text-gray-700"
+            onClick={handleLogout}
           >
-            <LogOut className="mr-2 h-5 w-5" />
+            <LogOut className="mr-2 h-4 w-4" />
             Logout
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white shadow-md border-b">
-          <div className="flex justify-between items-center px-8 py-4">
-            <h1 className="text-2xl font-semibold">{title}</h1>
+        <header className="bg-white shadow-sm py-4 px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <Link to="/admin/dashboard" className="md:hidden mr-4">
+                <ChevronLeft className="h-5 w-5 text-gray-400" />
+              </Link>
+              <h1 className="text-xl font-semibold text-gray-800">{title}</h1>
+            </div>
             <div className="flex items-center space-x-4">
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Bell className="h-5 w-5" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-gray-100">
-                <Settings className="h-5 w-5" />
-              </button>
-              <div className="flex items-center">
-                <div className="w-10 h-10 rounded-full bg-yulu-blue text-white flex items-center justify-center">
-                  {authState.user?.name.charAt(0)}
-                </div>
-                <span className="ml-2">{authState.user?.name}</span>
+              <span className="text-sm font-medium text-gray-700">
+                Administrator
+              </span>
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
+                A
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="p-8">
+        {/* Content Area */}
+        <main className="flex-1 overflow-auto p-6 bg-gray-100">
           {children}
         </main>
       </div>
+      <Toaster />
     </div>
   );
 };
