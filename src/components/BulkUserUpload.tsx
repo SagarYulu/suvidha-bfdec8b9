@@ -33,12 +33,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
-import { ValidationResult, CSVEmployeeData, RowData } from "@/types";
-
-// Define type for edited rows record using a string key
-interface EditedRowsRecord {
-  [key: string]: RowData;
-}
+import { ValidationResult, CSVEmployeeData, RowData, EditedRowsRecord } from "@/types";
 
 const BulkUserUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -335,7 +330,7 @@ const BulkUserUpload = () => {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {ROLE_OPTIONS.map((role, roleIdx) => (
-                                      <SelectItem key={`role-${idx}-${roleIdx}`} value={role}>{role}</SelectItem>
+                                      <SelectItem key={`role-${rowKey}-${roleIdx}`} value={role}>{role}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -356,7 +351,7 @@ const BulkUserUpload = () => {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {CITY_OPTIONS.map((city, cityIdx) => (
-                                      <SelectItem key={`city-${idx}-${cityIdx}`} value={city}>{city}</SelectItem>
+                                      <SelectItem key={`city-${rowKey}-${cityIdx}`} value={city}>{city}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
@@ -375,7 +370,7 @@ const BulkUserUpload = () => {
                                   </SelectTrigger>
                                   <SelectContent>
                                     {getClustersForCity(getRowValue(rowKey, 'city', item.rowData.city)).map((cluster, clusterIdx) => (
-                                      <SelectItem key={`cluster-${idx}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
+                                      <SelectItem key={`cluster-${rowKey}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>

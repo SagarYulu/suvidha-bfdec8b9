@@ -80,6 +80,11 @@ export interface RowData {
   ifsc_code: string;
 }
 
+// Define a string-indexed interface for edited rows
+export interface EditedRowsRecord {
+  [key: string]: RowData;
+}
+
 export interface ValidationError {
   row: CSVEmployeeData;
   errors: string[];
