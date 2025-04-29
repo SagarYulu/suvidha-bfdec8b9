@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -204,12 +205,17 @@ const BulkUserUpload = () => {
         manager: emp.manager || null,
       }));
       
+      console.log("Attempting to insert employees:", employeesData);
+      
       // Insert employees into Supabase
       const { error } = await supabase
         .from('employees')
         .insert(employeesData);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload to database error:', error);
+        throw error;
+      }
 
       toast({
         title: "Upload Successful",
