@@ -1,4 +1,3 @@
-
 import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
@@ -53,10 +52,11 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   const isValidDate = (dateStr: string | null | undefined) => {
     if (!dateStr) return true; // Optional field
     
-    // Support both YYYY-MM-DD and DD-MM-YYYY formats when validating
+    // Support various date formats including DD/MM/YYYY, DD-MM-YYYY, and YYYY-MM-DD
     const datePatterns = [
       /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
-      /^\d{2}-\d{2}-\d{4}$/  // DD-MM-YYYY
+      /^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
+      /^\d{2}\/\d{2}\/\d{4}$/ // DD/MM/YYYY
     ];
     
     if (!datePatterns.some(pattern => pattern.test(dateStr))) {
@@ -64,23 +64,27 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     }
     
     let date;
+    let day, month, year;
+    
+    // Parse based on format
     if (dateStr.includes('-')) {
       if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
         // Parse DD-MM-YYYY format
-        const [day, month, year] = dateStr.split('-').map(Number);
+        [day, month, year] = dateStr.split('-').map(Number);
         date = new Date(year, month - 1, day);
-        return date instanceof Date && !isNaN(date.getTime()) && 
-               date.getDate() === day && 
-               date.getMonth() === month - 1 && 
-               date.getFullYear() === year;
       } else {
         // Parse YYYY-MM-DD format
         date = new Date(dateStr);
       }
+    } else if (dateStr.includes('/')) {
+      // Parse DD/MM/YYYY format
+      [day, month, year] = dateStr.split('/').map(Number);
+      date = new Date(year, month - 1, day);
     } else {
       date = new Date(dateStr);
     }
     
+    // Check that date is valid
     return date instanceof Date && !isNaN(date.getTime());
   };
 
@@ -102,31 +106,41 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
 export const formatDateToDDMMYYYY = (dateStr: string | null): string | null => {
   if (!dateStr) return null;
   
-  let date;
+  let day, month, year;
+  
+  // Handle different formats
   if (dateStr.includes('-')) {
     if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
       // Already in DD-MM-YYYY format
       return dateStr;
-    } else {
-      // Assume YYYY-MM-DD format
-      const [year, month, day] = dateStr.split('-');
+    } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Convert from YYYY-MM-DD to DD-MM-YYYY
+      [year, month, day] = dateStr.split('-');
       return `${day}-${month}-${year}`;
     }
+  } else if (dateStr.includes('/')) {
+    // Convert from DD/MM/YYYY to DD-MM-YYYY
+    [day, month, year] = dateStr.split('/');
+    return `${day}-${month}-${year}`;
   }
   
-  // Try to parse using Date constructor
-  date = new Date(dateStr);
-  if (date instanceof Date && !isNaN(date.getTime())) {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+  // Try to parse using Date constructor as fallback
+  try {
+    const date = new Date(dateStr);
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      day = String(date.getDate()).padStart(2, '0');
+      month = String(date.getMonth() + 1).padStart(2, '0');
+      year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch (e) {
+    // If parsing fails, return original
   }
   
   return dateStr; // Return original if can't parse
 };
 
-// Convert date from DD-MM-YYYY to YYYY-MM-DD for database storage
+// Convert date from various formats to YYYY-MM-DD for database storage
 export const formatDateToYYYYMMDD = (dateStr: string | null): string | null => {
   if (!dateStr) return null;
   
@@ -135,10 +149,28 @@ export const formatDateToYYYYMMDD = (dateStr: string | null): string | null => {
     return dateStr;
   }
   
+  let day, month, year;
+  
   // Convert from DD-MM-YYYY to YYYY-MM-DD
   if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-    const [day, month, year] = dateStr.split('-');
+    [day, month, year] = dateStr.split('-');
     return `${year}-${month}-${day}`;
+  }
+  
+  // Convert from DD/MM/YYYY to YYYY-MM-DD
+  if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    [day, month, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Try to parse using Date constructor as fallback
+  try {
+    const date = new Date(dateStr);
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]; // Get YYYY-MM-DD portion
+    }
+  } catch (e) {
+    // If parsing fails, return original
   }
   
   return dateStr; // Return original if can't parse
@@ -186,8 +218,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             cluster: row.cluster || '',
             role: row.role || '',
             manager: row.manager || '',
-            date_of_joining: formatDateToDDMMYYYY(row.date_of_joining) || '',
-            date_of_birth: formatDateToDDMMYYYY(row.date_of_birth) || '',
+            date_of_joining: row.date_of_joining || '',
+            date_of_birth: row.date_of_birth || '',
             blood_group: row.blood_group || '',
             account_number: row.account_number || '',
             ifsc_code: row.ifsc_code || '',

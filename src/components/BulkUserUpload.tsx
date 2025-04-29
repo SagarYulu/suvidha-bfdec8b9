@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -213,7 +212,7 @@ const BulkUserUpload = () => {
           <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
           <li>Valid cities: Bangalore, Delhi, Mumbai</li>
           <li>Each city has specific valid clusters</li>
-          <li>Dates should be in DD-MM-YYYY format</li>
+          <li>Dates should be in DD-MM-YYYY format (or DD/MM/YYYY)</li>
           <li>Phone numbers should not include spaces or special characters</li>
           <li>Default password will be set as 'changeme123'</li>
           <li>Download the template for the correct format</li>
