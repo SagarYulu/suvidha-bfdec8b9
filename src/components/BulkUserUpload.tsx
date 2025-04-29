@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 
 const BulkUserUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -178,7 +180,7 @@ const BulkUserUpload = () => {
       </div>
 
       <Dialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
-        <DialogContent className="max-w-3xl max-h-[90vh]">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>CSV Validation Results</DialogTitle>
           </DialogHeader>
@@ -215,35 +217,34 @@ const BulkUserUpload = () => {
             <div className="space-y-6">
               {validationResults.invalidRows.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-medium">Invalid Rows ({validationResults.invalidRows.length})</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Row Data</TableHead>
-                        <TableHead>Errors</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {validationResults.invalidRows.map((item: any, index: number) => (
-                        <TableRow key={index}>
-                          <TableCell className="align-top">
-                            <div className="text-xs">
-                              {Object.entries(item.row).map(([key, value]) => (
-                                value && <div key={key}><span className="font-semibold">{key}:</span> {String(value)}</div>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <ul className="text-xs text-red-500 list-disc list-inside">
-                              {item.errors.map((error: string, i: number) => (
-                                <li key={i}>{error}</li>
-                              ))}
-                            </ul>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <h3 className="text-lg font-medium mb-2">Invalid Rows ({validationResults.invalidRows.length})</h3>
+                  
+                  {validationResults.invalidRows.map((item: any, index: number) => (
+                    <div key={index} className="mb-6 border rounded-md overflow-hidden">
+                      {/* Error Summary Section */}
+                      <div className="bg-red-50 p-4 border-b">
+                        <ul className="list-disc list-inside space-y-1 text-red-600">
+                          {item.errors.map((error: string, i: number) => (
+                            <li key={i} className="text-sm">{error}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      {/* Data Fields Section */}
+                      <div className="p-4 bg-gray-50">
+                        <div className="grid grid-cols-2 gap-2">
+                          {Object.entries(item.rowData).map(([key, value]) => (
+                            value ? (
+                              <div key={key} className="flex">
+                                <div className="font-medium text-sm text-gray-500 min-w-[140px]">{key}:</div> 
+                                <div className="text-sm">{String(value)}</div>
+                              </div>
+                            ) : null
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 

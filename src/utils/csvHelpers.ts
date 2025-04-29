@@ -72,7 +72,7 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
 
 export const parseEmployeeCSV = (file: File): Promise<{
   validEmployees: EmployeeData[],
-  invalidRows: {row: CSVEmployeeData, errors: string[]}[]
+  invalidRows: {row: CSVEmployeeData, errors: string[], rowData: Record<string, string | null>}[]
 }> => {
   return new Promise((resolve, reject) => {
     Papa.parse<CSVEmployeeData>(file, {
@@ -80,7 +80,7 @@ export const parseEmployeeCSV = (file: File): Promise<{
       skipEmptyLines: true,
       complete: (results) => {
         const validEmployees: EmployeeData[] = [];
-        const invalidRows: {row: CSVEmployeeData, errors: string[]}[] = [];
+        const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: Record<string, string | null>}[] = [];
 
         results.data.forEach(row => {
           // Skip empty rows
@@ -105,6 +105,23 @@ export const parseEmployeeCSV = (file: File): Promise<{
             ifsc_code: row.ifsc_code || null,
           };
 
+          // Generate a structured data object for display
+          const rowData = {
+            emp_id: row.emp_id || '',
+            name: row.name || '',
+            email: row.email || '',
+            phone: row.phone || '',
+            city: row.city || '',
+            cluster: row.cluster || '',
+            role: row.role || '',
+            manager: row.manager || '',
+            date_of_joining: row.date_of_joining || '',
+            date_of_birth: row.date_of_birth || '',
+            blood_group: row.blood_group || '',
+            account_number: row.account_number || '',
+            ifsc_code: row.ifsc_code || '',
+          };
+
           // Validate the data using the common validation function
           const validation = validateEmployeeData(employeeData);
           
@@ -114,7 +131,7 @@ export const parseEmployeeCSV = (file: File): Promise<{
               password: 'changeme123' // Default password
             });
           } else {
-            invalidRows.push({ row, errors: validation.errors });
+            invalidRows.push({ row, errors: validation.errors, rowData });
           }
         });
 
