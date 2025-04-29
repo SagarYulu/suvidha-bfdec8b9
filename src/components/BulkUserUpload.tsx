@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { parseEmployeeCSV, getCSVTemplate } from "@/utils/csvHelpers";
+import { parseEmployeeCSV, getCSVTemplate, validateEmployeeData, formatDateToYYYYMMDD } from "@/utils/csvHelpers";
 import { Download, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -105,8 +106,86 @@ const BulkUserUpload = () => {
     return editedRows[rowKey] ? editedRows[rowKey][field] || originalValue : originalValue;
   };
 
+  // Check if all edited rows are now valid
+  const validateEditedRows = () => {
+    const correctedEmployees: CSVEmployeeData[] = [];
+    const stillInvalid: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
+    
+    // Process each invalid row with its edits
+    validationResults.invalidRows.forEach((item, index) => {
+      const rowKey = `row-${index}`;
+      const editedRow = editedRows[rowKey] || item.rowData;
+      
+      // Convert the edited row data to the employee data format
+      const employeeData: Partial<CSVEmployeeData> = {
+        emp_id: editedRow.emp_id || '',
+        name: editedRow.name || '',
+        email: editedRow.email || '',
+        phone: editedRow.phone || null,
+        city: editedRow.city || null,
+        cluster: editedRow.cluster || null,
+        role: editedRow.role || '',
+        manager: editedRow.manager || null,
+        date_of_joining: editedRow.date_of_joining || null,
+        date_of_birth: editedRow.date_of_birth || null,
+        blood_group: editedRow.blood_group || null,
+        account_number: editedRow.account_number || null,
+        ifsc_code: editedRow.ifsc_code || null,
+      };
+      
+      // Validate the edited data
+      const validation = validateEmployeeData(employeeData);
+      
+      if (validation.isValid) {
+        correctedEmployees.push({
+          ...employeeData as CSVEmployeeData,
+          // Convert dates to YYYY-MM-DD format for database
+          date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
+          date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
+          password: 'changeme123' // Default password
+        });
+      } else {
+        stillInvalid.push({
+          row: employeeData as CSVEmployeeData,
+          errors: validation.errors,
+          rowData: editedRow
+        });
+      }
+    });
+    
+    return { correctedEmployees, stillInvalid };
+  };
+
+  const handleUploadEditedRows = () => {
+    // First validate all edited rows
+    const { correctedEmployees, stillInvalid } = validateEditedRows();
+    
+    if (stillInvalid.length > 0) {
+      // Some rows are still invalid
+      toast({
+        variant: "destructive",
+        title: "Validation Errors",
+        description: `${stillInvalid.length} row(s) still have validation errors. Please correct them before uploading.`,
+      });
+      
+      // Update validation results with the still invalid rows
+      setValidationResults(prev => ({
+        ...prev,
+        invalidRows: stillInvalid
+      }));
+      
+      return;
+    }
+    
+    // Combine the original valid employees with the corrected ones
+    const allEmployees = [...validationResults.validEmployees, ...correctedEmployees];
+    uploadValidEmployees(allEmployees);
+  };
+
   const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
     try {
+      setIsUploading(true);
+      
       // Map CSV fields to employees table structure
       const employeesData = employees.map(emp => ({
         name: emp.name,
@@ -136,6 +215,8 @@ const BulkUserUpload = () => {
         title: "Upload Successful",
         description: `Successfully added ${employees.length} employees.`,
       });
+      
+      setShowValidationDialog(false);
     } catch (error: any) {
       console.error('Upload to database error:', error);
       toast({
@@ -145,7 +226,6 @@ const BulkUserUpload = () => {
       });
     } finally {
       setIsUploading(false);
-      setShowValidationDialog(false);
     }
   };
 
@@ -482,19 +562,33 @@ const BulkUserUpload = () => {
             </div>
           </ScrollArea>
 
-          <DialogFooter className="flex justify-between">
+          <DialogFooter className="flex justify-between items-center space-x-2">
             <Button variant="outline" onClick={() => setShowValidationDialog(false)}>
               Cancel Upload
             </Button>
-            {validationResults.validEmployees.length > 0 ? (
-              <Button onClick={handleProceedAnyway}>
-                Upload Valid Employees ({validationResults.validEmployees.length})
-              </Button>
-            ) : (
-              <Button variant="outline" disabled>
-                No Valid Data to Upload
-              </Button>
-            )}
+            
+            <div className="flex space-x-2">
+              {validationResults.invalidRows.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleUploadEditedRows} 
+                  disabled={isUploading}
+                  className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                >
+                  Validate & Upload Edited Rows
+                </Button>
+              )}
+              
+              {validationResults.validEmployees.length > 0 ? (
+                <Button onClick={handleProceedAnyway} disabled={isUploading}>
+                  {isUploading ? "Uploading..." : `Upload Valid Employees (${validationResults.validEmployees.length})`}
+                </Button>
+              ) : (
+                <Button variant="outline" disabled>
+                  No Valid Data to Upload
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

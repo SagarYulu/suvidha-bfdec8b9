@@ -1,3 +1,4 @@
+
 import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
@@ -63,37 +64,42 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
       return false;
     }
     
-    let date;
+    // Check that the date components make sense
     let day, month, year;
     
-    // Parse based on format
     if (dateStr.includes('-')) {
-      if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
-        // Parse DD-MM-YYYY format
-        [day, month, year] = dateStr.split('-').map(Number);
-        date = new Date(year, month - 1, day);
+      if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // YYYY-MM-DD format
+        [year, month, day] = dateStr.split('-').map(Number);
       } else {
-        // Parse YYYY-MM-DD format
-        date = new Date(dateStr);
+        // DD-MM-YYYY format
+        [day, month, year] = dateStr.split('-').map(Number);
       }
     } else if (dateStr.includes('/')) {
-      // Parse DD/MM/YYYY format
+      // DD/MM/YYYY format
       [day, month, year] = dateStr.split('/').map(Number);
-      date = new Date(year, month - 1, day);
     } else {
-      date = new Date(dateStr);
+      return false;
     }
     
-    // Check that date is valid
-    return date instanceof Date && !isNaN(date.getTime());
+    // Validate date components
+    if (month < 1 || month > 12) return false;
+    
+    // Check days in month (accounting for leap years)
+    const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+      daysInMonth[2] = 29; // Leap year
+    }
+    
+    return day >= 1 && day <= daysInMonth[month];
   };
 
   if (data.date_of_joining && !isValidDate(data.date_of_joining)) {
-    errors.push(`Invalid date of joining: ${data.date_of_joining}. Use format DD-MM-YYYY.`);
+    errors.push(`Invalid date of joining: ${data.date_of_joining}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
   }
 
   if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
-    errors.push(`Invalid date of birth: ${data.date_of_birth}. Use format DD-MM-YYYY.`);
+    errors.push(`Invalid date of birth: ${data.date_of_birth}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
   }
 
   return {
@@ -184,8 +190,9 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
       complete: (results) => {
         const validEmployees: CSVEmployeeData[] = [];
         const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
-
-        results.data.forEach(row => {
+        
+        // Process edited rows
+        results.data.forEach((row, index) => {
           // Skip empty rows
           if (Object.values(row).every(val => val === null || val === '')) {
             return;
@@ -239,8 +246,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           } else {
             invalidRows.push({ 
               row: employeeData as CSVEmployeeData, 
-              errors: validation.errors, 
-              rowData 
+              errors: validation.errors,
+              rowData
             });
           }
         });
