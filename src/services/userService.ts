@@ -1,46 +1,245 @@
-
 import { User } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
-// In-memory storage for the mock users
+// Keep a local cache of users for faster access
 let users = [...MOCK_USERS];
 
-export const getUsers = (): Promise<User[]> => {
-  return Promise.resolve(users);
-};
-
-export const getUserById = (id: string): Promise<User | undefined> => {
-  const user = users.find(user => user.id === id);
-  return Promise.resolve(user);
-};
-
-export const createUser = (user: Omit<User, 'id'>): Promise<User> => {
-  const newUser: User = {
-    id: `${users.length + 1}`,
-    ...user,
+// Function to map Supabase employee to User type
+const mapEmployeeToUser = (employee: any): User => {
+  return {
+    id: employee.id,
+    name: employee.name,
+    email: employee.email,
+    phone: employee.phone || "",
+    employeeId: employee.emp_id,
+    city: employee.city || "",
+    cluster: employee.cluster || "",
+    manager: employee.manager || "",
+    role: employee.role as "admin" | "employee" || "employee",
+    password: employee.password,
+    dateOfJoining: employee.date_of_joining || ""
   };
-  
-  users = [...users, newUser];
-  return Promise.resolve(newUser);
 };
 
-export const updateUser = (id: string, userData: Partial<User>): Promise<User | undefined> => {
-  let updatedUser: User | undefined;
-  
-  users = users.map(user => {
-    if (user.id === id) {
-      updatedUser = { ...user, ...userData };
-      return updatedUser;
+// Initialize: Load users from Supabase
+const initializeUsers = async (): Promise<void> => {
+  try {
+    const { data: employees, error } = await supabase.from('employees').select('*');
+    
+    if (error) {
+      console.error("Error loading employees from Supabase:", error);
+      return;
     }
-    return user;
-  });
-  
-  return Promise.resolve(updatedUser);
+
+    if (employees && employees.length > 0) {
+      users = employees.map(mapEmployeeToUser);
+      console.log(`Loaded ${users.length} users from Supabase employees table`);
+    } else {
+      // If no employees in database, initialize with mock data
+      console.log("No employees found in database, using mock data");
+      const { error } = await migrateUsersToSupabase();
+      if (error) {
+        console.error("Error migrating mock users to Supabase:", error);
+      }
+    }
+  } catch (error) {
+    console.error("Error initializing users from Supabase:", error);
+  }
 };
 
-export const deleteUser = (id: string): Promise<boolean> => {
-  const initialLength = users.length;
-  users = users.filter(user => user.id !== id);
+// Initialize users on service load
+initializeUsers();
+
+// Migrate mock users to Supabase if needed
+const migrateUsersToSupabase = async () => {
+  const employeesData = MOCK_USERS.map(user => ({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    emp_id: user.employeeId,
+    city: user.city,
+    cluster: user.cluster,
+    manager: user.manager,
+    role: user.role,
+    password: user.password,
+    date_of_joining: user.dateOfJoining
+  }));
   
-  return Promise.resolve(users.length < initialLength);
+  return await supabase.from('employees').upsert(employeesData, { 
+    onConflict: 'id',
+    ignoreDuplicates: false
+  });
+};
+
+export const getUsers = async (): Promise<User[]> => {
+  try {
+    const { data: employees, error } = await supabase.from('employees').select('*');
+    
+    if (error) {
+      console.error("Error fetching users:", error);
+      return users; // Fall back to cached users
+    }
+    
+    if (employees) {
+      users = employees.map(mapEmployeeToUser);
+    }
+    
+    return users;
+  } catch (error) {
+    console.error("Error in getUsers:", error);
+    return users; // Fall back to cached users
+  }
+};
+
+export const getUserById = async (id: string): Promise<User | undefined> => {
+  try {
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching user by ID:", error);
+      // Fall back to local cache
+      return users.find(user => user.id === id);
+    }
+    
+    return employee ? mapEmployeeToUser(employee) : undefined;
+  } catch (error) {
+    console.error("Error in getUserById:", error);
+    // Fall back to local cache
+    return users.find(user => user.id === id);
+  }
+};
+
+export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
+  try {
+    const newEmployee = {
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      emp_id: user.employeeId,
+      city: user.city,
+      cluster: user.cluster,
+      manager: user.manager,
+      role: user.role,
+      password: user.password,
+      date_of_joining: user.dateOfJoining
+    };
+    
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .insert(newEmployee)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating user in Supabase:", error);
+      throw error;
+    }
+    
+    const newUser = mapEmployeeToUser(employee);
+    // Update local cache
+    users = [...users, newUser];
+    
+    return newUser;
+  } catch (error) {
+    console.error("Error in createUser:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (id: string, userData: Partial<User>): Promise<User | undefined> => {
+  try {
+    // Convert User type to employee table schema
+    const employeeUpdate: any = {};
+    
+    if (userData.name) employeeUpdate.name = userData.name;
+    if (userData.email) employeeUpdate.email = userData.email;
+    if (userData.phone) employeeUpdate.phone = userData.phone;
+    if (userData.employeeId) employeeUpdate.emp_id = userData.employeeId;
+    if (userData.city) employeeUpdate.city = userData.city;
+    if (userData.cluster) employeeUpdate.cluster = userData.cluster;
+    if (userData.manager) employeeUpdate.manager = userData.manager;
+    if (userData.role) employeeUpdate.role = userData.role;
+    if (userData.password) employeeUpdate.password = userData.password;
+    if (userData.dateOfJoining) employeeUpdate.date_of_joining = userData.dateOfJoining;
+    
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .update(employeeUpdate)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error updating user in Supabase:", error);
+      
+      // Fall back to in-memory update
+      users = users.map(user => {
+        if (user.id === id) {
+          return { ...user, ...userData };
+        }
+        return user;
+      });
+      
+      return users.find(user => user.id === id);
+    }
+    
+    const updatedUser = mapEmployeeToUser(employee);
+    
+    // Update local cache
+    users = users.map(user => {
+      if (user.id === id) {
+        return updatedUser;
+      }
+      return user;
+    });
+    
+    return updatedUser;
+  } catch (error) {
+    console.error("Error in updateUser:", error);
+    
+    // Fall back to in-memory update
+    users = users.map(user => {
+      if (user.id === id) {
+        return { ...user, ...userData };
+      }
+      return user;
+    });
+    
+    return users.find(user => user.id === id);
+  }
+};
+
+export const deleteUser = async (id: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('employees')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error("Error deleting user from Supabase:", error);
+      
+      // Fall back to in-memory delete
+      const initialLength = users.length;
+      users = users.filter(user => user.id !== id);
+      return users.length < initialLength;
+    }
+    
+    // Update local cache
+    users = users.filter(user => user.id !== id);
+    return true;
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    
+    // Fall back to in-memory delete
+    const initialLength = users.length;
+    users = users.filter(user => user.id !== id);
+    return users.length < initialLength;
+  }
 };

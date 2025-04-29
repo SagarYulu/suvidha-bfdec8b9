@@ -18,10 +18,23 @@ const BulkUserUpload = () => {
     try {
       const employees = await parseEmployeeCSV(file);
       
+      // Map CSV fields to employees table structure
+      const employeesData = employees.map(emp => ({
+        name: emp.name,
+        email: emp.email,
+        phone: emp.phone || null,
+        emp_id: emp.employeeId,
+        city: emp.city || null,
+        role: emp.role || 'employee',
+        password: emp.password || 'changeme123',
+        date_of_joining: emp.dateOfJoining || null
+      }));
+      
       // Insert employees into Supabase
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('employees')
-        .insert(employees);
+        .insert(employeesData)
+        .select('count');
 
       if (error) throw error;
 
