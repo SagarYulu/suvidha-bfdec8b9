@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -80,6 +79,7 @@ export interface RowData {
   blood_group: string;
   account_number: string;
   ifsc_code: string;
+  password: string;  // Added password field
 }
 
 // Define a string-indexed interface for edited rows

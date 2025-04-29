@@ -132,6 +132,7 @@ const BulkUserUpload = () => {
         blood_group: editedRow.blood_group || null,
         account_number: editedRow.account_number || null,
         ifsc_code: editedRow.ifsc_code || null,
+        password: editedRow.password || 'changeme123', // Use edited password or default
       };
       
       // Validate the edited data
@@ -143,7 +144,7 @@ const BulkUserUpload = () => {
           // Convert dates to YYYY-MM-DD format for database
           date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
           date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
-          password: 'changeme123' // Default password
+          password: employeeData.password || 'changeme123' // Use edited password or default
         });
       } else {
         stillInvalid.push({
@@ -302,7 +303,7 @@ const BulkUserUpload = () => {
           <li>Each city has specific valid clusters</li>
           <li>Dates should be in DD-MM-YYYY format (or DD/MM/YYYY)</li>
           <li>Phone numbers should not include spaces or special characters</li>
-          <li>Default password will be set as 'changeme123'</li>
+          <li>Password will be set as 'changeme123' by default but can be edited</li>
           <li>Download the template for the correct format</li>
         </ul>
       </div>
@@ -522,6 +523,17 @@ const BulkUserUpload = () => {
                                   value={getRowValue(rowKey, 'ifsc_code', item.rowData.ifsc_code)}
                                   onChange={(e) => handleFieldEdit(rowKey, 'ifsc_code', e.target.value)}
                                   className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Password</label>
+                                <Input 
+                                  type="password"
+                                  value={getRowValue(rowKey, 'password', 'changeme123')}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'password', e.target.value)}
+                                  className="h-8 text-sm"
+                                  placeholder="Default: changeme123"
                                 />
                               </div>
                             </div>
