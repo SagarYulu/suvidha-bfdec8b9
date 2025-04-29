@@ -35,11 +35,9 @@ import { Input } from "@/components/ui/input";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 import { ValidationResult, CSVEmployeeData, RowData } from "@/types";
 
-// Define type for edited rows record
+// Define type for edited rows record using a string key
 interface EditedRowsRecord {
-  [key: string]: {
-    [field: string]: string;
-  };
+  [key: string]: RowData;
 }
 
 const BulkUserUpload = () => {
@@ -67,7 +65,13 @@ const BulkUserUpload = () => {
       const result = await parseEmployeeCSV(file);
       
       setValidationResults(result);
-      setEditedRows({}); // Reset any previous edits
+      // Initialize edited rows with original data
+      const initialEditedRows: EditedRowsRecord = {};
+      result.invalidRows.forEach((item, index) => {
+        initialEditedRows[`row-${index}`] = { ...item.rowData };
+      });
+      setEditedRows(initialEditedRows);
+      
       setShowValidationDialog(true);
       
       if (result.validEmployees.length === 0 && result.invalidRows.length === 0) {
@@ -92,20 +96,19 @@ const BulkUserUpload = () => {
     }
   };
 
-  const handleFieldEdit = (rowIndex: string, field: string, value: string) => {
+  const handleFieldEdit = (rowKey: string, field: keyof RowData, value: string) => {
     setEditedRows(prev => ({
       ...prev,
-      [rowIndex]: {
-        ...(prev[rowIndex] || {}),
+      [rowKey]: {
+        ...prev[rowKey],
         [field]: value
       }
     }));
   };
 
-  const getRowValue = (rowIndex: string, field: string, originalValue: string) => {
-    return editedRows[rowIndex]?.[field] !== undefined 
-      ? editedRows[rowIndex][field] 
-      : originalValue;
+  // Get value for a field from edited rows or fall back to original
+  const getRowValue = (rowKey: string, field: keyof RowData, originalValue: string) => {
+    return editedRows[rowKey] ? editedRows[rowKey][field] || originalValue : originalValue;
   };
 
   const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
@@ -263,184 +266,187 @@ const BulkUserUpload = () => {
                   <h3 className="text-lg font-medium mb-2">Invalid Rows ({validationResults.invalidRows.length})</h3>
                   
                   <div className="space-y-4">
-                    {validationResults.invalidRows.map((item, idx) => (
-                      <Card key={`invalid-row-${idx}`} className="border-red-200">
-                        <CardHeader className="bg-red-50 p-4 border-b border-red-200">
-                          <div className="flex justify-between items-center">
-                            <h4 className="text-sm font-medium text-red-800">Row {idx + 1} - Validation Errors</h4>
-                            <Badge variant="destructive" className="text-xs">{item.errors.length} Errors</Badge>
-                          </div>
-                          <ul className="list-disc list-inside space-y-1 text-red-600 text-xs mt-2">
-                            {item.errors.map((error: string, errorIdx: number) => (
-                              <li key={`error-${idx}-${errorIdx}`}>{error}</li>
-                            ))}
-                          </ul>
-                        </CardHeader>
-                        
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Employee ID</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'emp_id', item.rowData.emp_id)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'emp_id', e.target.value)}
-                                className="h-8 text-sm"
-                              />
+                    {validationResults.invalidRows.map((item, idx) => {
+                      const rowKey = `row-${idx}`;
+                      return (
+                        <Card key={`invalid-row-${idx}`} className="border-red-200">
+                          <CardHeader className="bg-red-50 p-4 border-b border-red-200">
+                            <div className="flex justify-between items-center">
+                              <h4 className="text-sm font-medium text-red-800">Row {idx + 1} - Validation Errors</h4>
+                              <Badge variant="destructive" className="text-xs">{item.errors.length} Errors</Badge>
                             </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Name</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'name', item.rowData.name)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'name', e.target.value)}
-                                className="h-8 text-sm"
-                              />
+                            <ul className="list-disc list-inside space-y-1 text-red-600 text-xs mt-2">
+                              {item.errors.map((error: string, errorIdx: number) => (
+                                <li key={`error-${idx}-${errorIdx}`}>{error}</li>
+                              ))}
+                            </ul>
+                          </CardHeader>
+                          
+                          <CardContent className="p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Employee ID</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'emp_id', item.rowData.emp_id)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'emp_id', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Name</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'name', item.rowData.name)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'name', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Email</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'email', item.rowData.email)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'email', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Phone</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'phone', item.rowData.phone)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'phone', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Role</label>
+                                <Select
+                                  value={getRowValue(rowKey, 'role', item.rowData.role)}
+                                  onValueChange={(value) => handleFieldEdit(rowKey, 'role', value)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select role" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ROLE_OPTIONS.map((role, roleIdx) => (
+                                      <SelectItem key={`role-${idx}-${roleIdx}`} value={role}>{role}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">City</label>
+                                <Select
+                                  value={getRowValue(rowKey, 'city', item.rowData.city)}
+                                  onValueChange={(value) => {
+                                    handleFieldEdit(rowKey, 'city', value);
+                                    // Reset cluster when city changes
+                                    handleFieldEdit(rowKey, 'cluster', '');
+                                  }}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder="Select city" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {CITY_OPTIONS.map((city, cityIdx) => (
+                                      <SelectItem key={`city-${idx}-${cityIdx}`} value={city}>{city}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Cluster</label>
+                                <Select
+                                  value={getRowValue(rowKey, 'cluster', item.rowData.cluster)}
+                                  onValueChange={(value) => handleFieldEdit(rowKey, 'cluster', value)}
+                                  disabled={!getRowValue(rowKey, 'city', item.rowData.city)}
+                                >
+                                  <SelectTrigger className="h-8 text-sm">
+                                    <SelectValue placeholder={!getRowValue(rowKey, 'city', item.rowData.city) ? 
+                                      "Select city first" : "Select cluster"} />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {getClustersForCity(getRowValue(rowKey, 'city', item.rowData.city)).map((cluster, clusterIdx) => (
+                                      <SelectItem key={`cluster-${idx}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Manager</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'manager', item.rowData.manager)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'manager', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'date_of_joining', item.rowData.date_of_joining)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'date_of_joining', e.target.value)}
+                                  placeholder="DD-MM-YYYY"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'date_of_birth', item.rowData.date_of_birth)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'date_of_birth', e.target.value)}
+                                  placeholder="DD-MM-YYYY"
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Blood Group</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'blood_group', item.rowData.blood_group)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'blood_group', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">Account Number</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'account_number', item.rowData.account_number)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'account_number', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
+                              
+                              <div className="space-y-2">
+                                <label className="text-xs font-medium text-gray-500">IFSC Code</label>
+                                <Input 
+                                  size="sm"
+                                  value={getRowValue(rowKey, 'ifsc_code', item.rowData.ifsc_code)}
+                                  onChange={(e) => handleFieldEdit(rowKey, 'ifsc_code', e.target.value)}
+                                  className="h-8 text-sm"
+                                />
+                              </div>
                             </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Email</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'email', item.rowData.email)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'email', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Phone</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'phone', item.rowData.phone)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'phone', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Role</label>
-                              <Select
-                                value={getRowValue(`${idx}`, 'role', item.rowData.role)}
-                                onValueChange={(value) => handleFieldEdit(`${idx}`, 'role', value)}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {ROLE_OPTIONS.map((role, roleIdx) => (
-                                    <SelectItem key={`role-${idx}-${roleIdx}`} value={role}>{role}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">City</label>
-                              <Select
-                                value={getRowValue(`${idx}`, 'city', item.rowData.city)}
-                                onValueChange={(value) => {
-                                  handleFieldEdit(`${idx}`, 'city', value);
-                                  // Reset cluster when city changes
-                                  handleFieldEdit(`${idx}`, 'cluster', '');
-                                }}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder="Select city" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {CITY_OPTIONS.map((city, cityIdx) => (
-                                    <SelectItem key={`city-${idx}-${cityIdx}`} value={city}>{city}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Cluster</label>
-                              <Select
-                                value={getRowValue(`${idx}`, 'cluster', item.rowData.cluster)}
-                                onValueChange={(value) => handleFieldEdit(`${idx}`, 'cluster', value)}
-                                disabled={!getRowValue(`${idx}`, 'city', item.rowData.city)}
-                              >
-                                <SelectTrigger className="h-8 text-sm">
-                                  <SelectValue placeholder={!getRowValue(`${idx}`, 'city', item.rowData.city) ? 
-                                    "Select city first" : "Select cluster"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {getClustersForCity(getRowValue(`${idx}`, 'city', item.rowData.city)).map((cluster, clusterIdx) => (
-                                    <SelectItem key={`cluster-${idx}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Manager</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'manager', item.rowData.manager)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'manager', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'date_of_joining', item.rowData.date_of_joining)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'date_of_joining', e.target.value)}
-                                placeholder="DD-MM-YYYY"
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'date_of_birth', item.rowData.date_of_birth)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'date_of_birth', e.target.value)}
-                                placeholder="DD-MM-YYYY"
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Blood Group</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'blood_group', item.rowData.blood_group)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'blood_group', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">Account Number</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'account_number', item.rowData.account_number)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'account_number', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <label className="text-xs font-medium text-gray-500">IFSC Code</label>
-                              <Input 
-                                size="sm"
-                                value={getRowValue(`${idx}`, 'ifsc_code', item.rowData.ifsc_code)}
-                                onChange={(e) => handleFieldEdit(`${idx}`, 'ifsc_code', e.target.value)}
-                                className="h-8 text-sm"
-                              />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 </div>
               )}

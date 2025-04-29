@@ -63,7 +63,7 @@ export interface CSVEmployeeData {
   password?: string;
 }
 
-// Add a typed interface for validation results to use in both files
+// Row data interface - explicitly defined with all fields as strings
 export interface RowData {
   emp_id: string;
   name: string;
