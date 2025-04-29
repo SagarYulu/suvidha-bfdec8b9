@@ -23,8 +23,9 @@ const Index = () => {
   const handleAdminClick = () => {
     console.log("Admin button clicked, current auth state:", authState);
     
-    // If the user is already authenticated and is an admin, navigate directly
-    if (authState.isAuthenticated && authState.role === "admin") {
+    // If the user is already authenticated and has an admin role, navigate directly
+    if (authState.isAuthenticated && 
+        (authState.role === "hr_admin" || authState.role === "city_head" || authState.role === "ops")) {
       console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {

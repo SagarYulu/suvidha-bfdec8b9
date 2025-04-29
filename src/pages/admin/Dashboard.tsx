@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -25,7 +26,8 @@ const AdminDashboard = () => {
       return;
     } 
     
-    if (authState.role !== "admin") {
+    // Check if user has any admin role (hr_admin, city_head, ops)
+    if (authState.role !== "hr_admin" && authState.role !== "city_head" && authState.role !== "ops") {
       console.log("Not an admin, redirecting to home");
       navigate("/");
       return;
