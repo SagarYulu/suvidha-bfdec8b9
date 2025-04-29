@@ -33,33 +33,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
+import { ValidationResult, CSVEmployeeData, RowData } from "@/types";
 
-// Define interfaces for type safety
-interface RowData {
-  emp_id: string;
-  name: string;
-  email: string;
-  phone: string;
-  city: string;
-  cluster: string;
-  role: string;
-  manager: string;
-  date_of_joining: string;
-  date_of_birth: string;
-  blood_group: string;
-  account_number: string;
-  ifsc_code: string;
-}
-
-interface InvalidRow {
-  row: any;
-  errors: string[];
-  rowData: RowData;
-}
-
-interface ValidationResult {
-  validEmployees: any[];
-  invalidRows: InvalidRow[];
+// Define type for edited rows record
+interface EditedRowsRecord {
+  [key: string]: {
+    [field: string]: string;
+  };
 }
 
 const BulkUserUpload = () => {
@@ -69,7 +49,7 @@ const BulkUserUpload = () => {
     validEmployees: [], 
     invalidRows: [] 
   });
-  const [editedRows, setEditedRows] = useState<Record<string, Record<string, string>>>({});
+  const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
   const { toast } = useToast();
 
   // Helper function to get clusters for a city
@@ -86,22 +66,11 @@ const BulkUserUpload = () => {
     try {
       const result = await parseEmployeeCSV(file);
       
-      // Convert result to match ValidationResult interface
-      const validationData: ValidationResult = {
-        validEmployees: result.validEmployees,
-        invalidRows: result.invalidRows.map(item => ({
-          row: item.row,
-          errors: item.errors,
-          rowData: item.rowData as unknown as RowData // Type assertion to handle row data structure
-        }))
-      };
-      
-      // Show validation dialog regardless of whether there are errors or not
-      setValidationResults(validationData);
+      setValidationResults(result);
       setEditedRows({}); // Reset any previous edits
       setShowValidationDialog(true);
       
-      if (validationData.validEmployees.length === 0 && validationData.invalidRows.length === 0) {
+      if (result.validEmployees.length === 0 && result.invalidRows.length === 0) {
         toast({
           variant: "destructive",
           title: "Empty File",
@@ -139,7 +108,7 @@ const BulkUserUpload = () => {
       : originalValue;
   };
 
-  const uploadValidEmployees = async (employees: any[]) => {
+  const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
     try {
       // Map CSV fields to employees table structure
       const employeesData = employees.map(emp => ({
@@ -495,7 +464,7 @@ const BulkUserUpload = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {validationResults.validEmployees.map((emp: any, index: number) => (
+                      {validationResults.validEmployees.map((emp, index) => (
                         <TableRow key={index}>
                           <TableCell>{emp.emp_id}</TableCell>
                           <TableCell>{emp.name}</TableCell>
