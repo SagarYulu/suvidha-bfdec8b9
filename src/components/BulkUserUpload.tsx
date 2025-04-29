@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { parseEmployeeCSV, getCSVTemplate } from "@/utils/csvHelpers";
-import { Download, Upload, AlertCircle } from "lucide-react";
+import { Download, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -37,26 +37,19 @@ const BulkUserUpload = () => {
     try {
       const { validEmployees, invalidRows } = await parseEmployeeCSV(file);
       
-      if (invalidRows.length > 0) {
-        // Show validation dialog with errors
-        setValidationResults({ validEmployees, invalidRows });
-        setShowValidationDialog(true);
-        setIsUploading(false);
-        return;
-      }
+      // Show validation dialog regardless of whether there are errors or not
+      setValidationResults({ validEmployees, invalidRows });
+      setShowValidationDialog(true);
       
-      if (validEmployees.length === 0) {
+      if (validEmployees.length === 0 && invalidRows.length === 0) {
         toast({
           variant: "destructive",
-          title: "No Valid Employees",
-          description: "The CSV file doesn't contain any valid employee data.",
+          title: "Empty File",
+          description: "The CSV file doesn't contain any valid data rows.",
         });
-        setIsUploading(false);
-        return;
       }
-
-      // Continue with upload of valid employees only
-      await uploadValidEmployees(validEmployees);
+      
+      setIsUploading(false);
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -110,14 +103,21 @@ const BulkUserUpload = () => {
       });
     } finally {
       setIsUploading(false);
+      setShowValidationDialog(false);
     }
   };
 
   const handleProceedAnyway = () => {
     if (validationResults.validEmployees.length > 0) {
       uploadValidEmployees(validationResults.validEmployees);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "No Valid Employees",
+        description: "Cannot proceed as there are no valid employees to upload.",
+      });
+      setShowValidationDialog(false);
     }
-    setShowValidationDialog(false);
   };
 
   const downloadTemplate = () => {
@@ -169,6 +169,7 @@ const BulkUserUpload = () => {
           <li>Required fields: Employee ID (emp_id), Name, Email, Role</li>
           <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
           <li>Valid cities: Bangalore, Delhi, Mumbai</li>
+          <li>Each city has specific valid clusters</li>
           <li>Dates should be in YYYY-MM-DD format</li>
           <li>Phone numbers should not include spaces or special characters</li>
           <li>Default password will be set as 'changeme123'</li>
@@ -182,49 +183,69 @@ const BulkUserUpload = () => {
             <DialogTitle>CSV Validation Results</DialogTitle>
           </DialogHeader>
           
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Validation Errors Found</AlertTitle>
-            <AlertDescription>
-              {validationResults.invalidRows.length} row(s) contain validation errors and will be skipped.
-              {validationResults.validEmployees.length > 0 && 
-                ` ${validationResults.validEmployees.length} valid employee(s) can still be uploaded.`}
-            </AlertDescription>
-          </Alert>
+          {validationResults.invalidRows.length > 0 ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Validation Errors Found</AlertTitle>
+              <AlertDescription>
+                {validationResults.invalidRows.length} row(s) contain validation errors and will be skipped.
+                {validationResults.validEmployees.length > 0 && 
+                  ` ${validationResults.validEmployees.length} valid employee(s) can still be uploaded.`}
+              </AlertDescription>
+            </Alert>
+          ) : validationResults.validEmployees.length > 0 ? (
+            <Alert variant="default" className="mb-4 border-green-500 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <AlertTitle className="text-green-700">All Data Valid</AlertTitle>
+              <AlertDescription className="text-green-700">
+                {validationResults.validEmployees.length} valid employee(s) ready to be uploaded.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>No Valid Data</AlertTitle>
+              <AlertDescription>
+                The CSV file doesn't contain any valid employee data rows.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <ScrollArea className="h-[50vh]">
             <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium">Invalid Rows ({validationResults.invalidRows.length})</h3>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Row Data</TableHead>
-                      <TableHead>Errors</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {validationResults.invalidRows.map((item: any, index: number) => (
-                      <TableRow key={index}>
-                        <TableCell className="align-top">
-                          <div className="text-xs">
-                            {Object.entries(item.row).map(([key, value]) => (
-                              <div key={key}><span className="font-semibold">{key}:</span> {String(value)}</div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-top">
-                          <ul className="text-xs text-red-500 list-disc list-inside">
-                            {item.errors.map((error: string, i: number) => (
-                              <li key={i}>{error}</li>
-                            ))}
-                          </ul>
-                        </TableCell>
+              {validationResults.invalidRows.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-medium">Invalid Rows ({validationResults.invalidRows.length})</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Row Data</TableHead>
+                        <TableHead>Errors</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {validationResults.invalidRows.map((item: any, index: number) => (
+                        <TableRow key={index}>
+                          <TableCell className="align-top">
+                            <div className="text-xs">
+                              {Object.entries(item.row).map(([key, value]) => (
+                                value && <div key={key}><span className="font-semibold">{key}:</span> {String(value)}</div>
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="align-top">
+                            <ul className="text-xs text-red-500 list-disc list-inside">
+                              {item.errors.map((error: string, i: number) => (
+                                <li key={i}>{error}</li>
+                              ))}
+                            </ul>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
               {validationResults.validEmployees.length > 0 && (
                 <div>
@@ -250,8 +271,8 @@ const BulkUserUpload = () => {
                           <TableCell>{emp.name}</TableCell>
                           <TableCell>{emp.email}</TableCell>
                           <TableCell>{emp.role}</TableCell>
-                          <TableCell>{emp.city}</TableCell>
-                          <TableCell>{emp.cluster}</TableCell>
+                          <TableCell>{emp.city || '-'}</TableCell>
+                          <TableCell>{emp.cluster || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -265,9 +286,13 @@ const BulkUserUpload = () => {
             <Button variant="outline" onClick={() => setShowValidationDialog(false)}>
               Cancel Upload
             </Button>
-            {validationResults.validEmployees.length > 0 && (
+            {validationResults.validEmployees.length > 0 ? (
               <Button onClick={handleProceedAnyway}>
                 Upload Valid Employees ({validationResults.validEmployees.length})
+              </Button>
+            ) : (
+              <Button variant="outline" disabled>
+                No Valid Data to Upload
               </Button>
             )}
           </DialogFooter>
