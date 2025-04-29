@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { parseEmployeeCSV, getCSVTemplate } from "@/utils/csvHelpers";
-import { Download, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Download, Upload, AlertCircle, CheckCircle2, Edit } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -22,14 +22,30 @@ import {
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 const BulkUserUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationResults, setValidationResults] = useState<any>({ validEmployees: [], invalidRows: [] });
+  const [editedRows, setEditedRows] = useState<Record<number, Record<string, string>>>({});
   const { toast } = useToast();
+
+  // Helper function to get clusters for a city
+  const getClustersForCity = (city: string) => {
+    const matchedCity = CITY_OPTIONS.find(c => c.toLowerCase() === city.toLowerCase());
+    return matchedCity ? CLUSTER_OPTIONS[matchedCity] : [];
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -41,6 +57,7 @@ const BulkUserUpload = () => {
       
       // Show validation dialog regardless of whether there are errors or not
       setValidationResults({ validEmployees, invalidRows });
+      setEditedRows({}); // Reset any previous edits
       setShowValidationDialog(true);
       
       if (validEmployees.length === 0 && invalidRows.length === 0) {
@@ -63,6 +80,22 @@ const BulkUserUpload = () => {
     } finally {
       if (event.target) event.target.value = '';
     }
+  };
+
+  const handleFieldEdit = (rowIndex: number, field: string, value: string) => {
+    setEditedRows(prev => ({
+      ...prev,
+      [rowIndex]: {
+        ...(prev[rowIndex] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  const getRowValue = (rowIndex: number, field: string, originalValue: string) => {
+    return editedRows[rowIndex]?.[field] !== undefined 
+      ? editedRows[rowIndex][field] 
+      : originalValue;
   };
 
   const uploadValidEmployees = async (employees: any[]) => {
@@ -172,7 +205,7 @@ const BulkUserUpload = () => {
           <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
           <li>Valid cities: Bangalore, Delhi, Mumbai</li>
           <li>Each city has specific valid clusters</li>
-          <li>Dates should be in YYYY-MM-DD format</li>
+          <li>Dates should be in DD-MM-YYYY format</li>
           <li>Phone numbers should not include spaces or special characters</li>
           <li>Default password will be set as 'changeme123'</li>
           <li>Download the template for the correct format</li>
@@ -180,7 +213,7 @@ const BulkUserUpload = () => {
       </div>
 
       <Dialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
+        <DialogContent className="max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>CSV Validation Results</DialogTitle>
           </DialogHeader>
@@ -219,32 +252,186 @@ const BulkUserUpload = () => {
                 <div>
                   <h3 className="text-lg font-medium mb-2">Invalid Rows ({validationResults.invalidRows.length})</h3>
                   
-                  {validationResults.invalidRows.map((item: any, index: number) => (
-                    <div key={index} className="mb-6 border rounded-md overflow-hidden">
-                      {/* Error Summary Section */}
-                      <div className="bg-red-50 p-4 border-b">
-                        <ul className="list-disc list-inside space-y-1 text-red-600">
-                          {item.errors.map((error: string, i: number) => (
-                            <li key={i} className="text-sm">{error}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      
-                      {/* Data Fields Section */}
-                      <div className="p-4 bg-gray-50">
-                        <div className="grid grid-cols-2 gap-2">
-                          {Object.entries(item.rowData).map(([key, value]) => (
-                            value ? (
-                              <div key={key} className="flex">
-                                <div className="font-medium text-sm text-gray-500 min-w-[140px]">{key}:</div> 
-                                <div className="text-sm">{String(value)}</div>
-                              </div>
-                            ) : null
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  <div className="space-y-4">
+                    {validationResults.invalidRows.map((item: any, index: number) => (
+                      <Card key={index} className="border-red-200">
+                        <CardHeader className="bg-red-50 p-4 border-b border-red-200">
+                          <div className="flex justify-between items-center">
+                            <h4 className="text-sm font-medium text-red-800">Row {index + 1} - Validation Errors</h4>
+                            <Badge variant="destructive" className="text-xs">{item.errors.length} Errors</Badge>
+                          </div>
+                          <ul className="list-disc list-inside space-y-1 text-red-600 text-xs mt-2">
+                            {item.errors.map((error: string, i: number) => (
+                              <li key={i}>{error}</li>
+                            ))}
+                          </ul>
+                        </CardHeader>
+                        
+                        <CardContent className="p-4">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Employee ID</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'emp_id', item.rowData.emp_id)}
+                                onChange={(e) => handleFieldEdit(index, 'emp_id', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Name</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'name', item.rowData.name)}
+                                onChange={(e) => handleFieldEdit(index, 'name', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Email</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'email', item.rowData.email)}
+                                onChange={(e) => handleFieldEdit(index, 'email', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Phone</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'phone', item.rowData.phone)}
+                                onChange={(e) => handleFieldEdit(index, 'phone', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Role</label>
+                              <Select
+                                value={getRowValue(index, 'role', item.rowData.role)}
+                                onValueChange={(value) => handleFieldEdit(index, 'role', value)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Select role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ROLE_OPTIONS.map(role => (
+                                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">City</label>
+                              <Select
+                                value={getRowValue(index, 'city', item.rowData.city)}
+                                onValueChange={(value) => {
+                                  handleFieldEdit(index, 'city', value);
+                                  // Reset cluster when city changes
+                                  handleFieldEdit(index, 'cluster', '');
+                                }}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder="Select city" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {CITY_OPTIONS.map(city => (
+                                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Cluster</label>
+                              <Select
+                                value={getRowValue(index, 'cluster', item.rowData.cluster)}
+                                onValueChange={(value) => handleFieldEdit(index, 'cluster', value)}
+                                disabled={!getRowValue(index, 'city', item.rowData.city)}
+                              >
+                                <SelectTrigger className="h-8 text-sm">
+                                  <SelectValue placeholder={!getRowValue(index, 'city', item.rowData.city) ? 
+                                    "Select city first" : "Select cluster"} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {getClustersForCity(getRowValue(index, 'city', item.rowData.city)).map(cluster => (
+                                    <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Manager</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'manager', item.rowData.manager)}
+                                onChange={(e) => handleFieldEdit(index, 'manager', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'date_of_joining', item.rowData.date_of_joining)}
+                                onChange={(e) => handleFieldEdit(index, 'date_of_joining', e.target.value)}
+                                placeholder="DD-MM-YYYY"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'date_of_birth', item.rowData.date_of_birth)}
+                                onChange={(e) => handleFieldEdit(index, 'date_of_birth', e.target.value)}
+                                placeholder="DD-MM-YYYY"
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Blood Group</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'blood_group', item.rowData.blood_group)}
+                                onChange={(e) => handleFieldEdit(index, 'blood_group', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">Account Number</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'account_number', item.rowData.account_number)}
+                                onChange={(e) => handleFieldEdit(index, 'account_number', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <label className="text-xs font-medium text-gray-500">IFSC Code</label>
+                              <Input 
+                                size="sm"
+                                value={getRowValue(index, 'ifsc_code', item.rowData.ifsc_code)}
+                                onChange={(e) => handleFieldEdit(index, 'ifsc_code', e.target.value)}
+                                className="h-8 text-sm"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -263,6 +450,7 @@ const BulkUserUpload = () => {
                         <TableHead>Role</TableHead>
                         <TableHead>City</TableHead>
                         <TableHead>Cluster</TableHead>
+                        <TableHead>Date of Joining</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -274,6 +462,7 @@ const BulkUserUpload = () => {
                           <TableCell>{emp.role}</TableCell>
                           <TableCell>{emp.city || '-'}</TableCell>
                           <TableCell>{emp.cluster || '-'}</TableCell>
+                          <TableCell>{emp.date_of_joining || '-'}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
