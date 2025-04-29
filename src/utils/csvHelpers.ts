@@ -247,6 +247,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             blood_group: row.blood_group || '',
             account_number: row.account_number || '',
             ifsc_code: row.ifsc_code || '',
+            password: 'changeme123' // Adding the default password field
           };
 
           // Validate the data using the common validation function
