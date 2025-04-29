@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import {
@@ -26,9 +25,10 @@ interface SidebarLinkProps {
   icon: React.ElementType;
   label: string;
   showForRoles: Array<"hr_admin" | "city_head" | "ops">;
+  viewOnly?: boolean;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, showForRoles }) => {
+const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, showForRoles, viewOnly }) => {
   const { authState } = useAuth();
   const isActive = window.location.pathname === href;
   
@@ -36,10 +36,18 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, show
   if (!authState.user?.role || !showForRoles.includes(authState.user.role as any)) {
     return null;
   }
+  
+  // If this is a view-only link and the user is city_head or ops, redirect to a view-only version
+  let linkHref = href;
+  if (viewOnly && (authState.role === "city_head" || authState.role === "ops")) {
+    // For pages that should be view-only, we could append a query param or use a different route
+    // Here we're keeping the same route but this would be handled in the page component
+    linkHref = href;
+  }
 
   return (
     <Link
-      to={href}
+      to={linkHref}
       className={cn(
         "flex items-center py-3 px-6 text-sm font-medium border-l-2 transition-colors",
         isActive
@@ -62,8 +70,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiresRole
     return <Navigate to="/mobile/login" />;
   }
 
-  // Check if the user has the required role for this page
+  // Check if the user has any of the required roles for this page
   if (!requiresRole.includes(authState.role as any)) {
+    return <Navigate to="/admin/dashboard" />;
+  }
+  
+  // Additional check to prevent write access to certain pages for city_head and ops roles
+  // If the current page is /admin/users and the user is not hr_admin, redirect to dashboard
+  const isNonViewablePage = window.location.pathname.includes('/admin/users');
+  if (isNonViewablePage && authState.role !== "hr_admin") {
     return <Navigate to="/admin/dashboard" />;
   }
   
@@ -108,6 +123,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiresRole
             icon={TicketCheck} 
             label="Issues" 
             showForRoles={["hr_admin", "city_head", "ops"]}
+            viewOnly={true}
           />
           <SidebarLink 
             href="/admin/users" 
@@ -120,6 +136,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiresRole
             icon={BarChart3} 
             label="Analytics" 
             showForRoles={["hr_admin", "city_head", "ops"]}
+            viewOnly={true}
           />
         </div>
 
@@ -159,6 +176,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiresRole
 
         {/* Content Area */}
         <main className="flex-1 overflow-auto p-6 bg-gray-100">
+          {/* Show view-only message for city_head and ops roles */}
+          {(authState.role === "city_head" || authState.role === "ops") && (
+            <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
+              You have view-only access to this section. Contact HR Admin for any changes.
+            </div>
+          )}
           {children}
         </main>
       </div>
