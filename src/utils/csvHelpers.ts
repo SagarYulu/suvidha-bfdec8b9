@@ -1,10 +1,10 @@
-
 import Papa from 'papaparse';
 import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
 import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 
-type EmployeeData = Omit<Tables<'employees'>, 'id' | 'created_at' | 'updated_at'>;
+// Update EmployeeData type to include id
+type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
 
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
@@ -200,7 +200,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           
           // Convert CSV data to employee format
           const employeeData: Partial<EmployeeData> = {
-            id: row.id || '', // Added User ID field
+            id: row.id || '', // Now this is valid with the updated EmployeeData type
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
