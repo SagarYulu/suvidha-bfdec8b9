@@ -27,52 +27,42 @@ export const ROLE_OPTIONS = [
 // City options
 export const CITY_OPTIONS = [
   "Bangalore",
-  "Chennai",
   "Delhi",
-  "Mumbai",
-  "Pune"
+  "Mumbai"
 ];
 
 // Cluster options mapped by city
 export const CLUSTER_OPTIONS: {[key: string]: string[]} = {
-  "Bangalore": [
-    "Bangalore North",
-    "Bangalore South",
-    "Bangalore East",
-    "Bangalore West",
-    "Bangalore Central"
-  ],
-  "Chennai": [
-    "Chennai North",
-    "Chennai South",
-    "Chennai East",
-    "Chennai West",
-    "Chennai Central"
-  ],
   "Delhi": [
-    "Delhi North",
-    "Delhi South",
-    "Delhi East",
-    "Delhi West",
-    "Delhi Central",
+    "Delhi",
+    "GURGAON",
     "Noida",
-    "Gurgaon"
+    "Ghaziabad",
+    "Faridabad",
+    "Lakshminagar",
+    "Dwarka",
+    "South Delhi",
+    "North Delhi",
+    "Central Delhi"
   ],
   "Mumbai": [
-    "Mumbai North",
-    "Mumbai South",
-    "Mumbai East",
-    "Mumbai West",
-    "Mumbai Central",
-    "Navi Mumbai",
-    "Thane"
+    "Malad",
+    "Andheri",
+    "Chembur",
+    "Powai",
+    "Bandra",
+    "Sobo",
+    "Thane",
+    "Navi Mumbai"
   ],
-  "Pune": [
-    "Pune North",
-    "Pune South",
-    "Pune East",
-    "Pune West",
-    "Pune Central",
-    "Pimpri-Chinchwad"
+  "Bangalore": [
+    "Koramangala",
+    "Hebbal",
+    "Jayanagar",
+    "Electronic city",
+    "Whitefield",
+    "CBD",
+    "ORR",
+    "Yelahanka"
   ]
 };

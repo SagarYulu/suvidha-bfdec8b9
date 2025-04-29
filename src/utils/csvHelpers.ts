@@ -84,8 +84,8 @@ export const getCSVTemplate = () => {
 
   const csvContent = [
     headers.join(','),
-    'YL001,John Doe,john@yulu.com,9876543210,Bangalore,Bangalore Central,Mechanic,Jane Smith,2024-01-01,1990-01-01,O+,1234567890,HDFC0001234',
-    'YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,Delhi North,Zone Screener,Mark Johnson,2024-02-15,1992-05-20,A-,9876543210,ICIC0001234'
+    'YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Mechanic,Jane Smith,2024-01-01,1990-01-01,O+,1234567890,HDFC0001234',
+    'YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Zone Screener,Mark Johnson,2024-02-15,1992-05-20,A-,9876543210,ICIC0001234'
   ].join('\n');
 
   return csvContent;

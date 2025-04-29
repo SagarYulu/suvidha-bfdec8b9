@@ -1,9 +1,8 @@
 import { User } from "@/types";
-import { MOCK_USERS } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 
 // Keep a local cache of users for faster access
-let users = [...MOCK_USERS];
+let users: User[] = [];
 
 // Function to map Supabase employee to User type
 const mapEmployeeToUser = (employee: any): User => {
@@ -16,7 +15,7 @@ const mapEmployeeToUser = (employee: any): User => {
     city: employee.city || "",
     cluster: employee.cluster || "",
     manager: employee.manager || "",
-    role: employee.role as "admin" | "employee" || "employee",
+    role: employee.role || "",
     password: employee.password,
     dateOfJoining: employee.date_of_joining || "",
     bloodGroup: employee.blood_group || "",
@@ -40,12 +39,9 @@ const initializeUsers = async (): Promise<void> => {
       users = employees.map(mapEmployeeToUser);
       console.log(`Loaded ${users.length} users from Supabase employees table`);
     } else {
-      // If no employees in database, initialize with mock data
-      console.log("No employees found in database, using mock data");
-      const { error } = await migrateUsersToSupabase();
-      if (error) {
-        console.error("Error migrating mock users to Supabase:", error);
-      }
+      // If no employees in database, initialize with empty array - no mock data
+      console.log("No employees found in database");
+      users = [];
     }
   } catch (error) {
     console.error("Error initializing users from Supabase:", error);
@@ -54,32 +50,6 @@ const initializeUsers = async (): Promise<void> => {
 
 // Initialize users on service load
 initializeUsers();
-
-// Migrate mock users to Supabase if needed
-const migrateUsersToSupabase = async () => {
-  const employeesData = MOCK_USERS.map(user => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    phone: user.phone,
-    emp_id: user.employeeId,
-    city: user.city,
-    cluster: user.cluster,
-    manager: user.manager,
-    role: user.role,
-    password: user.password,
-    date_of_joining: user.dateOfJoining,
-    blood_group: user.bloodGroup,
-    date_of_birth: user.dateOfBirth,
-    account_number: user.accountNumber,
-    ifsc_code: user.ifscCode
-  }));
-  
-  return await supabase.from('employees').upsert(employeesData, { 
-    onConflict: 'id',
-    ignoreDuplicates: false
-  });
-};
 
 export const getUsers = async (): Promise<User[]> => {
   try {

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -441,12 +442,7 @@ const AdminUsers = () => {
             <p className="mt-1 text-sm text-gray-500">
               Get started by adding your first user
             </p>
-            <Button 
-              className="mt-4 bg-yulu-blue hover:bg-blue-700"
-              onClick={() => setIsAddUserDialogOpen(true)}
-            >
-              Add User
-            </Button>
+            {/* Removed duplicate Add User button here */}
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
