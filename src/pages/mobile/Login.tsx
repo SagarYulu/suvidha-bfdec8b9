@@ -27,13 +27,17 @@ const MobileLogin = () => {
           description: "Welcome back!",
         });
         
-        // Check if the user is an employee or admin and redirect accordingly
+        // Check if the user is an admin or employee and redirect accordingly
         const userDataString = localStorage.getItem("yuluUser");
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          if (userData.role === "admin") {
+          
+          // Admin roles: hr_admin, city_head, ops
+          if (userData.role === "hr_admin" || userData.role === "city_head" || userData.role === "ops") {
             navigate("/admin/dashboard");
-          } else if (userData.role === "employee") {
+          } 
+          // Employee role
+          else if (userData.role === "employee") {
             navigate("/mobile/issues");
           }
         }
