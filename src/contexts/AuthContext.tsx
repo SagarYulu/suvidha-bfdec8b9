@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -88,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Query the database for role assignment
-      const { data, error } = await supabase.rpc<boolean, HasRoleParams>('has_role', {
+      const { data, error } = await supabase.rpc('has_role', {
         user_id: userId,
         role_name: role
       });
@@ -98,7 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      return data || false;
+      return data === true;
     } catch (error) {
       console.error('Error in checkUserRole:', error);
       return false;
@@ -113,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      const { data, error } = await supabase.rpc<boolean, AssignRoleParams>('assign_role', {
+      const { data, error } = await supabase.rpc('assign_role', {
         target_user_id: userId,
         role_name: role
       });
@@ -123,7 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      return data || false;
+      return data === true;
     } catch (error) {
       console.error('Error in assignRole:', error);
       return false;
@@ -138,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      const { data, error } = await supabase.rpc<boolean, RemoveRoleParams>('remove_role', {
+      const { data, error } = await supabase.rpc('remove_role', {
         target_user_id: userId,
         role_name: role
       });
@@ -148,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      return data || false;
+      return data === true;
     } catch (error) {
       console.error('Error in removeRole:', error);
       return false;
