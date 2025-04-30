@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -87,8 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Query the database for role assignment
-      // Using any as a workaround for the type constraint issue
-      const { data, error } = await supabase.rpc<any>('has_role', {
+      // Using proper type parameters for the rpc method
+      const { data, error } = await supabase.rpc<boolean, HasRoleParams>('has_role', {
         user_id: userId,
         role_name: role
       });
@@ -113,8 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Using any as a workaround for the type constraint issue
-      const { data, error } = await supabase.rpc<any>('assign_role', {
+      // Using proper type parameters for the rpc method
+      const { data, error } = await supabase.rpc<boolean, AssignRoleParams>('assign_role', {
         target_user_id: userId,
         role_name: role
       });
@@ -139,8 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Using any as a workaround for the type constraint issue
-      const { data, error } = await supabase.rpc<any>('remove_role', {
+      // Using proper type parameters for the rpc method
+      const { data, error } = await supabase.rpc<boolean, RemoveRoleParams>('remove_role', {
         target_user_id: userId,
         role_name: role
       });
