@@ -3,8 +3,10 @@ import { type Tables } from '@/integrations/supabase/types';
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
 import { isValidDate } from './dateUtils';
 
-// Update EmployeeData type to include id
-type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
+// Update EmployeeData type to include userId
+type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'> & {
+  user_id?: string; // Add user_id field to match the database column
+};
 
 /**
  * Validates if a string is a valid user ID (numeric value)
@@ -21,9 +23,9 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   const errors: string[] = [];
   
   // Required fields - check for userId as well
-  const requiredFields = ['userId', 'emp_id', 'name', 'email', 'role'];
+  const requiredFields = ['user_id', 'emp_id', 'name', 'email', 'role'];
   const missingFields = requiredFields.filter(field => 
-    field === 'userId' ? !data.user_id : !data[field as keyof EmployeeData]
+    !data[field as keyof typeof data]
   );
   
   if (missingFields.length > 0) {

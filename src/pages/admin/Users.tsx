@@ -44,6 +44,7 @@ const AdminUsers = () => {
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
 
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
+    userId: "",  // Add userId field
     name: "",
     email: "",
     phone: "",
@@ -113,10 +114,10 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.role) {
+    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.role || !newUser.userId) {
       toast({
         title: "Validation error",
-        description: "Please fill out all required fields",
+        description: "Please fill out all required fields including User ID",
         variant: "destructive",
       });
       return;
@@ -128,6 +129,7 @@ const AdminUsers = () => {
       setIsAddUserDialogOpen(false);
       
       setNewUser({
+        userId: "",  // Reset userId field
         name: "",
         email: "",
         phone: "",
@@ -219,6 +221,16 @@ const AdminUsers = () => {
                     {/* Remove User ID field - let Supabase generate UUID */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
+                        <Label htmlFor="userId">User ID *</Label>
+                        <Input
+                          id="userId"
+                          name="userId"
+                          value={newUser.userId}
+                          onChange={handleInputChange}
+                          placeholder="Numeric User ID (e.g. 1001)"
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label htmlFor="employeeId">Employee ID *</Label>
                         <Input
                           id="employeeId"
@@ -226,16 +238,6 @@ const AdminUsers = () => {
                           value={newUser.employeeId}
                           onChange={handleInputChange}
                           placeholder="Employee ID (e.g. YL001)"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Name *</Label>
-                        <Input
-                          id="name"
-                          name="name"
-                          value={newUser.name}
-                          onChange={handleInputChange}
-                          placeholder="Full Name"
                         />
                       </div>
                     </div>

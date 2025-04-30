@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -79,7 +78,6 @@ export const useBulkUpload = () => {
       
       // Convert the edited row data to the employee data format
       const employeeData: Partial<CSVEmployeeData> = {
-        id: editedRow.id || '',
         userId: editedRow.userId || '',
         emp_id: editedRow.emp_id || '',
         name: editedRow.name || '',
@@ -99,8 +97,21 @@ export const useBulkUpload = () => {
       
       // Validate the edited data
       const validation = validateEmployeeData({
-        ...employeeData,
-        user_id: employeeData.userId // Map to the field name expected by validation
+        user_id: employeeData.userId, // Map userId to user_id for validation
+        emp_id: employeeData.emp_id,
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        city: employeeData.city,
+        cluster: employeeData.cluster,
+        role: employeeData.role,
+        manager: employeeData.manager,
+        date_of_joining: employeeData.date_of_joining,
+        date_of_birth: employeeData.date_of_birth,
+        blood_group: employeeData.blood_group,
+        account_number: employeeData.account_number,
+        ifsc_code: employeeData.ifsc_code,
+        password: employeeData.password
       });
       
       if (validation.isValid) {
@@ -155,7 +166,7 @@ export const useBulkUpload = () => {
       // Prepare data for database - include User ID, let UUID be auto-generated
       const employeesData = employees.map(emp => {
         return {
-          user_id: emp.userId, // Map userId to user_id for database
+          user_id: emp.userId, // Use userId field for the database
           name: emp.name,
           email: emp.email,
           phone: emp.phone || null,

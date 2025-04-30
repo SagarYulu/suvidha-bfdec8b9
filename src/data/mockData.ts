@@ -4,6 +4,7 @@ import { Issue, User } from "@/types";
 export const MOCK_USERS: User[] = [
   {
     id: "1",
+    userId: "1001",  // Add userId (numeric string)
     name: "Admin User",
     email: "admin@yulu.com",
     phone: "9876543210",
@@ -16,6 +17,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "2",
+    userId: "1002",  // Add userId (numeric string)
     name: "Rahul Kumar",
     email: "rahul@yulu.com",
     phone: "9876543211",
@@ -28,6 +30,7 @@ export const MOCK_USERS: User[] = [
   },
   {
     id: "3",
+    userId: "1003",  // Add userId (numeric string)
     name: "Priya Singh",
     email: "priya@yulu.com",
     phone: "9876543212",
