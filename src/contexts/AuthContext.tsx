@@ -43,46 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Login attempt:', { email });
 
     try {
-      // First try to authenticate as an admin user
-      const { data: adminUser, error: adminError } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
-      
-      if (adminUser) {
-        console.log('Admin user found:', adminUser);
-        
-        // Validate password
-        if (adminUser.password !== password) {
-          console.log('Invalid admin password');
-          return false;
-        }
-        
-        // Map Supabase admin to User type
-        const user: User = {
-          id: adminUser.id,
-          name: adminUser.name,
-          email: adminUser.email,
-          phone: "",
-          employeeId: adminUser.emp_id,
-          city: "",
-          cluster: "",
-          manager: "",
-          role: adminUser.role, // This will be 'hr_admin', 'city_head', or 'ops'
-          password: adminUser.password,
-        };
-        
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          role: user.role,
-        });
-        localStorage.setItem("yuluUser", JSON.stringify(user));
-        return true;
-      }
-      
-      // If not an admin, try to authenticate as an employee
+      // Query Supabase employees table for matching email
       const { data: employees, error } = await supabase
         .from('employees')
         .select('*')
@@ -95,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       if (!employees) {
-        console.log('No user found with this email');
+        console.log('No employee found with this email');
         return false;
       }
       
