@@ -165,9 +165,10 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Prepare data for database - ensure roles match exactly what's expected
+      // We've removed any check constraints in the database, so we just need to ensure
+      // we're using valid values from the master tables
       const employeesData = employees.map(emp => {
-        // Make sure the role is one of the exact role options (case-sensitive match)
+        // Get the exact role name case from ROLE_OPTIONS to match with master_roles table
         const exactRole = ROLE_OPTIONS.find(r => r.toLowerCase() === emp.role.toLowerCase()) || emp.role;
         
         return {
@@ -178,7 +179,7 @@ export const useBulkUpload = () => {
           emp_id: emp.emp_id,
           city: emp.city || null,
           cluster: emp.cluster || null,
-          role: exactRole, // Use the exact case matching role from ROLE_OPTIONS
+          role: exactRole, // Use the exact case matching role from master tables
           password: emp.password || 'changeme123',
           date_of_joining: emp.date_of_joining || null,
           date_of_birth: emp.date_of_birth || null,
