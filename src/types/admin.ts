@@ -1,4 +1,6 @@
 
+import { Json } from '@/integrations/supabase/types';
+
 export interface Role {
   id: string;
   name: string;
@@ -27,7 +29,7 @@ export interface AuditLog {
   entityType: 'role' | 'city' | 'cluster';
   entityId: string;
   action: 'create' | 'update' | 'delete';
-  changes: Record<string, any>;
+  changes: Json; // Changed from Record<string, any> to Json
   createdBy: string; // User ID
   createdAt: string;
   userName?: string; // For convenience when displaying
