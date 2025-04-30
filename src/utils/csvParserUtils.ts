@@ -1,4 +1,3 @@
-
 import Papa from 'papaparse';
 import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 import { validateEmployeeData } from './validationUtils';
@@ -23,13 +22,12 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             return;
           }
           
-          // Handle the header naming difference (User ID -> id)
-          // User ID should be treated as a string, not a UUID
+          // Store User ID for display purposes only, but don't use it for DB insertion
           const userId = row['User ID'] || '';
           
-          // Convert CSV data to employee format
+          // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
           const employeeData: Partial<CSVEmployeeData> = {
-            id: userId, // Store as string
+            // Don't include id field here - let Supabase generate it
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -48,7 +46,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Generate a structured data object for display
           const rowData: RowData = {
-            id: userId, // Store as string
+            id: userId, // Store as string for display purposes only
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -78,6 +76,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           if (validation.isValid) {
             validEmployees.push({
               ...employeeData as CSVEmployeeData,
+              // Keep ID for display purposes in the UI only
+              id: userId,
               // Convert dates to YYYY-MM-DD format for database
               date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
               date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
@@ -85,7 +85,10 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             });
           } else {
             invalidRows.push({ 
-              row: employeeData as CSVEmployeeData, 
+              row: {
+                ...employeeData as CSVEmployeeData,
+                id: userId
+              }, 
               errors: validation.errors,
               rowData
             });

@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -112,6 +113,7 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
       ifsc_code: user.ifscCode
     };
     
+    // Don't specify id - let Supabase generate a UUID
     const { data: employee, error } = await supabase
       .from('employees')
       .insert(newEmployee)

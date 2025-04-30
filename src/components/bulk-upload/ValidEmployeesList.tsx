@@ -20,12 +20,11 @@ const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
     <div>
       <h3 className="text-lg font-medium">Valid Employees ({validEmployees.length})</h3>
       <p className="text-sm text-muted-foreground mb-2">
-        These employees will be added if you proceed.
+        These employees will be added if you proceed. System will generate unique IDs for each employee.
       </p>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>User ID</TableHead>
             <TableHead>Employee ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
@@ -40,7 +39,6 @@ const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
         <TableBody>
           {validEmployees.map((emp, idx) => (
             <TableRow key={`valid-employee-${idx}`}>
-              <TableCell>{emp.id}</TableCell>
               <TableCell>{emp.emp_id}</TableCell>
               <TableCell>{emp.name}</TableCell>
               <TableCell>{emp.email}</TableCell>

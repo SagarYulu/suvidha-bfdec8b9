@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -148,9 +147,9 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Important: Create a properly structured array of objects with the correct types
+      // Generate proper UUIDs for each employee instead of using numeric IDs
       const employeesData = employees.map(emp => {
-        // Create a clean object without id first to prevent UUID conversion
+        // Create a clean object without id first
         const employeeWithoutId = {
           name: emp.name,
           email: emp.email,
@@ -168,27 +167,16 @@ export const useBulkUpload = () => {
           manager: emp.manager || null,
         };
         
-        console.log("Processing employee with ID:", emp.id, "Type:", typeof emp.id);
-        
-        // Now manually add the id as a properly formatted string
-        return {
-          ...employeeWithoutId,
-          id: String(emp.id).trim() // Ensure it's a string and remove any whitespace
-        };
+        // Let Supabase generate a UUID for us by not including an ID in the insert
+        return employeeWithoutId;
       });
       
-      console.log("Attempting to insert employees with structured data:", employeesData);
+      console.log("Attempting to insert employees with auto-generated UUIDs:", employeesData);
       
-      // Use the upsert method with onConflict option to handle the ID correctly
+      // Use the insert method instead of upsert since we're not providing IDs
       const { error } = await supabase
         .from('employees')
-        .upsert(
-          employeesData, 
-          { 
-            onConflict: 'id',
-            ignoreDuplicates: false
-          }
-        );
+        .insert(employeesData);
 
       if (error) {
         console.error('Upload to database error:', error);

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -44,8 +43,7 @@ const AdminUsers = () => {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
 
-  const [newUser, setNewUser] = useState<User>({
-    id: "",
+  const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     name: "",
     email: "",
     phone: "",
@@ -115,7 +113,7 @@ const AdminUsers = () => {
   }, [searchTerm, users]);
 
   const handleAddUser = async () => {
-    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.id || !newUser.role) {
+    if (!newUser.name || !newUser.email || !newUser.phone || !newUser.employeeId || !newUser.password || !newUser.role) {
       toast({
         title: "Validation error",
         description: "Please fill out all required fields",
@@ -130,7 +128,6 @@ const AdminUsers = () => {
       setIsAddUserDialogOpen(false);
       
       setNewUser({
-        id: "",
         name: "",
         email: "",
         phone: "",
@@ -219,18 +216,8 @@ const AdminUsers = () => {
                 </TabsList>
                 <TabsContent value="manual">
                   <div className="grid gap-4 py-4">
-                    {/* Arrange fields in the same order as the CSV template */}
+                    {/* Remove User ID field - let Supabase generate UUID */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="id">User ID *</Label>
-                        <Input
-                          id="id"
-                          name="id"
-                          value={newUser.id}
-                          onChange={handleInputChange}
-                          placeholder="User ID (e.g. USR001)"
-                        />
-                      </div>
                       <div className="space-y-2">
                         <Label htmlFor="employeeId">Employee ID *</Label>
                         <Input
@@ -241,9 +228,6 @@ const AdminUsers = () => {
                           placeholder="Employee ID (e.g. YL001)"
                         />
                       </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Name *</Label>
                         <Input
@@ -252,17 +236,6 @@ const AdminUsers = () => {
                           value={newUser.name}
                           onChange={handleInputChange}
                           placeholder="Full Name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          name="email"
-                          type="email"
-                          value={newUser.email}
-                          onChange={handleInputChange}
-                          placeholder="email@yulu.com"
                         />
                       </div>
                     </div>

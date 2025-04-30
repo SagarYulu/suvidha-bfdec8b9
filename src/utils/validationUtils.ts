@@ -6,32 +6,18 @@ import { isValidDate } from './dateUtils';
 // Update EmployeeData type to include id
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
 
-// Helper function to validate 7-digit number format (used for validation only)
-export const isValidUserID = (id: string): boolean => {
-  // Check if the ID is a 7-digit number
-  const sevenDigitRegex = /^\d{7}$/;
-  return sevenDigitRegex.test(id);
-};
-
 /**
  * Validates employee data fields and returns validation results
  */
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  // Required fields
-  const requiredFields = ['id', 'emp_id', 'name', 'email', 'role'];
+  // Required fields - remove ID from required fields since it will be auto-generated
+  const requiredFields = ['emp_id', 'name', 'email', 'role'];
   const missingFields = requiredFields.filter(field => !data[field as keyof EmployeeData]);
   
   if (missingFields.length > 0) {
     errors.push(`Missing required fields: ${missingFields.join(', ')}`);
-  }
-  
-  // User ID validation (7-digit number)
-  if (data.id) {
-    if (!isValidUserID(String(data.id))) {
-      errors.push(`Invalid User ID format: ${data.id}. Must be a 7-digit number (e.g., 1234567)`);
-    }
   }
   
   // Role validation
