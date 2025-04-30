@@ -5,7 +5,11 @@ import FormatInstructions from './bulk-upload/FormatInstructions';
 import ValidationDialog from './bulk-upload/ValidationDialog';
 import useBulkUpload from '@/hooks/useBulkUpload';
 
-const BulkUserUpload = () => {
+interface BulkUserUploadProps {
+  onUploadSuccess?: () => void;
+}
+
+const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
   const {
     isUploading,
     showValidationDialog,
@@ -16,7 +20,7 @@ const BulkUserUpload = () => {
     handleFieldEdit,
     handleUploadEditedRows,
     handleProceedAnyway
-  } = useBulkUpload();
+  } = useBulkUpload(onUploadSuccess);
 
   return (
     <div className="space-y-4">

@@ -54,21 +54,26 @@ initializeUsers();
 
 export const getUsers = async (): Promise<User[]> => {
   try {
-    const { data: employees, error } = await supabase.from('employees').select('*');
+    console.log("Fetching users from Supabase...");
+    const { data: employees, error } = await supabase
+      .from('employees')
+      .select('*');
     
     if (error) {
       console.error("Error fetching users:", error);
-      return users; // Fall back to cached users
+      throw error;
     }
     
-    if (employees) {
-      users = employees.map(mapEmployeeToUser);
+    if (employees && employees.length > 0) {
+      console.log(`Successfully fetched ${employees.length} users from database`);
+      return employees.map(mapEmployeeToUser);
     }
     
-    return users;
+    console.log("No users found in the database");
+    return [];
   } catch (error) {
     console.error("Error in getUsers:", error);
-    return users; // Fall back to cached users
+    throw error;
   }
 };
 

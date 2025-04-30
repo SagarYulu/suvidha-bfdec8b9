@@ -8,7 +8,7 @@ import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
 
-export const useBulkUpload = () => {
+export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult>({ 
@@ -206,6 +206,11 @@ export const useBulkUpload = () => {
         title: "Upload Successful",
         description: `Successfully added ${employees.length} employees.`,
       });
+      
+      // Call the onUploadSuccess callback if provided
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
       
       setShowValidationDialog(false);
     } catch (error: any) {

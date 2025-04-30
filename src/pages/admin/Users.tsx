@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -44,7 +45,7 @@ const AdminUsers = () => {
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
 
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
-    userId: "",  // Add userId field
+    userId: "",
     name: "",
     email: "",
     phone: "",
@@ -74,28 +75,31 @@ const AdminUsers = () => {
     }
   }, [newUser.city]);
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedUsers = await getUsers();
-        setUsers(fetchedUsers);
-        setFilteredUsers(fetchedUsers);
-      } catch (error) {
-        console.error("Error fetching users:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch users",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const fetchedUsers = await getUsers();
+      console.log("Fetched users:", fetchedUsers); // Debug log to see what's coming from the database
+      setUsers(fetchedUsers);
+      setFilteredUsers(fetchedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Initial data fetch
+  useEffect(() => {
     fetchUsers();
   }, []);
 
+  // Filter users when searchTerm changes
   useEffect(() => {
     if (searchTerm) {
       const filtered = users.filter((user) => {
@@ -104,7 +108,7 @@ const AdminUsers = () => {
           user.name.toLowerCase().includes(searchTermLower) ||
           user.email.toLowerCase().includes(searchTermLower) ||
           user.employeeId.toLowerCase().includes(searchTermLower) ||
-          user.city.toLowerCase().includes(searchTermLower)
+          (user.city && user.city.toLowerCase().includes(searchTermLower))
         );
       });
       setFilteredUsers(filtered);
@@ -125,11 +129,12 @@ const AdminUsers = () => {
 
     try {
       const createdUser = await createUser(newUser);
-      setUsers([...users, createdUser]);
+      setUsers(prevUsers => [...prevUsers, createdUser]);
+      setFilteredUsers(prevUsers => [...prevUsers, createdUser]);
       setIsAddUserDialogOpen(false);
       
       setNewUser({
-        userId: "",  // Reset userId field
+        userId: "",
         name: "",
         email: "",
         phone: "",
@@ -164,7 +169,8 @@ const AdminUsers = () => {
     if (window.confirm("Are you sure you want to delete this user?")) {
       try {
         await deleteUser(userId);
-        setUsers(users.filter(user => user.id !== userId));
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+        setFilteredUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
         toast({
           title: "Success",
           description: "User deleted successfully",
@@ -183,6 +189,13 @@ const AdminUsers = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setNewUser({ ...newUser, [name]: value });
+  };
+
+  // Handle successful bulk upload
+  const handleBulkUploadSuccess = () => {
+    // Close the dialog and refresh the user list
+    setIsAddUserDialogOpen(false);
+    fetchUsers();
   };
 
   return (
@@ -398,7 +411,7 @@ const AdminUsers = () => {
                   </DialogFooter>
                 </TabsContent>
                 <TabsContent value="bulk">
-                  <BulkUserUpload />
+                  <BulkUserUpload onUploadSuccess={handleBulkUploadSuccess} />
                 </TabsContent>
               </Tabs>
             </DialogContent>
@@ -418,7 +431,6 @@ const AdminUsers = () => {
             <p className="mt-1 text-sm text-gray-500">
               Get started by adding your first user
             </p>
-            {/* Removed duplicate Add User button here */}
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -439,38 +451,38 @@ const AdminUsers = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.userId}</TableCell>
-                    <TableCell>{user.employeeId}</TableCell>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
-                    <TableCell>{user.city}</TableCell>
-                    <TableCell>{user.cluster}</TableCell>
-                    <TableCell>{user.manager}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.role === "Admin" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
-                      }`}>
-                        {user.role}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0 text-red-500"
-                        onClick={() => handleDeleteUser(user.id)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {filteredUsers.length === 0 && (
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.id}</TableCell>
+                      <TableCell>{user.userId}</TableCell>
+                      <TableCell>{user.employeeId}</TableCell>
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.phone}</TableCell>
+                      <TableCell>{user.city}</TableCell>
+                      <TableCell>{user.cluster}</TableCell>
+                      <TableCell>{user.manager}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          user.role === "Admin" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0 text-red-500"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={11} className="text-center py-6">
                       No matching users found
