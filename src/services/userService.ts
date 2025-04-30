@@ -56,6 +56,9 @@ initializeUsers();
 export const getUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching users from Supabase...");
+    // DEBUG: Log the supabase instance to check if it's configured correctly
+    console.log("Supabase client configuration:", supabase?.restUrl);
+    
     // Force cache refresh by always fetching from Supabase with cache reload
     const { data: employees, error } = await supabase
       .from('employees')
@@ -67,7 +70,8 @@ export const getUsers = async (): Promise<User[]> => {
       throw error;
     }
     
-    if (employees && employees.length > 0) {
+    if (employees) {
+      // Always log the exact response from Supabase
       console.log(`Successfully fetched ${employees.length} users from database:`, employees);
       const mappedUsers = employees.map(mapEmployeeToUser);
       // Update cache

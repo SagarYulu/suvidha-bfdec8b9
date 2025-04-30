@@ -16,6 +16,9 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
         const validEmployees: CSVEmployeeData[] = [];
         const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
         
+        // Debug: Log the parse results
+        console.log(`CSV parse complete. Found ${results.data.length} rows:`, results);
+        
         // Process each row
         results.data.forEach((row, index) => {
           // Skip empty rows
@@ -128,6 +131,11 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           validEmployees: validEmployees.length,
           invalidRows: invalidRows.length
         });
+        
+        // Debug: Log the valid employees for troubleshooting
+        if (validEmployees.length > 0) {
+          console.log('Valid employees ready for upload:', validEmployees);
+        }
 
         resolve({ validEmployees, invalidRows });
       },

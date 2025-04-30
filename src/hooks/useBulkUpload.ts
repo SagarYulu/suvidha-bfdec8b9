@@ -18,6 +18,9 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
   const { toast } = useToast();
 
+  // Log the callback presence for debugging
+  console.log("useBulkUpload hook initialized with onUploadSuccess callback:", !!onUploadSuccess);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -235,14 +238,15 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       // Use the insert method - UUID will be auto-generated
       const { data, error } = await supabase
         .from('employees')
-        .insert(employeesData);
+        .insert(employeesData)
+        .select(); // Add select to return the inserted data
 
       if (error) {
         console.error('Upload to database error:', error);
         throw error;
       }
 
-      console.log('Upload successful:', data);
+      console.log('Upload successful. Inserted data:', data);
       
       const duplicateMessage = duplicateEmployees.length > 0 
         ? ` (${duplicateEmployees.length} duplicate employee IDs were skipped)`
