@@ -93,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc('has_role', params);
+      const { data, error } = await supabase.rpc<boolean>('has_role', params);
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -120,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc('assign_role', params);
+      const { data, error } = await supabase.rpc<boolean>('assign_role', params);
 
       if (error) {
         console.error('Error assigning role:', error);
@@ -147,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc('remove_role', params);
+      const { data, error } = await supabase.rpc<boolean>('remove_role', params);
 
       if (error) {
         console.error('Error removing role:', error);
