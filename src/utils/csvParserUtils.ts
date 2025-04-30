@@ -23,9 +23,12 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             return;
           }
           
+          // Handle the header naming difference (User ID -> id)
+          const userId = row['User ID'] || '';
+          
           // Convert CSV data to employee format
           const employeeData: Partial<CSVEmployeeData> = {
-            id: row.id || '',
+            id: userId,
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -44,7 +47,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Generate a structured data object for display
           const rowData: RowData = {
-            id: row.id || '',
+            id: userId,
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -60,6 +63,13 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             ifsc_code: row.ifsc_code || '',
             password: row.password || 'changeme123' // Use provided password or default
           };
+
+          // Add debug log to check extracted values
+          console.log('Processing CSV row:', { 
+            originalRow: row,
+            extractedUserId: userId,
+            parsedData: employeeData
+          });
 
           // Validate the data using the common validation function
           const validation = validateEmployeeData(employeeData);
