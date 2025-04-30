@@ -1,5 +1,6 @@
+
 export interface User {
-  id: string;
+  id: string; // Explicitly define as string, not UUID
   name: string;
   email: string;
   phone: string;
@@ -46,7 +47,7 @@ export interface AuthState {
 
 // Add a new interface for CSV employee data
 export interface CSVEmployeeData {
-  id: string;   // Added User ID field
+  id: string;   // Explicitly define as string, not UUID
   emp_id: string;
   name: string;
   email: string;
@@ -65,7 +66,7 @@ export interface CSVEmployeeData {
 
 // Row data interface - explicitly defined with all fields as strings
 export interface RowData {
-  id: string;    // Added User ID field
+  id: string;    // Explicitly define as string, not UUID
   emp_id: string;
   name: string;
   email: string;

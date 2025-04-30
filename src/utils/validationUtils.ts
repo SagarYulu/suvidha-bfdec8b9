@@ -6,7 +6,7 @@ import { isValidDate } from './dateUtils';
 // Update EmployeeData type to include id
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
 
-// Helper function to validate 7-digit number format
+// Helper function to validate 7-digit number format (used for validation only)
 export const isValidUserID = (id: string): boolean => {
   // Check if the ID is a 7-digit number
   const sevenDigitRegex = /^\d{7}$/;

@@ -24,11 +24,12 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           }
           
           // Handle the header naming difference (User ID -> id)
+          // User ID should be treated as a string, not a UUID
           const userId = row['User ID'] || '';
           
           // Convert CSV data to employee format
           const employeeData: Partial<CSVEmployeeData> = {
-            id: userId,
+            id: userId, // Store as string
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',
@@ -47,7 +48,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Generate a structured data object for display
           const rowData: RowData = {
-            id: userId,
+            id: userId, // Store as string
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',

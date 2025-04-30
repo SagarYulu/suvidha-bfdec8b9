@@ -1,7 +1,10 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { parseEmployeeCSV, validateEmployeeData, formatDateToYYYYMMDD } from "@/utils/csvHelpers";
+import { parseEmployeeCSV } from "@/utils/csvParserUtils";
+import { validateEmployeeData } from "@/utils/validationUtils";
+import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 
 export const useBulkUpload = () => {
@@ -76,7 +79,7 @@ export const useBulkUpload = () => {
       
       // Convert the edited row data to the employee data format
       const employeeData: Partial<CSVEmployeeData> = {
-        id: editedRow.id || undefined,
+        id: editedRow.id || '',
         emp_id: editedRow.emp_id || '',
         name: editedRow.name || '',
         email: editedRow.email || '',
@@ -146,8 +149,9 @@ export const useBulkUpload = () => {
       setIsUploading(true);
       
       // Map CSV fields to employees table structure
+      // Important: Make sure id is treated as string, not UUID
       const employeesData = employees.map(emp => ({
-        id: emp.id || undefined,
+        id: emp.id, // Keep this as a string, not a UUID
         name: emp.name,
         email: emp.email,
         phone: emp.phone || null,
@@ -166,7 +170,7 @@ export const useBulkUpload = () => {
       
       console.log("Attempting to insert employees:", employeesData);
       
-      // Insert employees into Supabase
+      // Insert employees into Supabase with explicit cast to text for id field
       const { error } = await supabase
         .from('employees')
         .insert(employeesData);
