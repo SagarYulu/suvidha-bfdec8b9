@@ -6,17 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("admin@yulu.com");
   const [password, setPassword] = useState("admin123");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
       console.log("Attempting login with:", { email, password });
@@ -42,6 +45,7 @@ const MobileLogin = () => {
           }
         }
       } else {
+        setError("Invalid email or password. Please try again.");
         toast({
           title: "Login failed",
           description: "Invalid email or password. Please try again.",
@@ -50,6 +54,7 @@ const MobileLogin = () => {
       }
     } catch (error) {
       console.error("Login error:", error);
+      setError("An unexpected error occurred. Please try again.");
       toast({
         title: "Login error",
         description: "An unexpected error occurred. Please try again.",
@@ -68,6 +73,13 @@ const MobileLogin = () => {
             <h1 className="text-3xl font-bold text-yulu-blue">Yulu Employee App</h1>
             <p className="text-gray-600 mt-2">Sign in to continue</p>
           </div>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-md text-red-800 flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
           
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
@@ -107,6 +119,7 @@ const MobileLogin = () => {
           
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>For employee login, use: rahul@yulu.com / employee123</p>
+            <p>For admin login, use: admin@yulu.com / admin123</p>
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home
