@@ -13,6 +13,7 @@ import { ValidationResult, EditedRowsRecord } from "@/types";
 import ValidationAlerts from './ValidationAlerts';
 import InvalidRowEditor from './InvalidRowEditor';
 import ValidEmployeesList from './ValidEmployeesList';
+import { useToast } from '@/hooks/use-toast';
 
 interface ValidationDialogProps {
   isOpen: boolean;
@@ -35,13 +36,27 @@ const ValidationDialog = ({
   handleUploadEditedRows,
   handleProceedAnyway,
 }: ValidationDialogProps) => {
+  const { toast } = useToast();
+  const [processingClose, setProcessingClose] = useState(false);
+  
   // Get value for a field from edited rows or fall back to original
   const getRowValue = (rowKey: string, field: keyof import('@/types').RowData, originalValue: string) => {
     return editedRows[rowKey] ? editedRows[rowKey][field] || originalValue : originalValue;
   };
+  
+  // Handle dialog close with confirmation if there are valid employees
+  const handleCloseDialog = () => {
+    if (validationResults.validEmployees.length > 0 && !processingClose) {
+      if (confirm("There are valid employees ready to upload. Are you sure you want to cancel?")) {
+        onOpenChange(false);
+      }
+    } else {
+      onOpenChange(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="max-w-5xl max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>CSV Validation Results</DialogTitle>
@@ -79,7 +94,7 @@ const ValidationDialog = ({
         </ScrollArea>
 
         <DialogFooter className="flex justify-between items-center space-x-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleCloseDialog}>
             Cancel Upload
           </Button>
           
@@ -96,7 +111,13 @@ const ValidationDialog = ({
             )}
             
             {validationResults.validEmployees.length > 0 ? (
-              <Button onClick={handleProceedAnyway} disabled={isUploading}>
+              <Button 
+                onClick={() => {
+                  setProcessingClose(true);
+                  handleProceedAnyway();
+                }} 
+                disabled={isUploading}
+              >
                 {isUploading ? "Uploading..." : `Upload Valid Employees (${validationResults.validEmployees.length})`}
               </Button>
             ) : (

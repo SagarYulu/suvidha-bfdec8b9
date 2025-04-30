@@ -243,6 +243,11 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
       if (error) {
         console.error('Upload to database error:', error);
+        toast({
+          variant: "destructive",
+          title: "Database Upload Failed",
+          description: `Error: ${error.message}`,
+        });
         throw error;
       }
 
