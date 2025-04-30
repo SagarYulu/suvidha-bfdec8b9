@@ -93,7 +93,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc<boolean, HasRoleParams>('has_role', params);
+      // Fix: Correctly specify generic parameters for rpc call
+      const { data, error } = await supabase.rpc('has_role', params);
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -120,7 +121,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc<boolean, AssignRoleParams>('assign_role', params);
+      // Fix: Correctly specify generic parameters for rpc call
+      const { data, error } = await supabase.rpc('assign_role', params);
 
       if (error) {
         console.error('Error assigning role:', error);
@@ -147,7 +149,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      const { data, error } = await supabase.rpc<boolean, RemoveRoleParams>('remove_role', params);
+      // Fix: Correctly specify generic parameters for rpc call
+      const { data, error } = await supabase.rpc('remove_role', params);
 
       if (error) {
         console.error('Error removing role:', error);
