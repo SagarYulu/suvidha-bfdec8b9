@@ -1,4 +1,3 @@
-
 import { Role, City, Cluster, AuditLog } from "@/types/admin";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -512,9 +511,9 @@ export const getAuditLogs = async (
     
     return data.map(log => ({
       id: log.id,
-      entityType: log.entity_type,
+      entityType: log.entity_type as 'role' | 'city' | 'cluster',
       entityId: log.entity_id,
-      action: log.action,
+      action: log.action as 'create' | 'update' | 'delete',
       changes: log.changes,
       createdBy: log.created_by,
       createdAt: log.created_at,

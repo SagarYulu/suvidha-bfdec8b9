@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   authState: AuthState;
+  user: User | null; // Added user property
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -76,9 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("User logged out");
   };
 
-  // Provide the context value to children
+  // Provide the context value to children, now including user directly
   return (
-    <AuthContext.Provider value={{ authState, login, logout }}>
+    <AuthContext.Provider value={{ 
+      authState, 
+      user: authState.user, // Expose user directly from authState 
+      login, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

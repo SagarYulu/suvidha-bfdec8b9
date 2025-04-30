@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import AdminLayout from '@/components/AdminLayout';
@@ -61,7 +60,7 @@ const Settings = () => {
   const auth = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("roles");
-  const userId = auth?.user?.id || '';
+  const userId = auth.user?.id || '';
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
