@@ -193,7 +193,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       console.log("Inserting employees with data:", employeesData);
       
       // Use the insert method - UUID will be auto-generated
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('employees')
         .insert(employeesData);
 
@@ -202,6 +202,8 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         throw error;
       }
 
+      console.log('Upload successful:', data);
+      
       toast({
         title: "Upload Successful",
         description: `Successfully added ${employees.length} employees.`,
@@ -209,6 +211,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Call the onUploadSuccess callback if provided
       if (onUploadSuccess) {
+        console.log("Calling onUploadSuccess callback");
         onUploadSuccess();
       }
       

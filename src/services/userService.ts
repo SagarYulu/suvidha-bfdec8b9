@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -49,7 +50,7 @@ const initializeUsers = async (): Promise<void> => {
   }
 };
 
-// Initialize users on service load
+// Initialize users on service load (but don't block)
 initializeUsers();
 
 export const getUsers = async (): Promise<User[]> => {
@@ -65,8 +66,11 @@ export const getUsers = async (): Promise<User[]> => {
     }
     
     if (employees && employees.length > 0) {
-      console.log(`Successfully fetched ${employees.length} users from database`);
-      return employees.map(mapEmployeeToUser);
+      console.log(`Successfully fetched ${employees.length} users from database:`, employees);
+      const mappedUsers = employees.map(mapEmployeeToUser);
+      // Update cache
+      users = mappedUsers;
+      return mappedUsers;
     }
     
     console.log("No users found in the database");

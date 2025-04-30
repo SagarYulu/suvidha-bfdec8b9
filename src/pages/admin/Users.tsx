@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
 import { User } from "@/types";
@@ -75,11 +74,11 @@ const AdminUsers = () => {
     }
   }, [newUser.city]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const fetchedUsers = await getUsers();
-      console.log("Fetched users:", fetchedUsers); // Debug log to see what's coming from the database
+      console.log("Fetched users count:", fetchedUsers.length);
       setUsers(fetchedUsers);
       setFilteredUsers(fetchedUsers);
     } catch (error) {
@@ -92,12 +91,12 @@ const AdminUsers = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // Filter users when searchTerm changes
   useEffect(() => {
@@ -193,9 +192,18 @@ const AdminUsers = () => {
 
   // Handle successful bulk upload
   const handleBulkUploadSuccess = () => {
+    console.log("Bulk upload successful, refreshing users list...");
     // Close the dialog and refresh the user list
     setIsAddUserDialogOpen(false);
-    fetchUsers();
+    // Add a small delay to ensure the database has finished processing
+    setTimeout(() => {
+      fetchUsers();
+    }, 500);
+    
+    toast({
+      title: "Success",
+      description: "Users uploaded successfully",
+    });
   };
 
   return (
@@ -212,6 +220,14 @@ const AdminUsers = () => {
               className="pl-10"
             />
           </div>
+          
+          <Button 
+            onClick={fetchUsers} 
+            variant="outline" 
+            className="mr-2"
+          >
+            Refresh Users
+          </Button>
           
           <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
             <DialogTrigger asChild>
@@ -231,7 +247,6 @@ const AdminUsers = () => {
                 </TabsList>
                 <TabsContent value="manual">
                   <div className="grid gap-4 py-4">
-                    {/* Remove User ID field - let Supabase generate UUID */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="userId">User ID *</Label>
@@ -251,6 +266,30 @@ const AdminUsers = () => {
                           value={newUser.employeeId}
                           onChange={handleInputChange}
                           placeholder="Employee ID (e.g. YL001)"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Name *</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={newUser.name}
+                          onChange={handleInputChange}
+                          placeholder="Full Name"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          name="email"
+                          type="email"
+                          value={newUser.email}
+                          onChange={handleInputChange}
+                          placeholder="email@example.com"
                         />
                       </div>
                     </div>
@@ -283,7 +322,7 @@ const AdminUsers = () => {
                         </Select>
                       </div>
                     </div>
-
+                    
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="cluster">Cluster</Label>
