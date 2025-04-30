@@ -28,13 +28,9 @@ const Index = () => {
       console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
-      // Not authenticated or not admin - redirect to login with a message to login as admin
-      console.log("User is not admin or not authenticated, navigating to mobile login");
-      toast({
-        title: "Admin Access Required",
-        description: "Please login with admin credentials",
-      });
-      navigate("/mobile/login");
+      // Not authenticated or not admin - redirect to admin login page
+      console.log("User is not admin or not authenticated, navigating to admin login");
+      navigate("/admin/login");
     }
   };
 

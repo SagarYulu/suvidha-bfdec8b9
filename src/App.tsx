@@ -12,6 +12,7 @@ import AdminIssues from "./pages/admin/Issues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminSettings from "./pages/admin/Settings";
+import AdminLogin from "./pages/admin/Login";
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
@@ -35,6 +36,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               
               {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/issues" element={<AdminIssues />} />

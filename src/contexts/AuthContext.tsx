@@ -11,6 +11,26 @@ interface AuthContextType {
   logout: () => void;
 }
 
+// Admin user credentials - hardcoded for demonstration purposes
+const DEFAULT_ADMIN_USER: User = {
+  id: "admin-uuid-1",
+  userId: "admin-001",
+  name: "Admin User",
+  email: "admin@yulu.com",
+  phone: "1234567890",
+  employeeId: "ADMIN001",
+  city: "System",
+  cluster: "System",
+  manager: "",
+  role: "admin",
+  password: "admin123",
+  dateOfJoining: "2023-01-01",
+  bloodGroup: "",
+  dateOfBirth: "",
+  accountNumber: "",
+  ifscCode: ""
+};
+
 // Create the context with a default undefined value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -45,8 +65,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Login attempt:', { email, password });
 
     try {
-      // Step 1: Check mock users first (for admin and demo accounts)
-      console.log('Available mock users:', MOCK_USERS);
+      // Step 1: Check if it's the admin user
+      if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
+          password === DEFAULT_ADMIN_USER.password) {
+        console.log('Default admin login successful');
+        setAuthState({
+          isAuthenticated: true,
+          user: DEFAULT_ADMIN_USER,
+          role: 'admin',
+        });
+        localStorage.setItem("yuluUser", JSON.stringify(DEFAULT_ADMIN_USER));
+        return true;
+      }
+
+      // Step 2: Check mock users (for demo accounts)
       const mockUser = MOCK_USERS.find(
         (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
       );
@@ -62,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
 
-      // Step 2: If not found in mock data, check Supabase employees table
+      // Step 3: Check Supabase employees table
       console.log('User not found in mock data, checking database...');
       const { data: employees, error } = await supabase
         .from('employees')
