@@ -257,6 +257,8 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       if (onUploadSuccess) {
         console.log("Calling onUploadSuccess callback to refresh user list");
         onUploadSuccess();
+      } else {
+        console.warn("No onUploadSuccess callback provided, user list won't refresh automatically");
       }
       
       setShowValidationDialog(false);

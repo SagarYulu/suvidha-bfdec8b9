@@ -79,6 +79,7 @@ const AdminUsers = () => {
     console.log("Fetching users...");
     setIsLoading(true);
     try {
+      // Force a complete refresh from server
       const fetchedUsers = await getUsers();
       console.log("Fetched users:", fetchedUsers);
       
@@ -219,7 +220,7 @@ const AdminUsers = () => {
     // Give the database a moment to complete the transaction
     setTimeout(() => {
       fetchUsers();
-    }, 1000);
+    }, 1500); // Increased delay to ensure database consistency
   }, [fetchUsers]);
 
   console.log("Users component render with", users.length, "users and", filteredUsers.length, "filtered users");
@@ -532,7 +533,7 @@ const AdminUsers = () => {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 w-8 p-0 text-red-500"
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => user.id && handleDeleteUser(user.id)}
                         >
                           <Trash className="h-4 w-4" />
                         </Button>

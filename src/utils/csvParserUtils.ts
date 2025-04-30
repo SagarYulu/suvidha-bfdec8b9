@@ -17,14 +17,14 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
         const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
         
         // Process each row
-        results.data.forEach((row) => {
+        results.data.forEach((row, index) => {
           // Skip empty rows
           if (Object.values(row).every(val => val === null || val === '')) {
             return;
           }
           
           // Add debug log to check the original CSV data
-          console.log('Original CSV row:', row);
+          console.log(`[Row ${index}] Original CSV row:`, row);
           
           // Check multiple possible header names for user_id field with better detection
           // This handles different header variations including "User ID" with space
@@ -92,7 +92,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           };
 
           // Add debug log to check extracted values
-          console.log('Processing CSV row:', { 
+          console.log(`[Row ${index}] Processing CSV row:`, { 
             originalRow: row,
             extractedUserId: userId,
             extractedEmpId: empId,
