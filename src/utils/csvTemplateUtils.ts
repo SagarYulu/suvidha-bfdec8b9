@@ -23,6 +23,7 @@ export const getCSVTemplate = () => {
     'password'           // Password
   ];
 
+  // Ensure the examples use valid roles from ROLE_OPTIONS
   const csvContent = [
     headers.join(','),
     ',1234567,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234,changeme123',

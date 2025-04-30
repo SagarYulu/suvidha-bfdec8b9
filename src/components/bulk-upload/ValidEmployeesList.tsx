@@ -8,6 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CSVEmployeeData } from "@/types";
+import { ROLE_OPTIONS } from "@/data/formOptions";
 
 interface ValidEmployeesListProps {
   validEmployees: CSVEmployeeData[];
@@ -15,6 +16,11 @@ interface ValidEmployeesListProps {
 
 const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
   if (validEmployees.length === 0) return null;
+
+  // Function to get exact case-matching role from ROLE_OPTIONS
+  const getExactRoleMatch = (role: string): string => {
+    return ROLE_OPTIONS.find(r => r.toLowerCase() === role.toLowerCase()) || role;
+  };
 
   return (
     <div>
@@ -50,7 +56,7 @@ const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
               <TableCell>{emp.city || '-'}</TableCell>
               <TableCell>{emp.cluster || '-'}</TableCell>
               <TableCell>{emp.manager || '-'}</TableCell>
-              <TableCell>{emp.role}</TableCell>
+              <TableCell>{getExactRoleMatch(emp.role)}</TableCell>
               <TableCell>{emp.password || 'changeme123'}</TableCell>
             </TableRow>
           ))}

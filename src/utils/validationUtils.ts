@@ -45,7 +45,7 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Invalid User ID format: ${userId}. Must be numeric.`);
   }
   
-  // Role validation
+  // Role validation - Make sure to lowercase the comparison for case-insensitive matching
   if (data.role) {
     const validRoles = ROLE_OPTIONS.map(r => r.toLowerCase());
     if (!validRoles.includes(data.role.toLowerCase())) {

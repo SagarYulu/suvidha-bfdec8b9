@@ -6,6 +6,7 @@ import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
+import { ROLE_OPTIONS } from "@/data/formOptions";
 
 export const useBulkUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -164,17 +165,20 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Prepare data for database - ensure User ID is mapped to user_id for the database
+      // Prepare data for database - ensure roles match exactly what's expected
       const employeesData = employees.map(emp => {
+        // Make sure the role is one of the exact role options (case-sensitive match)
+        const exactRole = ROLE_OPTIONS.find(r => r.toLowerCase() === emp.role.toLowerCase()) || emp.role;
+        
         return {
-          user_id: emp.userId, // Map userId to user_id for database
+          user_id: emp.userId,
           name: emp.name,
           email: emp.email,
           phone: emp.phone || null,
           emp_id: emp.emp_id,
           city: emp.city || null,
           cluster: emp.cluster || null,
-          role: emp.role || 'Employee',
+          role: exactRole, // Use the exact case matching role from ROLE_OPTIONS
           password: emp.password || 'changeme123',
           date_of_joining: emp.date_of_joining || null,
           date_of_birth: emp.date_of_birth || null,
