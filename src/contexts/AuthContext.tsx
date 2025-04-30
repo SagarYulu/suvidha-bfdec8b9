@@ -88,11 +88,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Query the database for role assignment
-      // Using proper type parameters for the rpc method
-      const { data, error } = await supabase.rpc<boolean, HasRoleParams>('has_role', {
+      // Using correct typing for the rpc method
+      const { data, error } = await supabase.rpc('has_role', {
         user_id: userId,
         role_name: role
-      });
+      }) as { data: boolean, error: any };
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -114,11 +114,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Using proper type parameters for the rpc method
-      const { data, error } = await supabase.rpc<boolean, AssignRoleParams>('assign_role', {
+      // Using correct typing for the rpc method
+      const { data, error } = await supabase.rpc('assign_role', {
         target_user_id: userId,
         role_name: role
-      });
+      }) as { data: boolean, error: any };
 
       if (error) {
         console.error('Error assigning role:', error);
@@ -140,11 +140,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Using proper type parameters for the rpc method
-      const { data, error } = await supabase.rpc<boolean, RemoveRoleParams>('remove_role', {
+      // Using correct typing for the rpc method
+      const { data, error } = await supabase.rpc('remove_role', {
         target_user_id: userId,
         role_name: role
-      });
+      }) as { data: boolean, error: any };
 
       if (error) {
         console.error('Error removing role:', error);
