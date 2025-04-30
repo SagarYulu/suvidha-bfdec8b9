@@ -1,4 +1,3 @@
-
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -57,7 +56,10 @@ export const getUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching users from Supabase...");
     // DEBUG: Log the supabase instance to check if it's configured correctly
-    console.log("Supabase client configuration:", supabase?.restUrl);
+    console.log("Supabase client configuration:", {
+      url: supabase.auth.url,
+      isConnected: !!supabase
+    });
     
     // Force cache refresh by always fetching from Supabase with cache reload
     const { data: employees, error } = await supabase
