@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -7,7 +8,7 @@ let users: User[] = [];
 // Function to map Supabase employee to User type
 const mapEmployeeToUser = (employee: any): User => {
   return {
-    id: employee.id,
+    id: String(employee.id), // Ensure ID is always handled as string
     name: employee.name,
     email: employee.email,
     phone: employee.phone || "",
@@ -157,7 +158,7 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     const { data: employee, error } = await supabase
       .from('employees')
       .update(employeeUpdate)
-      .eq('id', id)
+      .eq('id', String(id)) // Ensure ID is handled as string
       .select()
       .single();
     
@@ -206,7 +207,7 @@ export const deleteUser = async (id: string): Promise<boolean> => {
     const { error } = await supabase
       .from('employees')
       .delete()
-      .eq('id', id);
+      .eq('id', String(id)); // Ensure ID is handled as string
     
     if (error) {
       console.error("Error deleting user from Supabase:", error);
@@ -229,3 +230,5 @@ export const deleteUser = async (id: string): Promise<boolean> => {
     return users.length < initialLength;
   }
 };
+
+export { getUsers, getUserById };

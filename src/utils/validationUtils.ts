@@ -29,7 +29,7 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   
   // User ID validation (7-digit number)
   if (data.id) {
-    if (!isValidUserID(data.id)) {
+    if (!isValidUserID(String(data.id))) {
       errors.push(`Invalid User ID format: ${data.id}. Must be a 7-digit number (e.g., 1234567)`);
     }
   }

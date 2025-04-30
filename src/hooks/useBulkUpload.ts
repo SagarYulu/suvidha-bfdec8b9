@@ -148,32 +148,47 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Map CSV fields to employees table structure
-      // Important: Make sure id is treated as string, not UUID
-      const employeesData = employees.map(emp => ({
-        id: emp.id, // Keep this as a string, not a UUID
-        name: emp.name,
-        email: emp.email,
-        phone: emp.phone || null,
-        emp_id: emp.emp_id,
-        city: emp.city || null,
-        cluster: emp.cluster || null,
-        role: emp.role || 'Employee',
-        password: emp.password || 'changeme123',
-        date_of_joining: emp.date_of_joining || null,
-        date_of_birth: emp.date_of_birth || null,
-        blood_group: emp.blood_group || null,
-        account_number: emp.account_number || null,
-        ifsc_code: emp.ifsc_code || null,
-        manager: emp.manager || null,
-      }));
+      // Important: Create a properly structured array of objects with the correct types
+      const employeesData = employees.map(emp => {
+        // Create a clean object without id first to prevent UUID conversion
+        const employeeWithoutId = {
+          name: emp.name,
+          email: emp.email,
+          phone: emp.phone || null,
+          emp_id: emp.emp_id,
+          city: emp.city || null,
+          cluster: emp.cluster || null,
+          role: emp.role || 'Employee',
+          password: emp.password || 'changeme123',
+          date_of_joining: emp.date_of_joining || null,
+          date_of_birth: emp.date_of_birth || null,
+          blood_group: emp.blood_group || null,
+          account_number: emp.account_number || null,
+          ifsc_code: emp.ifsc_code || null,
+          manager: emp.manager || null,
+        };
+        
+        console.log("Processing employee with ID:", emp.id, "Type:", typeof emp.id);
+        
+        // Now manually add the id as a properly formatted string
+        return {
+          ...employeeWithoutId,
+          id: String(emp.id).trim() // Ensure it's a string and remove any whitespace
+        };
+      });
       
-      console.log("Attempting to insert employees:", employeesData);
+      console.log("Attempting to insert employees with structured data:", employeesData);
       
-      // Insert employees into Supabase with explicit cast to text for id field
+      // Use the upsert method with onConflict option to handle the ID correctly
       const { error } = await supabase
         .from('employees')
-        .insert(employeesData);
+        .upsert(
+          employeesData, 
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false
+          }
+        );
 
       if (error) {
         console.error('Upload to database error:', error);
