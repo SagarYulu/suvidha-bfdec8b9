@@ -8,7 +8,8 @@ let users: User[] = [];
 // Function to map Supabase employee to User type
 const mapEmployeeToUser = (employee: any): User => {
   return {
-    id: String(employee.id), // Ensure ID is always handled as string
+    id: String(employee.id), // UUID - auto-generated, ensure it's a string
+    userId: employee.user_id || "", // User ID - manual numeric ID
     name: employee.name,
     email: employee.email,
     phone: employee.phone || "",
@@ -97,6 +98,7 @@ export const getUserById = async (id: string): Promise<User | undefined> => {
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
   try {
     const newEmployee = {
+      user_id: user.userId, // Add User ID field
       name: user.name,
       email: user.email,
       phone: user.phone,

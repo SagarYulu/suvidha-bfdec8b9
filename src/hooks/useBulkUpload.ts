@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -79,6 +80,7 @@ export const useBulkUpload = () => {
       // Convert the edited row data to the employee data format
       const employeeData: Partial<CSVEmployeeData> = {
         id: editedRow.id || '',
+        userId: editedRow.userId || '',
         emp_id: editedRow.emp_id || '',
         name: editedRow.name || '',
         email: editedRow.email || '',
@@ -96,7 +98,10 @@ export const useBulkUpload = () => {
       };
       
       // Validate the edited data
-      const validation = validateEmployeeData(employeeData);
+      const validation = validateEmployeeData({
+        ...employeeData,
+        user_id: employeeData.userId // Map to the field name expected by validation
+      });
       
       if (validation.isValid) {
         correctedEmployees.push({
@@ -147,10 +152,10 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Generate proper UUIDs for each employee instead of using numeric IDs
+      // Prepare data for database - include User ID, let UUID be auto-generated
       const employeesData = employees.map(emp => {
-        // Create a clean object without id first
-        const employeeWithoutId = {
+        return {
+          user_id: emp.userId, // Map userId to user_id for database
           name: emp.name,
           email: emp.email,
           phone: emp.phone || null,
@@ -166,14 +171,11 @@ export const useBulkUpload = () => {
           ifsc_code: emp.ifsc_code || null,
           manager: emp.manager || null,
         };
-        
-        // Let Supabase generate a UUID for us by not including an ID in the insert
-        return employeeWithoutId;
       });
       
-      console.log("Attempting to insert employees with auto-generated UUIDs:", employeesData);
+      console.log("Attempting to insert employees with User IDs:", employeesData);
       
-      // Use the insert method instead of upsert since we're not providing IDs
+      // Use the insert method - UUID will be auto-generated
       const { error } = await supabase
         .from('employees')
         .insert(employeesData);

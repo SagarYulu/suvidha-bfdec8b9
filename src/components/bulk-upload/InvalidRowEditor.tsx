@@ -51,11 +51,22 @@ const InvalidRowEditor = ({
       <CardContent className="p-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">User ID</label>
+            <label className="text-xs font-medium text-gray-500">UUID</label>
             <Input 
               value={getRowValue(rowKey, 'id', item.rowData.id)}
-              onChange={(e) => handleFieldEdit(rowKey, 'id', e.target.value)}
+              disabled={true}
+              placeholder="Auto-generated"
+              className="h-8 text-sm bg-gray-100"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-gray-500">User ID *</label>
+            <Input 
+              value={getRowValue(rowKey, 'userId', item.rowData.userId)}
+              onChange={(e) => handleFieldEdit(rowKey, 'userId', e.target.value)}
               className="h-8 text-sm"
+              placeholder="Numeric ID (required)"
             />
           </div>
           

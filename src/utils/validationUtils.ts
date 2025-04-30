@@ -7,17 +7,32 @@ import { isValidDate } from './dateUtils';
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'>;
 
 /**
+ * Validates if a string is a valid user ID (numeric value)
+ */
+export const isValidUserID = (userId: string): boolean => {
+  // User ID should be a numeric string
+  return /^\d+$/.test(userId);
+};
+
+/**
  * Validates employee data fields and returns validation results
  */
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  // Required fields - remove ID from required fields since it will be auto-generated
-  const requiredFields = ['emp_id', 'name', 'email', 'role'];
-  const missingFields = requiredFields.filter(field => !data[field as keyof EmployeeData]);
+  // Required fields - check for userId as well
+  const requiredFields = ['userId', 'emp_id', 'name', 'email', 'role'];
+  const missingFields = requiredFields.filter(field => 
+    field === 'userId' ? !data.user_id : !data[field as keyof EmployeeData]
+  );
   
   if (missingFields.length > 0) {
     errors.push(`Missing required fields: ${missingFields.join(', ')}`);
+  }
+  
+  // User ID validation (if provided)
+  if (data.user_id && !isValidUserID(data.user_id)) {
+    errors.push(`Invalid User ID format: ${data.user_id}. Must be numeric.`);
   }
   
   // Role validation

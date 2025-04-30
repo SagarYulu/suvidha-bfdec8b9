@@ -7,7 +7,8 @@ export {
 } from './dateUtils';
 
 export { 
-  validateEmployeeData
+  validateEmployeeData,
+  isValidUserID
 } from './validationUtils';
 
 export { 
