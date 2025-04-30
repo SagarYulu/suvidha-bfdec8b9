@@ -6,9 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   authState: AuthState;
-  user: User | null; // Added user property
+  user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  checkUserRole: (userId: string, role: string) => Promise<boolean>;
+  assignRole: (userId: string, role: string) => Promise<boolean>;
+  removeRole: (userId: string, role: string) => Promise<boolean>;
 }
 
 // Admin user credentials - hardcoded for demonstration purposes
@@ -61,6 +64,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
+  const checkUserRole = async (userId: string, role: string): Promise<boolean> => {
+    try {
+      // For the default admin user
+      if (userId === DEFAULT_ADMIN_USER.id && role === 'admin') {
+        return true;
+      }
+
+      // Query the database for role assignment
+      const { data, error } = await supabase.rpc('has_role', {
+        user_id: userId,
+        role_name: role
+      });
+
+      if (error) {
+        console.error('Error checking user role:', error);
+        return false;
+      }
+
+      return data || false;
+    } catch (error) {
+      console.error('Error in checkUserRole:', error);
+      return false;
+    }
+  };
+
+  const assignRole = async (userId: string, role: string): Promise<boolean> => {
+    try {
+      // Only admins can assign roles
+      if (authState.role !== 'admin') {
+        console.error('Only admins can assign roles');
+        return false;
+      }
+
+      const { data, error } = await supabase.rpc('assign_role', {
+        target_user_id: userId,
+        role_name: role
+      });
+
+      if (error) {
+        console.error('Error assigning role:', error);
+        return false;
+      }
+
+      return data || false;
+    } catch (error) {
+      console.error('Error in assignRole:', error);
+      return false;
+    }
+  };
+
+  const removeRole = async (userId: string, role: string): Promise<boolean> => {
+    try {
+      // Only admins can remove roles
+      if (authState.role !== 'admin') {
+        console.error('Only admins can remove roles');
+        return false;
+      }
+
+      const { data, error } = await supabase.rpc('remove_role', {
+        target_user_id: userId,
+        role_name: role
+      });
+
+      if (error) {
+        console.error('Error removing role:', error);
+        return false;
+      }
+
+      return data || false;
+    } catch (error) {
+      console.error('Error in removeRole:', error);
+      return false;
+    }
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('Login attempt:', { email, password });
 
@@ -85,6 +163,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (mockUser) {
         console.log('User found in mock data:', mockUser);
+        
+        // Check if the user has admin role in the database
+        if (mockUser.role !== 'admin') {
+          const hasAdminRole = await checkUserRole(mockUser.id, 'admin');
+          if (hasAdminRole) {
+            mockUser.role = 'admin';
+          }
+        }
+        
         setAuthState({
           isAuthenticated: true,
           user: mockUser,
@@ -131,6 +218,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ifscCode: employees.ifsc_code || ""
         };
         
+        // Check if the user has admin role in the database
+        if (user.role !== 'admin') {
+          const hasAdminRole = await checkUserRole(user.id, 'admin');
+          if (hasAdminRole) {
+            user.role = 'admin';
+          }
+        }
+        
         setAuthState({
           isAuthenticated: true,
           user,
@@ -158,13 +253,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("User logged out");
   };
 
-  // Provide the context value to children, now including user directly
+  // Provide the context value to children
   return (
     <AuthContext.Provider value={{ 
       authState, 
-      user: authState.user, // Expose user directly from authState 
+      user: authState.user,
       login, 
-      logout 
+      logout,
+      checkUserRole,
+      assignRole,
+      removeRole
     }}>
       {children}
     </AuthContext.Provider>

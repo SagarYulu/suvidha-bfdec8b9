@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -8,6 +9,7 @@ import {
   BarChart3,
   LogOut,
   Settings,
+  Shield,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -51,7 +53,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
   
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   return (
@@ -69,6 +71,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
           <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
           <SidebarLink href="/admin/users" icon={Users} label="Users" />
           <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+          <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
           <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
         </div>
 
@@ -97,10 +100,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm font-medium text-gray-700">
-                Administrator
+                {user?.name || 'Administrator'}
               </span>
               <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                A
+                {user?.name?.[0]?.toUpperCase() || 'A'}
               </div>
             </div>
           </div>
