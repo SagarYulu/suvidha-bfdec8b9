@@ -39,6 +39,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             blood_group: row.blood_group || null,
             account_number: row.account_number || null,
             ifsc_code: row.ifsc_code || null,
+            password: row.password || 'changeme123', // Use provided password or default
           };
 
           // Generate a structured data object for display
@@ -57,7 +58,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             blood_group: row.blood_group || '',
             account_number: row.account_number || '',
             ifsc_code: row.ifsc_code || '',
-            password: 'changeme123' // Adding the default password field
+            password: row.password || 'changeme123' // Use provided password or default
           };
 
           // Validate the data using the common validation function
@@ -69,7 +70,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
               // Convert dates to YYYY-MM-DD format for database
               date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
               date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
-              password: 'changeme123' // Default password
+              password: employeeData.password || 'changeme123' // Ensure password is set
             });
           } else {
             invalidRows.push({ 

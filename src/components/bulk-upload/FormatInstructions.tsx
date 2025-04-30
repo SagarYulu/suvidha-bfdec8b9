@@ -1,20 +1,59 @@
 
+import { Card, CardContent } from "@/components/ui/card";
+import { Check, Info } from "lucide-react";
+
 const FormatInstructions = () => {
   return (
-    <div className="text-sm text-muted-foreground">
-      <p className="font-medium mb-2">CSV Format Instructions:</p>
-      <ul className="list-disc list-inside space-y-1">
-        <li>Required fields: User ID (id), Employee ID (emp_id), Name, Email, Role</li>
-        <li><span className="font-medium text-amber-600">User ID must be a 7-digit number</span> (e.g., 1234567)</li>
-        <li>Valid roles include: Mechanic, Pilot, Marshal, Zone Screener, etc.</li>
-        <li>Valid cities: Bangalore, Delhi, Mumbai</li>
-        <li>Each city has specific valid clusters</li>
-        <li>Dates should be in DD-MM-YYYY format (or DD/MM/YYYY)</li>
-        <li>Phone numbers should not include spaces or special characters</li>
-        <li>Password will be set as 'changeme123' by default but can be edited</li>
-        <li>Download the template for the correct format</li>
-      </ul>
-    </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="flex items-start mb-2">
+          <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-sm">CSV Format Instructions</h3>
+            <p className="text-sm text-muted-foreground">
+              Please ensure your CSV file follows these guidelines:
+            </p>
+          </div>
+        </div>
+        
+        <div className="space-y-2 mt-4">
+          <div className="flex items-start">
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Required Headers:</span> id, emp_id, name, email, role
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Optional Headers:</span> phone, city, cluster, manager, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code, password
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">ID Format:</span> Must be a 7-digit number (e.g., 1234567)
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Date Format:</span> DD-MM-YYYY or DD/MM/YYYY
+            </div>
+          </div>
+
+          <div className="flex items-start">
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

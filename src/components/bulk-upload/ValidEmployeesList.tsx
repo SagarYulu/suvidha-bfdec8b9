@@ -34,6 +34,7 @@ const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
             <TableHead>Cluster</TableHead>
             <TableHead>Manager</TableHead>
             <TableHead>Role</TableHead>
+            <TableHead>Password</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -48,6 +49,7 @@ const ValidEmployeesList = ({ validEmployees }: ValidEmployeesListProps) => {
               <TableCell>{emp.cluster || '-'}</TableCell>
               <TableCell>{emp.manager || '-'}</TableCell>
               <TableCell>{emp.role}</TableCell>
+              <TableCell>{emp.password || 'changeme123'}</TableCell>
             </TableRow>
           ))}
         </TableBody>
