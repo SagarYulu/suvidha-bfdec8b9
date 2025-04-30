@@ -59,7 +59,8 @@ export const getUsers = async (): Promise<User[]> => {
     // DEBUG: Log the supabase instance to check if it's configured correctly
     console.log("Supabase client configuration:", {
       isConnected: !!supabase,
-      baseUrl: supabase.supabaseUrl // Use the public property instead
+      // Use the configuration values from the imported client directly
+      url: supabase.constructor.name === "SupabaseClient" ? "Connected to Supabase" : "Invalid client"
     });
     
     // Force cache refresh by always fetching from Supabase with cache reload
