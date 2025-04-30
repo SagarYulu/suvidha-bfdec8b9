@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Home, FilePlus, LogOut } from "lucide-react";
 import { useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -24,6 +25,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children, title }) => {
     // If user is admin, redirect to admin dashboard
     if (authState.role === "admin") {
       console.log("Admin detected in mobile app, redirecting to admin dashboard");
+      toast({
+        title: "Admin Access Detected",
+        description: "Redirecting to admin dashboard",
+      });
       navigate("/admin/dashboard");
       return;
     }

@@ -28,8 +28,12 @@ const Index = () => {
       console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
-      // For demo purposes, navigate to mobile login
+      // Not authenticated or not admin - redirect to login with a message to login as admin
       console.log("User is not admin or not authenticated, navigating to mobile login");
+      toast({
+        title: "Admin Access Required",
+        description: "Please login with admin credentials",
+      });
       navigate("/mobile/login");
     }
   };
@@ -42,7 +46,7 @@ const Index = () => {
       console.log("User is employee, navigating to mobile issues");
       navigate("/mobile/issues");
     } else {
-      // For demo purposes, navigate to mobile login with employee credentials prefilled
+      // Not authenticated or not employee - redirect to login
       console.log("User is not employee or not authenticated, navigating to mobile login");
       navigate("/mobile/login");
     }
