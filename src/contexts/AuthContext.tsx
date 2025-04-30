@@ -44,20 +44,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       // First try to authenticate as an admin user
-      const { data: adminUsers, error: adminError } = await supabase
+      const { data: adminUser, error: adminError } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('email', email.toLowerCase());
+        .eq('email', email.toLowerCase())
+        .single();
       
-      if (adminError) {
-        console.error('Error fetching admin users:', adminError);
-        return false;
-      }
-      
-      console.log('Admin users query result:', adminUsers);
-      
-      if (adminUsers && adminUsers.length > 0) {
-        const adminUser = adminUsers[0];
+      if (adminUser) {
         console.log('Admin user found:', adminUser);
         
         // Validate password
@@ -72,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: adminUser.name,
           email: adminUser.email,
           phone: "",
-          employeeId: adminUser.emp_id || "",
+          employeeId: adminUser.emp_id,
           city: "",
           cluster: "",
           manager: "",
@@ -86,7 +79,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: user.role,
         });
         localStorage.setItem("yuluUser", JSON.stringify(user));
-        console.log("Admin login successful:", user);
         return true;
       }
       
@@ -94,47 +86,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: employees, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('email', email.toLowerCase());
+        .eq('email', email.toLowerCase())
+        .single();
       
       if (error) {
         console.error('Error fetching employee:', error);
         return false;
       }
       
-      console.log('Employee query result:', employees);
-      
-      if (!employees || employees.length === 0) {
+      if (!employees) {
         console.log('No user found with this email');
         return false;
       }
       
-      const employee = employees[0];
-      
       // Validate password
-      if (employee.password !== password) {
+      if (employees.password !== password) {
         console.log('Invalid password');
         return false;
       }
       
-      console.log('Employee found:', employee);
+      console.log('Employee found:', employees);
       
       // Map Supabase employee to User type
       const user: User = {
-        id: employee.id,
-        name: employee.name,
-        email: employee.email,
-        phone: employee.phone || "",
-        employeeId: employee.emp_id,
-        city: employee.city || "",
-        cluster: employee.cluster || "",
-        manager: employee.manager || "",
-        role: employee.role || "employee",
-        password: employee.password,
-        dateOfJoining: employee.date_of_joining || "",
-        bloodGroup: employee.blood_group || "",
-        dateOfBirth: employee.date_of_birth || "",
-        accountNumber: employee.account_number || "",
-        ifscCode: employee.ifsc_code || ""
+        id: employees.id,
+        name: employees.name,
+        email: employees.email,
+        phone: employees.phone || "",
+        employeeId: employees.emp_id,
+        city: employees.city || "",
+        cluster: employees.cluster || "",
+        manager: employees.manager || "",
+        role: employees.role || "employee",
+        password: employees.password,
+        dateOfJoining: employees.date_of_joining || "",
+        bloodGroup: employees.blood_group || "",
+        dateOfBirth: employees.date_of_birth || "",
+        accountNumber: employees.account_number || "",
+        ifscCode: employees.ifsc_code || ""
       };
       
       setAuthState({
@@ -143,7 +132,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: user.role,
       });
       localStorage.setItem("yuluUser", JSON.stringify(user));
-      console.log("Employee login successful:", user);
       return true;
     } catch (error) {
       console.error('Login error:', error);

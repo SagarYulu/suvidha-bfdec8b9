@@ -23,13 +23,12 @@ const Index = () => {
   const handleAdminClick = () => {
     console.log("Admin button clicked, current auth state:", authState);
     
-    // If the user is already authenticated and has an admin role, navigate directly
-    if (authState.isAuthenticated && 
-        (authState.role === "hr_admin" || authState.role === "city_head" || authState.role === "ops")) {
+    // If the user is already authenticated and is an admin, navigate directly
+    if (authState.isAuthenticated && authState.role === "admin") {
       console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
-      // If not authenticated as admin, go to login page
+      // For demo purposes, navigate to mobile login
       console.log("User is not admin or not authenticated, navigating to mobile login");
       navigate("/mobile/login");
     }
@@ -43,7 +42,7 @@ const Index = () => {
       console.log("User is employee, navigating to mobile issues");
       navigate("/mobile/issues");
     } else {
-      // If not authenticated as employee, go to login page
+      // For demo purposes, navigate to mobile login with employee credentials prefilled
       console.log("User is not employee or not authenticated, navigating to mobile login");
       navigate("/mobile/login");
     }
