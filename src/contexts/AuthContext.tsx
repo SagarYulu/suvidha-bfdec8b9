@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -74,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.rpc('has_role', {
         user_id: userId,
         role_name: role
-      });
+      } as any); // Using type assertion to bypass TypeScript checking
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -99,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.rpc('assign_role', {
         target_user_id: userId,
         role_name: role
-      });
+      } as any); // Using type assertion to bypass TypeScript checking
 
       if (error) {
         console.error('Error assigning role:', error);
@@ -124,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.rpc('remove_role', {
         target_user_id: userId,
         role_name: role
-      });
+      } as any); // Using type assertion to bypass TypeScript checking
 
       if (error) {
         console.error('Error removing role:', error);
