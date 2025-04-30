@@ -1,4 +1,3 @@
-
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -230,5 +229,3 @@ export const deleteUser = async (id: string): Promise<boolean> => {
     return users.length < initialLength;
   }
 };
-
-export { getUsers, getUserById };
