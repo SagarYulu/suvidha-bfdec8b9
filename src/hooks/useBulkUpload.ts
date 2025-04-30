@@ -165,9 +165,46 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
     try {
       setIsUploading(true);
       
+      // First check for duplicate emp_ids in the database
+      const empIdsToCheck = employees.map(emp => emp.emp_id);
+      
+      // Check for existing employee IDs to avoid constraint violations
+      const { data: existingEmps, error: checkError } = await supabase
+        .from('employees')
+        .select('emp_id')
+        .in('emp_id', empIdsToCheck);
+      
+      if (checkError) {
+        console.error('Error checking existing employee IDs:', checkError);
+        throw new Error('Failed to check for existing employees');
+      }
+      
+      // Extract the list of existing employee IDs
+      const existingEmpIds = existingEmps?.map(emp => emp.emp_id) || [];
+      
+      // Filter out employees with duplicate emp_ids
+      const newEmployees = employees.filter(emp => !existingEmpIds.includes(emp.emp_id));
+      const duplicateEmployees = employees.filter(emp => existingEmpIds.includes(emp.emp_id));
+      
+      if (duplicateEmployees.length > 0) {
+        console.log(`Found ${duplicateEmployees.length} duplicate employee IDs, they will be skipped:`, 
+          duplicateEmployees.map(e => e.emp_id));
+      }
+      
+      if (newEmployees.length === 0) {
+        toast({
+          variant: "destructive",
+          title: "No New Employees",
+          description: `All ${employees.length} employees already exist in the database with the same Employee IDs.`,
+        });
+        setIsUploading(false);
+        setShowValidationDialog(false);
+        return;
+      }
+      
       // We've removed any check constraints in the database, so we just need to ensure
       // we're using valid values from the master tables
-      const employeesData = employees.map(emp => {
+      const employeesData = newEmployees.map(emp => {
         // Get the exact role name case from ROLE_OPTIONS to match with master_roles table
         const exactRole = ROLE_OPTIONS.find(r => r.toLowerCase() === emp.role.toLowerCase()) || emp.role;
         
@@ -204,9 +241,13 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
       console.log('Upload successful:', data);
       
+      const duplicateMessage = duplicateEmployees.length > 0 
+        ? ` (${duplicateEmployees.length} duplicate employee IDs were skipped)`
+        : '';
+      
       toast({
         title: "Upload Successful",
-        description: `Successfully added ${employees.length} employees.`,
+        description: `Successfully added ${newEmployees.length} employees.${duplicateMessage}`,
       });
       
       // Call the onUploadSuccess callback if provided

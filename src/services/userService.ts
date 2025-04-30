@@ -58,7 +58,8 @@ export const getUsers = async (): Promise<User[]> => {
     console.log("Fetching users from Supabase...");
     const { data: employees, error } = await supabase
       .from('employees')
-      .select('*');
+      .select('*')
+      .order('name', { ascending: true });
     
     if (error) {
       console.error("Error fetching users:", error);
@@ -105,6 +106,22 @@ export const getUserById = async (id: string): Promise<User | undefined> => {
 
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
   try {
+    // First check if employee ID already exists
+    const { data: existingEmp, error: checkError } = await supabase
+      .from('employees')
+      .select('emp_id')
+      .eq('emp_id', user.employeeId)
+      .maybeSingle();
+    
+    if (checkError) {
+      console.error("Error checking existing employee:", checkError);
+      throw checkError;
+    }
+    
+    if (existingEmp) {
+      throw new Error(`Employee with ID ${user.employeeId} already exists.`);
+    }
+    
     const newEmployee = {
       user_id: user.userId, // Add User ID field
       name: user.name,
