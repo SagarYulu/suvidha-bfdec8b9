@@ -23,11 +23,20 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             return;
           }
           
-          // Check multiple possible header names for user_id field
-          const userId = row.userId || row.user_id || row.userid || row['user id'] || '';
-          
           // Add debug log to check the original CSV data
           console.log('Original CSV row:', row);
+          
+          // Check multiple possible header names for user_id field with better detection
+          // This handles different header variations including "User ID" with space
+          const userId = 
+            row.userId || 
+            row.user_id || 
+            row.userid || 
+            row['User ID'] || 
+            row['user id'] || 
+            row['USER ID'] || 
+            row['UserId'] || 
+            '';
           
           // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
           const employeeData: Partial<CSVEmployeeData> = {

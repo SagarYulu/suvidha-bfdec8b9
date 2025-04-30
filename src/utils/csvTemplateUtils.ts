@@ -6,7 +6,7 @@ export const getCSVTemplate = () => {
   // Ensure headers match exactly with manual entry form fields and database columns
   const headers = [
     'id',                // UUID (auto-generated, can be left empty)
-    'userId',            // Manual User ID (numeric, required)
+    'User ID',           // Manual User ID (numeric, required)
     'emp_id',            // Employee ID
     'name',              // Name
     'email',             // Email

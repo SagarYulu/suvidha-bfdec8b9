@@ -6,6 +6,7 @@ import { isValidDate } from './dateUtils';
 // Update EmployeeData type to include userId
 type EmployeeData = Omit<Tables<'employees'>, 'created_at' | 'updated_at'> & {
   user_id?: string; // Add user_id field to match the database column
+  userId?: string;  // Add userId field for frontend usage
 };
 
 /**
@@ -22,19 +23,26 @@ export const isValidUserID = (userId: string): boolean => {
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  // Required fields - check for userId as well
-  const requiredFields = ['user_id', 'emp_id', 'name', 'email', 'role'];
+  // Required fields - check for userId or user_id
+  const userId = data.userId || data.user_id || '';
+  
+  // Check required fields
+  const requiredFields = ['emp_id', 'name', 'email', 'role'];
   const missingFields = requiredFields.filter(field => 
     !data[field as keyof typeof data]
   );
+  
+  if (!userId) {
+    missingFields.push('User ID');
+  }
   
   if (missingFields.length > 0) {
     errors.push(`Missing required fields: ${missingFields.join(', ')}`);
   }
   
   // User ID validation (if provided)
-  if (data.user_id && !isValidUserID(data.user_id)) {
-    errors.push(`Invalid User ID format: ${data.user_id}. Must be numeric.`);
+  if (userId && !isValidUserID(userId)) {
+    errors.push(`Invalid User ID format: ${userId}. Must be numeric.`);
   }
   
   // Role validation

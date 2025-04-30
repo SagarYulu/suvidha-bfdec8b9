@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -163,10 +164,10 @@ export const useBulkUpload = () => {
     try {
       setIsUploading(true);
       
-      // Prepare data for database - include User ID, let UUID be auto-generated
+      // Prepare data for database - ensure User ID is mapped to user_id for the database
       const employeesData = employees.map(emp => {
         return {
-          user_id: emp.userId, // Use userId field for the database
+          user_id: emp.userId, // Map userId to user_id for database
           name: emp.name,
           email: emp.email,
           phone: emp.phone || null,
@@ -184,7 +185,7 @@ export const useBulkUpload = () => {
         };
       });
       
-      console.log("Attempting to insert employees with User IDs:", employeesData);
+      console.log("Inserting employees with data:", employeesData);
       
       // Use the insert method - UUID will be auto-generated
       const { error } = await supabase
