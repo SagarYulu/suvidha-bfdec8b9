@@ -44,25 +44,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     console.log('Login attempt:', { email, password });
 
-    // Log all mock users for debugging
-    console.log('Available mock users:', MOCK_USERS);
+    try {
+      // Step 1: Check mock users first (for admin and demo accounts)
+      console.log('Available mock users:', MOCK_USERS);
+      const mockUser = MOCK_USERS.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
 
-    // Find user with matching email (case-insensitive) and exact password
-    const user = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+      if (mockUser) {
+        console.log('User found in mock data:', mockUser);
+        setAuthState({
+          isAuthenticated: true,
+          user: mockUser,
+          role: mockUser.role,
+        });
+        localStorage.setItem("yuluUser", JSON.stringify(mockUser));
+        return true;
+      }
 
-    if (user) {
-      console.log('User found:', user);
-      setAuthState({
-        isAuthenticated: true,
-        user,
-        role: user.role,
-      });
-      localStorage.setItem("yuluUser", JSON.stringify(user));
-      return true;
-    } else {
-      console.log('No matching user found');
+      // Step 2: If not found in mock data, check Supabase employees table
+      console.log('User not found in mock data, checking database...');
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .eq('password', password)
+        .single();
+
+      if (error) {
+        console.error('Error querying employees table:', error);
+        return false;
+      }
+
+      if (employees) {
+        console.log('Employee found in database:', employees);
+        
+        // Map database employee to User type
+        const user: User = {
+          id: employees.id,
+          userId: employees.user_id || "",
+          name: employees.name,
+          email: employees.email,
+          phone: employees.phone || "",
+          employeeId: employees.emp_id,
+          city: employees.city || "",
+          cluster: employees.cluster || "",
+          manager: employees.manager || "",
+          role: employees.role || "employee", // Default to employee role
+          password: employees.password,
+          dateOfJoining: employees.date_of_joining || "",
+          bloodGroup: employees.blood_group || "",
+          dateOfBirth: employees.date_of_birth || "",
+          accountNumber: employees.account_number || "",
+          ifscCode: employees.ifsc_code || ""
+        };
+        
+        setAuthState({
+          isAuthenticated: true,
+          user,
+          role: user.role,
+        });
+        localStorage.setItem("yuluUser", JSON.stringify(user));
+        return true;
+      }
+      
+      console.log('No matching user found in database');
+      return false;
+    } catch (error) {
+      console.error("Login error:", error);
       return false;
     }
   };
