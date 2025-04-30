@@ -51,6 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (adminError) {
         console.error('Error fetching admin users:', adminError);
+        return false;
       }
       
       if (adminUsers && adminUsers.length > 0) {
@@ -83,6 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: user.role,
         });
         localStorage.setItem("yuluUser", JSON.stringify(user));
+        console.log("Admin login successful:", user);
         return true;
       }
       
@@ -137,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: user.role,
       });
       localStorage.setItem("yuluUser", JSON.stringify(user));
+      console.log("Employee login successful:", user);
       return true;
     } catch (error) {
       console.error('Login error:', error);

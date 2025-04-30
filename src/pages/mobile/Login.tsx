@@ -37,10 +37,12 @@ const MobileLogin = () => {
           
           // Admin roles: hr_admin, city_head, ops
           if (userData.role === "hr_admin" || userData.role === "city_head" || userData.role === "ops") {
+            console.log("Admin role detected, redirecting to admin dashboard");
             navigate("/admin/dashboard");
           } 
           // Employee role
           else if (userData.role === "employee") {
+            console.log("Employee role detected, redirecting to issues page");
             navigate("/mobile/issues");
           }
         }

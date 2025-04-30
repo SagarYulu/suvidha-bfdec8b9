@@ -29,7 +29,7 @@ const Index = () => {
       console.log("User is admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
-      // For demo purposes, navigate to mobile login
+      // If not authenticated as admin, go to login page
       console.log("User is not admin or not authenticated, navigating to mobile login");
       navigate("/mobile/login");
     }
@@ -43,7 +43,7 @@ const Index = () => {
       console.log("User is employee, navigating to mobile issues");
       navigate("/mobile/issues");
     } else {
-      // For demo purposes, navigate to mobile login with employee credentials prefilled
+      // If not authenticated as employee, go to login page
       console.log("User is not employee or not authenticated, navigating to mobile login");
       navigate("/mobile/login");
     }
