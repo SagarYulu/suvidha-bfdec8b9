@@ -3,7 +3,7 @@
  * Generates a CSV template for employee data import
  */
 export const getCSVTemplate = () => {
-  // Ensure headers match exactly with manual entry form fields
+  // Ensure headers match exactly with manual entry form fields and database columns
   const headers = [
     'id',                // UUID (auto-generated, can be left empty)
     'userId',            // Manual User ID (numeric, required)

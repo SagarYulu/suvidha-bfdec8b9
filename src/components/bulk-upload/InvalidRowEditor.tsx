@@ -71,7 +71,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Employee ID</label>
+            <label className="text-xs font-medium text-gray-500">Employee ID *</label>
             <Input 
               value={getRowValue(rowKey, 'emp_id', item.rowData.emp_id)}
               onChange={(e) => handleFieldEdit(rowKey, 'emp_id', e.target.value)}
@@ -80,7 +80,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Name</label>
+            <label className="text-xs font-medium text-gray-500">Name *</label>
             <Input 
               value={getRowValue(rowKey, 'name', item.rowData.name)}
               onChange={(e) => handleFieldEdit(rowKey, 'name', e.target.value)}
@@ -89,7 +89,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Email</label>
+            <label className="text-xs font-medium text-gray-500">Email *</label>
             <Input 
               value={getRowValue(rowKey, 'email', item.rowData.email)}
               onChange={(e) => handleFieldEdit(rowKey, 'email', e.target.value)}
@@ -156,7 +156,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Role</label>
+            <label className="text-xs font-medium text-gray-500">Role *</label>
             <Select
               value={getRowValue(rowKey, 'role', item.rowData.role)}
               onValueChange={(value) => handleFieldEdit(rowKey, 'role', value)}

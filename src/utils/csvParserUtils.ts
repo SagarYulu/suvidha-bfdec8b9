@@ -23,12 +23,15 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             return;
           }
           
-          // Extract User ID from CSV
-          const userId = row.userId || '';
+          // Check multiple possible header names for user_id field
+          const userId = row.userId || row.user_id || row.userid || row['user id'] || '';
+          
+          // Add debug log to check the original CSV data
+          console.log('Original CSV row:', row);
           
           // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
           const employeeData: Partial<CSVEmployeeData> = {
-            userId: userId, // Add userId field
+            userId: userId, // Set the userId field explicitly
             emp_id: row.emp_id || '',
             name: row.name || '',
             email: row.email || '',

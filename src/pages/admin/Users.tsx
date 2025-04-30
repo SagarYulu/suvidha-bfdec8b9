@@ -425,9 +425,10 @@ const AdminUsers = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>UUID</TableHead>
                   <TableHead>User ID</TableHead>
-                  <TableHead>Name</TableHead>
                   <TableHead>Employee ID</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>City</TableHead>
@@ -441,8 +442,9 @@ const AdminUsers = () => {
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.userId}</TableCell>
                     <TableCell>{user.employeeId}</TableCell>
+                    <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
                     <TableCell>{user.city}</TableCell>
@@ -470,7 +472,7 @@ const AdminUsers = () => {
                 
                 {filteredUsers.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-6">
+                    <TableCell colSpan={11} className="text-center py-6">
                       No matching users found
                     </TableCell>
                   </TableRow>
