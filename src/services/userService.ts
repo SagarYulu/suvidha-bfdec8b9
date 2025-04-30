@@ -1,4 +1,3 @@
-
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -56,12 +55,15 @@ initializeUsers();
 export const getUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching users from Supabase...");
-    // DEBUG: Log the supabase instance to check if it's configured correctly
-    console.log("Supabase client configuration:", {
-      isConnected: !!supabase,
-      // Use the configuration values from the imported client directly
-      url: supabase.constructor.name === "SupabaseClient" ? "Connected to Supabase" : "Invalid client"
+    
+    // Debug log for Supabase client
+    console.log("Supabase client check:", {
+      isInitialized: !!supabase,
+      status: supabase ? "Connected" : "Not connected"
     });
+    
+    // Add more verbose logging
+    console.log("Attempting to fetch from employees table...");
     
     // Force cache refresh by always fetching from Supabase with cache reload
     const { data: employees, error } = await supabase
@@ -71,13 +73,22 @@ export const getUsers = async (): Promise<User[]> => {
     
     if (error) {
       console.error("Error fetching users:", error);
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details
+      });
       throw error;
     }
     
     if (employees) {
-      // Always log the exact response from Supabase
+      // Add detailed logging for the response data
       console.log(`Successfully fetched ${employees.length} users from database:`, employees);
+      
+      // Double check that the data is mapped properly
       const mappedUsers = employees.map(mapEmployeeToUser);
+      console.log("Mapped users:", mappedUsers);
+      
       // Update cache
       users = mappedUsers;
       return mappedUsers;
@@ -87,7 +98,9 @@ export const getUsers = async (): Promise<User[]> => {
     return [];
   } catch (error) {
     console.error("Error in getUsers:", error);
-    throw error;
+    console.error("Falling back to cached users, count:", users.length);
+    // Fall back to cached users if there's an error with fetching
+    return users;
   }
 };
 

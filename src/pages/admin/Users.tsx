@@ -30,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Trash, UserPlus, RefreshCw } from "lucide-react";
+import { Search, Trash, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
 import BulkUserUpload from "@/components/BulkUserUpload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
@@ -108,7 +108,7 @@ const AdminUsers = () => {
       console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch users",
+        description: "Failed to fetch users. Please check console for details.",
         variant: "destructive",
       });
     } finally {
@@ -240,6 +240,17 @@ const AdminUsers = () => {
     });
     fetchUsers();
   };
+
+  // Debug: Force initial fetch on component mount
+  useEffect(() => {
+    // Short timeout to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      console.log("Force initial data fetch after mount");
+      fetchUsers();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   console.log(`Users component render at ${new Date().toISOString()} with ${users.length} users and ${filteredUsers.length} filtered users. Last refreshed: ${new Date(lastRefreshedAt).toLocaleTimeString()}`);
 
@@ -505,20 +516,261 @@ const AdminUsers = () => {
         ) : users.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 border rounded-lg">
             <div className="mb-4">
-              <UserPlus className="h-12 w-12 mx-auto text-gray-400" />
+              {users.length === 0 ? (
+                <UserPlus className="h-12 w-12 mx-auto text-gray-400" />
+              ) : (
+                <AlertCircle className="h-12 w-12 mx-auto text-yellow-400" />
+              )}
             </div>
             <h3 className="text-lg font-medium text-gray-900">No users found</h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by adding your first user
+              Get started by adding your first user or check database connection
             </p>
-            <Button 
-              onClick={handleManualRefresh}
-              variant="outline" 
-              className="mt-4"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Refresh
-            </Button>
+            <div className="mt-4 flex justify-center space-x-2">
+              <Button 
+                onClick={handleManualRefresh}
+                variant="outline" 
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+              
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button className="bg-yulu-blue hover:bg-blue-700">
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add User
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New User</DialogTitle>
+                  </DialogHeader>
+                  <Tabs defaultValue="manual" className="w-full">
+                    <TabsList className="mb-4 grid w-full grid-cols-2">
+                      <TabsTrigger value="manual">Manual Entry</TabsTrigger>
+                      <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="manual">
+                      <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="userId">User ID *</Label>
+                            <Input
+                              id="userId"
+                              name="userId"
+                              value={newUser.userId}
+                              onChange={handleInputChange}
+                              placeholder="Numeric User ID (e.g. 1001)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="employeeId">Employee ID *</Label>
+                            <Input
+                              id="employeeId"
+                              name="employeeId"
+                              value={newUser.employeeId}
+                              onChange={handleInputChange}
+                              placeholder="Employee ID (e.g. YL001)"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="name">Name *</Label>
+                            <Input
+                              id="name"
+                              name="name"
+                              value={newUser.name}
+                              onChange={handleInputChange}
+                              placeholder="Full Name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email *</Label>
+                            <Input
+                              id="email"
+                              name="email"
+                              type="email"
+                              value={newUser.email}
+                              onChange={handleInputChange}
+                              placeholder="email@example.com"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="phone">Phone *</Label>
+                            <Input
+                              id="phone"
+                              name="phone"
+                              value={newUser.phone}
+                              onChange={handleInputChange}
+                              placeholder="9876543210"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="city">City</Label>
+                            <Select
+                              value={newUser.city}
+                              onValueChange={(value) => setNewUser({ ...newUser, city: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select city" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {CITY_OPTIONS.map(city => (
+                                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="cluster">Cluster</Label>
+                            <Select
+                              value={newUser.cluster}
+                              onValueChange={(value) => setNewUser({ ...newUser, cluster: value })}
+                              disabled={!newUser.city || availableClusters.length === 0}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder={!newUser.city ? "Select a city first" : "Select cluster"} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableClusters.map(cluster => (
+                                  <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="manager">Manager</Label>
+                            <Input
+                              id="manager"
+                              name="manager"
+                              value={newUser.manager}
+                              onChange={handleInputChange}
+                              placeholder="Manager name"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="role">Role *</Label>
+                            <Select
+                              value={newUser.role}
+                              onValueChange={(value) => setNewUser({ ...newUser, role: value })}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select role" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {ROLE_OPTIONS.map(role => (
+                                  <SelectItem key={role} value={role}>{role}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="dateOfJoining">Date of Joining</Label>
+                            <Input
+                              id="dateOfJoining"
+                              name="dateOfJoining"
+                              type="date"
+                              value={newUser.dateOfJoining}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                            <Input
+                              id="dateOfBirth"
+                              name="dateOfBirth"
+                              type="date"
+                              value={newUser.dateOfBirth}
+                              onChange={handleInputChange}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="bloodGroup">Blood Group</Label>
+                            <Input
+                              id="bloodGroup"
+                              name="bloodGroup"
+                              value={newUser.bloodGroup}
+                              onChange={handleInputChange}
+                              placeholder="A+, B-, O+, etc."
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="accountNumber">Account Number</Label>
+                            <Input
+                              id="accountNumber"
+                              name="accountNumber"
+                              value={newUser.accountNumber}
+                              onChange={handleInputChange}
+                              placeholder="Account Number"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="ifscCode">IFSC Code</Label>
+                            <Input
+                              id="ifscCode"
+                              name="ifscCode"
+                              value={newUser.ifscCode}
+                              onChange={handleInputChange}
+                              placeholder="IFSC Code"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Password *</Label>
+                          <Input
+                            id="password"
+                            name="password"
+                            type="password"
+                            value={newUser.password}
+                            onChange={handleInputChange}
+                            placeholder="Password"
+                          />
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline">Cancel</Button>
+                        </DialogClose>
+                        <Button className="bg-yulu-blue hover:bg-blue-700" onClick={handleAddUser}>
+                          Add User
+                        </Button>
+                      </DialogFooter>
+                    </TabsContent>
+                    <TabsContent value="bulk">
+                      <BulkUserUpload onUploadSuccess={handleBulkUploadSuccess} />
+                    </TabsContent>
+                  </Tabs>
+                </DialogContent>
+              </Dialog>
+            </div>
+            
+            <div className="mt-4 p-4 bg-yellow-50 rounded-lg max-w-lg mx-auto">
+              <p className="text-sm font-medium text-yellow-700">Troubleshooting Tips:</p>
+              <ul className="mt-2 text-sm text-yellow-600 list-disc pl-5 space-y-1">
+                <li>Check that Supabase connection is working</li>
+                <li>Verify 'employees' table exists and has data</li>
+                <li>Check console logs for errors</li>
+              </ul>
+            </div>
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -583,8 +835,9 @@ const AdminUsers = () => {
         )}
         
         {/* Debug information */}
-        <div className="text-xs text-gray-400 mt-2">
-          Last refreshed: {new Date(lastRefreshedAt).toLocaleTimeString()}
+        <div className="text-xs text-gray-400 mt-2 flex justify-between">
+          <span>Last refreshed: {new Date(lastRefreshedAt).toLocaleTimeString()}</span>
+          <span>Database connection: {!!supabase ? "Active" : "Issue detected"}</span>
         </div>
       </div>
     </AdminLayout>
