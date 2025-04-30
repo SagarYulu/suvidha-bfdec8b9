@@ -20,7 +20,7 @@ const FormatInstructions = () => {
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">Required Headers:</span> id, emp_id, name, email, role
+              <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, role
             </div>
           </div>
 
@@ -34,7 +34,7 @@ const FormatInstructions = () => {
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">ID Format:</span> Must be a 7-digit number (e.g., 1234567)
+              <span className="font-medium">User ID Format:</span> Must be a 7-digit number (e.g., 1234567)
             </div>
           </div>
 

@@ -5,7 +5,7 @@
 export const getCSVTemplate = () => {
   // Ensure headers match exactly with manual entry form fields
   const headers = [
-    'id',                // User ID
+    'User ID',           // User ID (changed from 'id' to match UI)
     'emp_id',            // Employee ID
     'name',              // Name
     'email',             // Email
@@ -19,7 +19,7 @@ export const getCSVTemplate = () => {
     'blood_group',       // Blood Group
     'account_number',    // Account Number
     'ifsc_code',         // IFSC Code
-    'password'           // Password (added this field)
+    'password'           // Password
   ];
 
   const csvContent = [
