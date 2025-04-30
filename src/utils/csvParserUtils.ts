@@ -124,9 +124,15 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           }
         });
 
+        console.log('Validation complete:', {
+          validEmployees: validEmployees.length,
+          invalidRows: invalidRows.length
+        });
+
         resolve({ validEmployees, invalidRows });
       },
       error: (error) => {
+        console.error('CSV parsing error:', error);
         reject(error);
       }
     });

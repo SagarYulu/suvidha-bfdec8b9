@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -75,12 +76,24 @@ const AdminUsers = () => {
   }, [newUser.city]);
 
   const fetchUsers = useCallback(async () => {
+    console.log("Fetching users...");
     setIsLoading(true);
     try {
       const fetchedUsers = await getUsers();
-      console.log("Fetched users count:", fetchedUsers.length);
-      setUsers(fetchedUsers);
-      setFilteredUsers(fetchedUsers);
+      console.log("Fetched users:", fetchedUsers);
+      
+      if (Array.isArray(fetchedUsers)) {
+        setUsers(fetchedUsers);
+        setFilteredUsers(fetchedUsers);
+        console.log("Updated users state with", fetchedUsers.length, "users");
+      } else {
+        console.error("Fetched users is not an array:", fetchedUsers);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users: Invalid data format",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
       toast({
@@ -95,6 +108,7 @@ const AdminUsers = () => {
 
   // Initial data fetch
   useEffect(() => {
+    console.log("Initial users fetch");
     fetchUsers();
   }, [fetchUsers]);
 
@@ -190,21 +204,25 @@ const AdminUsers = () => {
     setNewUser({ ...newUser, [name]: value });
   };
 
-  // Handle successful bulk upload
-  const handleBulkUploadSuccess = () => {
+  // Handle successful bulk upload with proper logging
+  const handleBulkUploadSuccess = useCallback(() => {
     console.log("Bulk upload successful, refreshing users list...");
     // Close the dialog and refresh the user list
     setIsAddUserDialogOpen(false);
-    // Add a small delay to ensure the database has finished processing
-    setTimeout(() => {
-      fetchUsers();
-    }, 500);
     
+    // Add a small delay to ensure the database has finished processing
     toast({
       title: "Success",
-      description: "Users uploaded successfully",
+      description: "Users uploaded successfully. Refreshing user list...",
     });
-  };
+    
+    // Give the database a moment to complete the transaction
+    setTimeout(() => {
+      fetchUsers();
+    }, 1000);
+  }, [fetchUsers]);
+
+  console.log("Users component render with", users.length, "users and", filteredUsers.length, "filtered users");
 
   return (
     <AdminLayout title="Users Management">

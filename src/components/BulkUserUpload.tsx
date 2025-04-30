@@ -22,6 +22,8 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
+  console.log("BulkUserUpload render with onUploadSuccess:", !!onUploadSuccess);
+
   return (
     <div className="space-y-4">
       <TemplateControls 

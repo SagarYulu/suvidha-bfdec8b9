@@ -56,6 +56,7 @@ initializeUsers();
 export const getUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching users from Supabase...");
+    // Force cache refresh by always fetching from Supabase
     const { data: employees, error } = await supabase
       .from('employees')
       .select('*')

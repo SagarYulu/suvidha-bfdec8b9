@@ -164,9 +164,11 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
     try {
       setIsUploading(true);
+      console.log("Attempting to upload employees:", employees);
       
       // First check for duplicate emp_ids in the database
       const empIdsToCheck = employees.map(emp => emp.emp_id);
+      console.log("Checking for duplicate employee IDs:", empIdsToCheck);
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
@@ -181,6 +183,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Extract the list of existing employee IDs
       const existingEmpIds = existingEmps?.map(emp => emp.emp_id) || [];
+      console.log("Found existing employee IDs:", existingEmpIds);
       
       // Filter out employees with duplicate emp_ids
       const newEmployees = employees.filter(emp => !existingEmpIds.includes(emp.emp_id));
@@ -252,7 +255,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Call the onUploadSuccess callback if provided
       if (onUploadSuccess) {
-        console.log("Calling onUploadSuccess callback");
+        console.log("Calling onUploadSuccess callback to refresh user list");
         onUploadSuccess();
       }
       
