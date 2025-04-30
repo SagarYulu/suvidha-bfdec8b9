@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -12,6 +11,22 @@ interface AuthContextType {
   checkUserRole: (userId: string, role: string) => Promise<boolean>;
   assignRole: (userId: string, role: string) => Promise<boolean>;
   removeRole: (userId: string, role: string) => Promise<boolean>;
+}
+
+// Define interfaces for RPC function parameters
+interface HasRoleParams {
+  user_id: string;
+  role_name: string;
+}
+
+interface AssignRoleParams {
+  target_user_id: string;
+  role_name: string;
+}
+
+interface RemoveRoleParams {
+  target_user_id: string;
+  role_name: string;
 }
 
 // Admin user credentials - hardcoded for demonstration purposes
@@ -72,10 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Query the database for role assignment
-      const { data, error } = await supabase.rpc('has_role', {
+      const { data, error } = await supabase.rpc<boolean>('has_role', {
         user_id: userId,
         role_name: role
-      } as any); // Using type assertion to bypass TypeScript checking
+      } as HasRoleParams);
 
       if (error) {
         console.error('Error checking user role:', error);
@@ -97,10 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      const { data, error } = await supabase.rpc('assign_role', {
+      const { data, error } = await supabase.rpc<boolean>('assign_role', {
         target_user_id: userId,
         role_name: role
-      } as any); // Using type assertion to bypass TypeScript checking
+      } as AssignRoleParams);
 
       if (error) {
         console.error('Error assigning role:', error);
@@ -122,10 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      const { data, error } = await supabase.rpc('remove_role', {
+      const { data, error } = await supabase.rpc<boolean>('remove_role', {
         target_user_id: userId,
         role_name: role
-      } as any); // Using type assertion to bypass TypeScript checking
+      } as RemoveRoleParams);
 
       if (error) {
         console.error('Error removing role:', error);
