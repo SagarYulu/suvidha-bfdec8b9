@@ -63,6 +63,7 @@ export const CLUSTER_OPTIONS: {[key: string]: string[]} = {
     "Whitefield",
     "CBD",
     "ORR",
-    "Yelahanka"
+    "Yelahanka",
+    "Indiranagar"  // Added Indiranagar to Bangalore clusters
   ]
 };

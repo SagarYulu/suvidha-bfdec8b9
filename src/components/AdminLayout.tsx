@@ -8,6 +8,7 @@ import {
   Users,
   BarChart3,
   LogOut,
+  Settings,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
           <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
           <SidebarLink href="/admin/users" icon={Users} label="Users" />
           <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+          <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
         </div>
 
         <div className="mt-auto p-4 border-t">
