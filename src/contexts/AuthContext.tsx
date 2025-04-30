@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
+import { MOCK_USERS } from "@/data/mockData";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AuthContextType {
@@ -40,53 +41,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    console.log('Login attempt:', { email });
+    console.log('Login attempt:', { email, password });
 
-    try {
-      // Query Supabase employees table for matching email
-      const { data: employees, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
-      
-      if (error) {
-        console.error('Error fetching employee:', error);
-        return false;
-      }
-      
-      if (!employees) {
-        console.log('No employee found with this email');
-        return false;
-      }
-      
-      // Validate password
-      if (employees.password !== password) {
-        console.log('Invalid password');
-        return false;
-      }
-      
-      console.log('Employee found:', employees);
-      
-      // Map Supabase employee to User type
-      const user: User = {
-        id: employees.id,
-        name: employees.name,
-        email: employees.email,
-        phone: employees.phone || "",
-        employeeId: employees.emp_id,
-        city: employees.city || "",
-        cluster: employees.cluster || "",
-        manager: employees.manager || "",
-        role: employees.role || "employee",
-        password: employees.password,
-        dateOfJoining: employees.date_of_joining || "",
-        bloodGroup: employees.blood_group || "",
-        dateOfBirth: employees.date_of_birth || "",
-        accountNumber: employees.account_number || "",
-        ifscCode: employees.ifsc_code || ""
-      };
-      
+    // Log all mock users for debugging
+    console.log('Available mock users:', MOCK_USERS);
+
+    // Find user with matching email (case-insensitive) and exact password
+    const user = MOCK_USERS.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
+
+    if (user) {
+      console.log('User found:', user);
       setAuthState({
         isAuthenticated: true,
         user,
@@ -94,8 +60,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       localStorage.setItem("yuluUser", JSON.stringify(user));
       return true;
-    } catch (error) {
-      console.error('Login error:', error);
+    } else {
+      console.log('No matching user found');
       return false;
     }
   };
