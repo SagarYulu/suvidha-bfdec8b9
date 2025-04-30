@@ -54,6 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
       
+      console.log('Admin users query result:', adminUsers);
+      
       if (adminUsers && adminUsers.length > 0) {
         const adminUser = adminUsers[0];
         console.log('Admin user found:', adminUser);
@@ -70,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: adminUser.name,
           email: adminUser.email,
           phone: "",
-          employeeId: adminUser.emp_id,
+          employeeId: adminUser.emp_id || "",
           city: "",
           cluster: "",
           manager: "",
@@ -98,6 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching employee:', error);
         return false;
       }
+      
+      console.log('Employee query result:', employees);
       
       if (!employees || employees.length === 0) {
         console.log('No user found with this email');
