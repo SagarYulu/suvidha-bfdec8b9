@@ -15,7 +15,12 @@ export const getRoles = async (): Promise<Role[]> => {
       return [];
     }
     
-    return data || [];
+    return data.map(role => ({
+      id: role.id,
+      name: role.name,
+      createdAt: role.created_at,
+      updatedAt: role.updated_at
+    })) || [];
   } catch (error) {
     console.error("Error in getRoles:", error);
     return [];
@@ -44,7 +49,12 @@ export const createRole = async (name: string, userId: string): Promise<Role | n
       createdBy: userId
     });
     
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
     console.error("Error in createRole:", error);
     return null;
@@ -84,7 +94,12 @@ export const updateRole = async (id: string, name: string, userId: string): Prom
       createdBy: userId
     });
     
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
     console.error("Error in updateRole:", error);
     return null;
@@ -139,7 +154,12 @@ export const getCities = async (): Promise<City[]> => {
       return [];
     }
     
-    return data || [];
+    return data.map(city => ({
+      id: city.id,
+      name: city.name,
+      createdAt: city.created_at,
+      updatedAt: city.updated_at
+    })) || [];
   } catch (error) {
     console.error("Error in getCities:", error);
     return [];
@@ -168,7 +188,12 @@ export const createCity = async (name: string, userId: string): Promise<City | n
       createdBy: userId
     });
     
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
     console.error("Error in createCity:", error);
     return null;
@@ -208,7 +233,12 @@ export const updateCity = async (id: string, name: string, userId: string): Prom
       createdBy: userId
     });
     
-    return data;
+    return {
+      id: data.id,
+      name: data.name,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
+    };
   } catch (error) {
     console.error("Error in updateCity:", error);
     return null;
@@ -264,9 +294,12 @@ export const getClusters = async (): Promise<Cluster[]> => {
     }
     
     return data.map(cluster => ({
-      ...cluster,
+      id: cluster.id,
+      name: cluster.name,
       cityName: cluster.master_cities?.name,
-      cityId: cluster.city_id
+      cityId: cluster.city_id,
+      createdAt: cluster.created_at,
+      updatedAt: cluster.updated_at
     }));
   } catch (error) {
     console.error("Error in getClusters:", error);
@@ -288,9 +321,12 @@ export const getClustersByCity = async (cityId: string): Promise<Cluster[]> => {
     }
     
     return data.map(cluster => ({
-      ...cluster,
+      id: cluster.id,
+      name: cluster.name,
       cityName: cluster.master_cities?.name,
-      cityId: cluster.city_id
+      cityId: cluster.city_id,
+      createdAt: cluster.created_at,
+      updatedAt: cluster.updated_at
     }));
   } catch (error) {
     console.error("Error in getClustersByCity:", error);
@@ -321,8 +357,11 @@ export const createCluster = async (name: string, cityId: string, userId: string
     });
     
     return {
-      ...data,
-      cityId: data.city_id
+      id: data.id,
+      name: data.name,
+      cityId: data.city_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
     };
   } catch (error) {
     console.error("Error in createCluster:", error);
@@ -379,9 +418,12 @@ export const updateCluster = async (
     });
     
     return {
-      ...data,
+      id: data.id,
+      name: data.name,
       cityName: data.master_cities?.name,
-      cityId: data.city_id
+      cityId: data.city_id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at
     };
   } catch (error) {
     console.error("Error in updateCluster:", error);

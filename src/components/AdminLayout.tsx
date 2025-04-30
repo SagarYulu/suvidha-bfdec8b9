@@ -47,7 +47,7 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) =>
 };
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
   
   const handleLogout = async () => {

@@ -58,10 +58,10 @@ import { Role, City, Cluster, AuditLog } from '@/types/admin';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 const Settings = () => {
-  const { user } = useAuth();
+  const auth = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("roles");
-  const userId = user?.id || '';
+  const userId = auth?.user?.id || '';
 
   // Roles state
   const [roles, setRoles] = useState<Role[]>([]);
@@ -104,6 +104,11 @@ const Settings = () => {
       loadAuditLogs();
     }
   }, [activeTab]);
+
+  // Fetch cities on initial load for cluster dropdown
+  useEffect(() => {
+    loadCities();
+  }, []);
 
   // Roles functions
   const loadRoles = async () => {
