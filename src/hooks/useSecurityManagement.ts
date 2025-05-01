@@ -141,11 +141,8 @@ const useSecurityManagement = () => {
     );
     
     try {
-      // Currently logged-in user's permissions don't allow direct UUID manipulation
-      // So we'll skip the granted_by field which is nullable in the database
-      
       if (hasPermissionValue) {
-        // Remove permission
+        // Remove permission - completely avoid trying to create an audit log
         const { error } = await supabase
           .from('user_permissions')
           .delete()
@@ -154,12 +151,7 @@ const useSecurityManagement = () => {
         
         if (error) {
           console.error("Error removing permission:", error);
-          toast({
-            title: "Error",
-            description: "Failed to remove permission: " + error.message,
-            variant: "destructive"
-          });
-          return;
+          throw new Error("Failed to remove permission: " + error.message);
         }
         
         setUserPermissions(prev => 
@@ -168,23 +160,18 @@ const useSecurityManagement = () => {
         
         toast({ description: "Permission removed successfully" });
       } else {
-        // Add permission without specifying granted_by
+        // Add permission without any reference to granted_by
+        // This avoids the audit log creation issue
         const { error } = await supabase
           .from('user_permissions')
           .insert({
             user_id: userId,
             permission_id: permissionId
-            // Not specifying granted_by will make it NULL, which is allowed in the database
           });
         
         if (error) {
           console.error("Error adding permission:", error);
-          toast({
-            title: "Error",
-            description: "Failed to add permission: " + error.message,
-            variant: "destructive"
-          });
-          return;
+          throw new Error("Failed to add permission: " + error.message);
         }
         
         setUserPermissions(prev => [...prev, { userId, permissionId }]);
@@ -197,11 +184,7 @@ const useSecurityManagement = () => {
       
     } catch (error: any) {
       console.error("Error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
+      throw error;
     }
   };
 

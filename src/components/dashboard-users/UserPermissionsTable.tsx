@@ -14,7 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { InfoIcon, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface DashboardUser {
   id: string;
@@ -64,7 +64,12 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     } catch (error) {
       console.error("Error toggling permission:", error);
       if (error instanceof Error) {
-        setErrorMessage(`Failed to update permission: ${error.message}`);
+        // More specific error message for RLS violations
+        if (error.message.includes("row-level security policy")) {
+          setErrorMessage("Permission change failed due to security policy restrictions. This may require administrator privileges.");
+        } else {
+          setErrorMessage(`Failed to update permission: ${error.message}`);
+        }
       } else {
         setErrorMessage("An unexpected error occurred while updating permissions");
       }
@@ -103,6 +108,7 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
       {errorMessage && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       )}
@@ -151,6 +157,9 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                   const isPending = pendingPermissions.has(permissionKey);
                   const isChecked = hasPermission(user.id, permission.id);
                   
+                  // Super Admin users automatically have all permissions
+                  const isSuperAdmin = user.role === "Super Admin";
+                  
                   return (
                     <TableCell key={permissionKey} className="text-center">
                       <TooltipProvider>
@@ -158,20 +167,22 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                           <TooltipTrigger asChild>
                             <div>
                               <Checkbox 
-                                checked={isChecked}
-                                disabled={isPending}
+                                checked={isSuperAdmin || isChecked}
+                                disabled={isPending || isSuperAdmin}
                                 onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
-                                className={isPending ? "opacity-50 animate-pulse" : ""}
+                                className={isPending ? "opacity-50 animate-pulse" : isSuperAdmin ? "opacity-80" : ""}
                               />
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>
-                              {isPending 
-                                ? "Processing..." 
-                                : isChecked 
-                                  ? `Remove "${permission.name}" permission from ${user.name}` 
-                                  : `Grant "${permission.name}" permission to ${user.name}`
+                              {isSuperAdmin 
+                                ? "Super Admins have all permissions by default"
+                                : isPending 
+                                  ? "Processing..." 
+                                  : isChecked 
+                                    ? `Remove "${permission.name}" permission from ${user.name}` 
+                                    : `Grant "${permission.name}" permission to ${user.name}`
                               }
                             </p>
                           </TooltipContent>
