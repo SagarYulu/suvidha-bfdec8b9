@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, ShieldCheck, ShieldX, AlertTriangle, RefreshCw, KeyRound, Lock, Settings } from "lucide-react";
+import { Shield, ShieldCheck, ShieldX, AlertTriangle, RefreshCw, KeyRound, Lock, Settings, UserPlus, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardUser } from "@/types/dashboardUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
