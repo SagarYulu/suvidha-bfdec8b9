@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRBAC } from '@/contexts/RBACContext';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   TicketCheck,
@@ -113,6 +114,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   });
   const { hasPermission } = useRBAC();
   const location = useLocation();
+  const { logout } = useAuth(); // Move hook call to component level
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus(prev => ({
@@ -131,6 +133,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       }));
     }
   }, [location]);
+
+  // Create a proper logout handler function
+  const handleLogout = async () => {
+    try {
+      await logout();
+      onLogout(); // Call the passed onLogout prop
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
@@ -193,7 +205,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         <Button
           variant="ghost"
           className="w-full justify-start text-gray-500 hover:text-gray-700"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Logout

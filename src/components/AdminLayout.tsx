@@ -24,7 +24,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   showBackButton = true,
   requiredPermission = 'view:dashboard'
 }) => {
-  const { authState } = useAuth();
+  const { authState, logout } = useAuth();
   const navigate = useNavigate();
   const { checkAccess } = useRoleAccess();
   
@@ -45,6 +45,20 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     );
   }
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/admin/login', { replace: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast({
+        title: "Logout Failed",
+        description: "Unable to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <BaseLayout 
       header={
@@ -55,12 +69,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
       } 
       sidebar={
-        <AdminSidebar onLogout={() => {
-          const { logout } = useAuth();
-          logout().then(() => {
-            navigate('/admin/login', { replace: true });
-          });
-        }} />
+        <AdminSidebar onLogout={handleLogout} />
       }
       className={className}
     >
