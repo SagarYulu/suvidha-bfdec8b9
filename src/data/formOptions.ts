@@ -75,6 +75,7 @@ export const CLUSTER_OPTIONS: {[key: string]: string[]} = {
     "CBD",
     "ORR",
     "Yelahanka",
-    "Indiranagar"
+    "Indiranagar",
+    "HQ_YULU PTP"
   ]
 };

@@ -122,7 +122,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
       <div className="py-6 px-6 border-b">
         <Link to="/admin/dashboard" className="flex items-center">
-          <span className="text-xl font-bold text-blue-700">Yulu Admin</span>
+          <span className="text-xl font-bold text-blue-700">Yulu Suvidha Management</span>
         </Link>
       </div>
 
