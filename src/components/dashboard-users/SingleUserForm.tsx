@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from '@/data/formOptions';
+import { CITY_OPTIONS, CLUSTER_OPTIONS, DASHBOARD_USER_ROLES } from '@/data/formOptions';
 
 import {
   Form,
@@ -27,11 +27,11 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
   email: z.string().email({ message: 'Please enter a valid email address' }),
   userId: z.string().min(1, { message: 'User ID is required' }),
-  employeeId: z.string().optional(),
-  phone: z.string().optional(),
-  city: z.string().optional(),
-  cluster: z.string().optional(),
-  manager: z.string().optional(),
+  employeeId: z.string().min(1, { message: 'Employee ID is required' }),
+  phone: z.string().min(1, { message: 'Phone number is required' }),
+  city: z.string().min(1, { message: 'City is required' }),
+  cluster: z.string().min(1, { message: 'Cluster is required' }),
+  manager: z.string().min(1, { message: 'Manager is required' }),
   role: z.string().min(1, { message: 'Please select a role' }),
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   confirmPassword: z.string()
@@ -93,11 +93,11 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
           name: values.name,
           email: values.email,
           user_id: values.userId,
-          employee_id: values.employeeId || null,
-          phone: values.phone || null,
-          city: values.city || null,
-          cluster: values.cluster || null,
-          manager: values.manager || null,
+          employee_id: values.employeeId,
+          phone: values.phone,
+          city: values.city,
+          cluster: values.cluster,
+          manager: values.manager,
           role: values.role,
           password: values.password,
           created_by: user?.id
@@ -155,7 +155,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Full Name</FormLabel>
+                    <FormLabel>Full Name*</FormLabel>
                     <FormControl>
                       <Input placeholder="John Doe" {...field} />
                     </FormControl>
@@ -169,7 +169,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="userId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>User ID</FormLabel>
+                    <FormLabel>User ID*</FormLabel>
                     <FormControl>
                       <Input type="text" placeholder="12345" {...field} />
                     </FormControl>
@@ -188,7 +188,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email*</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="john@example.com" {...field} />
                     </FormControl>
@@ -202,7 +202,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Mobile Number</FormLabel>
+                    <FormLabel>Mobile Number*</FormLabel>
                     <FormControl>
                       <Input type="tel" placeholder="9876543210" {...field} />
                     </FormControl>
@@ -218,12 +218,12 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="employeeId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Employee ID (Optional)</FormLabel>
+                    <FormLabel>Employee ID*</FormLabel>
                     <FormControl>
                       <Input placeholder="E12345" {...field} />
                     </FormControl>
                     <FormDescription>
-                      If this user is an existing employee, you can link their employee ID
+                      Link to an existing employee ID
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -235,7 +235,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="role"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Role</FormLabel>
+                    <FormLabel>Role*</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
@@ -246,10 +246,9 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="super_admin">Super Admin</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
-                        <SelectItem value="viewer">Viewer</SelectItem>
+                        {DASHBOARD_USER_ROLES.map(role => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -267,7 +266,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>City</FormLabel>
+                    <FormLabel>City*</FormLabel>
                     <Select 
                       onValueChange={(value) => onCityChange(value)} 
                       defaultValue={field.value}
@@ -293,7 +292,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="cluster"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cluster</FormLabel>
+                    <FormLabel>Cluster*</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
@@ -324,7 +323,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
               name="manager"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Manager</FormLabel>
+                  <FormLabel>Manager*</FormLabel>
                   <FormControl>
                     <Input placeholder="Manager name" {...field} />
                   </FormControl>
@@ -339,7 +338,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Password*</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>
@@ -353,7 +352,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel>Confirm Password*</FormLabel>
                     <FormControl>
                       <Input type="password" {...field} />
                     </FormControl>

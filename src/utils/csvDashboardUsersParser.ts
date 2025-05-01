@@ -1,7 +1,7 @@
 
 import Papa from 'papaparse';
 import { CSVDashboardUserData, DashboardUserRowData, DashboardUserValidationResult } from '@/types/dashboardUsers';
-import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
+import { DASHBOARD_USER_ROLES, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
 
 /**
  * Validates if a string is a valid user ID (numeric value)
@@ -20,7 +20,7 @@ export const validateDashboardUserData = (data: Partial<CSVDashboardUserData>): 
   // Check required fields
   const userId = data.userId || data.user_id || '';
   
-  const requiredFields = ['name', 'email', 'role'];
+  const requiredFields = ['name', 'email', 'role', 'employee_id', 'phone', 'city', 'cluster', 'manager', 'password'];
   const missingFields = requiredFields.filter(field => 
     !data[field as keyof typeof data]
   );
@@ -40,9 +40,8 @@ export const validateDashboardUserData = (data: Partial<CSVDashboardUserData>): 
   
   // Role validation - check against allowed roles
   if (data.role) {
-    const validRoles = ['super_admin', 'admin', 'manager', 'viewer'];
-    if (!validRoles.includes(data.role.toLowerCase())) {
-      errors.push(`Invalid role: ${data.role}. Valid options are: super_admin, admin, manager, viewer`);
+    if (!DASHBOARD_USER_ROLES.map(r => r.toLowerCase()).includes(data.role.toLowerCase())) {
+      errors.push(`Invalid role: ${data.role}. Valid options are: ${DASHBOARD_USER_ROLES.join(', ')}`);
     }
   }
 
@@ -118,13 +117,13 @@ export const parseCSVDashboardUsers = (file: File): Promise<DashboardUserValidat
             userId: userId,
             name: row.name || '',
             email: row.email || '',
-            employee_id: row.employee_id || row['Employee ID'] || null,
-            phone: row.phone || row.mobile || row['Mobile Number'] || null,
-            city: row.city || row.City || null,
-            cluster: row.cluster || row.Cluster || null,
-            manager: row.manager || row.Manager || null,
+            employee_id: row.employee_id || row['Employee ID'] || '',
+            phone: row.phone || row.mobile || row['Mobile Number'] || '',
+            city: row.city || row.City || '',
+            cluster: row.cluster || row.Cluster || '',
+            manager: row.manager || row.Manager || '',
             role: row.role || row.Role || '',
-            password: row.password || 'changeme123', // Use provided password or default
+            password: row.password || '',
           };
 
           // Generate a structured data object for display
@@ -139,7 +138,7 @@ export const parseCSVDashboardUsers = (file: File): Promise<DashboardUserValidat
             cluster: row.cluster || row.Cluster || '',
             manager: row.manager || row.Manager || '',
             role: row.role || row.Role || '',
-            password: row.password || 'changeme123'
+            password: row.password || ''
           };
 
           // Validate the data
@@ -178,7 +177,7 @@ export const parseCSVDashboardUsers = (file: File): Promise<DashboardUserValidat
 
 /**
  * Generates a CSV template for dashboard user data import
- * Updated to match the single user form fields only
+ * Updated to match the single user form fields and make all fields required
  */
 export const getDashboardUserCSVTemplate = () => {
   // Headers match exactly with fields in the single user form
@@ -197,8 +196,8 @@ export const getDashboardUserCSVTemplate = () => {
 
   const csvContent = [
     headers.join(','),
-    '1234567,John Doe,john@example.com,EMP001,9876543210,Bangalore,Koramangala,Jane Smith,admin,changeme123',
-    '2345678,Jane Smith,jane@example.com,EMP002,9876543211,Delhi,GURGAON,Mark Johnson,manager,changeme123'
+    '1234567,John Doe,john@example.com,EMP001,9876543210,Bangalore,Koramangala,Jane Smith,City Head,changeme123',
+    '2345678,Jane Smith,jane@example.com,EMP002,9876543211,Delhi,GURGAON,Mark Johnson,HR Admin,changeme123'
   ].join('\n');
 
   return csvContent;

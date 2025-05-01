@@ -76,12 +76,12 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
           .insert(validationResults.validUsers.map(user => ({
             name: user.name,
             email: user.email,
-            employee_id: user.employee_id || null,
-            user_id: user.userId || user.user_id || null,
-            phone: user.phone || null,
-            city: user.city || null,
-            cluster: user.cluster || null,
-            manager: user.manager || null,
+            employee_id: user.employee_id,
+            user_id: user.userId || user.user_id,
+            phone: user.phone,
+            city: user.city,
+            cluster: user.cluster,
+            manager: user.manager,
             role: user.role,
             password: user.password
           })));
@@ -99,12 +99,12 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
           .insert(editedRowsArray.map(row => ({
             name: row.name,
             email: row.email,
-            employee_id: row.employee_id || null,
-            user_id: row.userId || null,
-            phone: row.phone || null,
-            city: row.city || null,
-            cluster: row.cluster || null,
-            manager: row.manager || null,
+            employee_id: row.employee_id,
+            user_id: row.userId,
+            phone: row.phone,
+            city: row.city,
+            cluster: row.cluster,
+            manager: row.manager,
             role: row.role,
             password: row.password
           })));
@@ -158,12 +158,12 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
         .insert(validationResults.validUsers.map(user => ({
           name: user.name,
           email: user.email,
-          employee_id: user.employee_id || null,
-          user_id: user.userId || user.user_id || null,
-          phone: user.phone || null,
-          city: user.city || null,
-          cluster: user.cluster || null,
-          manager: user.manager || null,
+          employee_id: user.employee_id,
+          user_id: user.userId || user.user_id,
+          phone: user.phone,
+          city: user.city,
+          cluster: user.cluster,
+          manager: user.manager,
           role: user.role,
           password: user.password
         })));

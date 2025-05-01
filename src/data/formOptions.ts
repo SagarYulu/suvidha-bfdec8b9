@@ -1,5 +1,16 @@
 
-// Role options
+// Role options for dashboard users
+export const DASHBOARD_USER_ROLES = [
+  "City Head",
+  "Revenue and Ops Head",
+  "CRM",
+  "Cluster Head",
+  "Payroll Ops",
+  "HR Admin",
+  "Super Admin"
+];
+
+// Role options for employees
 export const ROLE_OPTIONS = [
   "Mechanic",
   "Pilot",
@@ -64,6 +75,6 @@ export const CLUSTER_OPTIONS: {[key: string]: string[]} = {
     "CBD",
     "ORR",
     "Yelahanka",
-    "Indiranagar"  // Added Indiranagar to Bangalore clusters
+    "Indiranagar"
   ]
 };

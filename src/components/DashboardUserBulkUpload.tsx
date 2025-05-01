@@ -85,10 +85,9 @@ const DashboardUserBulkUpload = ({ onUploadSuccess }: DashboardUserBulkUploadPro
           <div>
             <h3 className="font-semibold text-sm">CSV Format Requirements</h3>
             <ul className="text-sm text-gray-600 space-y-1 mt-1">
-              <li>• Required fields: User ID, name, email, role</li>
-              <li>• Optional fields: employee_id, phone, city, cluster, manager, password</li>
+              <li>• All fields are required: User ID, name, email, employee_id, phone, city, cluster, manager, role, password</li>
               <li>• User ID must be numeric</li>
-              <li>• Role must be one of: super_admin, admin, manager, viewer</li>
+              <li>• Role must be one of: City Head, Revenue and Ops Head, CRM, Cluster Head, Payroll Ops, HR Admin, Super Admin</li>
             </ul>
           </div>
         </div>
