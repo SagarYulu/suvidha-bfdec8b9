@@ -1,6 +1,6 @@
 
 import { type Tables } from '@/integrations/supabase/types';
-import { CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
+import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
 import { isValidDate } from './dateUtils';
 
 // Update EmployeeData type to include userId
@@ -23,13 +23,11 @@ export const isValidUserID = (userId: string): boolean => {
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
-  console.log("Validating employee data:", data);
-  
   // Required fields - check for userId or user_id
   const userId = data.userId || data.user_id || '';
   
-  // Check required fields - now including city, cluster, and manager
-  const requiredFields = ['emp_id', 'name', 'email', 'role', 'city', 'cluster', 'manager'];
+  // Check required fields
+  const requiredFields = ['emp_id', 'name', 'email', 'role'];
   const missingFields = requiredFields.filter(field => 
     !data[field as keyof typeof data]
   );
@@ -47,9 +45,14 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Invalid User ID format: ${userId}. Must be numeric.`);
   }
   
-  // For employee data, we don't validate role against a specific list
-  // as employees can have any role string value
-  
+  // Role validation - Make sure to lowercase the comparison for case-insensitive matching
+  if (data.role) {
+    const validRoles = ROLE_OPTIONS.map(r => r.toLowerCase());
+    if (!validRoles.includes(data.role.toLowerCase())) {
+      errors.push(`Invalid role: ${data.role}. Valid options are: ${ROLE_OPTIONS.join(', ')}`);
+    }
+  }
+
   // City validation (if provided)
   if (data.city) {
     const validCities = CITY_OPTIONS.map(c => c.toLowerCase());
@@ -74,17 +77,14 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Invalid email format: ${data.email}`);
   }
 
-  // Date format validation for date_of_joining
+  // Date format validation for optional date fields
   if (data.date_of_joining && !isValidDate(data.date_of_joining)) {
-    errors.push(`Invalid date of joining format: ${data.date_of_joining}. Use YYYY-MM-DD or DD/MM/YYYY.`);
-  }
-  
-  // Date format validation for date_of_birth
-  if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
-    errors.push(`Invalid date of birth format: ${data.date_of_birth}. Use YYYY-MM-DD or DD/MM/YYYY.`);
+    errors.push(`Invalid date of joining: ${data.date_of_joining}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
   }
 
-  console.log("Validation results:", { isValid: errors.length === 0, errors });
+  if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
+    errors.push(`Invalid date of birth: ${data.date_of_birth}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
+  }
 
   return {
     isValid: errors.length === 0,

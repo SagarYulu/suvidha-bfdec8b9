@@ -1,57 +1,54 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { InfoIcon, CheckIcon } from "lucide-react";
-import { CITY_OPTIONS } from "@/data/formOptions";
+import { Check, Info } from "lucide-react";
 
 const FormatInstructions = () => {
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="flex items-start mb-4">
-          <InfoIcon className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+        <div className="flex items-start mb-2">
+          <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
           <div>
-            <h3 className="font-medium">CSV Format Instructions</h3>
+            <h3 className="font-medium text-sm">CSV Format Instructions</h3>
             <p className="text-sm text-muted-foreground">
               Please ensure your CSV file follows these guidelines:
             </p>
           </div>
         </div>
         
-        <div className="space-y-3 text-sm">
+        <div className="space-y-2 mt-4">
           <div className="flex items-start">
-            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div>
-              <span className="font-medium">Required Fields:</span> User ID, emp_id, name, email, city, cluster, manager, role
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, role
             </div>
           </div>
-          
+
           <div className="flex items-start">
-            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div>
-              <span className="font-medium">Date Format:</span> Use YYYY-MM-DD (e.g., 2023-01-15) or DD/MM/YYYY (e.g., 15/01/2023)
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Optional Headers:</span> phone, city, cluster, manager, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code, password
             </div>
           </div>
-          
+
           <div className="flex items-start">
-            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div>
-              <span className="font-medium">User ID Format:</span> Must be a numeric value (e.g., 1234567)
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">User ID Format:</span> Must be a 7-digit number (e.g., 1234567)
             </div>
           </div>
-          
+
           <div className="flex items-start">
-            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div className="flex flex-col">
-              <span className="font-medium">Roles:</span> 
-              <span className="text-xs">Employee roles can be any string value (e.g., Customer Representative, Supervisor, etc.)</span>
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Date Format:</span> DD-MM-YYYY or DD/MM/YYYY
             </div>
           </div>
-          
+
           <div className="flex items-start">
-            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div className="flex flex-col">
-              <span className="font-medium">Valid Cities:</span> 
-              <span className="text-xs break-words">{CITY_OPTIONS.join(', ')}</span>
+            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="text-sm">
+              <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
             </div>
           </div>
         </div>

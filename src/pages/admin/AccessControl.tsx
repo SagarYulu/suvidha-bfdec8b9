@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUsers } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
-import { getDashboardUsers, assignDashboardRole, DashboardRole, DashboardUser } from "@/services/dashboardRoleService";
+import { User } from "@/types";
 import {
   Table,
   TableBody,
@@ -22,35 +23,54 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Shield, ShieldCheck, ShieldX, AlertTriangle, Search } from "lucide-react";
-import RoleProtectedRoute from "@/components/RoleProtectedRoute";
+import { Shield, ShieldCheck, ShieldX, AlertTriangle } from "lucide-react";
 
 const AccessControl = () => {
-  const [users, setUsers] = useState<DashboardUser[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<DashboardUser[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke">("grant");
-  const { authState } = useAuth();
+  const { authState, checkUserRole, assignRole, removeRole } = useAuth();
   const navigate = useNavigate();
 
-  // Load dashboard users
+  // Check if current user is admin
+  useEffect(() => {
+    if (!authState.isAuthenticated) {
+      navigate("/admin/login");
+      return;
+    }
+
+    if (authState.role !== "admin") {
+      toast({
+        title: "Access Denied",
+        description: "You do not have admin privileges",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
+    loadUsers();
+  }, [authState, navigate]);
+
   const loadUsers = async () => {
     setLoading(true);
     try {
-      const dashboardUsers = await getDashboardUsers();
-      setUsers(dashboardUsers);
-      setFilteredUsers(dashboardUsers);
-      
+      const usersList = await getUsers();
+      setUsers(usersList);
+
       // Check each user for admin role
       const adminIds = new Set<string>();
-      for (const user of dashboardUsers) {
-        if (user.role === DashboardRole.ADMIN) {
+      for (const user of usersList) {
+        if (user.role === "admin") {
           adminIds.add(user.id);
+        } else {
+          const isAdmin = await checkUserRole(user.id, "admin");
+          if (isAdmin) {
+            adminIds.add(user.id);
+          }
         }
       }
       setAdminUserIds(adminIds);
@@ -58,7 +78,7 @@ const AccessControl = () => {
       console.error("Error loading users:", error);
       toast({
         title: "Error",
-        description: "Failed to load dashboard users",
+        description: "Failed to load users",
         variant: "destructive",
       });
     } finally {
@@ -66,47 +86,13 @@ const AccessControl = () => {
     }
   };
 
-  useEffect(() => {
-    if (!authState.isAuthenticated) {
-      navigate("/admin/login");
-      return;
-    }
-
-    if (authState.role !== DashboardRole.ADMIN && authState.role !== DashboardRole.SECURITY_MANAGER) {
-      toast({
-        title: "Access Denied",
-        description: "You do not have sufficient privileges",
-        variant: "destructive",
-      });
-      navigate("/admin/dashboard");
-      return;
-    }
-
-    loadUsers();
-  }, [authState, navigate]);
-
-  // Filter users when searchTerm changes
-  useEffect(() => {
-    if (searchTerm) {
-      const filtered = users.filter(
-        user => 
-          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.emp_id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(users);
-    }
-  }, [searchTerm, users]);
-
-  const handleGrantAdmin = (user: DashboardUser) => {
+  const handleGrantAdmin = (user: User) => {
     setSelectedUser(user);
     setActionType("grant");
     setDialogOpen(true);
   };
 
-  const handleRevokeAdmin = (user: DashboardUser) => {
+  const handleRevokeAdmin = (user: User) => {
     setSelectedUser(user);
     setActionType("revoke");
     setDialogOpen(true);
@@ -119,7 +105,7 @@ const AccessControl = () => {
       let success = false;
       
       if (actionType === "grant") {
-        success = await assignDashboardRole(selectedUser.id, DashboardRole.ADMIN);
+        success = await assignRole(selectedUser.id, "admin");
         if (success) {
           setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
           toast({
@@ -139,7 +125,7 @@ const AccessControl = () => {
           return;
         }
 
-        success = await assignDashboardRole(selectedUser.id, DashboardRole.OPS_HEAD);
+        success = await removeRole(selectedUser.id, "admin");
         if (success) {
           setAdminUserIds(prev => {
             const newSet = new Set(prev);
@@ -153,9 +139,7 @@ const AccessControl = () => {
         }
       }
 
-      if (success) {
-        loadUsers(); // Reload the user list to reflect changes
-      } else {
+      if (!success) {
         toast({
           title: "Error",
           description: `Failed to ${actionType === "grant" ? "grant" : "revoke"} admin access`,
@@ -175,155 +159,131 @@ const AccessControl = () => {
   };
 
   return (
-    <RoleProtectedRoute page="access_control" action="view">
-      <AdminLayout title="Access Control">
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Admin Access Management</h2>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
-              </div>
-              <Button onClick={() => loadUsers()} variant="outline">
-                Refresh
-              </Button>
-            </div>
-          </div>
+    <AdminLayout title="Access Control">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Admin Access Management</h2>
+          <Button onClick={() => loadUsers()} variant="outline">
+            Refresh
+          </Button>
+        </div>
 
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Current Role</TableHead>
-                    <TableHead>Admin Access</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.emp_id}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            user.role === DashboardRole.ADMIN 
-                              ? "bg-blue-100 text-blue-800" 
-                              : user.role === DashboardRole.SECURITY_MANAGER
-                              ? "bg-purple-100 text-purple-800"
-                              : "bg-green-100 text-green-800"
-                          }`}>
-                            {user.role}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {adminUserIds.has(user.id) ? (
-                            <div className="flex items-center text-green-600">
-                              <ShieldCheck className="w-4 h-4 mr-1" />
-                              <span>Yes</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center text-gray-500">
-                              <ShieldX className="w-4 h-4 mr-1" />
-                              <span>No</span>
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {adminUserIds.has(user.id) ? (
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRevokeAdmin(user)}
-                              disabled={user.email === "admin@yulu.com"} // Prevent revoking default admin
-                            >
-                              Revoke Admin
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleGrantAdmin(user)}
-                            >
-                              Grant Admin
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-4">
-                        No dashboard users found
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Current Role</TableHead>
+                  <TableHead>Admin Access</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.employeeId}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role}</TableCell>
+                      <TableCell>
+                        {adminUserIds.has(user.id) ? (
+                          <div className="flex items-center text-green-600">
+                            <ShieldCheck className="w-4 h-4 mr-1" />
+                            <span>Yes</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-gray-500">
+                            <ShieldX className="w-4 h-4 mr-1" />
+                            <span>No</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {adminUserIds.has(user.id) ? (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRevokeAdmin(user)}
+                            disabled={user.email === "admin@yulu.com"} // Prevent revoking default admin
+                          >
+                            Revoke Admin
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleGrantAdmin(user)}
+                          >
+                            Grant Admin
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-4">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>
-                  {actionType === "grant" ? "Grant Admin Access" : "Revoke Admin Access"}
-                </DialogTitle>
-                <DialogDescription>
-                  {actionType === "grant"
-                    ? `Are you sure you want to grant admin access to ${selectedUser?.name}? They will have full access to the admin dashboard and all its features.`
-                    : `Are you sure you want to revoke admin access from ${selectedUser?.name}? They will no longer have admin privileges.`}
-                </DialogDescription>
-              </DialogHeader>
-              
-              {actionType === "grant" && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    </div>
-                    <div className="ml-3">
-                      <p className="text-sm text-yellow-700">
-                        This will give the user complete access to the admin dashboard,
-                        including the ability to manage other users.
-                      </p>
-                    </div>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                {actionType === "grant" ? "Grant Admin Access" : "Revoke Admin Access"}
+              </DialogTitle>
+              <DialogDescription>
+                {actionType === "grant"
+                  ? `Are you sure you want to grant admin access to ${selectedUser?.name}? They will have full access to the admin dashboard and all its features.`
+                  : `Are you sure you want to revoke admin access from ${selectedUser?.name}? They will no longer be able to access the admin dashboard.`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {actionType === "grant" && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      This will give the user complete access to the admin dashboard,
+                      including the ability to manage other users.
+                    </p>
                   </div>
                 </div>
-              )}
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  variant={actionType === "grant" ? "default" : "destructive"}
-                  onClick={handleConfirmAction}
-                >
-                  {actionType === "grant" ? "Grant Access" : "Revoke Access"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </AdminLayout>
-    </RoleProtectedRoute>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant={actionType === "grant" ? "default" : "destructive"}
+                onClick={handleConfirmAction}
+              >
+                {actionType === "grant" ? "Grant Access" : "Revoke Access"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AdminLayout>
   );
 };
 

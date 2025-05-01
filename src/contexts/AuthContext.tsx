@@ -48,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const user = await authLogin(email, password);
     
     if (user) {
-      // Allow users with admin or ops_head role for dashboard access
-      if (user.role !== 'admin' && user.role !== 'ops_head') {
+      // Check if the user has admin role in the database
+      if (user.role !== 'admin') {
         const hasAdminRole = await checkUserRole(user.id, 'admin');
         if (hasAdminRole) {
           user.role = 'admin';

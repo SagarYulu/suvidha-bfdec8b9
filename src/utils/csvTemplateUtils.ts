@@ -3,38 +3,31 @@
  * Generates a CSV template for employee data import
  */
 export const getCSVTemplate = () => {
-  // Headers match exactly with the database columns and UI fields
+  // Ensure headers match exactly with manual entry form fields and database columns
   const headers = [
-    'User ID',
-    'emp_id',
-    'name',
-    'email',
-    'phone',
-    'city',
-    'cluster',
-    'manager',
-    'role',
-    'date_of_joining',
-    'date_of_birth',
-    'blood_group',
-    'account_number',
-    'ifsc_code',
-    'password'
+    'id',                // UUID (auto-generated, can be left empty)
+    'User ID',           // Manual User ID (numeric, required)
+    'emp_id',            // Employee ID
+    'name',              // Name
+    'email',             // Email
+    'phone',             // Phone
+    'city',              // City
+    'cluster',           // Cluster
+    'manager',           // Manager
+    'role',              // Role
+    'date_of_joining',   // Date of Joining
+    'date_of_birth',     // Date of Birth
+    'blood_group',       // Blood Group
+    'account_number',    // Account Number
+    'ifsc_code',         // IFSC Code
+    'password'           // Password
   ];
 
-  // Example data that matches the required format
+  // Ensure the examples use valid roles from ROLE_OPTIONS
   const csvContent = [
     headers.join(','),
-    '1234567,YL001,John Doe,john@example.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,2023-01-15,1990-05-20,O+,12345678901,ABCD0001234,changeme123',
-    '2345678,YL002,Jane Smith,jane@example.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,2023-02-20,1992-07-15,B+,23456789012,EFGH0005678,changeme123',
-    '',
-    '# Important Notes:',
-    '# 1. User ID must be numeric (e.g., 1234567)',
-    '# 2. Required fields: User ID, emp_id, name, email, city, cluster, manager, role',
-    '# 3. Date format: Use YYYY-MM-DD format (e.g., 2023-01-15) or DD/MM/YYYY format (e.g., 15/01/2023)',
-    '# 4. Employee roles can be any string value. Common examples include: Mechanic, Customer Service, Supervisor, Team Lead, etc.',
-    '# 5. If password is not provided, it defaults to "changeme123"',
-    '# 6. For two-digit years (e.g., 15/06/96), years > 50 are treated as 19xx and years <= 50 are treated as 20xx'
+    ',1234567,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,01-01-2024,01-01-1990,O+,1234567890,HDFC0001234,changeme123',
+    ',2345678,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,15-02-2024,20-05-1992,A-,9876543210,ICIC0001234,changeme123'
   ].join('\n');
 
   return csvContent;

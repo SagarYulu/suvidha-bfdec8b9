@@ -22,22 +22,17 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
-  // Force debug logs to track dialog visibility
-  console.log("[BulkUserUpload] Rendering with showValidationDialog =", showValidationDialog);
-  console.log("[BulkUserUpload] validationResults =", validationResults);
+  console.log("BulkUserUpload render with onUploadSuccess:", !!onUploadSuccess);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <TemplateControls 
-          isUploading={isUploading}
-          handleFileUpload={handleFileUpload}
-        />
-      </div>
+    <div className="space-y-4">
+      <TemplateControls 
+        isUploading={isUploading}
+        handleFileUpload={handleFileUpload}
+      />
 
       <FormatInstructions />
 
-      {/* ValidationDialog must always be included in the render tree */}
       <ValidationDialog 
         isOpen={showValidationDialog}
         onOpenChange={setShowValidationDialog}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -9,10 +9,6 @@ import {
   LogOut,
   Settings,
   Shield,
-  ChevronDown,
-  ChevronUp,
-  UserPlus,
-  KeyRound
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -26,12 +22,6 @@ interface SidebarLinkProps {
 
 interface AdminSidebarProps {
   onLogout: () => void;
-}
-
-interface SidebarSubmenuProps {
-  label: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
 }
 
 const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) => {
@@ -53,58 +43,21 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) =>
   );
 };
 
-const SidebarSubmenu: React.FC<SidebarSubmenuProps> = ({ label, icon: Icon, children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const isActive = window.location.pathname.startsWith(`/admin/${label.toLowerCase().replace(/\s+/g, '-')}`);
-  
-  return (
-    <div className="border-l-2 transition-colors border-transparent">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "flex w-full items-center justify-between py-3 px-6 text-sm font-medium transition-colors",
-          isActive ? "bg-blue-50 text-blue-700" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-        )}
-      >
-        <div className="flex items-center">
-          <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
-          {label}
-        </div>
-        {isOpen ? (
-          <ChevronUp className="h-4 w-4" />
-        ) : (
-          <ChevronDown className="h-4 w-4" />
-        )}
-      </button>
-      {isOpen && (
-        <div className="ml-8 border-l border-gray-200 pl-2">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
       <div className="py-6 px-6 border-b">
         <Link to="/admin/dashboard" className="flex items-center">
-          <span className="text-xl font-bold text-blue-700">Yulu Suvidha</span>
+          <span className="text-xl font-bold text-blue-700">Yulu Admin</span>
         </Link>
       </div>
 
       <div className="py-3 flex-grow">
         <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        <SidebarLink href="/admin/issues" icon={TicketCheck} label="Tickets" />
+        <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
         <SidebarLink href="/admin/users" icon={Users} label="Users" />
         <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
-        
-        <SidebarSubmenu label="Security Management" icon={Shield}>
-          <SidebarLink href="/admin/dashboard-users" icon={UserPlus} label="Add Dashboard Users" />
-          <SidebarLink href="/admin/access-control" icon={KeyRound} label="Manage Roles" />
-        </SidebarSubmenu>
-        
+        <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
         <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
       </div>
 

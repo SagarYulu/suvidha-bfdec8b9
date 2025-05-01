@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
-import { getCSVTemplate } from "@/utils/csvTemplateUtils";
+import { getCSVTemplate } from "@/utils/csvHelpers";
 
 interface TemplateControlsProps {
   isUploading: boolean;
@@ -22,7 +22,7 @@ const TemplateControls = ({ isUploading, handleFileUpload }: TemplateControlsPro
   };
 
   return (
-    <div className="flex items-center gap-4 w-full justify-start">
+    <div className="flex items-center gap-4">
       <Button
         variant="outline"
         onClick={downloadTemplate}
@@ -41,7 +41,7 @@ const TemplateControls = ({ isUploading, handleFileUpload }: TemplateControlsPro
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
         <Button
-          variant="outline"
+          variant="default"
           disabled={isUploading}
           className="flex items-center gap-2"
         >

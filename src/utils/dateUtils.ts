@@ -1,119 +1,127 @@
 
+// Helper functions for date formatting and validation
+
 /**
- * Checks if a string is a valid date in YYYY-MM-DD format
- * Also accepts DD/MM/YYYY format and converts it
+ * Validates a date string in various formats
  */
-export const isValidDate = (dateString: string | null | undefined): boolean => {
-  if (!dateString) return false;
+export const isValidDate = (dateStr: string | null | undefined): boolean => {
+  if (!dateStr) return true; // Optional field
   
-  // Check if date is in DD/MM/YYYY format
-  const ddmmyyyyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
-  if (ddmmyyyyRegex.test(dateString)) {
-    const [_, day, month, year] = ddmmyyyyRegex.exec(dateString) || [];
-    
-    // Handle 2-digit years by expanding them
-    const fullYear = year.length === 2 ? 
-      (parseInt(year) > 50 ? `19${year}` : `20${year}`) : 
-      year;
-    
-    // Create a Date object and check if it's valid
-    const date = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-    return !isNaN(date.getTime());
+  // Support various date formats including DD/MM/YYYY, DD-MM-YYYY, and YYYY-MM-DD
+  const datePatterns = [
+    /^\d{4}-\d{2}-\d{2}$/, // YYYY-MM-DD
+    /^\d{2}-\d{2}-\d{4}$/, // DD-MM-YYYY
+    /^\d{2}\/\d{2}\/\d{4}$/ // DD/MM/YYYY
+  ];
+  
+  if (!datePatterns.some(pattern => pattern.test(dateStr))) {
+    return false;
   }
   
-  // Check for DD-MM-YYYY format
-  const ddmmyyyyHyphenRegex = /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/;
-  if (ddmmyyyyHyphenRegex.test(dateString)) {
-    const [_, day, month, year] = ddmmyyyyHyphenRegex.exec(dateString) || [];
-    
-    // Handle 2-digit years by expanding them
-    const fullYear = year.length === 2 ? 
-      (parseInt(year) > 50 ? `19${year}` : `20${year}`) : 
-      year;
-    
-    // Create a Date object and check if it's valid
-    const date = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
-    return !isNaN(date.getTime());
+  // Check that the date components make sense
+  let day, month, year;
+  
+  if (dateStr.includes('-')) {
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // YYYY-MM-DD format
+      [year, month, day] = dateStr.split('-').map(Number);
+    } else {
+      // DD-MM-YYYY format
+      [day, month, year] = dateStr.split('-').map(Number);
+    }
+  } else if (dateStr.includes('/')) {
+    // DD/MM/YYYY format
+    [day, month, year] = dateStr.split('/').map(Number);
+  } else {
+    return false;
   }
   
-  // Check for YYYY-MM-DD format
-  const yyyymmddRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (yyyymmddRegex.test(dateString)) {
-    const date = new Date(dateString);
-    return !isNaN(date.getTime());
+  // Validate date components
+  if (month < 1 || month > 12) return false;
+  
+  // Check days in month (accounting for leap years)
+  const daysInMonth = [0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year % 400 === 0 || (year % 100 !== 0 && year % 4 === 0)) {
+    daysInMonth[2] = 29; // Leap year
   }
   
-  return false;
+  return day >= 1 && day <= daysInMonth[month];
 };
 
 /**
- * Converts a date string from any supported format to YYYY-MM-DD format
- * Supports DD/MM/YYYY, DD-MM-YYYY, and YYYY-MM-DD formats
- * Handles 2-digit years by expanding them (19XX for years > 50, 20XX for years <= 50)
+ * Convert date from any supported format to DD-MM-YYYY
  */
-export const formatDateToYYYYMMDD = (dateString: string): string => {
-  if (!dateString) return '';
+export const formatDateToDDMMYYYY = (dateStr: string | null): string | null => {
+  if (!dateStr) return null;
   
-  // Check if already in YYYY-MM-DD format
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString;
-  }
+  let day, month, year;
   
-  // Convert from DD/MM/YYYY to YYYY-MM-DD, handle 2-digit years
-  const slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
-  if (slashPattern.test(dateString)) {
-    const match = slashPattern.exec(dateString);
-    if (match) {
-      const day = match[1].padStart(2, '0');
-      const month = match[2].padStart(2, '0');
-      let year = match[3];
-      
-      // Handle 2-digit years by expanding them
-      if (year.length === 2) {
-        year = parseInt(year) > 50 ? `19${year}` : `20${year}`;
-      }
-      
-      return `${year}-${month}-${day}`;
+  // Handle different formats
+  if (dateStr.includes('-')) {
+    if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+      // Already in DD-MM-YYYY format
+      return dateStr;
+    } else if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Convert from YYYY-MM-DD to DD-MM-YYYY
+      [year, month, day] = dateStr.split('-');
+      return `${day}-${month}-${year}`;
     }
+  } else if (dateStr.includes('/')) {
+    // Convert from DD/MM/YYYY to DD-MM-YYYY
+    [day, month, year] = dateStr.split('/');
+    return `${day}-${month}-${year}`;
   }
   
-  // Convert from DD-MM-YYYY to YYYY-MM-DD, handle 2-digit years
-  const hyphenPattern = /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/;
-  if (hyphenPattern.test(dateString)) {
-    const match = hyphenPattern.exec(dateString);
-    if (match) {
-      const day = match[1].padStart(2, '0');
-      const month = match[2].padStart(2, '0');
-      let year = match[3];
-      
-      // Handle 2-digit years by expanding them
-      if (year.length === 2) {
-        year = parseInt(year) > 50 ? `19${year}` : `20${year}`;
-      }
-      
-      return `${year}-${month}-${day}`;
+  // Try to parse using Date constructor as fallback
+  try {
+    const date = new Date(dateStr);
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      day = String(date.getDate()).padStart(2, '0');
+      month = String(date.getMonth() + 1).padStart(2, '0');
+      year = date.getFullYear();
+      return `${day}-${month}-${year}`;
     }
+  } catch (e) {
+    // If parsing fails, return original
   }
   
-  // Return original if can't convert
-  return dateString;
+  return dateStr; // Return original if can't parse
 };
 
 /**
- * Converts a date string from YYYY-MM-DD format to DD/MM/YYYY format
+ * Convert date from various formats to YYYY-MM-DD for database storage
  */
-export const formatDateToDDMMYYYY = (dateString: string): string => {
-  if (!dateString) return '';
+export const formatDateToYYYYMMDD = (dateStr: string | null): string | null => {
+  if (!dateStr) return null;
   
-  // Check if in YYYY-MM-DD format
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    const parts = dateString.split('-');
-    const year = parts[0];
-    const month = parts[1];
-    const day = parts[2];
-    return `${day}/${month}/${year}`;
+  // If already in YYYY-MM-DD format
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return dateStr;
   }
   
-  // Return original if can't convert
-  return dateString;
+  let day, month, year;
+  
+  // Convert from DD-MM-YYYY to YYYY-MM-DD
+  if (dateStr.match(/^\d{2}-\d{2}-\d{4}$/)) {
+    [day, month, year] = dateStr.split('-');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Convert from DD/MM/YYYY to YYYY-MM-DD
+  if (dateStr.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+    [day, month, year] = dateStr.split('/');
+    return `${year}-${month}-${day}`;
+  }
+  
+  // Try to parse using Date constructor as fallback
+  try {
+    const date = new Date(dateStr);
+    if (date instanceof Date && !isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0]; // Get YYYY-MM-DD portion
+    }
+  } catch (e) {
+    // If parsing fails, return original
+  }
+  
+  return dateStr; // Return original if can't parse
 };

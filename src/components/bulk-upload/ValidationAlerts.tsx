@@ -1,6 +1,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { ValidationResult } from "@/types";
 
 interface ValidationAlertsProps {
@@ -9,13 +9,7 @@ interface ValidationAlertsProps {
 
 const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
   const { invalidRows, validEmployees } = validationResults;
-  
-  console.log("ValidationAlerts rendered with:", { 
-    invalidRows: invalidRows.length, 
-    validEmployees: validEmployees.length 
-  });
 
-  // Always show validation status, even when there are no errors
   if (invalidRows.length > 0) {
     return (
       <Alert variant="destructive" className="mb-4">
@@ -26,17 +20,6 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
           {validEmployees.length > 0 && 
             ` ${validEmployees.length} valid employee(s) can still be uploaded.`}
         </AlertDescription>
-        
-        {/* Display the first few error messages for better debugging */}
-        <div className="mt-2 text-xs">
-          <p className="font-medium">Some examples of errors:</p>
-          <ul className="list-disc pl-5 mt-1">
-            {invalidRows.slice(0, 3).map((row, idx) => (
-              <li key={idx}>{row.errors[0]}</li>
-            ))}
-            {invalidRows.length > 3 && <li>... and more</li>}
-          </ul>
-        </div>
       </Alert>
     );
   } 
@@ -54,11 +37,11 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
   }
   
   return (
-    <Alert variant="default" className="mb-4 border-blue-500 bg-blue-50">
-      <Info className="h-4 w-4 text-blue-500" />
-      <AlertTitle className="text-blue-700">No Data to Validate</AlertTitle>
-      <AlertDescription className="text-blue-700">
-        The CSV file appears to be empty or doesn't contain any recognizable employee data.
+    <Alert variant="destructive" className="mb-4">
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>No Valid Data</AlertTitle>
+      <AlertDescription>
+        The CSV file doesn't contain any valid employee data rows.
       </AlertDescription>
     </Alert>
   );

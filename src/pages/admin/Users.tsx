@@ -30,16 +30,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Search, Trash, UserPlus, RefreshCw, AlertCircle, Check, Info } from "lucide-react";
+import { Search, Trash, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
+import BulkUserUpload from "@/components/BulkUserUpload";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
-import { useToast } from "@/hooks/use-toast";
-import Papa from "papaparse";
-import { getCSVTemplate } from "@/utils/csvTemplateUtils";
-import { validateEmployeeData } from "@/utils/validationUtils";
-import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -49,7 +44,6 @@ const AdminUsers = () => {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(Date.now());
-  const { toast } = useToast();
 
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     userId: "",
@@ -68,28 +62,6 @@ const AdminUsers = () => {
     accountNumber: "",
     ifscCode: ""
   });
-
-  // Function to map Supabase employee data to our User format
-  const mapEmployeeToUser = (employee: any): User => {
-    return {
-      id: String(employee.id), 
-      userId: employee.user_id || "",
-      name: employee.name,
-      email: employee.email,
-      phone: employee.phone || "",
-      employeeId: employee.emp_id,
-      city: employee.city || "",
-      cluster: employee.cluster || "",
-      manager: employee.manager || "",
-      role: employee.role || "",
-      password: employee.password,
-      dateOfJoining: employee.date_of_joining || "",
-      bloodGroup: employee.blood_group || "",
-      dateOfBirth: employee.date_of_birth || "",
-      accountNumber: employee.account_number || "",
-      ifscCode: employee.ifsc_code || ""
-    };
-  };
 
   // Update clusters when city changes
   useEffect(() => {
@@ -144,7 +116,7 @@ const AdminUsers = () => {
       setIsLoading(false);
       setLastRefreshedAt(Date.now());
     }
-  }, [toast]);
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
@@ -250,183 +222,30 @@ const AdminUsers = () => {
     setNewUser({ ...newUser, [name]: value });
   };
 
+  // Handle successful bulk upload with proper logging
+  const handleBulkUploadSuccess = useCallback(() => {
+    console.log("Bulk upload successful, refreshing users list...");
+    // Close the dialog and refresh the user list
+    setIsAddUserDialogOpen(false);
+    
+    // Add a small delay to ensure the database has finished processing
+    toast({
+      title: "Success",
+      description: "Users uploaded successfully. Refreshing user list...",
+    });
+    
+    // Give the database a moment to complete the transaction
+    setTimeout(() => {
+      fetchUsers();
+    }, 2000); // Increased delay further to ensure database consistency
+  }, [fetchUsers]);
+
   const handleManualRefresh = () => {
     toast({
       title: "Refreshing",
       description: "Fetching latest user data...",
     });
     fetchUsers();
-  };
-
-  // CSV Template generation and download
-  const downloadCSVTemplate = () => {
-    const csvContent = getCSVTemplate();
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'user_template.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Handle CSV upload with improved error handling and validation
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsLoading(true);
-    try {
-      Papa.parse<Record<string, string>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          if (results.data.length === 0) {
-            toast({
-              variant: "destructive",
-              title: "Empty File",
-              description: "The CSV file doesn't contain any valid data rows.",
-            });
-            setIsLoading(false);
-            return;
-          }
-
-          console.log("Parsed CSV data:", results.data);
-          
-          // Process each row
-          const validUsers: Omit<User, 'id'>[] = [];
-          const invalidRows: { row: Record<string, string>; errors: string[] }[] = [];
-          
-          for (const row of results.data) {
-            // Skip empty rows
-            if (Object.values(row).every(val => val === null || val === '')) {
-              continue;
-            }
-
-            // Extract data with multiple possible header names
-            const userId = row['User ID'] || row.user_id || row.userId || row.UserId || '';
-            const empId = row.emp_id || row.empId || row.employee_id || row['Employee ID'] || '';
-            
-            // Format dates properly - ensure they're in YYYY-MM-DD format for the database
-            const dateOfJoining = row.date_of_joining ? formatDateToYYYYMMDD(row.date_of_joining) : '';
-            const dateOfBirth = row.date_of_birth ? formatDateToYYYYMMDD(row.date_of_birth) : '';
-            
-            // Create user object mapping all fields
-            const userData = {
-              userId: userId,
-              employeeId: empId,
-              name: row.name || '',
-              email: row.email || '',
-              phone: row.phone || '',
-              city: row.city || '',
-              cluster: row.cluster || '',
-              manager: row.manager || '',
-              role: row.role || '',
-              password: row.password || 'changeme123',
-              dateOfJoining: dateOfJoining,
-              bloodGroup: row.blood_group || '',
-              dateOfBirth: dateOfBirth,
-              accountNumber: row.account_number || '',
-              ifscCode: row.ifsc_code || ''
-            };
-
-            // Validate using the common validation function
-            const validation = validateEmployeeData({
-              emp_id: userData.employeeId,
-              name: userData.name,
-              email: userData.email,
-              role: userData.role,
-              user_id: userData.userId,
-              city: userData.city,
-              cluster: userData.cluster,
-              manager: userData.manager
-            });
-            
-            if (validation.isValid) {
-              validUsers.push(userData);
-            } else {
-              invalidRows.push({ row, errors: validation.errors });
-            }
-          }
-
-          if (invalidRows.length > 0) {
-            console.log("Invalid rows:", invalidRows);
-            const errorMessages = invalidRows.map((item, index) => 
-              `Row ${index + 1}: ${item.errors.join(', ')}`
-            );
-            
-            toast({
-              variant: "destructive",
-              title: `${invalidRows.length} invalid row(s) found`,
-              description: errorMessages.join('\n').substring(0, 200) + 
-                (errorMessages.join('\n').length > 200 ? '...' : ''),
-            });
-            
-            if (validUsers.length === 0) {
-              setIsLoading(false);
-              return;
-            }
-          }
-
-          try {
-            // Create users in batch with comprehensive error handling
-            const results = await Promise.allSettled(
-              validUsers.map(userData => createUser(userData))
-            );
-            
-            const successful = results.filter(r => r.status === 'fulfilled').length;
-            const failed = results.filter(r => r.status === 'rejected').length;
-            
-            if (successful > 0) {
-              toast({
-                title: "Upload Successful",
-                description: `Successfully added ${successful} users.${
-                  invalidRows.length > 0 ? ` (${invalidRows.length} invalid rows were skipped)` : ''
-                }${failed > 0 ? ` (${failed} users failed to add)` : ''}`,
-              });
-              // Close the dialog and refresh the user list
-              setIsAddUserDialogOpen(false);
-              fetchUsers();
-            } else if (failed > 0) {
-              toast({
-                variant: "destructive",
-                title: "Upload Failed",
-                description: "There was an error adding the users to the database.",
-              });
-            }
-          } catch (error) {
-            console.error('Error creating users:', error);
-            toast({
-              variant: "destructive",
-              title: "Upload Failed",
-              description: "There was an error adding the users to the database.",
-            });
-          }
-          
-          setIsLoading(false);
-        },
-        error: (error) => {
-          console.error('CSV parsing error:', error);
-          toast({
-            variant: "destructive",
-            title: "Parse Error",
-            description: "There was an error processing the CSV file. Please check the format.",
-          });
-          setIsLoading(false);
-        }
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        variant: "destructive",
-        title: "Upload Failed",
-        description: "There was an error processing the CSV file.",
-      });
-      setIsLoading(false);
-    } finally {
-      if (event.target) event.target.value = '';
-    }
   };
 
   // Debug: Force initial fetch on component mount
@@ -693,88 +512,7 @@ const AdminUsers = () => {
                     </DialogFooter>
                   </TabsContent>
                   <TabsContent value="bulk">
-                    <div className="space-y-6">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <Button 
-                          variant="outline" 
-                          className="flex items-center" 
-                          onClick={downloadCSVTemplate}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                          </svg>
-                          Download Template
-                        </Button>
-                        
-                        <div className="relative">
-                          <Button 
-                            variant="default" 
-                            className="flex items-center bg-yulu-blue"
-                            disabled={isLoading}
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                              <polyline points="17 8 12 3 7 8"></polyline>
-                              <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            {isLoading ? "Uploading..." : "Upload CSV"}
-                          </Button>
-                          <input 
-                            type="file" 
-                            accept=".csv"
-                            onChange={handleFileUpload}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-                            disabled={isLoading}
-                          />
-                        </div>
-                      </div>
-
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex items-start mb-2">
-                            <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
-                            <div>
-                              <h3 className="font-medium text-sm">CSV Format Instructions</h3>
-                              <p className="text-sm text-muted-foreground">
-                                Please ensure your CSV file follows these guidelines:
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2 mt-4">
-                            <div className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                              <div className="text-sm">
-                                <span className="font-medium">Required Fields:</span> User ID, emp_id, name, email, city, cluster, manager, role
-                              </div>
-                            </div>
-
-                            <div className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                              <div className="text-sm">
-                                <span className="font-medium">Optional Fields:</span> phone, password, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code
-                              </div>
-                            </div>
-
-                            <div className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                              <div className="text-sm">
-                                <span className="font-medium">User ID Format:</span> Must be a numeric value (e.g., 1234567)
-                              </div>
-                            </div>
-
-                            <div className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                              <div className="text-sm">
-                                <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                    <BulkUserUpload onUploadSuccess={handleBulkUploadSuccess} />
                   </TabsContent>
                 </Tabs>
               </DialogContent>

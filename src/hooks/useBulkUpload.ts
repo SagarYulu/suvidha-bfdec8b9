@@ -1,11 +1,12 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
+import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
-import { createBulkDashboardUsers } from "@/services/dashboardRoleService";
 
 export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -17,26 +18,18 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
   const { toast } = useToast();
 
+  // Log the callback presence for debugging
+  console.log("useBulkUpload hook initialized with onUploadSuccess callback:", !!onUploadSuccess);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
-    
     try {
-      console.log("[useBulkUpload] Starting CSV upload and validation for file:", file.name);
-      
-      // Always reset the validation state before new validation
-      setValidationResults({ validEmployees: [], invalidRows: [] });
-      setEditedRows({});
-      
       const result = await parseEmployeeCSV(file);
       
-      console.log("[useBulkUpload] CSV parsing complete, validation results:", result);
-      
-      // Set validation results first
       setValidationResults(result);
-      
       // Initialize edited rows with original data
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
@@ -44,8 +37,6 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       });
       setEditedRows(initialEditedRows);
       
-      // After setting results, force dialog to show regardless of result
-      console.log("[useBulkUpload] Setting showValidationDialog to true");
       setShowValidationDialog(true);
       
       if (result.validEmployees.length === 0 && result.invalidRows.length === 0) {
@@ -54,28 +45,18 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
           title: "Empty File",
           description: "The CSV file doesn't contain any valid data rows.",
         });
-      } else if (result.invalidRows.length > 0) {
-        toast({
-          variant: "destructive",
-          title: "Validation Issues Found",
-          description: `${result.invalidRows.length} rows contain validation errors. Please review and fix them.`,
-        });
-      } else if (result.validEmployees.length > 0) {
-        toast({
-          title: "Validation Successful",
-          description: `${result.validEmployees.length} valid employee(s) ready to be uploaded.`,
-        });
       }
       
+      setIsUploading(false);
     } catch (error) {
-      console.error('[useBulkUpload] Upload error:', error);
+      console.error('Upload error:', error);
       toast({
         variant: "destructive",
         title: "Upload Failed",
         description: "There was an error processing the CSV file. Please check the format.",
       });
-    } finally {
       setIsUploading(false);
+    } finally {
       if (event.target) event.target.value = '';
     }
   };
@@ -111,32 +92,43 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         cluster: editedRow.cluster || null,
         role: editedRow.role || '',
         manager: editedRow.manager || null,
-        password: editedRow.password || 'changeme123',
         date_of_joining: editedRow.date_of_joining || null,
         date_of_birth: editedRow.date_of_birth || null,
         blood_group: editedRow.blood_group || null,
         account_number: editedRow.account_number || null,
-        ifsc_code: editedRow.ifsc_code || null
+        ifsc_code: editedRow.ifsc_code || null,
+        password: editedRow.password || 'changeme123',
       };
-      
-      console.log("Validating edited row:", employeeData);
       
       // Validate the edited data
       const validation = validateEmployeeData({
-        ...employeeData,
-        user_id: employeeData.userId // Map userId to user_id for validation
+        user_id: employeeData.userId, // Map userId to user_id for validation
+        emp_id: employeeData.emp_id,
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        city: employeeData.city,
+        cluster: employeeData.cluster,
+        role: employeeData.role,
+        manager: employeeData.manager,
+        date_of_joining: employeeData.date_of_joining,
+        date_of_birth: employeeData.date_of_birth,
+        blood_group: employeeData.blood_group,
+        account_number: employeeData.account_number,
+        ifsc_code: employeeData.ifsc_code,
+        password: employeeData.password
       });
       
       if (validation.isValid) {
         correctedEmployees.push({
           ...employeeData as CSVEmployeeData,
-          password: employeeData.password || 'changeme123' // Ensure password is set
+          date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
+          date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
+          password: employeeData.password || 'changeme123'
         });
       } else {
         stillInvalid.push({
-          row: {
-            ...employeeData as CSVEmployeeData
-          }, 
+          row: employeeData as CSVEmployeeData,
           errors: validation.errors,
           rowData: editedRow
         });
@@ -146,7 +138,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
     return { correctedEmployees, stillInvalid };
   };
 
-  const handleUploadEditedRows = async () => {
+  const handleUploadEditedRows = () => {
     // First validate all edited rows
     const { correctedEmployees, stillInvalid } = validateEditedRows();
     
@@ -175,27 +167,35 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
     try {
       setIsUploading(true);
+      console.log("Attempting to upload employees:", employees);
       
       // First check for duplicate emp_ids in the database
       const empIdsToCheck = employees.map(emp => emp.emp_id);
+      console.log("Checking for duplicate employee IDs:", empIdsToCheck);
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
-        .from('dashboard_users')
+        .from('employees')
         .select('emp_id')
         .in('emp_id', empIdsToCheck);
       
       if (checkError) {
-        console.error('[useBulkUpload] Error checking existing employee IDs:', checkError);
+        console.error('Error checking existing employee IDs:', checkError);
         throw new Error('Failed to check for existing employees');
       }
       
       // Extract the list of existing employee IDs
       const existingEmpIds = existingEmps?.map(emp => emp.emp_id) || [];
+      console.log("Found existing employee IDs:", existingEmpIds);
       
       // Filter out employees with duplicate emp_ids
       const newEmployees = employees.filter(emp => !existingEmpIds.includes(emp.emp_id));
       const duplicateEmployees = employees.filter(emp => existingEmpIds.includes(emp.emp_id));
+      
+      if (duplicateEmployees.length > 0) {
+        console.log(`Found ${duplicateEmployees.length} duplicate employee IDs, they will be skipped:`, 
+          duplicateEmployees.map(e => e.emp_id));
+      }
       
       if (newEmployees.length === 0) {
         toast({
@@ -208,17 +208,50 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         return;
       }
       
-      // Use the bulk dashboard users creation from our service
-      const result = await createBulkDashboardUsers(newEmployees);
+      // We've removed any check constraints in the database, so we just need to ensure
+      // we're using valid values from the master tables
+      const employeesData = newEmployees.map(emp => {
+        // Get the exact role name case from ROLE_OPTIONS to match with master_roles table
+        const exactRole = ROLE_OPTIONS.find(r => r.toLowerCase() === emp.role.toLowerCase()) || emp.role;
+        
+        return {
+          user_id: emp.userId,
+          name: emp.name,
+          email: emp.email,
+          phone: emp.phone || null,
+          emp_id: emp.emp_id,
+          city: emp.city || null,
+          cluster: emp.cluster || null,
+          role: exactRole, // Use the exact case matching role from master tables
+          password: emp.password || 'changeme123',
+          date_of_joining: emp.date_of_joining || null,
+          date_of_birth: emp.date_of_birth || null,
+          blood_group: emp.blood_group || null,
+          account_number: emp.account_number || null,
+          ifsc_code: emp.ifsc_code || null,
+          manager: emp.manager || null,
+        };
+      });
       
-      if (!result.success) {
+      console.log("Inserting employees with data:", employeesData);
+      
+      // Use the insert method - UUID will be auto-generated
+      const { data, error } = await supabase
+        .from('employees')
+        .insert(employeesData)
+        .select(); // Add select to return the inserted data
+
+      if (error) {
+        console.error('Upload to database error:', error);
         toast({
           variant: "destructive",
           title: "Database Upload Failed",
-          description: "There was an error uploading to the database.",
+          description: `Error: ${error.message}`,
         });
-        throw new Error("Failed to create bulk dashboard users");
+        throw error;
       }
+
+      console.log('Upload successful. Inserted data:', data);
       
       const duplicateMessage = duplicateEmployees.length > 0 
         ? ` (${duplicateEmployees.length} duplicate employee IDs were skipped)`
@@ -231,14 +264,15 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Call the onUploadSuccess callback if provided
       if (onUploadSuccess) {
-        console.log("[useBulkUpload] Calling onUploadSuccess callback to refresh user list");
+        console.log("Calling onUploadSuccess callback to refresh user list");
         onUploadSuccess();
+      } else {
+        console.warn("No onUploadSuccess callback provided, user list won't refresh automatically");
       }
       
-      // Only NOW close the dialog after successful upload
       setShowValidationDialog(false);
     } catch (error: any) {
-      console.error('[useBulkUpload] Upload to database error:', error);
+      console.error('Upload to database error:', error);
       toast({
         variant: "destructive",
         title: "Database Upload Failed",

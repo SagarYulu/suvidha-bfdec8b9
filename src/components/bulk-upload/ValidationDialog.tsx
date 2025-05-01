@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,15 +39,6 @@ const ValidationDialog = ({
   const { toast } = useToast();
   const [processingClose, setProcessingClose] = useState(false);
   
-  // Add effect to monitor dialog visibility changes
-  useEffect(() => {
-    console.log("[ValidationDialog] isOpen changed to:", isOpen);
-    console.log("[ValidationDialog] validationResults:", 
-      validationResults ? 
-      `Valid: ${validationResults.validEmployees.length}, Invalid: ${validationResults.invalidRows.length}` : 
-      "No results");
-  }, [isOpen, validationResults]);
-  
   // Get value for a field from edited rows or fall back to original
   const getRowValue = (rowKey: string, field: keyof import('@/types').RowData, originalValue: string) => {
     return editedRows[rowKey] ? editedRows[rowKey][field] || originalValue : originalValue;
@@ -64,15 +55,6 @@ const ValidationDialog = ({
     }
   };
 
-  // Always show validation section regardless of whether there are errors or not
-  const showValidationSection = () => {
-    return (
-      <ValidationAlerts validationResults={validationResults} />
-    );
-  };
-
-  console.log("[ValidationDialog] Render with isOpen:", isOpen);
-  
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="max-w-5xl max-h-[90vh]">
@@ -80,7 +62,7 @@ const ValidationDialog = ({
           <DialogTitle>CSV Validation Results</DialogTitle>
         </DialogHeader>
         
-        {showValidationSection()}
+        <ValidationAlerts validationResults={validationResults} />
         
         <ScrollArea className="h-[50vh]">
           <div className="space-y-6">

@@ -30,19 +30,19 @@ const AdminLogin = () => {
         const userDataString = localStorage.getItem("yuluUser");
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          if (userData.role === "admin" || userData.role === "ops_head") {
+          if (userData.role === "admin") {
             toast({
-              title: "Login successful",
-              description: "Welcome to the Suvidha dashboard!",
+              title: "Admin login successful",
+              description: "Welcome to the admin dashboard!",
             });
             navigate("/admin/dashboard");
           } else {
-            // If not admin or ops_head, log them out and show error
+            // If not admin, log them out and show error
             localStorage.removeItem("yuluUser");
-            setError("You do not have dashboard access privileges.");
+            setError("You do not have admin privileges. Please use admin credentials.");
             toast({
               title: "Access denied",
-              description: "You do not have dashboard access privileges",
+              description: "You do not have admin privileges",
               variant: "destructive",
             });
           }
@@ -73,8 +73,8 @@ const AdminLogin = () => {
       <div className="flex-1 flex flex-col justify-center p-6">
         <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto w-full">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Suvidha Portal</h1>
-            <p className="text-gray-600 mt-2">Sign in to access the dashboard</p>
+            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Admin Portal</h1>
+            <p className="text-gray-600 mt-2">Sign in to access the admin dashboard</p>
           </div>
           
           {error && (
@@ -90,7 +90,7 @@ const AdminLogin = () => {
               <Input
                 id="email"
                 type="email" 
-                placeholder="Email"
+                placeholder="Admin email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -103,7 +103,7 @@ const AdminLogin = () => {
               <Input
                 id="password"
                 type="password"
-                placeholder="Password"
+                placeholder="Admin password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -116,12 +116,12 @@ const AdminLogin = () => {
               className="w-full bg-yulu-blue hover:bg-blue-700"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Signing in..." : "Sign In as Admin"}
             </Button>
           </form>
           
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>For dashboard access only</p>
+            <p>For admin access only</p>
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home
