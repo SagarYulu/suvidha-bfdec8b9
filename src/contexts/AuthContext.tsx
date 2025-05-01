@@ -55,18 +55,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const mockUser = JSON.parse(mockUserStr);
           console.log("Found mockUser in localStorage:", mockUser);
           
-          setAuthState({
-            isAuthenticated: true,
-            user: {
-              id: mockUser.id,
-              email: mockUser.email,
-              name: mockUser.name,
-            },
-            session: null, // No Supabase session for mock users
-            role: mockUser.role,
-          });
-          setIsLoading(false);
-          return; // Exit early
+          if (mockUser && mockUser.email) {
+            // Valid mock user found
+            setAuthState({
+              isAuthenticated: true,
+              user: {
+                id: mockUser.id || `mock-${Date.now()}`,
+                email: mockUser.email,
+                name: mockUser.name || mockUser.email.split('@')[0],
+              },
+              session: null, // No Supabase session for mock users
+              role: mockUser.role || 'user',
+            });
+            setIsLoading(false);
+            return; // Exit early
+          }
         } catch (e) {
           console.error("Error parsing mock user:", e);
           localStorage.removeItem('mockUser'); // Clear invalid data
@@ -94,8 +97,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAuthenticated: true,
           user: {
             id: user.id,
-            email: user.email,
-            name: dashboardUser?.name || user.email,
+            email: user.email || '',
+            name: dashboardUser?.name || user.email || 'Unnamed User',
           },
           session: session,
           role: dashboardUser?.role || null,
@@ -127,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Initial load to check the session when the component mounts
   useEffect(() => {
+    console.log("AuthProvider initializing, checking session...");
     refreshSession();
 
     // Setup listener for auth changes
@@ -146,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
+      console.log("Starting sign-in process for:", email);
       
       // First try local authentication (for demo users)
       const localUser = await authServiceLogin(email, password);
@@ -167,6 +172,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.log("Supabase authentication error, falling back to local auth:", error);
         }
+        
+        // Store mock user in localStorage for persistent session
+        localStorage.setItem('mockUser', JSON.stringify({
+          id: localUser.id,
+          email: localUser.email,
+          name: localUser.name,
+          role: localUser.role
+        }));
         
         // Refresh auth state to update the UI
         await refreshSession();
@@ -266,9 +279,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshAuth, // Add refreshAuth alias
   };
 
+  // Only render children once initial auth check is complete
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={value}>
-      {!isLoading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

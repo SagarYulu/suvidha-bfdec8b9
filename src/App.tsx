@@ -22,7 +22,14 @@ import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 import { AuthProvider } from "./contexts/AuthContext";
 
 // Create a new QueryClient instance
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => {
   console.log("App rendering - setting up providers");

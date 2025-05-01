@@ -51,15 +51,6 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
         password === DEFAULT_ADMIN_USER.password) {
       console.log('Default admin login successful');
-      
-      // Store mock user in localStorage for persistent session
-      localStorage.setItem('mockUser', JSON.stringify({
-        id: DEFAULT_ADMIN_USER.id,
-        email: DEFAULT_ADMIN_USER.email,
-        name: DEFAULT_ADMIN_USER.name,
-        role: DEFAULT_ADMIN_USER.role
-      }));
-      
       return DEFAULT_ADMIN_USER;
     }
     
@@ -67,15 +58,6 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
         password === SECURITY_ACCESS_USER.password) {
       console.log('Security access user login successful');
-      
-      // Store mock user in localStorage for persistent session
-      localStorage.setItem('mockUser', JSON.stringify({
-        id: SECURITY_ACCESS_USER.id,
-        email: SECURITY_ACCESS_USER.email,
-        name: SECURITY_ACCESS_USER.name,
-        role: SECURITY_ACCESS_USER.role
-      }));
-      
       return SECURITY_ACCESS_USER;
     }
 
@@ -86,20 +68,50 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     if (mockUser) {
       console.log('User found in mock data:', mockUser);
-      
-      // Store mock user in localStorage for persistent session
-      localStorage.setItem('mockUser', JSON.stringify({
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name,
-        role: mockUser.role
-      }));
-      
       return mockUser;
     }
 
-    // Step 3: Check Supabase employees table
-    console.log('User not found in mock data, checking database...');
+    // Step 3: Check Supabase dashboard_users table (prioritize over employees)
+    console.log('User not found in mock data, checking dashboard_users table...');
+    const { data: dashboardUser, error: dashboardError } = await supabase
+      .from('dashboard_users')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .eq('password', password)
+      .single();
+    
+    if (dashboardError) {
+      console.log('No matching user found in dashboard_users');
+    }
+
+    if (dashboardUser) {
+      console.log('User found in dashboard_users:', dashboardUser);
+      
+      // Map dashboard user to User type
+      const user: User = {
+        id: dashboardUser.id,
+        userId: dashboardUser.user_id || "",
+        name: dashboardUser.name,
+        email: dashboardUser.email,
+        phone: dashboardUser.phone || "",
+        employeeId: dashboardUser.employee_id || "",
+        city: dashboardUser.city || "",
+        cluster: dashboardUser.cluster || "",
+        manager: dashboardUser.manager || "",
+        role: dashboardUser.role || "employee",
+        password: dashboardUser.password,
+        dateOfJoining: "",
+        bloodGroup: "",
+        dateOfBirth: "",
+        accountNumber: "",
+        ifscCode: ""
+      };
+      
+      return user;
+    }
+
+    // Step 4: Check Supabase employees table
+    console.log('User not found in dashboard_users, checking employees table...');
     const { data: employees, error } = await supabase
       .from('employees')
       .select('*')
@@ -134,14 +146,6 @@ export const login = async (email: string, password: string): Promise<User | nul
         accountNumber: employees.account_number || "",
         ifscCode: employees.ifsc_code || ""
       };
-      
-      // Store mock user in localStorage for persistent session
-      localStorage.setItem('mockUser', JSON.stringify({
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role
-      }));
       
       return user;
     }

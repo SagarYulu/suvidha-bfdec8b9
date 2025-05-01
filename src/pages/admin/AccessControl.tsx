@@ -111,27 +111,35 @@ const AccessControl = () => {
 
     setIsUpdating(true);
     try {
-      // Get the current authenticated user ID
+      // Get the current authenticated user ID 
       if (!authState.user?.id) {
         throw new Error("User ID not available. Please log in again.");
       }
 
       console.log("Updating role for user:", selectedUser.id);
       console.log("New role:", selectedRole);
-      console.log("Last updated by:", authState.user?.id);
       
-      // Update the user's role in the database
-      const { error } = await supabase
-        .from('dashboard_users')
-        .update({ 
-          role: selectedRole,
-          last_updated_by: authState.user?.id  // Use the actual authenticated user ID
-        })
-        .eq('id', selectedUser.id);
+      // Check if the user ID is a valid UUID (for database users)
+      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedUser.id);
       
-      if (error) {
-        console.error("Supabase update error:", error);
-        throw error;
+      // Only attempt database update for valid UUIDs (database users)
+      if (isValidUuid) {
+        // Update the user's role in the database
+        const { error } = await supabase
+          .from('dashboard_users')
+          .update({ 
+            role: selectedRole,
+            last_updated_by: authState.user?.id  // Use the actual authenticated user ID
+          })
+          .eq('id', selectedUser.id);
+        
+        if (error) {
+          console.error("Supabase update error:", error);
+          throw error;
+        }
+      } else {
+        // For mock users with non-UUID IDs, just update the local state
+        console.log("Mock user detected, updating state only");
       }
       
       // Update the local state
