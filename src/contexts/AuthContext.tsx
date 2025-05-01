@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -93,8 +92,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      // Use supabase.rpc without explicit type parameters
-      const { data, error } = await supabase.functions.invoke('has_role', {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('has_role', {
         body: params
       });
 
@@ -123,8 +122,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      // Use supabase.rpc without explicit type parameters
-      const { data, error } = await supabase.functions.invoke('assign_role', {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('assign_role', {
         body: params
       });
 
@@ -153,8 +152,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role_name: role
       };
       
-      // Use supabase.rpc without explicit type parameters
-      const { data, error } = await supabase.functions.invoke('remove_role', {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('remove_role', {
         body: params
       });
 
