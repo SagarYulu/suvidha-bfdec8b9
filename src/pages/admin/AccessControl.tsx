@@ -35,6 +35,7 @@ const AccessControl = () => {
   const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke">("grant");
   const [selectedRole, setSelectedRole] = useState<string>("");
+  const [isUpdating, setIsUpdating] = useState(false);
   const { authState } = useAuth();
   const navigate = useNavigate();
 
@@ -104,7 +105,12 @@ const AccessControl = () => {
       return;
     }
 
+    setIsUpdating(true);
     try {
+      console.log("Updating role for user:", selectedUser.id);
+      console.log("New role:", selectedRole);
+      console.log("Last updated by:", authState.user?.id);
+      
       // Update the user's role in the database
       const { error } = await supabase
         .from('dashboard_users')
@@ -115,6 +121,7 @@ const AccessControl = () => {
         .eq('id', selectedUser.id);
       
       if (error) {
+        console.error("Supabase update error:", error);
         throw error;
       }
       
@@ -142,14 +149,15 @@ const AccessControl = () => {
         title: "Success",
         description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating role:", error);
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: `Failed to update user role: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     } finally {
+      setIsUpdating(false);
       setDialogOpen(false);
     }
   };
@@ -279,14 +287,15 @@ const AccessControl = () => {
             </div>
             
             <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isUpdating}>
                 Cancel
               </Button>
               <Button
                 onClick={handleConfirmRoleChange}
-                disabled={selectedRole === selectedUser?.role}
+                disabled={selectedRole === selectedUser?.role || isUpdating}
+                className={isUpdating ? "opacity-70 cursor-not-allowed" : ""}
               >
-                Update Role
+                {isUpdating ? "Updating..." : "Update Role"}
               </Button>
             </DialogFooter>
           </DialogContent>

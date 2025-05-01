@@ -50,6 +50,8 @@ export const checkUserRole = async (userId: string, role: string): Promise<boole
 
 export const assignRole = async (userId: string, role: string, currentUserRole: string | null): Promise<boolean> => {
   try {
+    console.log('Assigning role', { userId, role, currentUserRole });
+    
     // Only admins can assign roles
     if (currentUserRole !== 'admin') {
       console.error('Only admins can assign roles');

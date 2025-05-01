@@ -10,8 +10,7 @@ import {
   Settings,
   Shield,
   ChevronDown,
-  UserPlus,
-  Lock
+  UserPlus
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -145,12 +144,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             label="Add Dashboard User" 
             isActive={window.location.pathname === "/admin/dashboard-users/add"}
           />
-          <SidebarLink 
-            href="/admin/dashboard-users/security" 
-            icon={Lock} 
-            label="Security Management"
-            isActive={window.location.pathname === "/admin/dashboard-users/security"} 
-          />
+          {/* Security Management menu item removed */}
         </DropdownMenu>
         
         <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />

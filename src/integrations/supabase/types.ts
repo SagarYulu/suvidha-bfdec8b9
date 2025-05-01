@@ -383,69 +383,6 @@ export type Database = {
         }
         Relationships: []
       }
-      security_permissions: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      user_permissions: {
-        Row: {
-          granted_at: string | null
-          granted_by: string | null
-          id: string
-          permission_id: string
-          user_id: string
-        }
-        Insert: {
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_id: string
-          user_id: string
-        }
-        Update: {
-          granted_at?: string | null
-          granted_by?: string | null
-          id?: string
-          permission_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "security_permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_permissions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "dashboard_users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
