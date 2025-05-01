@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { MOCK_USERS } from "@/data/mockData";
@@ -13,7 +14,7 @@ interface AuthContextType {
   removeRole: (userId: string, role: string) => Promise<boolean>;
 }
 
-// Define interfaces for RPC function parameters
+// Define interfaces for function parameters
 interface HasRoleParams {
   user_id: string;
   role_name: string;
