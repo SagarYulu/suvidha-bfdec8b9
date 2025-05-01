@@ -62,6 +62,7 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     });
     
     try {
+      console.log("Toggle permission for:", { userId, permissionId });
       await togglePermission(userId, permissionId);
     } catch (error) {
       console.error("Error toggling permission:", error);
@@ -70,6 +71,8 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
       if (error instanceof Error) {
         if (error.message.includes("administrator privileges")) {
           setErrorMessage("This action requires administrator privileges. Your current role does not have permission to manage security settings.");
+        } else if (error.message.includes("Not authenticated")) {
+          setErrorMessage("You are not authenticated. Please log out and log back in to refresh your session.");
         } else if (error.message.includes("policy")) {
           setErrorMessage("Permission change failed due to security policy restrictions. This operation can only be performed by system administrators.");
         } else {

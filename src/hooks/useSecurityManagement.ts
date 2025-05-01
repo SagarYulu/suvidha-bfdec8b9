@@ -146,9 +146,21 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
+      // Ensure the user is authenticated with a valid session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        toast({ 
+          title: "Authentication Error", 
+          description: "You must be logged in to manage permissions",
+          variant: "destructive" 
+        });
+        throw new Error("Not authenticated");
+      }
+      
       // Use RPC call instead of direct table operations to bypass RLS
       if (hasPermissionValue) {
         // Use an RPC function to remove permission
+        console.log("Attempting to remove permission:", { userId, permissionId });
         const { data: result, error: roleError } = await supabase.rpc(
           'remove_user_permission',
           { 
@@ -174,6 +186,7 @@ const useSecurityManagement = () => {
         }
       } else {
         // Use an RPC function to add permission
+        console.log("Attempting to add permission:", { userId, permissionId });
         const { data: result, error: roleError } = await supabase.rpc(
           'add_user_permission',
           { 
