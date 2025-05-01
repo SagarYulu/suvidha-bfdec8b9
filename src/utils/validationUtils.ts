@@ -1,6 +1,6 @@
 
 import { type Tables } from '@/integrations/supabase/types';
-import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
+import { CITY_OPTIONS, CLUSTER_OPTIONS } from '@/data/formOptions';
 import { isValidDate } from './dateUtils';
 
 // Update EmployeeData type to include userId
@@ -47,14 +47,9 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Invalid User ID format: ${userId}. Must be numeric.`);
   }
   
-  // Role validation - Make sure to lowercase the comparison for case-insensitive matching
-  if (data.role) {
-    const validRoles = ROLE_OPTIONS.map(r => r.toLowerCase());
-    if (!validRoles.includes(data.role.toLowerCase())) {
-      errors.push(`Invalid role: ${data.role}. Valid options are: ${ROLE_OPTIONS.join(', ')}`);
-    }
-  }
-
+  // For employee data, we don't validate role against a specific list
+  // as employees can have any role string value
+  
   // City validation (if provided)
   if (data.city) {
     const validCities = CITY_OPTIONS.map(c => c.toLowerCase());

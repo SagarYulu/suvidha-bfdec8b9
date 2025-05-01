@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { InfoIcon, CheckIcon } from "lucide-react";
-import { ROLE_OPTIONS } from "@/data/formOptions";
+import { CITY_OPTIONS } from "@/data/formOptions";
 
 const FormatInstructions = () => {
   return (
@@ -43,7 +43,15 @@ const FormatInstructions = () => {
             <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="flex flex-col">
               <span className="font-medium">Roles:</span> 
-              <span className="text-xs break-words">Must be one of: {ROLE_OPTIONS.join(', ')}</span>
+              <span className="text-xs">Employee roles can be any string value (e.g., Customer Representative, Supervisor, etc.)</span>
+            </div>
+          </div>
+          
+          <div className="flex items-start">
+            <CheckIcon className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+            <div className="flex flex-col">
+              <span className="font-medium">Valid Cities:</span> 
+              <span className="text-xs break-words">{CITY_OPTIONS.join(', ')}</span>
             </div>
           </div>
         </div>
