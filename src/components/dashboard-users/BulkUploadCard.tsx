@@ -13,7 +13,7 @@ const BulkUploadCard: React.FC<BulkUploadCardProps> = ({ onUploadSuccess }) => {
       <CardHeader>
         <CardTitle>Bulk Upload Dashboard Users</CardTitle>
         <CardDescription>
-          Upload multiple dashboard users at once using a CSV file
+          Upload multiple dashboard users at once using a CSV file with the same fields as the single user form
         </CardDescription>
       </CardHeader>
       <CardContent>

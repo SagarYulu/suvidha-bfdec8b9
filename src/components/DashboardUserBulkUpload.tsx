@@ -85,9 +85,8 @@ const DashboardUserBulkUpload = ({ onUploadSuccess }: DashboardUserBulkUploadPro
           <div>
             <h3 className="font-semibold text-sm">CSV Format Requirements</h3>
             <ul className="text-sm text-gray-600 space-y-1 mt-1">
-              <li>• File should be in CSV format</li>
-              <li>• Required columns: User ID, name, email, role</li>
-              <li>• Optional: employee_id, phone, city, cluster, manager, password</li>
+              <li>• Required fields: User ID, name, email, role</li>
+              <li>• Optional fields: employee_id, phone, city, cluster, manager, password</li>
               <li>• User ID must be numeric</li>
               <li>• Role must be one of: super_admin, admin, manager, viewer</li>
             </ul>
@@ -95,7 +94,7 @@ const DashboardUserBulkUpload = ({ onUploadSuccess }: DashboardUserBulkUploadPro
         </div>
       </Card>
       
-      <Alert variant="destructive" className="bg-amber-50 border-amber-200">
+      <Alert variant="warning" className="bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5" />
         <AlertTitle>Important</AlertTitle>
         <AlertDescription>

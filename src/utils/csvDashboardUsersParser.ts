@@ -178,8 +178,10 @@ export const parseCSVDashboardUsers = (file: File): Promise<DashboardUserValidat
 
 /**
  * Generates a CSV template for dashboard user data import
+ * Updated to match the single user form fields only
  */
 export const getDashboardUserCSVTemplate = () => {
+  // Headers match exactly with fields in the single user form
   const headers = [
     'User ID',
     'name',
