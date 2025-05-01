@@ -14,6 +14,7 @@ interface AuthContextType {
   checkUserRole: (userId: string, role: string) => Promise<boolean>;
   assignRole: (userId: string, role: string) => Promise<boolean>;
   removeRole: (userId: string, role: string) => Promise<boolean>;
+  refreshAuth: () => Promise<void>; // Add the missing refreshAuth function
 }
 
 // Create the context with a default undefined value
@@ -26,6 +27,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: null,
     role: null,
   });
+
+  // Add refreshAuth function implementation
+  const refreshAuth = async (): Promise<void> => {
+    try {
+      // Check localStorage for existing session
+      const storedUser = localStorage.getItem("yuluUser");
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          setAuthState({
+            isAuthenticated: true,
+            user,
+            role: user.role,
+          });
+          console.log("Refreshed user session:", user);
+        } catch (error) {
+          console.error("Failed to parse stored user data during refresh:", error);
+        }
+      } else {
+        console.log("No stored user session found during refresh");
+      }
+    } catch (error) {
+      console.error("Error refreshing auth:", error);
+    }
+  };
 
   useEffect(() => {
     // Check localStorage for existing session
@@ -154,7 +180,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       checkUserRole: handleCheckUserRole,
       assignRole: handleAssignRole,
-      removeRole: handleRemoveRole
+      removeRole: handleRemoveRole,
+      refreshAuth // Add the refreshAuth function to the context value
     }}>
       {children}
     </AuthContext.Provider>
