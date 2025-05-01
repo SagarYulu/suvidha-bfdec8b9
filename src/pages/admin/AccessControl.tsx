@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardUser } from "@/types/dashboardUsers";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DASHBOARD_USER_ROLES } from "@/data/formOptions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const AccessControl = () => {
   const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
@@ -33,9 +34,9 @@ const AccessControl = () => {
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
-  const [actionType, setActionType] = useState<"grant" | "revoke">("grant");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { authState } = useAuth();
   const navigate = useNavigate();
 
@@ -100,7 +101,13 @@ const AccessControl = () => {
   const handleRoleChange = (user: DashboardUser) => {
     setSelectedUser(user);
     setSelectedRole(user.role);
+    setErrorMessage(null);
     setDialogOpen(true);
+  };
+
+  const isValidUuid = (id: string): boolean => {
+    // UUID validation pattern
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   };
 
   const handleConfirmRoleChange = async () => {
@@ -110,6 +117,8 @@ const AccessControl = () => {
     }
 
     setIsUpdating(true);
+    setErrorMessage(null);
+    
     try {
       // Get the current authenticated user ID 
       if (!authState.user?.id) {
@@ -120,16 +129,41 @@ const AccessControl = () => {
       console.log("New role:", selectedRole);
       
       // Check if the user ID is a valid UUID (for database users)
-      const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selectedUser.id);
+      const validUuid = isValidUuid(selectedUser.id);
       
-      // Only attempt database update for valid UUIDs (database users)
-      if (isValidUuid) {
-        // Update the user's role in the database
+      if (!validUuid) {
+        console.log("Non-UUID user ID detected:", selectedUser.id);
+        // For non-UUID users, just update the local state without database update
+        setDashboardUsers(prev => 
+          prev.map(user => 
+            user.id === selectedUser.id 
+              ? { ...user, role: selectedRole } 
+              : user
+          )
+        );
+        
+        // Update admin user IDs set
+        if (selectedRole === "Super Admin") {
+          setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
+        } else {
+          setAdminUserIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(selectedUser.id);
+            return newSet;
+          });
+        }
+        
+        toast({
+          title: "Success",
+          description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
+        });
+      } else {
+        // For UUID users, update the database
         const { error } = await supabase
           .from('dashboard_users')
           .update({ 
             role: selectedRole,
-            last_updated_by: authState.user?.id  // Use the actual authenticated user ID
+            last_updated_by: authState.user?.id
           })
           .eq('id', selectedUser.id);
         
@@ -137,37 +171,35 @@ const AccessControl = () => {
           console.error("Supabase update error:", error);
           throw error;
         }
-      } else {
-        // For mock users with non-UUID IDs, just update the local state
-        console.log("Mock user detected, updating state only");
-      }
-      
-      // Update the local state
-      setDashboardUsers(prev => 
-        prev.map(user => 
-          user.id === selectedUser.id 
-            ? { ...user, role: selectedRole } 
-            : user
-        )
-      );
-      
-      // Update admin user IDs set
-      if (selectedRole === "Super Admin") {
-        setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
-      } else {
-        setAdminUserIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(selectedUser.id);
-          return newSet;
+        
+        // Update the local state
+        setDashboardUsers(prev => 
+          prev.map(user => 
+            user.id === selectedUser.id 
+              ? { ...user, role: selectedRole } 
+              : user
+          )
+        );
+        
+        // Update admin user IDs set
+        if (selectedRole === "Super Admin") {
+          setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
+        } else {
+          setAdminUserIds(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(selectedUser.id);
+            return newSet;
+          });
+        }
+        
+        toast({
+          title: "Success",
+          description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
         });
       }
-
-      toast({
-        title: "Success",
-        description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
-      });
     } catch (error: any) {
       console.error("Error updating role:", error);
+      setErrorMessage(error.message || "Failed to update user role");
       toast({
         title: "Error",
         description: `Failed to update user role: ${error.message || "Unknown error"}`,
@@ -189,6 +221,14 @@ const AccessControl = () => {
             Refresh
           </Button>
         </div>
+
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-12">

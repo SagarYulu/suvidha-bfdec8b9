@@ -27,6 +27,12 @@ export const useRoleAccess = () => {
     permission: Permission,
     { redirectTo = '/', showToast = true }: UseRoleAccessOptions = {}
   ): boolean => {
+    // Special case for developer account
+    if (authState.user?.email === 'sagar.km@yulu.bike') {
+      console.log('Developer account - granting full access');
+      return true;
+    }
+    
     // First check authentication
     if (!authState.isAuthenticated) {
       console.log('Not authenticated, access denied');

@@ -24,13 +24,15 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'access:security',
     'create:dashboardUser'
   ],
-  // Security admin has security-specific permissions plus dashboard view
+  // Security admin has full admin permissions for your specific email
   'security-admin': [
-    'view:dashboard', 
-    'access:security',
+    'view:dashboard',
     'manage:users',
     'manage:issues',
-    'manage:analytics'
+    'manage:analytics', 
+    'manage:settings',
+    'access:security',
+    'create:dashboardUser'
   ],
   // Super Admin (from dashboard_users) has all permissions
   'Super Admin': [
@@ -80,6 +82,12 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return false;
       }
       
+      // Special case for sagar.km@yulu.bike - grant all permissions
+      if (authState.user?.email === 'sagar.km@yulu.bike') {
+        console.log('Special access granted for developer account');
+        return true;
+      }
+      
       // Get permissions for the user's role
       const rolePermissions = ROLE_PERMISSIONS[userRole] || ROLE_PERMISSIONS['default'];
       
@@ -87,7 +95,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       return rolePermissions.includes(permission);
     },
     userRole
-  }), [authState.isAuthenticated, userRole]);
+  }), [authState.isAuthenticated, userRole, authState.user]);
   
   return (
     <RBACContext.Provider value={contextValue}>
