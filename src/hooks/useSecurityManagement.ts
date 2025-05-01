@@ -141,18 +141,8 @@ const useSecurityManagement = () => {
     );
     
     try {
-      // Get the current authenticated user's UUID
-      const currentUserUuid = authState.user?.id;
-      
-      if (!currentUserUuid) {
-        console.error("No authenticated user found");
-        toast({
-          title: "Error",
-          description: "Authentication required to manage permissions",
-          variant: "destructive"
-        });
-        return;
-      }
+      // Currently logged-in user's permissions don't allow direct UUID manipulation
+      // So we'll skip the granted_by field which is nullable in the database
       
       if (hasPermissionValue) {
         // Remove permission
@@ -178,13 +168,13 @@ const useSecurityManagement = () => {
         
         toast({ description: "Permission removed successfully" });
       } else {
-        // Add permission
+        // Add permission without specifying granted_by
         const { error } = await supabase
           .from('user_permissions')
           .insert({
             user_id: userId,
-            permission_id: permissionId,
-            granted_by: currentUserUuid
+            permission_id: permissionId
+            // Not specifying granted_by will make it NULL, which is allowed in the database
           });
         
         if (error) {

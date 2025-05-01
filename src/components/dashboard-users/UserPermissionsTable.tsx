@@ -11,9 +11,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { InfoIcon } from 'lucide-react';
+import { InfoIcon, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DashboardUser {
   id: string;
@@ -45,8 +46,12 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
   togglePermission,
 }) => {
   const [pendingPermissions, setPendingPermissions] = useState<Set<string>>(new Set());
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const handleTogglePermission = async (userId: string, permissionId: string) => {
+    // Clear any previous error
+    setErrorMessage(null);
+    
     const permissionKey = `${userId}-${permissionId}`;
     setPendingPermissions(prev => {
       const newSet = new Set(prev);
@@ -58,6 +63,12 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
       await togglePermission(userId, permissionId);
     } catch (error) {
       console.error("Error toggling permission:", error);
+      if (error instanceof Error) {
+        setErrorMessage(`Failed to update permission: ${error.message}`);
+      } else {
+        setErrorMessage("An unexpected error occurred while updating permissions");
+      }
+      
       toast({
         title: "Error",
         description: "Failed to update permission",
@@ -88,64 +99,92 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>User</TableHead>
-            <TableHead>Role</TableHead>
-            {permissions.map(permission => (
-              <TableHead key={permission.id} className="text-center">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger className="inline-flex items-center">
-                      <span className="mr-1">{permission.name}</span>
+    <div>
+      {errorMessage && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Role</TableHead>
+              {permissions.map(permission => (
+                <TableHead key={permission.id} className="text-center">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger className="inline-flex items-center">
+                        <span className="mr-1">{permission.name}</span>
+                        {permission.description && (
+                          <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </TooltipTrigger>
                       {permission.description && (
-                        <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                        <TooltipContent>
+                          <p>{permission.description}</p>
+                        </TooltipContent>
                       )}
-                    </TooltipTrigger>
-                    {permission.description && (
-                      <TooltipContent>
-                        <p>{permission.description}</p>
-                      </TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {dashboardUsers.map(user => (
-            <TableRow key={user.id}>
-              <TableCell>
-                <div className="font-medium">{user.name}</div>
-                <div className="text-sm text-muted-foreground">{user.email}</div>
-              </TableCell>
-              <TableCell>
-                <Badge variant={user.role === "Super Admin" ? "secondary" : "outline"}>
-                  {user.role}
-                </Badge>
-              </TableCell>
-              {permissions.map(permission => {
-                const permissionKey = `${user.id}-${permission.id}`;
-                const isPending = pendingPermissions.has(permissionKey);
-                
-                return (
-                  <TableCell key={permissionKey} className="text-center">
-                    <Checkbox 
-                      checked={hasPermission(user.id, permission.id)}
-                      disabled={isPending}
-                      onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
-                      className={isPending ? "opacity-50" : ""}
-                    />
-                  </TableCell>
-                );
-              })}
+                    </Tooltip>
+                  </TooltipProvider>
+                </TableHead>
+              ))}
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {dashboardUsers.map(user => (
+              <TableRow key={user.id}>
+                <TableCell>
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-sm text-muted-foreground">{user.email}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={user.role === "Super Admin" ? "secondary" : "outline"}>
+                    {user.role}
+                  </Badge>
+                </TableCell>
+                {permissions.map(permission => {
+                  const permissionKey = `${user.id}-${permission.id}`;
+                  const isPending = pendingPermissions.has(permissionKey);
+                  const isChecked = hasPermission(user.id, permission.id);
+                  
+                  return (
+                    <TableCell key={permissionKey} className="text-center">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div>
+                              <Checkbox 
+                                checked={isChecked}
+                                disabled={isPending}
+                                onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
+                                className={isPending ? "opacity-50 animate-pulse" : ""}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {isPending 
+                                ? "Processing..." 
+                                : isChecked 
+                                  ? `Remove "${permission.name}" permission from ${user.name}` 
+                                  : `Grant "${permission.name}" permission to ${user.name}`
+                              }
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };
