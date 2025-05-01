@@ -36,12 +36,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     });
   }, [authState, navigate, requiredPermission, checkAccess]);
 
-  const handleLogout = async () => {
-    const { logout } = useAuth();
-    await logout();
-    navigate('/admin/login', { replace: true });
-  };
-
   // Don't render content until user is properly authenticated
   if (!authState.isAuthenticated) {
     return (
@@ -51,20 +45,23 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     );
   }
 
-  const header = (
-    <AdminHeader 
-      title={title} 
-      userName={authState.user?.name || 'Administrator'} 
-      showBackButton={showBackButton}
-    />
-  );
-  
-  const sidebar = <AdminSidebar onLogout={handleLogout} />;
-
   return (
     <BaseLayout 
-      header={header} 
-      sidebar={sidebar}
+      header={
+        <AdminHeader 
+          title={title} 
+          userName={authState.user?.name || 'Administrator'} 
+          showBackButton={showBackButton}
+        />
+      } 
+      sidebar={
+        <AdminSidebar onLogout={() => {
+          const { logout } = useAuth();
+          logout().then(() => {
+            navigate('/admin/login', { replace: true });
+          });
+        }} />
+      }
       className={className}
     >
       {children}

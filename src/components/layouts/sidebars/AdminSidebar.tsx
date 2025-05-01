@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRBAC } from '@/contexts/RBACContext';
 import {
   LayoutDashboard,
@@ -112,7 +111,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
     dashboardUsers: false
   });
-  const { authState } = useAuth();
   const { hasPermission } = useRBAC();
   const location = useLocation();
 

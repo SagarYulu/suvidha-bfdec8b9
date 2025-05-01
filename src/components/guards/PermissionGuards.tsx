@@ -2,6 +2,7 @@
 import React from 'react';
 import RoleBasedGuard from './RoleBasedGuard';
 import { Permission } from '@/contexts/RBACContext';
+import PermissionGate from '../rbac/PermissionGate';
 
 // Base interface for all permission guards
 interface GuardProps {
@@ -79,24 +80,5 @@ export const CreateDashboardUserGuard: React.FC<GuardProps> = ({
   </RoleBasedGuard>
 );
 
-// Component to conditionally render based on permissions
-interface PermissionGateProps {
-  permission: Permission;
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-export const PermissionGate: React.FC<PermissionGateProps> = ({
-  permission,
-  children,
-  fallback = null
-}) => {
-  // This is a client-side only guard that doesn't redirect
-  // It just conditionally renders content based on permissions
-  
-  return (
-    <RoleBasedGuard permission={permission} redirectTo="">
-      {children}
-    </RoleBasedGuard>
-  );
-};
+// Re-export PermissionGate for convenience
+export { PermissionGate };
