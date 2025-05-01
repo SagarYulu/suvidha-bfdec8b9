@@ -7,7 +7,16 @@ import { toast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { authState } = useAuth();
+  const { authState, refreshAuth } = useAuth();
+  
+  useEffect(() => {
+    // Try to refresh auth on load
+    const checkAuth = async () => {
+      await refreshAuth();
+    };
+    
+    checkAuth();
+  }, [refreshAuth]);
   
   useEffect(() => {
     // If already logged in, show welcoming toast
@@ -23,9 +32,9 @@ const Index = () => {
   const handleAdminClick = () => {
     console.log("Admin button clicked, current auth state:", authState);
     
-    // If the user is already authenticated and is an admin, navigate directly
-    if (authState.isAuthenticated && authState.role === "admin") {
-      console.log("User is admin, navigating to dashboard");
+    // If the user is already authenticated and is an admin or security-admin, navigate directly
+    if (authState.isAuthenticated && (authState.role === "admin" || authState.role === "security-admin")) {
+      console.log("User is admin/security-admin, navigating to dashboard");
       navigate("/admin/dashboard");
     } else {
       // Not authenticated or not admin - redirect to admin login page

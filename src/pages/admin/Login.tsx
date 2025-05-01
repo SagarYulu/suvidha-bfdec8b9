@@ -27,16 +27,16 @@ const Login = () => {
   // Demo credentials for testing specific access
   const demoCredentials = [
     { email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' },
-    { email: 'sagar.km@yulu.bike', password: '123456', label: 'Sagar KM' }
+    { email: 'sagar.km@yulu.bike', password: '123456', label: 'Sagar KM (Security Admin)' }
   ];
 
   useEffect(() => {
     // Check if user is already logged in
     if (authState.isAuthenticated) {
-      const redirectPath = returnTo || '/admin/dashboard';
-      navigate(redirectPath);
+      console.log("User already authenticated, redirecting to:", returnTo || '/admin/dashboard');
+      navigate(returnTo || '/admin/dashboard');
     }
-  }, [authState, navigate, returnTo]);
+  }, [authState.isAuthenticated, navigate, returnTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,6 +44,9 @@ const Login = () => {
     setIsLoading(true);
 
     try {
+      console.log("Attempting to login with:", email);
+      console.log("Return path after login:", returnTo);
+      
       // Log in with the application authentication first
       const isLoggedIn = await login(email, password);
       
@@ -52,9 +55,13 @@ const Login = () => {
           description: 'Login successful!'
         });
         
-        // Redirect to the return URL if provided, or to the dashboard
-        const redirectPath = returnTo || '/admin/dashboard';
-        navigate(redirectPath);
+        // Important: Add small delay to ensure authentication state is fully updated
+        setTimeout(() => {
+          // Redirect to the return URL if provided, or to the dashboard
+          const redirectPath = returnTo || '/admin/dashboard';
+          console.log("Login successful, redirecting to:", redirectPath);
+          navigate(redirectPath);
+        }, 100);
       } else {
         setErrorMessage('Invalid email or password');
       }
@@ -79,7 +86,7 @@ const Login = () => {
             <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription>
               Enter your credentials to access the admin dashboard
-              {returnTo && <p className="mt-1 text-sm italic">You'll be redirected back after login</p>}
+              {returnTo && <p className="mt-1 text-sm italic">You'll be redirected to {returnTo} after login</p>}
             </CardDescription>
           </CardHeader>
           <CardContent>

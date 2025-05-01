@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
-import { login as authLogin, DEFAULT_ADMIN_USER } from "@/services/authService";
+import { login as authLogin, DEFAULT_ADMIN_USER, SECURITY_ACCESS_USER } from "@/services/authService";
 import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -174,6 +175,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       console.log("Logging in user:", email);
+      
+      // Special handling for the security admin user
+      if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
+          password === SECURITY_ACCESS_USER.password) {
+        console.log("Security access user login successful");
+        
+        setAuthState({
+          isAuthenticated: true,
+          user: SECURITY_ACCESS_USER,
+          role: SECURITY_ACCESS_USER.role,
+        });
+        
+        // Store security user data
+        localStorage.setItem("yuluUser", JSON.stringify(SECURITY_ACCESS_USER));
+        
+        toast({
+          description: "Login successful as Security Admin!"
+        });
+        
+        return true;
+      }
       
       // First try to sign in with Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({

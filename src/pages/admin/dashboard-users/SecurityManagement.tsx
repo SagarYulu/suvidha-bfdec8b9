@@ -95,7 +95,7 @@ const SecurityManagement: React.FC = () => {
     }
   };
   
-  // Simplified session check on mount - just check if we have auth and move forward
+  // Simplified session check on mount - just check if we're authenticated and move forward
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -123,6 +123,7 @@ const SecurityManagement: React.FC = () => {
       } finally {
         // Always mark session as checked to avoid infinite loading
         setSessionChecked(true);
+        setIsAuthChecking(false);
       }
     };
     
@@ -139,29 +140,38 @@ const SecurityManagement: React.FC = () => {
         description: "Please log in to access security management",
         variant: "destructive"
       });
+      // Pass current location as returnTo for redirect back after login
       navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
-    } else if (authState.role !== 'admin' && 
-               authState.role !== 'security-admin' && 
-               !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
-      // Check if user is admin OR has an authorized email OR has security-admin role
+      return;
+    }
+    
+    // Check if user is admin OR has security-admin role OR has an authorized email
+    const hasAccess = 
+      authState.role === 'admin' || 
+      authState.role === 'security-admin' || 
+      AUTHORIZED_EMAILS.includes(authState.user?.email?.toLowerCase() || '');
+    
+    if (!hasAccess) {
       toast({
         title: "Access Denied",
-        description: "You must have admin privileges to access this page",
+        description: "You must have admin or security admin privileges to access this page",
         variant: "destructive"
       });
       navigate('/admin');
-    } else {
-      console.log("User authorized to access security management:", authState.user?.email);
-      setIsAuthChecking(false);
+      return;
     }
+    
+    console.log("User authorized to access security management:", authState.user?.email);
+    setIsAuthChecking(false);
+    
   }, [authState, navigate, sessionChecked]);
   
   // Effect to refresh data if the key changes
   useEffect(() => {
-    if (securityManagement.refreshData && authState.isAuthenticated && !isAuthChecking) {
+    if (securityManagement.refreshData && authState.isAuthenticated && !isAuthChecking && sessionChecked) {
       securityManagement.refreshData();
     }
-  }, [dataRefreshKey, authState.isAuthenticated, isAuthChecking]);
+  }, [dataRefreshKey, authState.isAuthenticated, isAuthChecking, sessionChecked, securityManagement]);
   
   if (isAuthChecking) {
     return (
@@ -188,7 +198,9 @@ const SecurityManagement: React.FC = () => {
             </AlertDescription>
           </Alert>
           <div className="mt-4">
-            <Button onClick={() => navigate('/admin/login')}>
+            <Button onClick={() => navigate('/admin/login', { 
+              state: { returnTo: '/admin/dashboard-users/security' } 
+            })}>
               Go to Login
             </Button>
           </div>
@@ -223,7 +235,9 @@ const SecurityManagement: React.FC = () => {
                 </>
               )}
             </Button>
-            <Button variant="outline" onClick={() => navigate('/admin/login')}>
+            <Button variant="outline" onClick={() => navigate('/admin/login', { 
+              state: { returnTo: '/admin/dashboard-users/security' } 
+            })}>
               Go to Login
             </Button>
           </div>
