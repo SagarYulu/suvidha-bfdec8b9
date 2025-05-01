@@ -94,7 +94,7 @@ const DashboardUserBulkUpload = ({ onUploadSuccess }: DashboardUserBulkUploadPro
         </div>
       </Card>
       
-      <Alert variant="warning" className="bg-amber-50 border-amber-200">
+      <Alert variant="default" className="bg-amber-50 border-amber-200">
         <AlertTriangle className="h-5 w-5" />
         <AlertTitle>Important</AlertTitle>
         <AlertDescription>
