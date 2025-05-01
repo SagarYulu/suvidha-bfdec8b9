@@ -21,6 +21,17 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
           {validEmployees.length > 0 && 
             ` ${validEmployees.length} valid employee(s) can still be uploaded.`}
         </AlertDescription>
+        
+        {/* Display the first few error messages for better debugging */}
+        <div className="mt-2 text-xs">
+          <p className="font-medium">Some examples of errors:</p>
+          <ul className="list-disc pl-5 mt-1">
+            {invalidRows.slice(0, 3).map((row, idx) => (
+              <li key={idx}>{row.errors[0]}</li>
+            ))}
+            {invalidRows.length > 3 && <li>... and more</li>}
+          </ul>
+        </div>
       </Alert>
     );
   } 
@@ -49,15 +60,7 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
     );
   }
   
-  return (
-    <Alert variant="destructive" className="mb-4">
-      <AlertCircle className="h-4 w-4" />
-      <AlertTitle>No Valid Data</AlertTitle>
-      <AlertDescription>
-        The CSV file doesn't contain any valid employee data rows.
-      </AlertDescription>
-    </Alert>
-  );
+  return null;
 };
 
 export default ValidationAlerts;

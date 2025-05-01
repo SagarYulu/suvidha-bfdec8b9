@@ -79,10 +79,20 @@ export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
       throw new Error(`Employee with User ID ${userData.userId} already exists.`);
     }
 
+    console.log("Processing dates before user creation:", {
+      dateOfJoining: userData.dateOfJoining,
+      dateOfBirth: userData.dateOfBirth
+    });
+
     // Map from User type to the format expected by the employees table
     // Convert date formats if they are in DD/MM/YYYY format
     const dateOfJoining = userData.dateOfJoining ? formatDateToYYYYMMDD(userData.dateOfJoining) : null;
     const dateOfBirth = userData.dateOfBirth ? formatDateToYYYYMMDD(userData.dateOfBirth) : null;
+
+    console.log("Formatted dates:", {
+      dateOfJoining,
+      dateOfBirth
+    });
 
     const employee = {
       name: userData.name,
@@ -146,6 +156,7 @@ export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
  */
 export const getUserById = async (userId: string): Promise<User | null> => {
   try {
+    console.log("Fetching user with ID:", userId);
     const { data: employee, error } = await supabase
       .from('employees')
       .select('*')
@@ -155,6 +166,7 @@ export const getUserById = async (userId: string): Promise<User | null> => {
     if (error) {
       if (error.code === 'PGRST116') {
         // No records found
+        console.log(`No user found with ID: ${userId}`);
         return null;
       }
       console.error('Error fetching user by ID:', error);
@@ -162,6 +174,8 @@ export const getUserById = async (userId: string): Promise<User | null> => {
     }
 
     if (!employee) return null;
+
+    console.log(`Found user with ID ${userId}:`, employee);
 
     // Map the employee from Supabase format to our User type
     return {

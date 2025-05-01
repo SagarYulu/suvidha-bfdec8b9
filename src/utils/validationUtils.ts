@@ -79,11 +79,12 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
     errors.push(`Invalid email format: ${data.email}`);
   }
 
-  // Date format validation
+  // Date format validation for date_of_joining
   if (data.date_of_joining && !isValidDate(data.date_of_joining)) {
     errors.push(`Invalid date of joining format: ${data.date_of_joining}. Use YYYY-MM-DD.`);
   }
   
+  // Date format validation for date_of_birth
   if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
     errors.push(`Invalid date of birth format: ${data.date_of_birth}. Use YYYY-MM-DD.`);
   }

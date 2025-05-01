@@ -2,6 +2,7 @@
 import Papa from 'papaparse';
 import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 import { validateEmployeeData } from './validationUtils';
+import { formatDateToYYYYMMDD } from './dateUtils';
 
 /**
  * Parses and validates a CSV file containing employee data
@@ -50,6 +51,23 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             ''
           ).trim();
           
+          // Format dates and handle multiple possible header names for date fields
+          const dateOfJoining = formatDateToYYYYMMDD(
+            row.date_of_joining || 
+            row['date of joining'] || 
+            row.dateOfJoining || 
+            row.DateOfJoining || 
+            ''
+          );
+          
+          const dateOfBirth = formatDateToYYYYMMDD(
+            row.date_of_birth || 
+            row['date of birth'] || 
+            row.dateOfBirth || 
+            row.DateOfBirth || 
+            ''
+          );
+          
           // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
           const employeeData: CSVEmployeeData = {
             userId: userId, 
@@ -62,8 +80,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || null,
             role: row.role || '',
             password: row.password || 'changeme123',
-            date_of_joining: row.date_of_joining || row['date of joining'] || null,
-            date_of_birth: row.date_of_birth || row['date of birth'] || null,
+            date_of_joining: dateOfJoining || null,
+            date_of_birth: dateOfBirth || null,
             blood_group: row.blood_group || row['blood group'] || null,
             account_number: row.account_number || row['account number'] || null,
             ifsc_code: row.ifsc_code || row['ifsc code'] || null
@@ -82,8 +100,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || '',
             role: row.role || '',
             password: row.password || 'changeme123',
-            date_of_joining: row.date_of_joining || row['date of joining'] || '',
-            date_of_birth: row.date_of_birth || row['date of birth'] || '',
+            date_of_joining: dateOfJoining || '',
+            date_of_birth: dateOfBirth || '',
             blood_group: row.blood_group || row['blood group'] || '',
             account_number: row.account_number || row['account number'] || '',
             ifsc_code: row.ifsc_code || row['ifsc code'] || ''
@@ -93,8 +111,7 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
 
           // Validate the data using the common validation function
           const validation = validateEmployeeData({
-            ...employeeData,
-            user_id: employeeData.userId // Map userId to user_id for validation
+            ...employeeData
           });
           
           if (validation.isValid) {
