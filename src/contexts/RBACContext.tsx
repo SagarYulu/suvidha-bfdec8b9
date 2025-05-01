@@ -60,7 +60,72 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      // Get all defined permissions
+      // Special handling for non-UUID users
+      if (authState.user.id === 'security-user-1' && authState.role === 'security-admin') {
+        // Grant all permissions to this demo user
+        const demoPermissions = {
+          'view:dashboard': true,
+          'manage:users': true,
+          'manage:issues': true,
+          'manage:analytics': true,
+          'manage:settings': true,
+          'access:security': true,
+          'create:dashboardUser': true
+        };
+        setPermissionCache(demoPermissions);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Skip UUID validation for the developer account
+      if (authState.user.email === 'sagar.km@yulu.bike') {
+        // Grant all permissions to developer account
+        const allPermissions = {
+          'view:dashboard': true,
+          'manage:users': true,
+          'manage:issues': true,
+          'manage:analytics': true,
+          'manage:settings': true,
+          'access:security': true,
+          'create:dashboardUser': true
+        };
+        setPermissionCache(allPermissions);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check if user ID is a valid UUID
+      const isValidUuid = (id: string): boolean => {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+      };
+      
+      // For non-UUID users, assign permissions based on role
+      if (!isValidUuid(authState.user.id)) {
+        console.log("Non-UUID user detected:", authState.user.id);
+        const roleBasedPermissions: Record<string, boolean> = {};
+        
+        // Assign default permissions based on role
+        if (authState.role === 'admin' || authState.role === 'Super Admin') {
+          // Grant all permissions to admins
+          roleBasedPermissions['view:dashboard'] = true;
+          roleBasedPermissions['manage:users'] = true;
+          roleBasedPermissions['manage:issues'] = true;
+          roleBasedPermissions['manage:analytics'] = true;
+          roleBasedPermissions['manage:settings'] = true;
+          roleBasedPermissions['access:security'] = true;
+          roleBasedPermissions['create:dashboardUser'] = true;
+        } else if (authState.role === 'security-admin') {
+          roleBasedPermissions['view:dashboard'] = true;
+          roleBasedPermissions['access:security'] = true;
+          roleBasedPermissions['manage:users'] = true;
+        }
+        
+        setPermissionCache(roleBasedPermissions);
+        setIsLoading(false);
+        return;
+      }
+      
+      // For UUID users, get all defined permissions from the database
       const allPermissions = await getPermissions();
       
       // Build a cache of all permissions for the current user
@@ -97,6 +162,12 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       // Special case for sagar.km@yulu.bike - grant all permissions
       if (authState.user?.email === 'sagar.km@yulu.bike') {
         console.log('Special access granted for developer account');
+        return true;
+      }
+      
+      // Special case for security-user-1 demo account
+      if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {
+        console.log('Security admin demo account - granting permission:', permission);
         return true;
       }
       

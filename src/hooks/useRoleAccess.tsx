@@ -52,6 +52,13 @@ export const useRoleAccess = () => {
       return false;
     }
 
+    // Handle special case for security-user-1 demo account
+    // This is a non-UUID user that needs special handling
+    if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {
+      console.log('Security admin demo account - granting access');
+      return true;
+    }
+
     // Then check permission
     const hasAccess = hasPermission(permission);
     

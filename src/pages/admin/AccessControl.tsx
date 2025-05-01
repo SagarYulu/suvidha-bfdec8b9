@@ -31,7 +31,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useRBAC } from "@/contexts/RBACContext";
 import RolePermissionsManager from "@/components/rbac/RolePermissionsManager";
-import { checkUserRole, assignRoleToUser, removeRoleFromUser } from "@/services/rbacService";
+import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
 
 const AccessControl = () => {
   // Original state for user management
@@ -102,7 +102,8 @@ const AccessControl = () => {
       // Check each user's role
       const adminIds = new Set<string>();
       for (const user of users || []) {
-        if (user.id && await checkUserRole(user.id, "Super Admin")) {
+        // Only check roles for users with valid UUIDs
+        if (user.id && isValidUuid(user.id) && await checkUserRole(user.id, "Super Admin")) {
           adminIds.add(user.id);
         }
       }
@@ -148,6 +149,7 @@ const AccessControl = () => {
 
       console.log("Updating role for user:", selectedUser.id);
       console.log("New role:", selectedRole);
+      console.log("Current user role:", authState.role);
       
       // Check if the user ID is a valid UUID (for database users)
       const validUuid = isValidUuid(selectedUser.id);
@@ -182,10 +184,12 @@ const AccessControl = () => {
         // For UUID users, update the database first
 
         // Remove all existing roles first (clean slate)
-        const oldRoleResult = await removeRoleFromUser(selectedUser.id, selectedUser.role);
+        if (selectedUser.role) {
+          await removeRole(selectedUser.id, selectedUser.role);
+        }
         
         // Assign new role
-        const result = await assignRoleToUser(selectedUser.id, selectedRole);
+        const result = await assignRole(selectedUser.id, selectedRole);
         
         if (!result) {
           throw new Error("Failed to update user role in the database");
