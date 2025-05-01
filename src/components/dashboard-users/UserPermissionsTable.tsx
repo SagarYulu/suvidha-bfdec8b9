@@ -11,10 +11,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { InfoIcon, AlertCircle } from 'lucide-react';
+import { InfoIcon, AlertCircle, ShieldAlert } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardUser {
   id: string;
@@ -47,6 +48,7 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
 }) => {
   const [pendingPermissions, setPendingPermissions] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { authState } = useAuth();
   
   const handleTogglePermission = async (userId: string, permissionId: string) => {
     // Clear any previous error
@@ -63,10 +65,13 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
       await togglePermission(userId, permissionId);
     } catch (error) {
       console.error("Error toggling permission:", error);
+      
+      // Show more specific error messages based on error type
       if (error instanceof Error) {
-        // More specific error message for RLS violations
-        if (error.message.includes("row-level security policy")) {
-          setErrorMessage("Permission change failed due to security policy restrictions. This may require administrator privileges.");
+        if (error.message.includes("administrator privileges")) {
+          setErrorMessage("This action requires administrator privileges. Your current role does not have permission to manage security settings.");
+        } else if (error.message.includes("policy")) {
+          setErrorMessage("Permission change failed due to security policy restrictions. This operation can only be performed by system administrators.");
         } else {
           setErrorMessage(`Failed to update permission: ${error.message}`);
         }
@@ -87,6 +92,9 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
       });
     }
   };
+
+  // Check if the current user is an admin
+  const isCurrentUserAdmin = authState.role === 'admin';
   
   if (isLoading) {
     return (
@@ -101,6 +109,19 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
 
   if (dashboardUsers.length === 0) {
     return <div className="text-center py-10">No dashboard users found</div>;
+  }
+
+  if (!isCurrentUserAdmin) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <ShieldAlert className="h-4 w-4" />
+        <AlertTitle>Access Denied</AlertTitle>
+        <AlertDescription>
+          You need administrator privileges to manage user permissions.
+          Please contact a system administrator if you need to make changes.
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   return (
@@ -159,6 +180,8 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                   
                   // Super Admin users automatically have all permissions
                   const isSuperAdmin = user.role === "Super Admin";
+                  // Current user cannot modify their own permissions
+                  const isSelf = user.id === authState.user?.id;
                   
                   return (
                     <TableCell key={permissionKey} className="text-center">
@@ -168,9 +191,11 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                             <div>
                               <Checkbox 
                                 checked={isSuperAdmin || isChecked}
-                                disabled={isPending || isSuperAdmin}
+                                disabled={isPending || isSuperAdmin || isSelf}
                                 onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
-                                className={isPending ? "opacity-50 animate-pulse" : isSuperAdmin ? "opacity-80" : ""}
+                                className={isPending ? "opacity-50 animate-pulse" : 
+                                          isSuperAdmin ? "opacity-80" : 
+                                          isSelf ? "opacity-70" : ""}
                               />
                             </div>
                           </TooltipTrigger>
@@ -178,6 +203,8 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                             <p>
                               {isSuperAdmin 
                                 ? "Super Admins have all permissions by default"
+                                : isSelf
+                                ? "You cannot modify your own permissions"
                                 : isPending 
                                   ? "Processing..." 
                                   : isChecked 
