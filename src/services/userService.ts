@@ -141,6 +141,53 @@ export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
   }
 };
 
+/**
+ * Retrieves a user by their ID from Supabase
+ */
+export const getUserById = async (userId: string): Promise<User | null> => {
+  try {
+    const { data: employee, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No records found
+        return null;
+      }
+      console.error('Error fetching user by ID:', error);
+      throw error;
+    }
+
+    if (!employee) return null;
+
+    // Map the employee from Supabase format to our User type
+    return {
+      id: String(employee.id),
+      userId: employee.user_id || '',
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone || '',
+      employeeId: employee.emp_id,
+      city: employee.city || '',
+      cluster: employee.cluster || '',
+      manager: employee.manager || '',
+      role: employee.role || '',
+      password: employee.password,
+      dateOfJoining: employee.date_of_joining || '',
+      bloodGroup: employee.blood_group || '',
+      dateOfBirth: employee.date_of_birth || '',
+      accountNumber: employee.account_number || '',
+      ifscCode: employee.ifsc_code || ''
+    };
+  } catch (error) {
+    console.error('Error in getUserById:', error);
+    throw error;
+  }
+};
+
 // Delete user by ID
 export const deleteUser = async (userId: string): Promise<void> => {
   try {

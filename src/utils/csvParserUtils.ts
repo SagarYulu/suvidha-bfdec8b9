@@ -62,11 +62,11 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || null,
             role: row.role || '',
             password: row.password || 'changeme123',
-            dateOfJoining: row.date_of_joining || null,
-            dateOfBirth: row.date_of_birth || null,
-            bloodGroup: row.blood_group || null,
-            accountNumber: row.account_number || null,
-            ifscCode: row.ifsc_code || null
+            date_of_joining: row.date_of_joining || null,
+            date_of_birth: row.date_of_birth || null,
+            blood_group: row.blood_group || null,
+            account_number: row.account_number || null,
+            ifsc_code: row.ifsc_code || null
           };
 
           // Generate a structured data object for display
@@ -82,11 +82,11 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || '',
             role: row.role || '',
             password: row.password || 'changeme123',
-            dateOfJoining: row.date_of_joining || '',
-            dateOfBirth: row.date_of_birth || '',
-            bloodGroup: row.blood_group || '',
-            accountNumber: row.account_number || '',
-            ifscCode: row.ifsc_code || ''
+            date_of_joining: row.date_of_joining || '',
+            date_of_birth: row.date_of_birth || '',
+            blood_group: row.blood_group || '',
+            account_number: row.account_number || '',
+            ifsc_code: row.ifsc_code || ''
           };
 
           // Validate the data using the common validation function

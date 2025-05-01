@@ -75,11 +75,11 @@ export interface CSVEmployeeData {
   role: string;
   manager?: string | null;
   password?: string;
-  date_of_joining?: string | null; // Added this field
-  date_of_birth?: string | null;   // Added this field
-  blood_group?: string | null;     // Added this field
-  account_number?: string | null;  // Added this field
-  ifsc_code?: string | null;       // Added this field
+  date_of_joining?: string | null; // Using snake_case to match database column names
+  date_of_birth?: string | null;   // Using snake_case to match database column names
+  blood_group?: string | null;     // Using snake_case to match database column names
+  account_number?: string | null;  // Using snake_case to match database column names
+  ifsc_code?: string | null;       // Using snake_case to match database column names
 }
 
 // Updated Row data interface to include date fields
@@ -95,11 +95,11 @@ export interface RowData {
   role: string;
   manager: string;
   password: string;
-  date_of_joining: string; // Added this field
-  date_of_birth: string;   // Added this field
-  blood_group: string;     // Added this field
-  account_number: string;  // Added this field
-  ifsc_code: string;       // Added this field
+  date_of_joining: string; // Using snake_case to match database column names
+  date_of_birth: string;   // Using snake_case to match database column names
+  blood_group: string;     // Using snake_case to match database column names
+  account_number: string;  // Using snake_case to match database column names
+  ifsc_code: string;       // Using snake_case to match database column names
 }
 
 // Define a string-indexed interface for edited rows
