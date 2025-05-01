@@ -68,6 +68,28 @@ const AdminUsers = () => {
     ifscCode: ""
   });
 
+  // Function to map Supabase employee data to our User format
+  const mapEmployeeToUser = (employee: any): User => {
+    return {
+      id: String(employee.id), 
+      userId: employee.user_id || "",
+      name: employee.name,
+      email: employee.email,
+      phone: employee.phone || "",
+      employeeId: employee.emp_id,
+      city: employee.city || "",
+      cluster: employee.cluster || "",
+      manager: employee.manager || "",
+      role: employee.role || "",
+      password: employee.password,
+      dateOfJoining: employee.date_of_joining || "",
+      bloodGroup: employee.blood_group || "",
+      dateOfBirth: employee.date_of_birth || "",
+      accountNumber: employee.account_number || "",
+      ifscCode: employee.ifsc_code || ""
+    };
+  };
+
   // Update clusters when city changes
   useEffect(() => {
     if (newUser.city && CLUSTER_OPTIONS[newUser.city]) {
@@ -248,7 +270,7 @@ const AdminUsers = () => {
     document.body.removeChild(link);
   };
 
-  // Handle CSV upload with validation
+  // Handle CSV upload with improved error handling and validation
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -282,8 +304,8 @@ const AdminUsers = () => {
             }
 
             // Extract data with multiple possible header names
-            const userId = row['User ID'] || row.user_id || row.userId || '';
-            const empId = row.emp_id || row.empId || row.employee_id || '';
+            const userId = row['User ID'] || row.user_id || row.userId || row.UserId || '';
+            const empId = row.emp_id || row.empId || row.employee_id || row['Employee ID'] || '';
             
             // Create user object mapping all fields
             const userData = {
@@ -343,21 +365,31 @@ const AdminUsers = () => {
           }
 
           try {
-            // Create users in batch
-            for (const userData of validUsers) {
-              await createUser(userData);
+            // Create users in batch with comprehensive error handling
+            const results = await Promise.allSettled(
+              validUsers.map(userData => createUser(userData))
+            );
+            
+            const successful = results.filter(r => r.status === 'fulfilled').length;
+            const failed = results.filter(r => r.status === 'rejected').length;
+            
+            if (successful > 0) {
+              toast({
+                title: "Upload Successful",
+                description: `Successfully added ${successful} users.${
+                  invalidRows.length > 0 ? ` (${invalidRows.length} invalid rows were skipped)` : ''
+                }${failed > 0 ? ` (${failed} users failed to add)` : ''}`,
+              });
+              // Close the dialog and refresh the user list
+              setIsAddUserDialogOpen(false);
+              fetchUsers();
+            } else if (failed > 0) {
+              toast({
+                variant: "destructive",
+                title: "Upload Failed",
+                description: "There was an error adding the users to the database.",
+              });
             }
-            
-            toast({
-              title: "Upload Successful",
-              description: `Successfully added ${validUsers.length} users.${
-                invalidRows.length > 0 ? ` (${invalidRows.length} invalid rows were skipped)` : ''
-              }`,
-            });
-            
-            // Close the dialog and refresh the user list
-            setIsAddUserDialogOpen(false);
-            fetchUsers();
           } catch (error) {
             console.error('Error creating users:', error);
             toast({
@@ -725,6 +757,13 @@ const AdminUsers = () => {
                               <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
                               <div className="text-sm">
                                 <span className="font-medium">User ID Format:</span> Must be a numeric value (e.g., 1234567)
+                              </div>
+                            </div>
+
+                            <div className="flex items-start">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <div className="text-sm">
+                                <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
                               </div>
                             </div>
                           </div>

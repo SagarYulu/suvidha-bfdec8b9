@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -144,6 +145,24 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
       throw new Error(`Employee with ID ${user.employeeId} already exists.`);
     }
     
+    // Also check if user ID already exists (new validation)
+    if (user.userId) {
+      const { data: existingUserId, error: userIdCheckError } = await supabase
+        .from('employees')
+        .select('user_id')
+        .eq('user_id', user.userId)
+        .maybeSingle();
+        
+      if (userIdCheckError) {
+        console.error("Error checking existing user ID:", userIdCheckError);
+        throw userIdCheckError;
+      }
+      
+      if (existingUserId) {
+        throw new Error(`User with User ID ${user.userId} already exists.`);
+      }
+    }
+    
     const newEmployee = {
       user_id: user.userId, // Add User ID field
       name: user.name,
@@ -154,13 +173,15 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
       cluster: user.cluster,
       manager: user.manager,
       role: user.role,
-      password: user.password,
+      password: user.password || 'changeme123', // Ensure password is set
       date_of_joining: user.dateOfJoining,
       date_of_birth: user.dateOfBirth,
       blood_group: user.bloodGroup,
       account_number: user.accountNumber,
       ifsc_code: user.ifscCode
     };
+    
+    console.log("Creating new employee:", newEmployee);
     
     // Don't specify id - let Supabase generate a UUID
     const { data: employee, error } = await supabase
@@ -171,6 +192,7 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
     
     if (error) {
       console.error("Error creating user in Supabase:", error);
+      console.error("Error details:", error.details, error.hint, error.message);
       throw error;
     }
     

@@ -22,7 +22,7 @@ export const getCSVTemplate = () => {
     'password'
   ];
 
-  // Example data
+  // Example data that matches the required format
   const csvContent = [
     headers.join(','),
     '1234567,YL001,John Doe,john@example.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,2023-01-15,1990-05-20,O+,12345678901,ABCD0001234,changeme123',

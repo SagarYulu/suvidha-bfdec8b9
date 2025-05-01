@@ -38,7 +38,6 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             '';
 
           // Check multiple possible header names for emp_id field with better detection
-          // Ensure emp_id is properly trimmed to avoid whitespace issues
           const empId = (
             row.emp_id || 
             row.empId || 
@@ -63,6 +62,11 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || null,
             role: row.role || '',
             password: row.password || 'changeme123', // Use provided password or default
+            date_of_joining: row.date_of_joining || null,
+            date_of_birth: row.date_of_birth || null,
+            blood_group: row.blood_group || null,
+            account_number: row.account_number || null,
+            ifsc_code: row.ifsc_code || null
           };
 
           // Generate a structured data object for display
@@ -77,7 +81,12 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             cluster: row.cluster || '',
             manager: row.manager || '',
             role: row.role || '',
-            password: row.password || 'changeme123' // Use provided password or default
+            password: row.password || 'changeme123', // Use provided password or default
+            date_of_joining: row.date_of_joining || '',
+            date_of_birth: row.date_of_birth || '',
+            blood_group: row.blood_group || '',
+            account_number: row.account_number || '',
+            ifsc_code: row.ifsc_code || ''
           };
 
           // Validate the data using the common validation function
