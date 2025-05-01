@@ -4,8 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { User } from "@/types";
-import { getDashboardUsers, assignDashboardRole, DashboardRole } from "@/services/dashboardRoleService";
+import { getDashboardUsers, assignDashboardRole, DashboardRole, DashboardUser } from "@/services/dashboardRoleService";
 import {
   Table,
   TableBody,
@@ -28,13 +27,13 @@ import { Shield, ShieldCheck, ShieldX, AlertTriangle, Search } from "lucide-reac
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
 
 const AccessControl = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<DashboardUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<DashboardUser[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke">("grant");
   const { authState } = useAuth();
   const navigate = useNavigate();
@@ -44,26 +43,12 @@ const AccessControl = () => {
     setLoading(true);
     try {
       const dashboardUsers = await getDashboardUsers();
-      
-      // Format users data to match User type
-      const formattedUsers: User[] = dashboardUsers.map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        employeeId: user.emp_id,
-        role: user.role,
-        // Add other required fields based on your User type
-        phone: user.phone || '',
-        city: user.city || '',
-        cluster: user.cluster || '',
-      }));
-      
-      setUsers(formattedUsers);
-      setFilteredUsers(formattedUsers);
+      setUsers(dashboardUsers);
+      setFilteredUsers(dashboardUsers);
       
       // Check each user for admin role
       const adminIds = new Set<string>();
-      for (const user of formattedUsers) {
+      for (const user of dashboardUsers) {
         if (user.role === DashboardRole.ADMIN) {
           adminIds.add(user.id);
         }
@@ -107,7 +92,7 @@ const AccessControl = () => {
         user => 
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
+          user.emp_id.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredUsers(filtered);
     } else {
@@ -115,13 +100,13 @@ const AccessControl = () => {
     }
   }, [searchTerm, users]);
 
-  const handleGrantAdmin = (user: User) => {
+  const handleGrantAdmin = (user: DashboardUser) => {
     setSelectedUser(user);
     setActionType("grant");
     setDialogOpen(true);
   };
 
-  const handleRevokeAdmin = (user: User) => {
+  const handleRevokeAdmin = (user: DashboardUser) => {
     setSelectedUser(user);
     setActionType("revoke");
     setDialogOpen(true);
@@ -234,7 +219,7 @@ const AccessControl = () => {
                     filteredUsers.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell>{user.employeeId}</TableCell>
+                        <TableCell>{user.emp_id}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs ${

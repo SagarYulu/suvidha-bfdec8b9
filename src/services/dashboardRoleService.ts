@@ -82,8 +82,20 @@ export const hasPermission = (
   return rolePermissionsMatrix[userRole][page][action];
 };
 
+// Define a type for the dashboard user data returned from Supabase
+export interface DashboardUser {
+  id: string;
+  name: string;
+  email: string;
+  emp_id: string;
+  role: DashboardRole;
+  phone?: string;
+  city?: string;
+  cluster?: string;
+}
+
 // Get all dashboard users
-export const getDashboardUsers = async (): Promise<any[]> => {
+export const getDashboardUsers = async (): Promise<DashboardUser[]> => {
   try {
     const { data, error } = await supabase
       .from('employees')

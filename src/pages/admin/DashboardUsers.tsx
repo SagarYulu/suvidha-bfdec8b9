@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { User } from "@/types";
-import { DashboardRole, getDashboardUsers, createDashboardUser, createBulkDashboardUsers } from "@/services/dashboardRoleService";
+import { DashboardRole, DashboardUser, getDashboardUsers, createDashboardUser, createBulkDashboardUsers, assignDashboardRole } from "@/services/dashboardRoleService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,7 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import RoleProtectedRoute from "@/components/RoleProtectedRoute";
-import { Search, UserPlus, Plus, X, Check, Trash, Upload } from "lucide-react";
+import { Search, UserPlus, Plus, X, Check, Trash } from "lucide-react";
 import BulkUserUpload from "@/components/BulkUserUpload";
 
 // Type for our spreadsheet rows
@@ -47,8 +45,8 @@ interface SpreadsheetRow {
 }
 
 const DashboardUsers = () => {
-  const [dashboardUsers, setDashboardUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<DashboardUser[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
@@ -68,22 +66,8 @@ const DashboardUsers = () => {
     setIsLoading(true);
     try {
       const users = await getDashboardUsers();
-      
-      // Format users data to match User type
-      const formattedUsers: User[] = users.map(user => ({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        employeeId: user.emp_id,
-        role: user.role,
-        // Add other required fields based on your User type
-        phone: user.phone || '',
-        city: user.city || '',
-        cluster: user.cluster || '',
-      }));
-      
-      setDashboardUsers(formattedUsers);
-      setFilteredUsers(formattedUsers);
+      setDashboardUsers(users);
+      setFilteredUsers(users);
     } catch (error) {
       console.error("Error fetching dashboard users:", error);
       toast({
@@ -537,11 +521,11 @@ const DashboardUsers = () => {
                               {user.role}
                             </span>
                           </TableCell>
-                          <TableCell>{user.employeeId}</TableCell>
+                          <TableCell>{user.emp_id}</TableCell>
                           {authState.role === DashboardRole.ADMIN && (
                             <TableCell>
                               <Select
-                                value={user.role as string}
+                                value={user.role}
                                 onValueChange={async (value) => {
                                   try {
                                     setIsLoading(true);
