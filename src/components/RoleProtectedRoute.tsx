@@ -2,7 +2,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { DashboardRole, DashboardPage, hasPermission } from '@/services/dashboardRoleService';
+import { DashboardRole, DashboardPage, hasPagePermission } from '@/services/dashboardRoleService';
 
 interface RoleProtectedRouteProps {
   page: DashboardPage;
@@ -26,7 +26,7 @@ const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   }
 
   // Check if user has permission based on their role
-  if (!hasPermission(role, page, action)) {
+  if (!hasPagePermission(role, page, action)) {
     // If they're authenticated but don't have permission, redirect to dashboard
     return <Navigate to="/admin/dashboard" replace />;
   }

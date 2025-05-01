@@ -86,7 +86,7 @@ export const hasPagePermission = (
 
 // Get all dashboard users
 export const getDashboardUsers = async (): Promise<DashboardUser[]> => {
-  const { getDashboardUsers: fetchDashboardUsers } = await import('./dashboardUserService');
+  const { getDashboardUsers: fetchDashboardUsers } = await import('./dashboard/dashboardUserService');
   return await fetchDashboardUsers();
 };
 
@@ -103,7 +103,7 @@ export const createDashboardUser = async (
     phone?: string;
   }
 ): Promise<boolean> => {
-  const { createDashboardUser: createUser } = await import('./dashboardUserService');
+  const { createDashboardUser: createUser } = await import('./dashboard/dashboardUserService');
   return await createUser(userData);
 };
 
@@ -112,7 +112,7 @@ export const assignDashboardRole = async (
   userId: string, 
   role: DashboardRole
 ): Promise<boolean> => {
-  const { assignDashboardRole: assignRole } = await import('./dashboardUserService');
+  const { assignDashboardRole: assignRole } = await import('./dashboard/dashboardUserService');
   return await assignRole(userId, role);
 };
 
@@ -120,6 +120,6 @@ export const assignDashboardRole = async (
 export const createBulkDashboardUsers = async (
   usersData: any[]
 ): Promise<{ success: boolean, count: number }> => {
-  const { createBulkDashboardUsers: createBulkUsers } = await import('./dashboardUserService');
+  const { createBulkDashboardUsers: createBulkUsers } = await import('./dashboard/dashboardUserService');
   return await createBulkUsers(usersData);
 };

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -5,7 +6,7 @@ import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
-import { createBulkDashboardUsers } from "@/services/dashboard/dashboardUserService";
+import { createBulkDashboardUsers } from "@/services/dashboardRoleService";
 
 export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -151,7 +152,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
-        .from('employees')
+        .from('dashboard_users')
         .select('emp_id')
         .in('emp_id', empIdsToCheck);
       

@@ -9,6 +9,81 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      dashboard_audit_logs: {
+        Row: {
+          action: string
+          changes: Json
+          created_at: string | null
+          created_by: string
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          changes: Json
+          created_at?: string | null
+          created_by: string
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          changes?: Json
+          created_at?: string | null
+          created_by?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      dashboard_users: {
+        Row: {
+          city: string | null
+          cluster: string | null
+          created_at: string | null
+          email: string
+          emp_id: string
+          id: string
+          manager: string | null
+          name: string
+          password: string
+          phone: string | null
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          email: string
+          emp_id: string
+          id?: string
+          manager?: string | null
+          name: string
+          password: string
+          phone?: string | null
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          email?: string
+          emp_id?: string
+          id?: string
+          manager?: string | null
+          name?: string
+          password?: string
+          phone?: string | null
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           account_number: string | null

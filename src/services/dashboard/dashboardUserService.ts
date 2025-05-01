@@ -17,9 +17,9 @@ export const createDashboardUser = async (
   }
 ): Promise<boolean> => {
   try {
-    // Create the user in the employees table
+    // Create the user in the dashboard_users table
     const { data, error } = await supabase
-      .from('employees')
+      .from('dashboard_users')
       .insert([
         {
           name: userData.name,
@@ -42,7 +42,7 @@ export const createDashboardUser = async (
     }
     
     // Log the action to audit trail
-    await createAuditLog('employees', 'create', data.id, data);
+    await createAuditLog('dashboard_users', 'create', data.id, data);
     
     return true;
   } catch (error) {
@@ -71,7 +71,7 @@ export const createBulkDashboardUsers = async (
     
     // Insert all users in a single operation
     const { data, error } = await supabase
-      .from('employees')
+      .from('dashboard_users')
       .insert(formattedUsers)
       .select();
       
@@ -82,7 +82,7 @@ export const createBulkDashboardUsers = async (
     
     // Log the action to audit trail
     for (const user of data) {
-      await createAuditLog('employees', 'create', user.id, user);
+      await createAuditLog('dashboard_users', 'create', user.id, user);
     }
     
     return { success: true, count: formattedUsers.length };
@@ -101,7 +101,7 @@ const createAuditLog = async (
 ) => {
   try {
     const { error } = await supabase
-      .from('master_audit_logs')
+      .from('dashboard_audit_logs')
       .insert({
         entity_type: entityType,
         action: action,
@@ -122,16 +122,15 @@ const createAuditLog = async (
 export const getDashboardUsers = async (): Promise<DashboardUser[]> => {
   try {
     const { data, error } = await supabase
-      .from('employees')
-      .select('*')
-      .in('role', [DashboardRole.ADMIN, DashboardRole.OPS_HEAD, DashboardRole.SECURITY_MANAGER]);
+      .from('dashboard_users')
+      .select('*');
     
     if (error) {
       console.error("Error fetching dashboard users:", error);
       return [];
     }
     
-    // Cast the role from string to DashboardRole before returning
+    // Process and return the data
     return (data || []).map(user => ({
       id: user.id,
       name: user.name,
@@ -157,14 +156,14 @@ export const assignDashboardRole = async (
   try {
     // Get the original user data for audit log
     const { data: originalUser } = await supabase
-      .from('employees')
+      .from('dashboard_users')
       .select('*')
       .eq('id', userId)
       .single();
     
     // Update the user role
     const { data, error } = await supabase
-      .from('employees')
+      .from('dashboard_users')
       .update({ role })
       .eq('id', userId)
       .select()
@@ -176,7 +175,7 @@ export const assignDashboardRole = async (
     }
     
     // Create audit log entry
-    await createAuditLog('employees', 'update', userId, {
+    await createAuditLog('dashboard_users', 'update', userId, {
       before: { role: originalUser?.role },
       after: { role }
     });
