@@ -22,12 +22,19 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
     if (!file) return;
 
     setIsUploading(true);
+    
     try {
-      console.log("Starting CSV upload and validation for file:", file.name);
+      console.log("[useBulkUpload] Starting CSV upload and validation for file:", file.name);
+      
+      // Always reset the validation state before new validation
+      setValidationResults({ validEmployees: [], invalidRows: [] });
+      setEditedRows({});
+      
       const result = await parseEmployeeCSV(file);
       
-      console.log("CSV parsing complete, validation results:", result);
+      console.log("[useBulkUpload] CSV parsing complete, validation results:", result);
       
+      // Set validation results first
       setValidationResults(result);
       
       // Initialize edited rows with original data
@@ -37,7 +44,8 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       });
       setEditedRows(initialEditedRows);
       
-      // Always show the validation dialog, regardless of validation results
+      // After setting results, force dialog to show regardless of result
+      console.log("[useBulkUpload] Setting showValidationDialog to true");
       setShowValidationDialog(true);
       
       if (result.validEmployees.length === 0 && result.invalidRows.length === 0) {
@@ -46,10 +54,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
           title: "Empty File",
           description: "The CSV file doesn't contain any valid data rows.",
         });
-      }
-      
-      // Show validation status toast but don't proceed automatically
-      if (result.invalidRows.length > 0) {
+      } else if (result.invalidRows.length > 0) {
         toast({
           variant: "destructive",
           title: "Validation Issues Found",
@@ -63,7 +68,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       }
       
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('[useBulkUpload] Upload error:', error);
       toast({
         variant: "destructive",
         title: "Upload Failed",
@@ -141,7 +146,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
     return { correctedEmployees, stillInvalid };
   };
 
-  const handleUploadEditedRows = () => {
+  const handleUploadEditedRows = async () => {
     // First validate all edited rows
     const { correctedEmployees, stillInvalid } = validateEditedRows();
     
@@ -181,7 +186,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         .in('emp_id', empIdsToCheck);
       
       if (checkError) {
-        console.error('Error checking existing employee IDs:', checkError);
+        console.error('[useBulkUpload] Error checking existing employee IDs:', checkError);
         throw new Error('Failed to check for existing employees');
       }
       
@@ -226,13 +231,14 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Call the onUploadSuccess callback if provided
       if (onUploadSuccess) {
-        console.log("Calling onUploadSuccess callback to refresh user list");
+        console.log("[useBulkUpload] Calling onUploadSuccess callback to refresh user list");
         onUploadSuccess();
       }
       
+      // Only NOW close the dialog after successful upload
       setShowValidationDialog(false);
     } catch (error: any) {
-      console.error('Upload to database error:', error);
+      console.error('[useBulkUpload] Upload to database error:', error);
       toast({
         variant: "destructive",
         title: "Database Upload Failed",

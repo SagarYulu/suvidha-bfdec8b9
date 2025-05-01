@@ -22,9 +22,9 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
-  // Add debug to see when dialog should open
-  console.log("BulkUserUpload: showValidationDialog =", showValidationDialog);
-  console.log("BulkUserUpload: validationResults =", validationResults);
+  // Force debug logs to track dialog visibility
+  console.log("[BulkUserUpload] Rendering with showValidationDialog =", showValidationDialog);
+  console.log("[BulkUserUpload] validationResults =", validationResults);
 
   return (
     <div className="space-y-6">
@@ -37,7 +37,7 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
 
       <FormatInstructions />
 
-      {/* The ValidationDialog component is always rendered, but only shown when showValidationDialog is true */}
+      {/* ValidationDialog must always be included in the render tree */}
       <ValidationDialog 
         isOpen={showValidationDialog}
         onOpenChange={setShowValidationDialog}
