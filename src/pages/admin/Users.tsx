@@ -307,6 +307,10 @@ const AdminUsers = () => {
             const userId = row['User ID'] || row.user_id || row.userId || row.UserId || '';
             const empId = row.emp_id || row.empId || row.employee_id || row['Employee ID'] || '';
             
+            // Format dates properly - ensure they're in YYYY-MM-DD format for the database
+            const dateOfJoining = row.date_of_joining ? formatDateToYYYYMMDD(row.date_of_joining) : '';
+            const dateOfBirth = row.date_of_birth ? formatDateToYYYYMMDD(row.date_of_birth) : '';
+            
             // Create user object mapping all fields
             const userData = {
               userId: userId,
@@ -319,9 +323,9 @@ const AdminUsers = () => {
               manager: row.manager || '',
               role: row.role || '',
               password: row.password || 'changeme123',
-              dateOfJoining: row.date_of_joining || '',
+              dateOfJoining: dateOfJoining,
               bloodGroup: row.blood_group || '',
-              dateOfBirth: row.date_of_birth || '',
+              dateOfBirth: dateOfBirth,
               accountNumber: row.account_number || '',
               ifscCode: row.ifsc_code || ''
             };
