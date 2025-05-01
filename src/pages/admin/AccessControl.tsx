@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -102,8 +101,10 @@ const AccessControl = () => {
       // Check each user's role
       const adminIds = new Set<string>();
       for (const user of users || []) {
-        // Only check roles for users with valid UUIDs
-        if (user.id && isValidUuid(user.id) && await checkUserRole(user.id, "Super Admin")) {
+        // Determine the ID to use for role checking - prefer user_id if it's a valid UUID
+        const idToCheck = (user.user_id && isValidUuid(user.user_id)) ? user.user_id : user.id;
+        
+        if (await checkUserRole(idToCheck, "Super Admin")) {
           adminIds.add(user.id);
         }
       }
@@ -151,92 +152,76 @@ const AccessControl = () => {
       console.log("New role:", selectedRole);
       console.log("Current user role:", authState.role);
       
-      // Check if the user ID is a valid UUID (for database users)
-      const validUuid = isValidUuid(selectedUser.id);
+      // Determine which ID to use:
+      // 1. If user.user_id exists and is a valid UUID, use that for role assignment
+      // 2. Otherwise use the user.id if it's a valid UUID
+      // 3. For non-UUID IDs, just update the local state without database updates
       
-      if (!validUuid) {
-        console.log("Non-UUID user ID detected:", selectedUser.id);
-        // For non-UUID users, just update the local state without database update
-        setDashboardUsers(prev => 
-          prev.map(user => 
-            user.id === selectedUser.id 
-              ? { ...user, role: selectedRole } 
-              : user
-          )
-        );
-        
-        // Update admin user IDs set
-        if (selectedRole === "Super Admin") {
-          setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
-        } else {
-          setAdminUserIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(selectedUser.id);
-            return newSet;
-          });
-        }
-        
-        toast({
-          title: "Success",
-          description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
-        });
-      } else {
-        // For UUID users, update the database first
-
+      const userIdForRoles = selectedUser.user_id && isValidUuid(selectedUser.user_id) 
+        ? selectedUser.user_id 
+        : (isValidUuid(selectedUser.id) ? selectedUser.id : null);
+      
+      console.log("Using ID for role assignment:", userIdForRoles);
+      
+      let dbUpdateSuccess = true;
+      
+      if (userIdForRoles) {
         // Remove all existing roles first (clean slate)
         if (selectedUser.role) {
-          await removeRole(selectedUser.id, selectedUser.role);
+          await removeRole(userIdForRoles, selectedUser.role);
         }
         
         // Assign new role
-        const result = await assignRole(selectedUser.id, selectedRole);
+        const result = await assignRole(userIdForRoles, selectedRole);
         
         if (!result) {
           throw new Error("Failed to update user role in the database");
         }
-        
-        // Update the dashboard_users table
-        const { error } = await supabase
-          .from('dashboard_users')
-          .update({ 
-            role: selectedRole,
-            last_updated_by: authState.user?.id
-          })
-          .eq('id', selectedUser.id);
-        
-        if (error) {
-          console.error("Supabase update error:", error);
-          throw error;
-        }
-        
-        // Update the local state
-        setDashboardUsers(prev => 
-          prev.map(user => 
-            user.id === selectedUser.id 
-              ? { ...user, role: selectedRole } 
-              : user
-          )
-        );
-        
-        // Update admin user IDs set
-        if (selectedRole === "Super Admin") {
-          setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
-        } else {
-          setAdminUserIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(selectedUser.id);
-            return newSet;
-          });
-        }
-        
-        // Refresh the permissions to ensure the UI reflects the changes
-        await refreshPermissions();
-        
-        toast({
-          title: "Success",
-          description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
+      } else {
+        console.log("No valid UUID for role assignment in database, skipping RBAC update");
+      }
+      
+      // Update the dashboard_users table
+      const { error } = await supabase
+        .from('dashboard_users')
+        .update({ 
+          role: selectedRole,
+          last_updated_by: authState.user?.id
+        })
+        .eq('id', selectedUser.id);
+      
+      if (error) {
+        console.error("Supabase update error:", error);
+        throw error;
+      }
+      
+      // Update the local state
+      setDashboardUsers(prev => 
+        prev.map(user => 
+          user.id === selectedUser.id 
+            ? { ...user, role: selectedRole } 
+            : user
+        )
+      );
+      
+      // Update admin user IDs set
+      if (selectedRole === "Super Admin") {
+        setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
+      } else {
+        setAdminUserIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(selectedUser.id);
+          return newSet;
         });
       }
+      
+      // Refresh the permissions to ensure the UI reflects the changes
+      await refreshPermissions();
+      
+      toast({
+        title: "Success",
+        description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
+      });
     } catch (error: any) {
       console.error("Error updating role:", error);
       setErrorMessage(error.message || "Failed to update user role");

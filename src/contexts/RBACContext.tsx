@@ -49,6 +49,11 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
     }
   }, [authState.isAuthenticated, authState.user?.id]);
   
+  // Check if user ID is a valid UUID
+  const isValidUuid = (id: string): boolean => {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  };
+  
   // Function to refresh permissions from the database
   const refreshPermissions = async () => {
     if (!authState.isAuthenticated || !authState.user?.id) {
@@ -94,47 +99,43 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return;
       }
       
-      // Check if user ID is a valid UUID
-      const isValidUuid = (id: string): boolean => {
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-      };
-      
-      // For non-UUID users, assign permissions based on role
-      if (!isValidUuid(authState.user.id)) {
-        console.log("Non-UUID user detected:", authState.user.id);
-        const roleBasedPermissions: Record<string, boolean> = {};
-        
-        // Assign default permissions based on role
-        if (authState.role === 'admin' || authState.role === 'Super Admin') {
-          // Grant all permissions to admins
-          roleBasedPermissions['view:dashboard'] = true;
-          roleBasedPermissions['manage:users'] = true;
-          roleBasedPermissions['manage:issues'] = true;
-          roleBasedPermissions['manage:analytics'] = true;
-          roleBasedPermissions['manage:settings'] = true;
-          roleBasedPermissions['access:security'] = true;
-          roleBasedPermissions['create:dashboardUser'] = true;
-        } else if (authState.role === 'security-admin') {
-          roleBasedPermissions['view:dashboard'] = true;
-          roleBasedPermissions['access:security'] = true;
-          roleBasedPermissions['manage:users'] = true;
-        }
-        
-        setPermissionCache(roleBasedPermissions);
-        setIsLoading(false);
-        return;
-      }
-      
+      // Check if we have a valid UUID for database operations
       // For UUID users, get all defined permissions from the database
       const allPermissions = await getPermissions();
       
       // Build a cache of all permissions for the current user
       const cache: Record<string, boolean> = {};
       
-      for (const perm of allPermissions) {
-        // Check if the user has this permission
-        const hasPermission = await checkUserPermission(authState.user.id, perm.name);
-        cache[perm.name] = hasPermission;
+      // Determine which user ID to use
+      const userIdForPermissions = authState.user.user_id && isValidUuid(authState.user.user_id) 
+        ? authState.user.user_id 
+        : (isValidUuid(authState.user.id) ? authState.user.id : null);
+      
+      if (userIdForPermissions) {
+        console.log("Using ID for permission checks:", userIdForPermissions);
+        for (const perm of allPermissions) {
+          // Check if the user has this permission
+          const hasPermission = await checkUserPermission(userIdForPermissions, perm.name);
+          cache[perm.name] = hasPermission;
+        }
+      } else {
+        console.log("No valid UUID for permission checks, using role-based fallbacks");
+        // For non-UUID users, assign permissions based on role
+        for (const perm of allPermissions) {
+          cache[perm.name] = false;
+        }
+        
+        // Assign default permissions based on role
+        if (authState.role === 'admin' || authState.role === 'Super Admin') {
+          // Grant all permissions to admins
+          for (const perm of allPermissions) {
+            cache[perm.name] = true;
+          }
+        } else if (authState.role === 'security-admin') {
+          cache['view:dashboard'] = true;
+          cache['access:security'] = true;
+          cache['manage:users'] = true;
+        }
       }
       
       setPermissionCache(cache);
