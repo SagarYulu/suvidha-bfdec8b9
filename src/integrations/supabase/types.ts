@@ -41,40 +41,55 @@ export type Database = {
       }
       dashboard_users: {
         Row: {
+          city: string | null
+          cluster: string | null
           created_at: string | null
           created_by: string | null
           email: string
           employee_id: string | null
           id: string
           last_updated_by: string | null
+          manager: string | null
           name: string
           password: string
+          phone: string | null
           role: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
+          city?: string | null
+          cluster?: string | null
           created_at?: string | null
           created_by?: string | null
           email: string
           employee_id?: string | null
           id?: string
           last_updated_by?: string | null
+          manager?: string | null
           name: string
           password: string
+          phone?: string | null
           role: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          city?: string | null
+          cluster?: string | null
           created_at?: string | null
           created_by?: string | null
           email?: string
           employee_id?: string | null
           id?: string
           last_updated_by?: string | null
+          manager?: string | null
           name?: string
           password?: string
+          phone?: string | null
           role?: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
