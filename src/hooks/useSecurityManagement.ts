@@ -3,16 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface DashboardUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  employee_id: string | null;
-}
-
-// Removed Permission interface that was causing issues
+import { DashboardUser } from '@/types/dashboardUsers';
 
 const useSecurityManagement = () => {
   const { authState } = useAuth();

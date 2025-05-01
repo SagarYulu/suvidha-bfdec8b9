@@ -49,7 +49,6 @@ const App = () => {
               
               {/* Dashboard Users Routes */}
               <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
-              {/* Removed SecurityManagement route */}
               
               {/* Mobile Routes */}
               <Route path="/mobile/login" element={<MobileLogin />} />
