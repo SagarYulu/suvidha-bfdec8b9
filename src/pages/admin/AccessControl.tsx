@@ -107,6 +107,11 @@ const AccessControl = () => {
 
     setIsUpdating(true);
     try {
+      // Get the current authenticated user ID
+      if (!authState.user?.id) {
+        throw new Error("User ID not available. Please log in again.");
+      }
+
       console.log("Updating role for user:", selectedUser.id);
       console.log("New role:", selectedRole);
       console.log("Last updated by:", authState.user?.id);
@@ -116,7 +121,7 @@ const AccessControl = () => {
         .from('dashboard_users')
         .update({ 
           role: selectedRole,
-          last_updated_by: authState.user?.id
+          last_updated_by: authState.user?.id  // Use the actual authenticated user ID
         })
         .eq('id', selectedUser.id);
       

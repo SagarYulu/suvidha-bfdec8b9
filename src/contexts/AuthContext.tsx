@@ -1,315 +1,252 @@
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { DEFAULT_ADMIN_USER } from '@/services/authService';
 
-import React, { createContext, useContext, useState, useEffect } from "react";
-import { User, AuthState } from "@/types";
-import { login as authLogin, DEFAULT_ADMIN_USER, SECURITY_ACCESS_USER } from "@/services/authService";
-import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-
+// Define the AuthContext type
 interface AuthContextType {
-  authState: AuthState;
-  user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  checkUserRole: (userId: string, role: string) => Promise<boolean>;
-  assignRole: (userId: string, role: string) => Promise<boolean>;
-  removeRole: (userId: string, role: string) => Promise<boolean>;
-  refreshAuth: () => Promise<void>; 
+  authState: {
+    isAuthenticated: boolean;
+    user: {
+      id: string;
+      email: string;
+      name: string;
+    } | null;
+    session: Session | null;
+    role: string | null;
+  };
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  refreshSession: () => Promise<void>;
 }
 
-// Create the context with a default undefined value
+// Create the AuthContext with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Export the provider component
+// AuthProvider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
+  const [authState, setAuthState] = useState<AuthContextType['authState']>({
     isAuthenticated: false,
     user: null,
+    session: null,
     role: null,
   });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Improved refreshAuth function implementation
-  const refreshAuth = async (): Promise<void> => {
+  // Function to refresh the session
+  const refreshSession = useCallback(async () => {
     try {
-      console.log("Refreshing auth state...");
-      
-      // First check if we have a valid Supabase session
+      setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // If we have a Supabase session, use it
-      if (session) {
-        console.log("Found valid Supabase session:", session.user.email);
-        // Continue using the existing session
-      } else {
-        console.log("No Supabase session found, checking local storage");
-        // Otherwise, check localStorage for existing session
-        const storedUser = localStorage.getItem("yuluUser");
-        if (storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
-            
-            // Attempt to re-authenticate with Supabase silently
-            if (user.email && user.password) {
-              try {
-                const { data, error } = await supabase.auth.signInWithPassword({
-                  email: user.email,
-                  password: user.password
-                });
-                
-                if (error) {
-                  console.log("Could not restore Supabase session: ", error.message);
-                } else {
-                  console.log("Successfully restored Supabase session");
-                }
-              } catch (e) {
-                console.error("Error restoring Supabase session:", e);
-              }
-            }
-            
-            setAuthState({
-              isAuthenticated: true,
-              user,
-              role: user.role,
-            });
-            console.log("Refreshed user session from local storage:", user);
-          } catch (error) {
-            console.error("Failed to parse stored user data during refresh:", error);
-            // Clear corrupted data
-            localStorage.removeItem("yuluUser");
-          }
-        } else {
-          console.log("No stored user session found during refresh");
-        }
-      }
-    } catch (error) {
-      console.error("Error refreshing auth:", error);
-      toast({
-        title: "Authentication Error",
-        description: "Failed to refresh your session. Please log in again.",
-        variant: "destructive"
-      });
-    }
-  };
 
-  useEffect(() => {
-    // First set up the auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Supabase auth state change:", event, session?.user?.email);
-      
-      // If we have a session, sync it with our local auth state
       if (session) {
-        // Check for local user data that matches this email
-        const storedUser = localStorage.getItem("yuluUser");
-        if (storedUser) {
-          try {
-            const user = JSON.parse(storedUser);
-            if (user.email === session.user.email) {
-              setAuthState({
-                isAuthenticated: true,
-                user,
-                role: user.role,
-              });
-            }
-          } catch (error) {
-            console.error("Failed to parse stored user data:", error);
-          }
+        const { user } = session;
+
+        // Fetch user details from the dashboard_users table
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+
+        if (error) {
+          console.error("Error fetching dashboard user:", error);
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            session: null,
+            role: null,
+          });
+          return;
         }
-      } else if (event === "SIGNED_OUT") {
-        // Clear local auth state on sign out
+
+        // Determine the user's role
+        let role = dashboardUser?.role || null;
+
+        // For the default admin user, assign the admin role
+        if (user.id === DEFAULT_ADMIN_USER.id) {
+          role = 'admin';
+        }
+
+        setAuthState({
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: dashboardUser?.name || user.email,
+          },
+          session: session,
+          role: role,
+        });
+      } else {
         setAuthState({
           isAuthenticated: false,
           user: null,
+          session: null,
           role: null,
         });
-        localStorage.removeItem("yuluUser");
-      }
-    });
-    
-    // Then check for existing session
-    const initAuth = async () => {
-      // Check localStorage for existing session
-      const storedUser = localStorage.getItem("yuluUser");
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          
-          // Update local auth state
-          setAuthState({
-            isAuthenticated: true,
-            user,
-            role: user.role,
-          });
-          console.log("Restored user session:", user);
-          
-          // Synchronize with Supabase
-          if (user.email && user.password) {
-            try {
-              const { data, error } = await supabase.auth.signInWithPassword({
-                email: user.email,
-                password: user.password
-              });
-              
-              if (error) {
-                console.error("Failed to restore Supabase session:", error);
-              } else {
-                console.log("Restored Supabase session");
-              }
-            } catch (e) {
-              console.error("Error syncing with Supabase:", e);
-            }
-          }
-        } catch (error) {
-          console.error("Failed to parse stored user data:", error);
-          localStorage.removeItem("yuluUser");
-        }
-      }
-    };
-    
-    initAuth();
-    
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      console.log("Logging in user:", email);
-      
-      // Special handling for the security admin user
-      if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
-          password === SECURITY_ACCESS_USER.password) {
-        console.log("Security access user login successful");
-        
-        setAuthState({
-          isAuthenticated: true,
-          user: SECURITY_ACCESS_USER,
-          role: SECURITY_ACCESS_USER.role,
-        });
-        
-        // Store security user data
-        localStorage.setItem("yuluUser", JSON.stringify(SECURITY_ACCESS_USER));
-        
-        toast({
-          description: "Login successful as Security Admin!"
-        });
-        
-        return true;
-      }
-      
-      // First try to sign in with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (authError) {
-        console.error("Supabase auth error:", authError);
-        // Continue with mock login as fallback
-      } else {
-        console.log("Supabase auth success:", authData);
-      }
-      
-      // Proceed with the existing login flow
-      const user = await authLogin(email, password);
-      
-      if (user) {
-        // Check if the user has admin role in the database
-        if (user.role !== 'admin') {
-          const hasAdminRole = await checkUserRole(user.id, 'admin');
-          if (hasAdminRole) {
-            user.role = 'admin';
-          }
-        }
-        
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          role: user.role,
-        });
-        
-        // Store critical authentication data
-        const userToStore = {
-          ...user,
-          // Make sure password is included for session restoration
-          password: password 
-        };
-        
-        localStorage.setItem("yuluUser", JSON.stringify(userToStore));
-        
-        toast({
-          description: "Login successful!"
-        });
-        
-        return true;
       }
     } catch (error) {
-      console.error("Login error:", error);
-      toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again",
-        variant: "destructive"
-      });
-    }
-    
-    return false;
-  };
-
-  const logout = async () => {
-    try {
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error signing out of Supabase:", error);
-      }
-    } catch (error) {
-      console.error("Error in logout:", error);
-    } finally {
-      // Always clean up local state regardless of Supabase errors
+      console.error("Error refreshing session:", error);
       setAuthState({
         isAuthenticated: false,
         user: null,
+        session: null,
         role: null,
       });
-      localStorage.removeItem("yuluUser");
-      console.log("User logged out");
-      
-      toast({
-        description: "Logged out successfully"
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initial load to check the session when the component mounts
+  useEffect(() => {
+    refreshSession();
+
+    // Setup listener for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth event: ${event}`);
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        refreshSession();
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [refreshSession]);
+
+  // Sign-in function
+  const signIn = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { data: { session, user }, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
       });
+
+      if (error) {
+        throw error;
+      }
+
+      if (session && user) {
+        // Fetch user details from the dashboard_users table
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+
+        if (error) {
+          console.error("Error fetching dashboard user:", error);
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            session: null,
+            role: null,
+          });
+          return;
+        }
+
+        // Determine the user's role
+        let role = dashboardUser?.role || null;
+
+        // For the default admin user, assign the admin role
+        if (user.id === DEFAULT_ADMIN_USER.id) {
+          role = 'admin';
+        }
+
+        setAuthState({
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: dashboardUser?.name || user.email,
+          },
+          session: session,
+          role: role,
+        });
+      }
+    } catch (error: any) {
+      console.error("Sign-in error:", error);
+      throw new Error(error.message || "Failed to sign in");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleCheckUserRole = async (userId: string, role: string): Promise<boolean> => {
-    return await checkUserRole(userId, role);
+  // Sign-up function
+  const signUp = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { data: { session, user }, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (session && user) {
+        setAuthState({
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.email, // Default to email, can be updated later
+          },
+          session: session,
+          role: null, // Default role
+        });
+      }
+    } catch (error: any) {
+      console.error("Sign-up error:", error);
+      throw new Error(error.message || "Failed to sign up");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAssignRole = async (userId: string, role: string): Promise<boolean> => {
-    return await assignRole(userId, role, authState.role);
+  // Logout function
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      await supabase.auth.signOut();
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        session: null,
+        role: null,
+      });
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      throw new Error(error.message || "Failed to log out");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleRemoveRole = async (userId: string, role: string): Promise<boolean> => {
-    return await removeRole(userId, role, authState.role);
+  // Provide the auth context value
+  const value: AuthContextType = {
+    authState,
+    isLoading,
+    signIn,
+    signUp,
+    logout,
+    refreshSession,
   };
 
-  // Provide the context value to children
   return (
-    <AuthContext.Provider value={{ 
-      authState, 
-      user: authState.user,
-      login, 
-      logout,
-      checkUserRole: handleCheckUserRole,
-      assignRole: handleAssignRole,
-      removeRole: handleRemoveRole,
-      refreshAuth
-    }}>
-      {children}
+    <AuthContext.Provider value={value}>
+      {!isLoading && children}
     </AuthContext.Provider>
   );
 };
 
-// Export the useAuth hook
+// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
