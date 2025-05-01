@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { parseCSVDashboardUsers } from '@/utils/csvDashboardUsersParser';
 import { CSVDashboardUserData, DashboardUserRowData } from '@/types/dashboardUsers';
+import { Json } from '@/integrations/supabase/types';
 
 type ValidationResults = {
   validUsers: CSVDashboardUserData[];
@@ -60,7 +61,7 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     // Use RPC to bypass RLS policies for audit log entries
     const { data, error } = await supabase
       .rpc('insert_dashboard_users_with_audit', {
-        users_json: users as unknown as Record<string, unknown>[]
+        users_json: users as unknown as Json
       });
 
     if (error) throw new Error(`Error inserting dashboard users: ${error.message}`);
