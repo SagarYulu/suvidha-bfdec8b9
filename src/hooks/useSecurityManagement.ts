@@ -141,9 +141,18 @@ const useSecurityManagement = () => {
     );
     
     try {
-      // Get the current user's UUID from the auth context
-      // Use null if user is not available - the database will record this appropriately
-      const grantedByUuid = authState.user?.id || null;
+      // Get the current authenticated user's UUID
+      const currentUserUuid = authState.user?.id;
+      
+      if (!currentUserUuid) {
+        console.error("No authenticated user found");
+        toast({
+          title: "Error",
+          description: "Authentication required to manage permissions",
+          variant: "destructive"
+        });
+        return;
+      }
       
       if (hasPermissionValue) {
         // Remove permission
@@ -157,7 +166,7 @@ const useSecurityManagement = () => {
           console.error("Error removing permission:", error);
           toast({
             title: "Error",
-            description: "Failed to remove permission",
+            description: "Failed to remove permission: " + error.message,
             variant: "destructive"
           });
           return;
@@ -175,7 +184,7 @@ const useSecurityManagement = () => {
           .insert({
             user_id: userId,
             permission_id: permissionId,
-            granted_by: grantedByUuid
+            granted_by: currentUserUuid
           });
         
         if (error) {
@@ -196,11 +205,11 @@ const useSecurityManagement = () => {
       // Refresh audit logs
       fetchAuditLogs();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive"
       });
     }

@@ -13,6 +13,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InfoIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 
 interface DashboardUser {
   id: string;
@@ -55,6 +56,13 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     
     try {
       await togglePermission(userId, permissionId);
+    } catch (error) {
+      console.error("Error toggling permission:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update permission",
+        variant: "destructive"
+      });
     } finally {
       setPendingPermissions(prev => {
         const newSet = new Set(prev);
