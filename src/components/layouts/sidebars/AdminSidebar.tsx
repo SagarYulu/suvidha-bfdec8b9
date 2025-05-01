@@ -62,12 +62,18 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   isOpen, 
   toggleOpen 
 }) => {
-  const isActive = isOpen || Array.isArray(children) && 
-    children.some(child => 
-      React.isValidElement(child) && 
-      child.props.href && 
-      window.location.pathname === child.props.href
-    );
+  const isActive = isOpen || React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child) && 
+        'props' in child && 
+        child.props && 
+        typeof child.props === 'object' && 
+        child.props !== null &&
+        'href' in child.props && 
+        typeof child.props.href === 'string') {
+      return window.location.pathname === child.props.href;
+    }
+    return false;
+  });
 
   return (
     <div className="flex flex-col">

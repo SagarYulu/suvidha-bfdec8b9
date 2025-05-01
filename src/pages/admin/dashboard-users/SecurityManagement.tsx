@@ -349,7 +349,7 @@ const SecurityManagement: React.FC = () => {
                             <TableCell>
                               <Badge 
                                 variant={
-                                  log.action === 'create' ? 'success' :
+                                  log.action === 'create' ? 'default' :
                                   log.action === 'delete' ? 'destructive' :
                                   'outline'
                                 }
