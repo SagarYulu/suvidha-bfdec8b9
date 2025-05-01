@@ -14,7 +14,15 @@ export interface RolePermissions {
 }
 
 // Define the pages that can have permissions
-export type DashboardPage = "dashboard" | "tickets" | "users" | "analytics" | "access_control" | "settings";
+export type DashboardPage = 
+  "dashboard" | 
+  "tickets" | 
+  "users" | 
+  "analytics" | 
+  "access_control" | 
+  "settings" | 
+  "security_management" |
+  "dashboard_users";
 
 // Define the permissions matrix
 const rolePermissionsMatrix: Record<DashboardRole, Record<DashboardPage, RolePermissions>> = {
@@ -24,7 +32,9 @@ const rolePermissionsMatrix: Record<DashboardRole, Record<DashboardPage, RolePer
     users: { view: true, edit: true },
     analytics: { view: true, edit: true },
     access_control: { view: true, edit: true },
-    settings: { view: true, edit: true }
+    settings: { view: true, edit: true },
+    security_management: { view: true, edit: true },
+    dashboard_users: { view: true, edit: true }
   },
   [DashboardRole.OPS_HEAD]: {
     dashboard: { view: true, edit: false },
@@ -32,7 +42,9 @@ const rolePermissionsMatrix: Record<DashboardRole, Record<DashboardPage, RolePer
     users: { view: false, edit: false },
     analytics: { view: true, edit: false },
     access_control: { view: false, edit: false },
-    settings: { view: false, edit: false }
+    settings: { view: false, edit: false },
+    security_management: { view: false, edit: false },
+    dashboard_users: { view: false, edit: false }
   }
 };
 
