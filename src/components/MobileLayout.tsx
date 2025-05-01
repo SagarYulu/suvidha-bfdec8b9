@@ -10,9 +10,14 @@ import MobileBottomNav from "./layouts/navigation/MobileBottomNav";
 interface MobileLayoutProps {
   children: React.ReactNode;
   title: string;
+  className?: string;
 }
 
-const MobileLayout: React.FC<MobileLayoutProps> = ({ children, title }) => {
+const MobileLayout: React.FC<MobileLayoutProps> = ({ 
+  children, 
+  title,
+  className 
+}) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -59,7 +64,12 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children, title }) => {
   );
 
   return (
-    <BaseLayout header={header} footer={footer}>
+    <BaseLayout 
+      header={header} 
+      footer={footer}
+      className={className}
+      contentClassName="pb-16" // Add bottom padding for mobile navigation
+    >
       {children}
     </BaseLayout>
   );

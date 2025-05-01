@@ -10,9 +10,16 @@ import AdminSidebar from './layouts/sidebars/AdminSidebar';
 interface AdminLayoutProps {
   children: React.ReactNode;
   title: string;
+  className?: string;
+  showBackButton?: boolean;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
+const AdminLayout: React.FC<AdminLayoutProps> = ({ 
+  children, 
+  title,
+  className,
+  showBackButton = true
+}) => {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
   
@@ -21,12 +28,22 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     navigate('/admin/login');
   };
 
-  const header = <AdminHeader title={title} userName={user?.name || 'Administrator'} />;
+  const header = (
+    <AdminHeader 
+      title={title} 
+      userName={user?.name || 'Administrator'} 
+      showBackButton={showBackButton}
+    />
+  );
   
   const sidebar = <AdminSidebar onLogout={handleLogout} />;
 
   return (
-    <BaseLayout header={header} sidebar={sidebar}>
+    <BaseLayout 
+      header={header} 
+      sidebar={sidebar}
+      className={className}
+    >
       {children}
     </BaseLayout>
   );
