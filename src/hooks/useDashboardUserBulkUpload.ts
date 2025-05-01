@@ -56,6 +56,17 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     }));
   };
 
+  const insertDashboardUsers = async (users: any[]) => {
+    // Use RPC to bypass RLS policies for audit log entries
+    const { data, error } = await supabase
+      .rpc('insert_dashboard_users_with_audit', {
+        users_json: JSON.stringify(users)
+      });
+
+    if (error) throw new Error(`Error inserting dashboard users: ${error.message}`);
+    return data;
+  };
+
   const handleUploadEditedRows = async () => {
     if (validationResults.validUsers.length === 0 && Object.keys(editedRows).length === 0) {
       toast({
@@ -69,55 +80,44 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     setIsUploading(true);
 
     try {
-      // First, insert valid users from CSV
-      if (validationResults.validUsers.length > 0) {
-        const { error: validUsersError } = await supabase
-          .from('dashboard_users')
-          .insert(validationResults.validUsers.map(user => ({
-            name: user.name,
-            email: user.email,
-            employee_id: user.employee_id,
-            user_id: user.userId || user.user_id,
-            phone: user.phone,
-            city: user.city,
-            cluster: user.cluster,
-            manager: user.manager,
-            role: user.role,
-            password: user.password
-          })));
+      // Prepare all valid users data
+      const allValidUsers = [
+        // Valid users from CSV
+        ...validationResults.validUsers.map(user => ({
+          name: user.name,
+          email: user.email,
+          employee_id: user.employee_id,
+          user_id: user.userId || user.user_id,
+          phone: user.phone,
+          city: user.city,
+          cluster: user.cluster,
+          manager: user.manager,
+          role: user.role,
+          password: user.password
+        })),
+        // Previously invalid, now edited users
+        ...Object.values(editedRows).map(row => ({
+          name: row.name,
+          email: row.email,
+          employee_id: row.employee_id,
+          user_id: row.userId,
+          phone: row.phone,
+          city: row.city,
+          cluster: row.cluster,
+          manager: row.manager,
+          role: row.role,
+          password: row.password
+        }))
+      ];
 
-        if (validUsersError) {
-          throw new Error(`Error uploading valid users: ${validUsersError.message}`);
-        }
-      }
-
-      // Then, insert edited rows that were previously invalid
-      const editedRowsArray = Object.values(editedRows);
-      if (editedRowsArray.length > 0) {
-        const { error: editedRowsError } = await supabase
-          .from('dashboard_users')
-          .insert(editedRowsArray.map(row => ({
-            name: row.name,
-            email: row.email,
-            employee_id: row.employee_id,
-            user_id: row.userId,
-            phone: row.phone,
-            city: row.city,
-            cluster: row.cluster,
-            manager: row.manager,
-            role: row.role,
-            password: row.password
-          })));
-
-        if (editedRowsError) {
-          throw new Error(`Error uploading edited rows: ${editedRowsError.message}`);
-        }
+      if (allValidUsers.length > 0) {
+        await insertDashboardUsers(allValidUsers);
       }
 
       // Success
       toast({
         title: "Success",
-        description: `Successfully uploaded ${validationResults.validUsers.length + editedRowsArray.length} dashboard users.`
+        description: `Successfully uploaded ${allValidUsers.length} dashboard users.`
       });
       
       setShowValidationDialog(false);
@@ -153,24 +153,20 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     setIsUploading(true);
 
     try {
-      const { error } = await supabase
-        .from('dashboard_users')
-        .insert(validationResults.validUsers.map(user => ({
-          name: user.name,
-          email: user.email,
-          employee_id: user.employee_id,
-          user_id: user.userId || user.user_id,
-          phone: user.phone,
-          city: user.city,
-          cluster: user.cluster,
-          manager: user.manager,
-          role: user.role,
-          password: user.password
-        })));
+      const validUsersData = validationResults.validUsers.map(user => ({
+        name: user.name,
+        email: user.email,
+        employee_id: user.employee_id,
+        user_id: user.userId || user.user_id,
+        phone: user.phone,
+        city: user.city,
+        cluster: user.cluster,
+        manager: user.manager,
+        role: user.role,
+        password: user.password
+      }));
 
-      if (error) {
-        throw new Error(`Error uploading dashboard users: ${error.message}`);
-      }
+      await insertDashboardUsers(validUsersData);
 
       toast({
         title: "Success",
