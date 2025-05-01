@@ -55,13 +55,17 @@ const ValidationDialog = ({
     }
   };
 
-  // Always show validation alerts even if there are no invalid rows
+  // Always show validation section regardless of whether there are errors or not
   const showValidationSection = () => {
+    console.log("Rendering validation alerts with:", validationResults);
     return (
       <ValidationAlerts validationResults={validationResults} />
     );
   };
 
+  // Force-render the content even if validationResults is empty
+  console.log("ValidationDialog render with isOpen:", isOpen, "validationResults:", validationResults);
+  
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="max-w-5xl max-h-[90vh]">

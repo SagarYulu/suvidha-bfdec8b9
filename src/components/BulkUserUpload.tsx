@@ -22,6 +22,10 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
+  // Add debug to see when dialog should open
+  console.log("BulkUserUpload: showValidationDialog =", showValidationDialog);
+  console.log("BulkUserUpload: validationResults =", validationResults);
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
