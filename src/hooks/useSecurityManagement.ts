@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -45,7 +46,18 @@ const useSecurityManagement = () => {
       try {
         console.log("Authenticated user:", authState.user?.email);
         
-        // No need to check for Supabase session here, proceed directly
+        // Ensure we're using a valid session for Supabase operations
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          console.log("No valid Supabase session found");
+          toast({
+            title: "Authentication Error",
+            description: "Please refresh and login again to continue",
+            variant: "destructive"
+          });
+          return;
+        }
+
         await Promise.all([
           fetchDashboardUsers(),
           fetchPermissions(),
@@ -182,8 +194,14 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
-      // Skip session check since we're already authenticated in the app
-      console.log("Using app authentication for user:", authState.user?.email);
+      // Ensure we have a valid session before proceeding
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error("No valid session found during permission toggle");
+        throw new Error("Not authenticated");
+      }
+      
+      console.log("Using Supabase session for user:", session.user.email);
       
       if (hasPermissionValue) {
         // Use an RPC function to remove permission

@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ShieldAlert, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 // List of authorized emails that can access the security management page
 const AUTHORIZED_EMAILS = ['admin@yulu.com', 'sagar.km@yulu.bike'];
@@ -25,14 +26,42 @@ const AUTHORIZED_EMAILS = ['admin@yulu.com', 'sagar.km@yulu.bike'];
 const SecurityManagement: React.FC = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
-  const { authState } = useAuth();
+  const { authState, refreshAuth } = useAuth();
   
   // Always call the hook, regardless of auth state
   const securityManagement = useSecurityManagement();
   
+  // Refresh Supabase session on mount
+  useEffect(() => {
+    const refreshSession = async () => {
+      try {
+        console.log("Refreshing Supabase session...");
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error) {
+          console.error("Error refreshing session:", error.message);
+          setError("Session refresh failed. Please log in again.");
+        } else if (data && data.session) {
+          console.log("Session refreshed successfully");
+          // Also refresh auth context to ensure it has the latest session
+          await refreshAuth();
+        }
+      } catch (e) {
+        console.error("Session refresh exception:", e);
+      } finally {
+        setSessionChecked(true);
+      }
+    };
+    
+    refreshSession();
+  }, [refreshAuth]);
+  
   // Check authentication first before loading data
   useEffect(() => {
+    if (!sessionChecked) return; // Wait until session is checked
+    
     const checkAuth = async () => {
       // Short timeout to ensure auth state is loaded
       setTimeout(() => {
@@ -61,7 +90,7 @@ const SecurityManagement: React.FC = () => {
     };
     
     checkAuth();
-  }, [authState, navigate]);
+  }, [authState, navigate, sessionChecked]);
   
   if (isAuthChecking) {
     return (
