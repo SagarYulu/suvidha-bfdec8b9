@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -24,13 +25,66 @@ interface UserPermission {
 }
 
 const useSecurityManagement = () => {
-  const { user, authState } = useAuth();
+  const { authState } = useAuth();
   const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
+
+  // Check authentication status first
+  useEffect(() => {
+    const checkAuth = async () => {
+      if (!authState.isAuthenticated) {
+        console.error("User is not authenticated");
+        setAuthStatus('unauthenticated');
+        return;
+      }
+
+      // Make sure we have a valid Supabase session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        console.error("No valid Supabase session found");
+        setAuthStatus('unauthenticated');
+        return;
+      }
+
+      console.log("User authenticated, session valid:", sessionData.session.user.id);
+      setAuthStatus('authenticated');
+    };
+
+    checkAuth();
+  }, [authState]);
+
+  // Fetch data only after authentication is confirmed
+  useEffect(() => {
+    if (authStatus !== 'authenticated') return;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchDashboardUsers(),
+          fetchPermissions(),
+          fetchUserPermissions(),
+          fetchAuditLogs()
+        ]);
+      } catch (error) {
+        console.error("Error loading security management data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load security management data",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [authStatus]);
 
   // Fetch dashboard users
   const fetchDashboardUsers = async () => {
@@ -145,15 +199,14 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
-      // IMPORTANT: Create a new session before making RPC calls
-      // Get current session and token for authentication
+      // IMPORTANT: Check for a valid session before making RPC calls
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !sessionData.session) {
         console.error("Session error:", sessionError);
         toast({ 
           title: "Authentication Error", 
-          description: "You must be logged in to manage permissions",
+          description: "You must be logged in to manage permissions. Please log in again.",
           variant: "destructive" 
         });
         throw new Error("Not authenticated");
@@ -246,21 +299,6 @@ const useSecurityManagement = () => {
     );
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      await Promise.all([
-        fetchDashboardUsers(),
-        fetchPermissions(),
-        fetchUserPermissions(),
-        fetchAuditLogs()
-      ]);
-      setIsLoading(false);
-    };
-    
-    loadData();
-  }, []);
-
   return {
     dashboardUsers,
     permissions,
@@ -271,7 +309,8 @@ const useSecurityManagement = () => {
     auditLogs,
     formatDate,
     hasPermission,
-    togglePermission
+    togglePermission,
+    authStatus
   };
 };
 

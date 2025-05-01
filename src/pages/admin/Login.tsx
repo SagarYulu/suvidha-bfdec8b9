@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 
+interface LocationState {
+  returnTo?: string;
+}
+
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,11 +21,14 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { login, authState } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { returnTo } = (location.state as LocationState) || {};
 
   useEffect(() => {
     // Check if user is already logged in
     if (authState.isAuthenticated) {
-      navigate('/admin/dashboard');
+      const redirectPath = returnTo || '/admin/dashboard';
+      navigate(redirectPath);
     }
     
     // Check Supabase session status
@@ -33,7 +40,7 @@ const Login = () => {
     };
     
     checkSession();
-  }, [authState, navigate]);
+  }, [authState, navigate, returnTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -61,7 +68,10 @@ const Login = () => {
         toast({
           description: 'Login successful!'
         });
-        navigate('/admin/dashboard');
+        
+        // Redirect to the return URL if provided, or to the dashboard
+        const redirectPath = returnTo || '/admin/dashboard';
+        navigate(redirectPath);
       } else {
         setErrorMessage('Invalid email or password');
       }
@@ -81,6 +91,7 @@ const Login = () => {
             <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
             <CardDescription>
               Enter your credentials to access the admin dashboard
+              {returnTo && <p className="mt-1 text-sm italic">You'll be redirected back after login</p>}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -124,7 +135,7 @@ const Login = () => {
           </CardContent>
           <CardFooter>
             <p className="text-center text-sm text-muted-foreground w-full">
-              Use the default admin credentials or your assigned login
+              Use the default admin credentials (admin@yulu.com / admin123) or your assigned login
             </p>
           </CardFooter>
         </Card>

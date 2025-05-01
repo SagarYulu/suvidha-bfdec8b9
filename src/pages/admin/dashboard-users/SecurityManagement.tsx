@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AdminLayout from '@/components/AdminLayout';
 import {
@@ -14,48 +15,58 @@ import AuditLogsTable from '@/components/dashboard-users/AuditLogsTable';
 import useSecurityManagement from '@/hooks/useSecurityManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 const SecurityManagement: React.FC = () => {
-  const {
-    dashboardUsers,
-    permissions,
-    isLoading,
-    activeTab,
-    setActiveTab,
-    auditLogs,
-    formatDate,
-    hasPermission,
-    togglePermission
-  } = useSecurityManagement();
-  
-  const { authState } = useAuth();
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const navigate = useNavigate();
+  const { authState } = useAuth();
   
-  // Ensure user is authenticated and has admin role
+  // Check authentication first before loading data
   useEffect(() => {
-    if (!authState.isAuthenticated) {
-      navigate('/admin/login');
-    } else if (authState.role !== 'admin') {
-      toast({
-        title: "Access Denied",
-        description: "You must have admin privileges to access this page",
-        variant: "destructive"
-      });
-      navigate('/admin');
-    }
+    const checkAuth = async () => {
+      // Short timeout to ensure auth state is loaded
+      setTimeout(() => {
+        if (!authState.isAuthenticated) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to access security management",
+            variant: "destructive"
+          });
+          navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
+        } else if (authState.role !== 'admin') {
+          toast({
+            title: "Access Denied",
+            description: "You must have admin privileges to access this page",
+            variant: "destructive"
+          });
+          navigate('/admin');
+        } else {
+          setIsAuthChecking(false);
+        }
+      }, 500);
+    };
+    
+    checkAuth();
   }, [authState, navigate]);
 
-  // Create a wrapper that adapts the return type for UserPermissionsTable
-  const handleTogglePermission = async (userId: string, permissionId: string): Promise<void> => {
-    try {
-      await togglePermission(userId, permissionId);
-    } catch (error) {
-      // Error is already handled in togglePermission
-      console.error("Permission toggle failed:", error);
-    }
-  };
+  // Only load the security management hook after authentication is confirmed
+  const securityManagement = !isAuthChecking ? useSecurityManagement() : null;
+  
+  if (isAuthChecking) {
+    return (
+      <AdminLayout title="Security Management">
+        <div className="container mx-auto py-6 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
+            <p className="text-lg">Checking authentication...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (!authState.isAuthenticated) {
     return (
@@ -68,10 +79,39 @@ const SecurityManagement: React.FC = () => {
               You must be logged in to access the security management page.
             </AlertDescription>
           </Alert>
+          <div className="mt-4">
+            <Button onClick={() => navigate('/admin/login')}>
+              Go to Login
+            </Button>
+          </div>
         </div>
       </AdminLayout>
     );
   }
+
+  const {
+    dashboardUsers,
+    permissions,
+    isLoading,
+    activeTab,
+    setActiveTab,
+    auditLogs,
+    formatDate,
+    hasPermission,
+    togglePermission
+  } = securityManagement || {};
+
+  // Create a wrapper that adapts the return type for UserPermissionsTable
+  const handleTogglePermission = async (userId: string, permissionId: string): Promise<void> => {
+    try {
+      if (togglePermission) {
+        await togglePermission(userId, permissionId);
+      }
+    } catch (error) {
+      // Error is already handled in togglePermission
+      console.error("Permission toggle failed:", error);
+    }
+  };
 
   return (
     <AdminLayout title="Security Management">
@@ -92,10 +132,10 @@ const SecurityManagement: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <UserPermissionsTable
-                  dashboardUsers={dashboardUsers}
-                  permissions={permissions}
-                  isLoading={isLoading}
-                  hasPermission={hasPermission}
+                  dashboardUsers={dashboardUsers || []}
+                  permissions={permissions || []}
+                  isLoading={isLoading || false}
+                  hasPermission={hasPermission || (() => false)}
                   togglePermission={handleTogglePermission}
                 />
               </CardContent>
@@ -112,9 +152,9 @@ const SecurityManagement: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <AuditLogsTable
-                  auditLogs={auditLogs}
-                  isLoading={isLoading}
-                  formatDate={formatDate}
+                  auditLogs={auditLogs || []}
+                  isLoading={isLoading || false}
+                  formatDate={formatDate || ((date: string) => date)}
                 />
               </CardContent>
             </Card>
