@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -30,11 +31,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Search, Trash, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
-import BulkUserUpload from "@/components/BulkUserUpload";
+import { Search, Trash, UserPlus, RefreshCw, AlertCircle, Check, Info } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
+import { useToast } from "@/hooks/use-toast";
+import Papa from "papaparse";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -44,6 +47,7 @@ const AdminUsers = () => {
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = useState(false);
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
   const [lastRefreshedAt, setLastRefreshedAt] = useState(Date.now());
+  const { toast } = useToast();
 
   const [newUser, setNewUser] = useState<Omit<User, 'id'>>({
     userId: "",
@@ -116,7 +120,7 @@ const AdminUsers = () => {
       setIsLoading(false);
       setLastRefreshedAt(Date.now());
     }
-  }, []);
+  }, [toast]);
 
   // Initial data fetch
   useEffect(() => {
@@ -222,30 +226,189 @@ const AdminUsers = () => {
     setNewUser({ ...newUser, [name]: value });
   };
 
-  // Handle successful bulk upload with proper logging
-  const handleBulkUploadSuccess = useCallback(() => {
-    console.log("Bulk upload successful, refreshing users list...");
-    // Close the dialog and refresh the user list
-    setIsAddUserDialogOpen(false);
-    
-    // Add a small delay to ensure the database has finished processing
-    toast({
-      title: "Success",
-      description: "Users uploaded successfully. Refreshing user list...",
-    });
-    
-    // Give the database a moment to complete the transaction
-    setTimeout(() => {
-      fetchUsers();
-    }, 2000); // Increased delay further to ensure database consistency
-  }, [fetchUsers]);
-
   const handleManualRefresh = () => {
     toast({
       title: "Refreshing",
       description: "Fetching latest user data...",
     });
     fetchUsers();
+  };
+
+  // CSV Template generation and download
+  const generateCSVTemplate = () => {
+    const headers = [
+      'id',           // UUID (auto-generated, can be left empty)
+      'User ID',      // Manual User ID (numeric, required)
+      'emp_id',       // Employee ID (required)
+      'name',         // Name (required)
+      'email',        // Email (required)
+      'phone',        // Phone
+      'city',         // City (required)
+      'cluster',      // Cluster (required)
+      'manager',      // Manager (required)
+      'role',         // Role (required)
+      'password'      // Password
+    ];
+
+    // Example data
+    const exampleRows = [
+      ',1234567,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,changeme123',
+      ',2345678,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,changeme123'
+    ];
+
+    const csvContent = [headers.join(','), ...exampleRows].join('\n');
+    return csvContent;
+  };
+
+  const downloadCSVTemplate = () => {
+    const csvContent = generateCSVTemplate();
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'user_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle CSV upload
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      Papa.parse<Record<string, string>>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          if (results.data.length === 0) {
+            toast({
+              variant: "destructive",
+              title: "Empty File",
+              description: "The CSV file doesn't contain any valid data rows.",
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          // Process each row
+          const validUsers = [];
+          const invalidRows = [];
+          
+          for (const row of results.data) {
+            // Skip empty rows
+            if (Object.values(row).every(val => val === null || val === '')) {
+              continue;
+            }
+
+            // Extract data with multiple possible header names
+            const userId = 
+              row.userId || 
+              row.user_id || 
+              row.userid || 
+              row['User ID'] || 
+              row['user id'] || 
+              row['USER ID'] || 
+              row['UserId'] || 
+              '';
+
+            const empId = (
+              row.emp_id || 
+              row.empId || 
+              row.employee_id || 
+              row.employeeId || 
+              row.EmployeeID ||
+              row['Employee ID'] ||
+              row['emp id'] ||
+              row['EMP ID'] ||
+              ''
+            ).trim();
+
+            // Basic validation
+            if (!userId || !empId || !row.name || !row.email || !row.city || !row.cluster || !row.manager || !row.role) {
+              invalidRows.push({
+                row,
+                message: "Missing required fields"
+              });
+              continue;
+            }
+
+            // Create user object
+            validUsers.push({
+              userId: userId,
+              employeeId: empId,
+              name: row.name,
+              email: row.email,
+              phone: row.phone || "",
+              city: row.city,
+              cluster: row.cluster,
+              manager: row.manager,
+              role: row.role,
+              password: row.password || "changeme123",
+              dateOfJoining: "",
+              bloodGroup: "",
+              dateOfBirth: "",
+              accountNumber: "",
+              ifscCode: ""
+            });
+          }
+
+          if (validUsers.length === 0) {
+            toast({
+              variant: "destructive",
+              title: "Validation Failed",
+              description: `No valid users found. Please check the CSV format.`,
+            });
+          } else {
+            try {
+              // Create users in batch
+              for (const userData of validUsers) {
+                await createUser(userData);
+              }
+              
+              toast({
+                title: "Upload Successful",
+                description: `Successfully added ${validUsers.length} users.`,
+              });
+              
+              // Close the dialog and refresh the user list
+              setIsAddUserDialogOpen(false);
+              fetchUsers();
+            } catch (error) {
+              console.error('Error creating users:', error);
+              toast({
+                variant: "destructive",
+                title: "Upload Failed",
+                description: "There was an error adding the users to the database.",
+              });
+            }
+          }
+          
+          setIsLoading(false);
+        },
+        error: (error) => {
+          console.error('CSV parsing error:', error);
+          toast({
+            variant: "destructive",
+            title: "Parse Error",
+            description: "There was an error processing the CSV file. Please check the format.",
+          });
+          setIsLoading(false);
+        }
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: "There was an error processing the CSV file.",
+      });
+      setIsLoading(false);
+    } finally {
+      if (event.target) event.target.value = '';
+    }
   };
 
   // Debug: Force initial fetch on component mount
@@ -512,7 +675,88 @@ const AdminUsers = () => {
                     </DialogFooter>
                   </TabsContent>
                   <TabsContent value="bulk">
-                    <BulkUserUpload onUploadSuccess={handleBulkUploadSuccess} />
+                    <div className="space-y-6">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        <Button 
+                          variant="outline" 
+                          className="flex items-center" 
+                          onClick={downloadCSVTemplate}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                          </svg>
+                          Download Template
+                        </Button>
+                        
+                        <div className="relative">
+                          <Button 
+                            variant="default" 
+                            className="flex items-center bg-yulu-blue"
+                            disabled={isLoading}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                              <polyline points="17 8 12 3 7 8"></polyline>
+                              <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            {isLoading ? "Uploading..." : "Upload CSV"}
+                          </Button>
+                          <input 
+                            type="file" 
+                            accept=".csv"
+                            onChange={handleFileUpload}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-start mb-2">
+                            <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+                            <div>
+                              <h3 className="font-medium text-sm">CSV Format Instructions</h3>
+                              <p className="text-sm text-muted-foreground">
+                                Please ensure your CSV file follows these guidelines:
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-2 mt-4">
+                            <div className="flex items-start">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <div className="text-sm">
+                                <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, city, cluster, manager, role
+                              </div>
+                            </div>
+
+                            <div className="flex items-start">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <div className="text-sm">
+                                <span className="font-medium">Optional Headers:</span> phone, password
+                              </div>
+                            </div>
+
+                            <div className="flex items-start">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <div className="text-sm">
+                                <span className="font-medium">User ID Format:</span> Must be a 7-digit number (e.g., 1234567)
+                              </div>
+                            </div>
+
+                            <div className="flex items-start">
+                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
+                              <div className="text-sm">
+                                <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </DialogContent>
