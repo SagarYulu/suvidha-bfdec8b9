@@ -3,9 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUsers } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
-import { User } from "@/types";
 import {
   Table,
   TableBody,
@@ -23,16 +21,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Shield, ShieldCheck, ShieldX, AlertTriangle } from "lucide-react";
+import { Shield, ShieldCheck, ShieldX, AlertTriangle, RefreshCw } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { DashboardUser } from "@/types/dashboardUsers";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DASHBOARD_USER_ROLES } from "@/data/formOptions";
 
 const AccessControl = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [adminUserIds, setAdminUserIds] = useState<Set<string>>(new Set());
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<DashboardUser | null>(null);
   const [actionType, setActionType] = useState<"grant" | "revoke">("grant");
-  const { authState, checkUserRole, assignRole, removeRole } = useAuth();
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const { authState } = useAuth();
   const navigate = useNavigate();
 
   // Check if current user is admin
@@ -52,33 +55,36 @@ const AccessControl = () => {
       return;
     }
 
-    loadUsers();
+    loadDashboardUsers();
   }, [authState, navigate]);
 
-  const loadUsers = async () => {
+  const loadDashboardUsers = async () => {
     setLoading(true);
     try {
-      const usersList = await getUsers();
-      setUsers(usersList);
+      const { data: users, error } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .order('name');
 
-      // Check each user for admin role
+      if (error) {
+        throw error;
+      }
+
+      setDashboardUsers(users || []);
+      
+      // Check each user's role
       const adminIds = new Set<string>();
-      for (const user of usersList) {
-        if (user.role === "admin") {
+      for (const user of users || []) {
+        if (user.role === "Super Admin") {
           adminIds.add(user.id);
-        } else {
-          const isAdmin = await checkUserRole(user.id, "admin");
-          if (isAdmin) {
-            adminIds.add(user.id);
-          }
         }
       }
       setAdminUserIds(adminIds);
     } catch (error) {
-      console.error("Error loading users:", error);
+      console.error("Error loading dashboard users:", error);
       toast({
         title: "Error",
-        description: "Failed to load users",
+        description: "Failed to load dashboard users",
         variant: "destructive",
       });
     } finally {
@@ -86,71 +92,61 @@ const AccessControl = () => {
     }
   };
 
-  const handleGrantAdmin = (user: User) => {
+  const handleRoleChange = (user: DashboardUser) => {
     setSelectedUser(user);
-    setActionType("grant");
+    setSelectedRole(user.role);
     setDialogOpen(true);
   };
 
-  const handleRevokeAdmin = (user: User) => {
-    setSelectedUser(user);
-    setActionType("revoke");
-    setDialogOpen(true);
-  };
-
-  const handleConfirmAction = async () => {
-    if (!selectedUser) return;
+  const handleConfirmRoleChange = async () => {
+    if (!selectedUser || selectedRole === selectedUser.role) {
+      setDialogOpen(false);
+      return;
+    }
 
     try {
-      let success = false;
+      // Update the user's role in the database
+      const { error } = await supabase
+        .from('dashboard_users')
+        .update({ 
+          role: selectedRole,
+          last_updated_by: authState.user?.id
+        })
+        .eq('id', selectedUser.id);
       
-      if (actionType === "grant") {
-        success = await assignRole(selectedUser.id, "admin");
-        if (success) {
-          setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
-          toast({
-            title: "Success",
-            description: `Admin access granted to ${selectedUser.name}`,
-          });
-        }
-      } else {
-        // Don't allow revoking admin from default admin
-        if (selectedUser.email === "admin@yulu.com") {
-          toast({
-            title: "Cannot Revoke",
-            description: "Default admin access cannot be revoked",
-            variant: "destructive",
-          });
-          setDialogOpen(false);
-          return;
-        }
-
-        success = await removeRole(selectedUser.id, "admin");
-        if (success) {
-          setAdminUserIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(selectedUser.id);
-            return newSet;
-          });
-          toast({
-            title: "Success",
-            description: `Admin access revoked from ${selectedUser.name}`,
-          });
-        }
+      if (error) {
+        throw error;
       }
-
-      if (!success) {
-        toast({
-          title: "Error",
-          description: `Failed to ${actionType === "grant" ? "grant" : "revoke"} admin access`,
-          variant: "destructive",
+      
+      // Update the local state
+      setDashboardUsers(prev => 
+        prev.map(user => 
+          user.id === selectedUser.id 
+            ? { ...user, role: selectedRole } 
+            : user
+        )
+      );
+      
+      // Update admin user IDs set
+      if (selectedRole === "Super Admin") {
+        setAdminUserIds(prev => new Set(prev).add(selectedUser.id));
+      } else {
+        setAdminUserIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(selectedUser.id);
+          return newSet;
         });
       }
+
+      toast({
+        title: "Success",
+        description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
+      });
     } catch (error) {
       console.error("Error updating role:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "Failed to update user role",
         variant: "destructive",
       });
     } finally {
@@ -162,8 +158,9 @@ const AccessControl = () => {
     <AdminLayout title="Access Control">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Admin Access Management</h2>
-          <Button onClick={() => loadUsers()} variant="outline">
+          <h2 className="text-2xl font-bold">Dashboard User Role Management</h2>
+          <Button onClick={() => loadDashboardUsers()} variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
         </div>
@@ -180,19 +177,31 @@ const AccessControl = () => {
                   <TableHead>Name</TableHead>
                   <TableHead>Employee ID</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>City</TableHead>
+                  <TableHead>Cluster</TableHead>
                   <TableHead>Current Role</TableHead>
-                  <TableHead>Admin Access</TableHead>
+                  <TableHead>Admin Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.length > 0 ? (
-                  users.map((user) => (
+                {dashboardUsers.length > 0 ? (
+                  dashboardUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.employeeId}</TableCell>
+                      <TableCell>{user.employee_id}</TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
+                      <TableCell>{user.phone || '-'}</TableCell>
+                      <TableCell>{user.city || '-'}</TableCell>
+                      <TableCell>{user.cluster || '-'}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          user.role === "Super Admin" ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800"
+                        }`}>
+                          {user.role}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         {adminUserIds.has(user.id) ? (
                           <div className="flex items-center text-green-600">
@@ -207,31 +216,20 @@ const AccessControl = () => {
                         )}
                       </TableCell>
                       <TableCell>
-                        {adminUserIds.has(user.id) ? (
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRevokeAdmin(user)}
-                            disabled={user.email === "admin@yulu.com"} // Prevent revoking default admin
-                          >
-                            Revoke Admin
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleGrantAdmin(user)}
-                          >
-                            Grant Admin
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRoleChange(user)}
+                        >
+                          Change Role
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-4">
-                      No users found
+                    <TableCell colSpan={9} className="text-center py-6">
+                      No dashboard users found
                     </TableCell>
                   </TableRow>
                 )}
@@ -243,41 +241,52 @@ const AccessControl = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>
-                {actionType === "grant" ? "Grant Admin Access" : "Revoke Admin Access"}
-              </DialogTitle>
+              <DialogTitle>Change User Role</DialogTitle>
               <DialogDescription>
-                {actionType === "grant"
-                  ? `Are you sure you want to grant admin access to ${selectedUser?.name}? They will have full access to the admin dashboard and all its features.`
-                  : `Are you sure you want to revoke admin access from ${selectedUser?.name}? They will no longer be able to access the admin dashboard.`}
+                Update the role for {selectedUser?.name}. Current role: <strong>{selectedUser?.role}</strong>
               </DialogDescription>
             </DialogHeader>
             
-            {actionType === "grant" && (
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      This will give the user complete access to the admin dashboard,
-                      including the ability to manage other users.
-                    </p>
+            <div className="py-4">
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DASHBOARD_USER_ROLES.map(role => (
+                    <SelectItem key={role} value={role}>
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              {selectedRole === "Super Admin" && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 my-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-yellow-700">
+                        Super Admin users have complete access to the admin dashboard,
+                        including all security permissions.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
               <Button
-                variant={actionType === "grant" ? "default" : "destructive"}
-                onClick={handleConfirmAction}
+                onClick={handleConfirmRoleChange}
+                disabled={selectedRole === selectedUser?.role}
               >
-                {actionType === "grant" ? "Grant Access" : "Revoke Access"}
+                Update Role
               </Button>
             </DialogFooter>
           </DialogContent>
