@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
+import { login } from '@/services/authService';
 
 interface LocationState {
   returnTo?: string;
@@ -19,7 +19,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login, authState } = useAuth();
+  const { signIn, authState, refreshAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { returnTo } = (location.state as LocationState) || {};
@@ -47,21 +47,29 @@ const Login = () => {
       console.log("Attempting to login with:", email);
       console.log("Return path after login:", returnTo);
       
-      // Log in with the application authentication first
-      const isLoggedIn = await login(email, password);
+      // First, try local authentication with authService
+      const localUser = await login(email, password);
       
-      if (isLoggedIn) {
+      if (localUser) {
+        // If local authentication succeeds, try Supabase authentication
+        try {
+          await signIn(email, password);
+        } catch (error) {
+          console.log("Supabase authentication failed, but using local auth");
+          // We'll continue with local auth even if Supabase auth fails
+        }
+        
         toast({
           description: 'Login successful!'
         });
         
-        // Important: Add small delay to ensure authentication state is fully updated
-        setTimeout(() => {
-          // Redirect to the return URL if provided, or to the dashboard
-          const redirectPath = returnTo || '/admin/dashboard';
-          console.log("Login successful, redirecting to:", redirectPath);
-          navigate(redirectPath);
-        }, 100);
+        // Ensure auth state is refreshed
+        await refreshAuth();
+        
+        // Redirect to the return URL if provided, or to the dashboard
+        const redirectPath = returnTo || '/admin/dashboard';
+        console.log("Login successful, redirecting to:", redirectPath);
+        navigate(redirectPath);
       } else {
         setErrorMessage('Invalid email or password');
       }

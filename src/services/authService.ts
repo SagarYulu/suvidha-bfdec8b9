@@ -51,6 +51,15 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
         password === DEFAULT_ADMIN_USER.password) {
       console.log('Default admin login successful');
+      
+      // Store mock user in localStorage for persistent session
+      localStorage.setItem('mockUser', JSON.stringify({
+        id: DEFAULT_ADMIN_USER.id,
+        email: DEFAULT_ADMIN_USER.email,
+        name: DEFAULT_ADMIN_USER.name,
+        role: DEFAULT_ADMIN_USER.role
+      }));
+      
       return DEFAULT_ADMIN_USER;
     }
     
@@ -58,6 +67,15 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
         password === SECURITY_ACCESS_USER.password) {
       console.log('Security access user login successful');
+      
+      // Store mock user in localStorage for persistent session
+      localStorage.setItem('mockUser', JSON.stringify({
+        id: SECURITY_ACCESS_USER.id,
+        email: SECURITY_ACCESS_USER.email,
+        name: SECURITY_ACCESS_USER.name,
+        role: SECURITY_ACCESS_USER.role
+      }));
+      
       return SECURITY_ACCESS_USER;
     }
 
@@ -68,6 +86,15 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     if (mockUser) {
       console.log('User found in mock data:', mockUser);
+      
+      // Store mock user in localStorage for persistent session
+      localStorage.setItem('mockUser', JSON.stringify({
+        id: mockUser.id,
+        email: mockUser.email,
+        name: mockUser.name,
+        role: mockUser.role
+      }));
+      
       return mockUser;
     }
 
@@ -107,6 +134,14 @@ export const login = async (email: string, password: string): Promise<User | nul
         accountNumber: employees.account_number || "",
         ifscCode: employees.ifsc_code || ""
       };
+      
+      // Store mock user in localStorage for persistent session
+      localStorage.setItem('mockUser', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }));
       
       return user;
     }

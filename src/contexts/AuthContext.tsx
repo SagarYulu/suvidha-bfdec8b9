@@ -89,6 +89,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: role,
         });
       } else {
+        // Check if we have a mock user in localStorage (for demo purposes)
+        const mockUserStr = localStorage.getItem('mockUser');
+        if (mockUserStr) {
+          try {
+            const mockUser = JSON.parse(mockUserStr);
+            setAuthState({
+              isAuthenticated: true,
+              user: {
+                id: mockUser.id,
+                email: mockUser.email,
+                name: mockUser.name,
+              },
+              session: null, // No Supabase session for mock users
+              role: mockUser.role,
+            });
+            return; // Exit early
+          } catch (e) {
+            console.error("Error parsing mock user:", e);
+            localStorage.removeItem('mockUser'); // Clear invalid data
+          }
+        }
+
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -226,6 +248,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       await supabase.auth.signOut();
+      
+      // Also clear any mock user from localStorage
+      localStorage.removeItem('mockUser');
+      
       setAuthState({
         isAuthenticated: false,
         user: null,
