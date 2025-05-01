@@ -6,6 +6,7 @@ import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
+import { createBulkDashboardUsers } from "@/services/dashboard/dashboardUserService";
 
 export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
@@ -151,7 +152,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
-        .from('employees')
+        .from('dashboard_users')
         .select('emp_id')
         .in('emp_id', empIdsToCheck);
       
@@ -178,43 +179,17 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         return;
       }
       
-      // We've removed any check constraints in the database, so we just need to ensure
-      // we're using valid values from the master tables
-      const employeesData = newEmployees.map(emp => {
-        // Get the exact role name case from ROLE_OPTIONS to match with master_roles table
-        const exactRole = ROLE_OPTIONS.find(r => r.toLowerCase() === emp.role.toLowerCase()) || emp.role;
-        
-        return {
-          user_id: emp.userId,
-          name: emp.name,
-          email: emp.email,
-          phone: emp.phone || null,
-          emp_id: emp.emp_id,
-          city: emp.city || null,
-          cluster: emp.cluster || null,
-          role: exactRole, // Use the exact case matching role from master tables
-          password: emp.password || 'changeme123',
-          manager: emp.manager || null,
-        };
-      });
+      // Use the bulk dashboard users creation from our service
+      const result = await createBulkDashboardUsers(newEmployees);
       
-      // Use the insert method - UUID will be auto-generated
-      const { data, error } = await supabase
-        .from('employees')
-        .insert(employeesData)
-        .select();
-
-      if (error) {
-        console.error('Upload to database error:', error);
+      if (!result.success) {
         toast({
           variant: "destructive",
           title: "Database Upload Failed",
-          description: `Error: ${error.message}`,
+          description: "There was an error uploading to the database.",
         });
-        throw error;
+        throw new Error("Failed to create bulk dashboard users");
       }
-
-      console.log('Upload successful. Inserted data:', data);
       
       const duplicateMessage = duplicateEmployees.length > 0 
         ? ` (${duplicateEmployees.length} duplicate employee IDs were skipped)`

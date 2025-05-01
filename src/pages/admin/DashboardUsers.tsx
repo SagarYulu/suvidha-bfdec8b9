@@ -82,12 +82,12 @@ const DashboardUsers = () => {
     }
     
     // Apply city filter
-    if (filterCity) {
+    if (filterCity && filterCity !== 'all') {
       filtered = filtered.filter(user => user.city?.toLowerCase() === filterCity.toLowerCase());
     }
     
     // Apply cluster filter
-    if (filterCluster) {
+    if (filterCluster && filterCluster !== 'all') {
       filtered = filtered.filter(user => user.cluster?.toLowerCase() === filterCluster.toLowerCase());
     }
     
