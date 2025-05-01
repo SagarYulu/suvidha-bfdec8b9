@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -48,13 +47,36 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
 }) => {
   const [pendingPermissions, setPendingPermissions] = useState<Set<string>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [permissionStates, setPermissionStates] = useState<Record<string, boolean>>({});
   const { authState } = useAuth();
+  
+  // Initialize permission states based on current permissions
+  useEffect(() => {
+    const newStates: Record<string, boolean> = {};
+    
+    dashboardUsers.forEach(user => {
+      permissions.forEach(permission => {
+        const key = `${user.id}-${permission.id}`;
+        newStates[key] = hasPermission(user.id, permission.id);
+      });
+    });
+    
+    setPermissionStates(newStates);
+  }, [dashboardUsers, permissions, hasPermission]);
   
   const handleTogglePermission = async (userId: string, permissionId: string) => {
     // Clear any previous error
     setErrorMessage(null);
     
     const permissionKey = `${userId}-${permissionId}`;
+    
+    // Optimistically update UI
+    setPermissionStates(prev => ({
+      ...prev,
+      [permissionKey]: !prev[permissionKey]
+    }));
+    
+    // Mark as pending
     setPendingPermissions(prev => {
       const newSet = new Set(prev);
       newSet.add(permissionKey);
@@ -64,11 +86,16 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     try {
       console.log("Toggle permission for:", { userId, permissionId });
       await togglePermission(userId, permissionId);
-      toast({
-        description: "Permission updated successfully"
-      });
+      
+      // Keep the optimistic update since it succeeded
     } catch (error) {
       console.error("Error toggling permission:", error);
+      
+      // Revert the optimistic update on error
+      setPermissionStates(prev => ({
+        ...prev,
+        [permissionKey]: !prev[permissionKey]
+      }));
       
       // Show more specific error messages based on error type
       if (error instanceof Error) {
@@ -182,7 +209,7 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                 {permissions.map(permission => {
                   const permissionKey = `${user.id}-${permission.id}`;
                   const isPending = pendingPermissions.has(permissionKey);
-                  const isChecked = hasPermission(user.id, permission.id);
+                  const isChecked = permissionStates[permissionKey] ?? hasPermission(user.id, permission.id);
                   
                   // Super Admin users automatically have all permissions
                   const isSuperAdmin = user.role === "Super Admin";
@@ -191,13 +218,20 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                   
                   return (
                     <TableCell key={permissionKey} className="text-center">
-                      <div 
-                        className="flex justify-center items-center"
-                      >
+                      <div className="flex justify-center items-center">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="inline-flex items-center justify-center">
+                              <div 
+                                className="inline-flex items-center justify-center"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  if (!isPending && !isSuperAdmin && !isSelf) {
+                                    handleTogglePermission(user.id, permission.id);
+                                  }
+                                }}
+                              >
                                 <Checkbox 
                                   id={permissionKey}
                                   checked={isSuperAdmin || isChecked}
@@ -205,13 +239,6 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                                   className={`cursor-pointer ${isPending ? "opacity-50 animate-pulse" : 
                                             isSuperAdmin ? "opacity-80" : 
                                             isSelf ? "opacity-70" : ""}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    e.preventDefault();
-                                    if (!isPending && !isSuperAdmin && !isSelf) {
-                                      handleTogglePermission(user.id, permission.id);
-                                    }
-                                  }}
                                 />
                               </div>
                             </TooltipTrigger>

@@ -28,13 +28,14 @@ const SecurityManagement: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [isSessionRefreshing, setIsSessionRefreshing] = useState(false);
+  const [dataRefreshKey, setDataRefreshKey] = useState(0); // Used to force re-fetch
   const navigate = useNavigate();
   const { authState, refreshAuth } = useAuth();
   
   // Always call the hook, regardless of auth state
   const securityManagement = useSecurityManagement();
   
-  // Handle manual session refresh
+  // Handle manual session refresh and data refresh
   const handleRefreshSession = async () => {
     setIsSessionRefreshing(true);
     setError(null);
@@ -45,6 +46,7 @@ const SecurityManagement: React.FC = () => {
       
       // Then try to refresh Supabase session
       const { data, error } = await supabase.auth.refreshSession();
+      console.log("Session refresh attempt:", data, error);
       
       if (error) {
         console.error("Failed to refresh Supabase session:", error);
@@ -71,12 +73,25 @@ const SecurityManagement: React.FC = () => {
         });
         setSessionChecked(true);
         setIsAuthChecking(false);
+        
+        // After successful auth refresh, also refresh the data
+        setDataRefreshKey(prev => prev + 1);
+        if (securityManagement.refreshData) {
+          await securityManagement.refreshData();
+        }
       }
     } catch (e) {
       console.error("Error during refresh:", e);
       setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSessionRefreshing(false);
+    }
+  };
+  
+  // Force data refresh without session refresh
+  const handleDataRefresh = async () => {
+    if (securityManagement.refreshData) {
+      await securityManagement.refreshData();
     }
   };
   
@@ -140,6 +155,13 @@ const SecurityManagement: React.FC = () => {
       setIsAuthChecking(false);
     }
   }, [authState, navigate, sessionChecked]);
+  
+  // Effect to refresh data if the key changes
+  useEffect(() => {
+    if (securityManagement.refreshData && authState.isAuthenticated && !isAuthChecking) {
+      securityManagement.refreshData();
+    }
+  }, [dataRefreshKey, authState.isAuthenticated, isAuthChecking]);
   
   if (isAuthChecking) {
     return (
@@ -220,7 +242,6 @@ const SecurityManagement: React.FC = () => {
     formatDate,
     hasPermission,
     togglePermission,
-    refreshData
   } = securityManagement || {};
 
   // Create a wrapper that adapts the return type for UserPermissionsTable
@@ -228,10 +249,8 @@ const SecurityManagement: React.FC = () => {
     try {
       if (togglePermission) {
         await togglePermission(userId, permissionId);
-        // Force refresh the data after successful toggle
-        if (refreshData) {
-          await refreshData();
-        }
+        // Refresh is handled in togglePermission function now
+        console.log("Permission toggled, data should be refreshed");
       }
     } catch (error) {
       console.error("Permission toggle failed:", error);
@@ -245,7 +264,7 @@ const SecurityManagement: React.FC = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Security Management</h1>
           <Button 
-            onClick={() => refreshData && refreshData()}
+            onClick={handleDataRefresh}
             variant="outline"
             size="sm"
           >
