@@ -48,13 +48,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
       <div className="py-6 px-6 border-b">
         <Link to="/admin/dashboard" className="flex items-center">
-          <span className="text-xl font-bold text-blue-700">Yulu Admin</span>
+          <span className="text-xl font-bold text-blue-700">Yulu Suvidha</span>
         </Link>
       </div>
 
       <div className="py-3 flex-grow">
         <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
+        <SidebarLink href="/admin/issues" icon={TicketCheck} label="Tickets" />
         <SidebarLink href="/admin/users" icon={Users} label="Users" />
         <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
         <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />

@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
+import DashboardUsers from "./pages/admin/DashboardUsers";
 import AdminIssues from "./pages/admin/Issues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
 import AdminAnalytics from "./pages/admin/Analytics";
@@ -40,6 +41,7 @@ const App = () => {
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/dashboard-users" element={<DashboardUsers />} />
               <Route path="/admin/issues" element={<AdminIssues />} />
               <Route path="/admin/issues/:id" element={<AdminIssueDetails />} />
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
