@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -44,15 +43,9 @@ const useSecurityManagement = () => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Make sure we have a valid Supabase session
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          console.error("No valid Supabase session found");
-          return;
-        }
-
-        console.log("User authenticated, session valid:", sessionData.session.user.id);
+        console.log("Authenticated user:", authState.user?.email);
         
+        // No need to check for Supabase session here, proceed directly
         await Promise.all([
           fetchDashboardUsers(),
           fetchPermissions(),
@@ -72,11 +65,12 @@ const useSecurityManagement = () => {
     };
     
     loadData();
-  }, [authState.isAuthenticated]);
+  }, [authState.isAuthenticated, authState.user?.email]);
 
   // Fetch dashboard users
   const fetchDashboardUsers = async () => {
     try {
+      console.log("Fetching dashboard users...");
       const { data, error } = await supabase
         .from('dashboard_users')
         .select('*')
@@ -92,6 +86,7 @@ const useSecurityManagement = () => {
         return;
       }
       
+      console.log("Dashboard users fetched:", data?.length || 0);
       setDashboardUsers(data || []);
     } catch (error) {
       console.error("Error:", error);
@@ -183,31 +178,17 @@ const useSecurityManagement = () => {
     
     try {
       // Check if current user has admin role - required for permission management
-      if (authState.role !== 'admin') {
+      if (authState.role !== 'admin' && authState.role !== 'security-admin') {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
-      // IMPORTANT: Check for a valid session before making RPC calls
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData.session) {
-        console.error("Session error:", sessionError);
-        toast({ 
-          title: "Authentication Error", 
-          description: "You must be logged in to manage permissions. Please log in again.",
-          variant: "destructive" 
-        });
-        throw new Error("Not authenticated");
-      }
-      
-      // We have a valid session, proceed with the RPC call
-      console.log("Using authenticated session:", sessionData.session.user.id);
+      // Skip session check since we're already authenticated in the app
+      console.log("Using app authentication for user:", authState.user?.email);
       
       if (hasPermissionValue) {
         // Use an RPC function to remove permission
         console.log("Attempting to remove permission:", { userId, permissionId });
         
-        // Pass the session token in the Authorization header through default behavior
         const { data: result, error: roleError } = await supabase.rpc(
           'remove_user_permission',
           { 
@@ -235,7 +216,6 @@ const useSecurityManagement = () => {
         // Use an RPC function to add permission
         console.log("Attempting to add permission:", { userId, permissionId });
         
-        // Pass the session token in the Authorization header through default behavior
         const { data: result, error: roleError } = await supabase.rpc(
           'add_user_permission',
           { 

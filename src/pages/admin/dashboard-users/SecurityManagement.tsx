@@ -15,7 +15,7 @@ import AuditLogsTable from '@/components/dashboard-users/AuditLogsTable';
 import useSecurityManagement from '@/hooks/useSecurityManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Loader2 } from 'lucide-react';
+import { ShieldAlert, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
@@ -24,6 +24,7 @@ const AUTHORIZED_EMAILS = ['admin@yulu.com', 'sagar.km@yulu.bike'];
 
 const SecurityManagement: React.FC = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { authState } = useAuth();
   
@@ -42,8 +43,10 @@ const SecurityManagement: React.FC = () => {
             variant: "destructive"
           });
           navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
-        } else if (authState.role !== 'admin' && !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
-          // Check if user is admin OR has an authorized email
+        } else if (authState.role !== 'admin' && 
+                   authState.role !== 'security-admin' && 
+                   !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
+          // Check if user is admin OR has an authorized email OR has security-admin role
           toast({
             title: "Access Denied",
             description: "You must have admin privileges to access this page",
@@ -51,6 +54,7 @@ const SecurityManagement: React.FC = () => {
           });
           navigate('/admin');
         } else {
+          console.log("User authorized to access security management:", authState.user?.email);
           setIsAuthChecking(false);
         }
       }, 500);
@@ -86,6 +90,25 @@ const SecurityManagement: React.FC = () => {
           <div className="mt-4">
             <Button onClick={() => navigate('/admin/login')}>
               Go to Login
+            </Button>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+  
+  if (error) {
+    return (
+      <AdminLayout title="Security Management">
+        <div className="container mx-auto py-6">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={() => window.location.reload()}>
+              Retry
             </Button>
           </div>
         </div>

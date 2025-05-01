@@ -96,8 +96,8 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     }
   };
 
-  // Check if the current user is an admin
-  const isCurrentUserAdmin = authState.role === 'admin';
+  // Check if the current user is an admin or security-admin
+  const isCurrentUserAdmin = authState.role === 'admin' || authState.role === 'security-admin';
   
   if (isLoading) {
     return (

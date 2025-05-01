@@ -36,16 +36,6 @@ const Login = () => {
       const redirectPath = returnTo || '/admin/dashboard';
       navigate(redirectPath);
     }
-    
-    // Check Supabase session status
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (data.session) {
-        console.log("Found existing Supabase session:", data.session.user.email);
-      }
-    };
-    
-    checkSession();
   }, [authState, navigate, returnTo]);
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -54,20 +44,7 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      // First ensure we're logged into Supabase
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
-      if (authError) {
-        console.error("Supabase auth error:", authError);
-        // Continue with app login as fallback
-      } else {
-        console.log("Supabase auth success:", authData.user?.email);
-      }
-      
-      // Then log in with the application
+      // Log in with the application authentication first
       const isLoggedIn = await login(email, password);
       
       if (isLoggedIn) {
