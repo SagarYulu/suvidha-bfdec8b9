@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,48 +29,75 @@ const useSecurityManagement = () => {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   
-  // Don't use authStatus state since it causes the hook count to change
-  // Only fetch data if user is authenticated
-  useEffect(() => {
+  // Debounced fetch to prevent multiple refreshes
+  const fetchData = useCallback(async () => {
     if (!authState.isAuthenticated) {
       console.log("User not authenticated, skipping data fetch");
       return;
     }
 
-    const loadData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        console.log("Authenticated user:", authState.user?.email);
-        
-        // Load data without requiring a valid Supabase session
-        // This allows the mock user accounts to still access data
-        await Promise.all([
-          fetchDashboardUsers(),
-          fetchPermissions(),
-          fetchUserPermissions(),
-          fetchAuditLogs()
-        ]);
-      } catch (error: any) {
-        console.error("Error loading security management data:", error);
-        setError(error.message || "Failed to load security management data");
-        toast({
-          title: "Error",
-          description: "Failed to load security management data",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    // If already refreshing, don't start another refresh
+    if (isRefreshing) {
+      console.log("Already refreshing data, skipping duplicate fetch");
+      return;
+    }
+
+    setIsRefreshing(true);
+    setError(null);
     
-    loadData();
-  }, [authState.isAuthenticated, authState.user?.email]);
+    try {
+      console.log("Fetching security management data...");
+      
+      // Load all data in parallel
+      const [usersData, permissionsData, userPermissionsData, auditLogsData] = await Promise.all([
+        fetchDashboardUsers(),
+        fetchPermissions(),
+        fetchUserPermissions(),
+        fetchAuditLogs()
+      ]);
+      
+      // Update state only once with all the data
+      setDashboardUsers(usersData || []);
+      setPermissions(permissionsData || []);
+      setUserPermissions(
+        (userPermissionsData || []).map(item => ({
+          userId: item.user_id,
+          permissionId: item.permission_id
+        }))
+      );
+      setAuditLogs(auditLogsData || []);
+      setLastRefresh(new Date());
+      
+      console.log("All security data loaded successfully");
+    } catch (error: any) {
+      console.error("Error loading security management data:", error);
+      setError(error.message || "Failed to load security management data");
+      toast({
+        title: "Error",
+        description: "Failed to load security management data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, [authState.isAuthenticated, isRefreshing]);
+
+  // Initial data load when component mounts
+  useEffect(() => {
+    // Only fetch when authenticated and not already loading
+    if (authState.isAuthenticated && !isRefreshing) {
+      console.log("Initial data load");
+      setIsLoading(true);
+      fetchData();
+    }
+  }, [authState.isAuthenticated, fetchData]);
 
   // Fetch dashboard users
   const fetchDashboardUsers = async () => {
@@ -84,16 +110,11 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error("Error fetching dashboard users:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch dashboard users",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("Failed to fetch dashboard users");
       }
       
       console.log("Dashboard users fetched:", data?.length || 0);
-      setDashboardUsers(data || []);
+      return data;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -110,15 +131,10 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error("Error fetching permissions:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch permissions",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("Failed to fetch permissions");
       }
       
-      setPermissions(data || []);
+      return data;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -135,22 +151,11 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error("Error fetching user permissions:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch user permissions",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("Failed to fetch user permissions");
       }
       
-      console.log("User permissions fetched:", data?.length || 0, data);
-      
-      setUserPermissions(
-        data.map(item => ({
-          userId: item.user_id,
-          permissionId: item.permission_id
-        })) || []
-      );
+      console.log("User permissions fetched:", data?.length || 0);
+      return data;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -168,15 +173,10 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error("Error fetching audit logs:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch audit logs",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("Failed to fetch audit logs");
       }
       
-      setAuditLogs(data || []);
+      return data;
     } catch (error) {
       console.error("Error:", error);
       throw error;
@@ -198,41 +198,35 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
+      // Optimistic UI update
+      if (hasPermissionValue) {
+        // Remove permission locally
+        setUserPermissions(prev => 
+          prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
+        );
+      } else {
+        // Add permission locally
+        setUserPermissions(prev => [...prev, { userId, permissionId }]);
+      }
+      
       // Local permission management (fallback)
       const useLocalManagement = !authState.user?.id || process.env.NODE_ENV === 'development';
       
       if (useLocalManagement) {
         console.log("Using local permission management");
         
-        if (hasPermissionValue) {
-          // Remove permission locally
-          console.log("Removing permission locally");
-          setUserPermissions(prev => 
-            prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
-          );
-          
-          // Try to sync with Supabase if possible
-          try {
-            if (authState.user?.id) {
-              console.log("Attempting to sync local removal with Supabase");
+        // Try to sync with Supabase if possible
+        try {
+          if (authState.user?.id) {
+            console.log("Attempting to sync with Supabase");
+            
+            if (hasPermissionValue) {
               await supabase
                 .from('user_permissions')
                 .delete()
                 .eq('user_id', userId)
                 .eq('permission_id', permissionId);
-            }
-          } catch (e) {
-            console.log("Failed to sync with Supabase, continuing with local state only", e);
-          }
-        } else {
-          // Add permission locally
-          console.log("Adding permission locally");
-          setUserPermissions(prev => [...prev, { userId, permissionId }]);
-          
-          // Try to sync with Supabase if possible
-          try {
-            if (authState.user?.id) {
-              console.log("Attempting to sync local addition with Supabase");
+            } else {
               await supabase
                 .from('user_permissions')
                 .insert({
@@ -241,12 +235,19 @@ const useSecurityManagement = () => {
                   granted_by: authState.user.id
                 });
             }
-          } catch (e) {
-            console.log("Failed to sync with Supabase, continuing with local state only", e);
+            
+            // Refresh audit logs after successful operation
+            const newAuditLogs = await fetchAuditLogs();
+            setAuditLogs(newAuditLogs || []);
           }
+        } catch (e) {
+          console.log("Failed to sync with Supabase, continuing with local state only", e);
         }
         
         // Return success for local operations
+        toast({ 
+          description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
+        });
         return true;
       }
       
@@ -265,32 +266,32 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error(`Error in ${method}:`, error);
+        
+        // Revert the optimistic update on error
+        if (hasPermissionValue) {
+          // Re-add permission locally since removal failed
+          setUserPermissions(prev => [...prev, { userId, permissionId }]);
+        } else {
+          // Remove permission locally since addition failed
+          setUserPermissions(prev => 
+            prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
+          );
+        }
+        
         throw new Error(`Failed to ${hasPermissionValue ? 'remove' : 'add'} permission: ${error.message}`);
       }
       
       console.log(`${method} result:`, result);
       
-      // Update local state if the operation succeeded
-      if (result === true) {
-        if (hasPermissionValue) {
-          console.log("Removing permission from local state after successful Supabase operation");
-          setUserPermissions(prev => 
-            prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
-          );
-        } else {
-          console.log("Adding permission to local state after successful Supabase operation");
-          setUserPermissions(prev => [...prev, { userId, permissionId }]);
-        }
-        
-        toast({ 
-          description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
-        });
-        
-        // Refresh audit logs to show the new changes
-        await fetchAuditLogs();
-      } else {
-        throw new Error(`Failed to ${hasPermissionValue ? 'remove' : 'add'} permission`);
-      }
+      // We don't need to update local state again since we did it optimistically
+      
+      toast({ 
+        description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
+      });
+      
+      // Refresh audit logs to show the new changes, but don't refresh everything
+      const newAuditLogs = await fetchAuditLogs();
+      setAuditLogs(newAuditLogs || []);
       
       return true;
     } catch (error: any) {
@@ -313,38 +314,25 @@ const useSecurityManagement = () => {
 
   // Check if user has permission
   const hasPermission = (userId: string, permissionId: string) => {
-    const hasPermissionValue = userPermissions.some(
+    return userPermissions.some(
       p => p.userId === userId && p.permissionId === permissionId
     );
-    console.log(`Checking permission for user ${userId}, permission ${permissionId}: ${hasPermissionValue}`);
-    return hasPermissionValue;
   };
 
-  // Refresh all data
+  // Refresh all data - with debounce protection
   const refreshData = async () => {
-    setIsLoading(true);
-    try {
-      console.log("Refreshing security management data...");
-      await Promise.all([
-        fetchDashboardUsers(),
-        fetchPermissions(),
-        fetchUserPermissions(),
-        fetchAuditLogs()
-      ]);
-      console.log("Data refreshed successfully");
-      toast({
-        description: "Security data refreshed successfully"
-      });
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      toast({
-        title: "Refresh Failed",
-        description: "Failed to refresh data",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+    if (isRefreshing) {
+      console.log("Already refreshing data, skipping duplicate refresh request");
+      return;
     }
+    
+    console.log("Manual refresh requested");
+    setIsLoading(true);
+    await fetchData();
+    
+    toast({
+      description: "Security data refreshed successfully"
+    });
   };
 
   return {
@@ -352,6 +340,7 @@ const useSecurityManagement = () => {
     permissions,
     userPermissions,
     isLoading,
+    isRefreshing,
     activeTab,
     setActiveTab,
     auditLogs,
@@ -359,7 +348,8 @@ const useSecurityManagement = () => {
     hasPermission,
     togglePermission,
     refreshData,
-    error
+    error,
+    lastRefresh
   };
 };
 
