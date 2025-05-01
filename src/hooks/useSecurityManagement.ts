@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Json } from '@/integrations/supabase/types';
 
 interface DashboardUser {
   id: string;
@@ -24,7 +25,7 @@ interface UserPermission {
 }
 
 const useSecurityManagement = () => {
-  const { user } = useAuth();
+  const { user, authState } = useAuth();
   const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
@@ -140,6 +141,10 @@ const useSecurityManagement = () => {
     );
     
     try {
+      // Get the current user's UUID from the auth context
+      // Use null if user is not available - the database will record this appropriately
+      const grantedByUuid = authState.user?.id || null;
+      
       if (hasPermissionValue) {
         // Remove permission
         const { error } = await supabase
@@ -170,14 +175,14 @@ const useSecurityManagement = () => {
           .insert({
             user_id: userId,
             permission_id: permissionId,
-            granted_by: user?.id
+            granted_by: grantedByUuid
           });
         
         if (error) {
           console.error("Error adding permission:", error);
           toast({
             title: "Error",
-            description: "Failed to add permission",
+            description: "Failed to add permission: " + error.message,
             variant: "destructive"
           });
           return;

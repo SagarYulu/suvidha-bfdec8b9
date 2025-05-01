@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -10,6 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { InfoIcon } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface DashboardUser {
   id: string;
@@ -40,8 +43,36 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
   hasPermission,
   togglePermission,
 }) => {
+  const [pendingPermissions, setPendingPermissions] = useState<Set<string>>(new Set());
+  
+  const handleTogglePermission = async (userId: string, permissionId: string) => {
+    const permissionKey = `${userId}-${permissionId}`;
+    setPendingPermissions(prev => {
+      const newSet = new Set(prev);
+      newSet.add(permissionKey);
+      return newSet;
+    });
+    
+    try {
+      await togglePermission(userId, permissionId);
+    } finally {
+      setPendingPermissions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(permissionKey);
+        return newSet;
+      });
+    }
+  };
+  
   if (isLoading) {
-    return <div className="text-center py-10">Loading...</div>;
+    return (
+      <div className="space-y-2 py-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+    );
   }
 
   if (dashboardUsers.length === 0) {
@@ -56,8 +87,22 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
             <TableHead>User</TableHead>
             <TableHead>Role</TableHead>
             {permissions.map(permission => (
-              <TableHead key={permission.id}>
-                {permission.name}
+              <TableHead key={permission.id} className="text-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger className="inline-flex items-center">
+                      <span className="mr-1">{permission.name}</span>
+                      {permission.description && (
+                        <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </TooltipTrigger>
+                    {permission.description && (
+                      <TooltipContent>
+                        <p>{permission.description}</p>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               </TableHead>
             ))}
           </TableRow>
@@ -70,16 +115,25 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                 <div className="text-sm text-muted-foreground">{user.email}</div>
               </TableCell>
               <TableCell>
-                <Badge variant="outline">{user.role}</Badge>
+                <Badge variant={user.role === "Super Admin" ? "secondary" : "outline"}>
+                  {user.role}
+                </Badge>
               </TableCell>
-              {permissions.map(permission => (
-                <TableCell key={`${user.id}-${permission.id}`}>
-                  <Checkbox 
-                    checked={hasPermission(user.id, permission.id)}
-                    onCheckedChange={() => togglePermission(user.id, permission.id)}
-                  />
-                </TableCell>
-              ))}
+              {permissions.map(permission => {
+                const permissionKey = `${user.id}-${permission.id}`;
+                const isPending = pendingPermissions.has(permissionKey);
+                
+                return (
+                  <TableCell key={permissionKey} className="text-center">
+                    <Checkbox 
+                      checked={hasPermission(user.id, permission.id)}
+                      disabled={isPending}
+                      onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
+                      className={isPending ? "opacity-50" : ""}
+                    />
+                  </TableCell>
+                );
+              })}
             </TableRow>
           ))}
         </TableBody>
