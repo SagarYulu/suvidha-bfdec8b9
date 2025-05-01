@@ -451,7 +451,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      insert_dashboard_users_with_audit: {
+        Args: { users_json: Json }
+        Returns: Json
+      }
     }
     Enums: {
       admin_role: "hr_admin" | "city_head" | "ops"

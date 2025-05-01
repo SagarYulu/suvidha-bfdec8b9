@@ -60,7 +60,7 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     // Use RPC to bypass RLS policies for audit log entries
     const { data, error } = await supabase
       .rpc('insert_dashboard_users_with_audit', {
-        users_json: users // Remove the JSON.stringify as Supabase will handle the conversion
+        users_json: users as unknown as Record<string, unknown>[]
       });
 
     if (error) throw new Error(`Error inserting dashboard users: ${error.message}`);
