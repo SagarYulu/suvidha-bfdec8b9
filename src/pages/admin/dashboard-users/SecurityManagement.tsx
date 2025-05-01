@@ -219,7 +219,8 @@ const SecurityManagement: React.FC = () => {
     auditLogs,
     formatDate,
     hasPermission,
-    togglePermission
+    togglePermission,
+    refreshData
   } = securityManagement || {};
 
   // Create a wrapper that adapts the return type for UserPermissionsTable
@@ -227,16 +228,32 @@ const SecurityManagement: React.FC = () => {
     try {
       if (togglePermission) {
         await togglePermission(userId, permissionId);
+        // Force refresh the data after successful toggle
+        if (refreshData) {
+          await refreshData();
+        }
       }
     } catch (error) {
-      // Error is already handled in togglePermission
       console.error("Permission toggle failed:", error);
+      throw error; // Re-throw to let UserPermissionTable handle the error
     }
   };
 
   return (
     <AdminLayout title="Security Management">
       <div className="container mx-auto py-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">Security Management</h1>
+          <Button 
+            onClick={() => refreshData && refreshData()}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
+        </div>
+        
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="users">User Permissions</TabsTrigger>

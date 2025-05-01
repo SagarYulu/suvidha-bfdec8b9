@@ -191,85 +191,65 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
-      // For mock users or when Supabase session isn't available, handle locally
-      // and skip the RPC functions that require auth.uid()
-      if (!authState.user?.id) {
-        console.log("Using local permission management (no Supabase session)");
+      // Local permission management (fallback)
+      const useLocalManagement = !authState.user?.id || process.env.NODE_ENV === 'development';
+      
+      if (useLocalManagement) {
+        console.log("Using local permission management");
         
         if (hasPermissionValue) {
           // Remove permission locally
           setUserPermissions(prev => 
             prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
           );
-          toast({ description: "Permission removed successfully" });
         } else {
           // Add permission locally
           setUserPermissions(prev => [...prev, { userId, permissionId }]);
-          toast({ description: "Permission added successfully" });
         }
         
         // Return success for local operations
         return true;
       }
       
-      // Otherwise use the RPC functions
+      // Otherwise use the Supabase RPC functions
       console.log("Using Supabase RPC for permission management");
       
-      if (hasPermissionValue) {
-        // Use an RPC function to remove permission
-        console.log("Attempting to remove permission:", { userId, permissionId });
-        
-        const { data: result, error: roleError } = await supabase.rpc(
-          'remove_user_permission',
-          { 
-            target_user_id: userId,
-            target_permission_id: permissionId
-          }
-        );
-        
-        if (roleError) {
-          console.error("Error removing permission:", roleError);
-          throw new Error("Failed to remove permission: " + roleError.message);
-        }
-        
-        // Update local state only if the operation succeeded
-        if (result === true) {
+      const method = hasPermissionValue ? 'remove_user_permission' : 'add_user_permission';
+      const params = { 
+        target_user_id: userId,
+        target_permission_id: permissionId
+      };
+      
+      console.log(`Calling ${method}:`, params);
+      
+      const { data: result, error } = await supabase.rpc(method, params);
+      
+      if (error) {
+        console.error(`Error in ${method}:`, error);
+        throw new Error(`Failed to ${hasPermissionValue ? 'remove' : 'add'} permission: ${error.message}`);
+      }
+      
+      console.log(`${method} result:`, result);
+      
+      // Update local state if the operation succeeded
+      if (result === true) {
+        if (hasPermissionValue) {
           setUserPermissions(prev => 
             prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
           );
-          
-          toast({ description: "Permission removed successfully" });
         } else {
-          throw new Error("Failed to remove permission");
-        }
-      } else {
-        // Use an RPC function to add permission
-        console.log("Attempting to add permission:", { userId, permissionId });
-        
-        const { data: result, error: roleError } = await supabase.rpc(
-          'add_user_permission',
-          { 
-            target_user_id: userId,
-            target_permission_id: permissionId
-          }
-        );
-        
-        if (roleError) {
-          console.error("Error adding permission:", roleError);
-          throw new Error("Failed to add permission: " + roleError.message);
-        }
-        
-        // Update local state only if the operation succeeded
-        if (result === true) {
           setUserPermissions(prev => [...prev, { userId, permissionId }]);
-          toast({ description: "Permission added successfully" });
-        } else {
-          throw new Error("Failed to add permission");
         }
+        
+        toast({ 
+          description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
+        });
+        
+        // Refresh audit logs to show the new changes
+        await fetchAuditLogs();
+      } else {
+        throw new Error(`Failed to ${hasPermissionValue ? 'remove' : 'add'} permission`);
       }
-      
-      // Refresh audit logs to show the new changes
-      await fetchAuditLogs();
       
       return true;
     } catch (error: any) {
@@ -307,9 +287,7 @@ const useSecurityManagement = () => {
         fetchUserPermissions(),
         fetchAuditLogs()
       ]);
-      toast({
-        description: "Data refreshed successfully"
-      });
+      console.log("Data refreshed successfully");
     } catch (error) {
       console.error("Error refreshing data:", error);
       toast({

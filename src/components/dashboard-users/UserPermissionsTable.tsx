@@ -64,6 +64,9 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
     try {
       console.log("Toggle permission for:", { userId, permissionId });
       await togglePermission(userId, permissionId);
+      toast({
+        description: "Permission updated successfully"
+      });
     } catch (error) {
       console.error("Error toggling permission:", error);
       
@@ -189,18 +192,12 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                   return (
                     <TableCell key={permissionKey} className="text-center">
                       <div 
-                        className="flex justify-center items-center" 
-                        onClick={(e) => {
-                          if (!isPending && !isSuperAdmin && !isSelf) {
-                            e.stopPropagation();
-                            handleTogglePermission(user.id, permission.id);
-                          }
-                        }}
+                        className="flex justify-center items-center"
                       >
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <div className="inline-flex cursor-pointer">
+                              <div className="inline-flex items-center justify-center">
                                 <Checkbox 
                                   id={permissionKey}
                                   checked={isSuperAdmin || isChecked}
@@ -210,6 +207,7 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                                             isSelf ? "opacity-70" : ""}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    e.preventDefault();
                                     if (!isPending && !isSuperAdmin && !isSelf) {
                                       handleTogglePermission(user.id, permission.id);
                                     }
