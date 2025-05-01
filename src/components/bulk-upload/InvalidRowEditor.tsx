@@ -107,7 +107,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">City</label>
+            <label className="text-xs font-medium text-gray-500">City *</label>
             <Select
               value={getRowValue(rowKey, 'city', item.rowData.city)}
               onValueChange={(value) => {
@@ -128,7 +128,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Cluster</label>
+            <label className="text-xs font-medium text-gray-500">Cluster *</label>
             <Select
               value={getRowValue(rowKey, 'cluster', item.rowData.cluster)}
               onValueChange={(value) => handleFieldEdit(rowKey, 'cluster', value)}
@@ -147,7 +147,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Manager</label>
+            <label className="text-xs font-medium text-gray-500">Manager *</label>
             <Input 
               value={getRowValue(rowKey, 'manager', item.rowData.manager)}
               onChange={(e) => handleFieldEdit(rowKey, 'manager', e.target.value)}
@@ -170,53 +170,6 @@ const InvalidRowEditor = ({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
-            <Input 
-              value={getRowValue(rowKey, 'date_of_joining', item.rowData.date_of_joining)}
-              onChange={(e) => handleFieldEdit(rowKey, 'date_of_joining', e.target.value)}
-              placeholder="DD-MM-YYYY"
-              className="h-8 text-sm"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
-            <Input 
-              value={getRowValue(rowKey, 'date_of_birth', item.rowData.date_of_birth)}
-              onChange={(e) => handleFieldEdit(rowKey, 'date_of_birth', e.target.value)}
-              placeholder="DD-MM-YYYY"
-              className="h-8 text-sm"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Blood Group</label>
-            <Input 
-              value={getRowValue(rowKey, 'blood_group', item.rowData.blood_group)}
-              onChange={(e) => handleFieldEdit(rowKey, 'blood_group', e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Account Number</label>
-            <Input 
-              value={getRowValue(rowKey, 'account_number', item.rowData.account_number)}
-              onChange={(e) => handleFieldEdit(rowKey, 'account_number', e.target.value)}
-              className="h-8 text-sm"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">IFSC Code</label>
-            <Input 
-              value={getRowValue(rowKey, 'ifsc_code', item.rowData.ifsc_code)}
-              onChange={(e) => handleFieldEdit(rowKey, 'ifsc_code', e.target.value)}
-              className="h-8 text-sm"
-            />
           </div>
           
           <div className="space-y-2">

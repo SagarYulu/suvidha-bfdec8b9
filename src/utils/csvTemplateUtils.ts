@@ -11,9 +11,9 @@ export const getCSVTemplate = () => {
     'name',         // Name (required)
     'email',        // Email (required)
     'phone',        // Phone
-    'city',         // City (now required)
-    'cluster',      // Cluster (now required)
-    'manager',      // Manager (now required)
+    'city',         // City (required)
+    'cluster',      // Cluster (required)
+    'manager',      // Manager (required)
     'role',         // Role (required)
     'password'      // Password
   ];

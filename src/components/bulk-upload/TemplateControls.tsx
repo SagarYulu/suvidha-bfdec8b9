@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Download, Upload } from "lucide-react";
-import { getCSVTemplate } from "@/utils/csvHelpers";
+import { getCSVTemplate } from "@/utils/csvTemplateUtils";
 
 interface TemplateControlsProps {
   isUploading: boolean;
