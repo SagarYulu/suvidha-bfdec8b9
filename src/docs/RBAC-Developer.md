@@ -1,3 +1,4 @@
+
 # Role-Based Access Control (RBAC) Developer Guide
 
 ## Overview
@@ -6,10 +7,10 @@ This document provides detailed information for developers on how to modify and 
 
 ## Core Files
 
-1. **`src/contexts/RBACContext.tsx`**: The central configuration file that defines:
-   - Permission types
-   - Role to permission mappings
-   - Context provider and hook for permission checks
+1. **`src/contexts/RBACContext.tsx`**: The central configuration file that:
+   - Defines permission types
+   - Provides hooks for permission checks
+   - Communicates with the database-backed RBAC system
 
 2. **`src/hooks/useRoleAccess.tsx`**: A utility hook that:
    - Checks if a user has a specific permission
@@ -22,12 +23,54 @@ This document provides detailed information for developers on how to modify and 
 
 5. **`src/components/rbac/PermissionGate.tsx`**: Conditionally renders UI elements based on permissions
 
+6. **`src/services/rbacService.ts`**: Service functions to interact with the RBAC database tables
+
+## Database Structure
+
+The RBAC system is backed by several database tables:
+
+1. **`rbac_permissions`**: Stores available permissions
+   - id (UUID)
+   - name (TEXT)
+   - description (TEXT)
+
+2. **`rbac_roles`**: Stores roles that can be assigned to users
+   - id (UUID)
+   - name (TEXT)
+   - description (TEXT)
+
+3. **`rbac_role_permissions`**: Junction table linking roles to permissions
+   - id (UUID)
+   - role_id (UUID)
+   - permission_id (UUID)
+
+4. **`rbac_user_roles`**: Junction table linking users to roles
+   - id (UUID)
+   - user_id (UUID)
+   - role_id (UUID)
+
+## Database Functions
+
+The following database functions are available for RBAC operations:
+
+1. **`has_role(user_id, role_name)`**: Check if a user has a specific role
+2. **`assign_role(target_user_id, role_name)`**: Assign a role to a user
+3. **`remove_role(target_user_id, role_name)`**: Remove a role from a user
+4. **`has_permission(user_id, permission_name)`**: Check if a user has a specific permission
+5. **`assign_permission_to_role(role_name, permission_name)`**: Assign a permission to a role
+6. **`remove_permission_from_role(role_name, permission_name)`**: Remove a permission from a role
+
 ## Modifying the RBAC System
 
 ### Adding a New Permission
 
-1. Open `src/contexts/RBACContext.tsx`
-2. Add your new permission to the `Permission` type:
+1. Insert the new permission into the `rbac_permissions` table:
+   ```sql
+   INSERT INTO public.rbac_permissions (name, description)
+   VALUES ('access:new-feature', 'Description of the permission');
+   ```
+
+2. Update the `Permission` type in `src/contexts/RBACContext.tsx`:
    ```typescript
    export type Permission = 
      | 'view:dashboard' 
@@ -35,15 +78,14 @@ This document provides detailed information for developers on how to modify and 
      // Add your new permission here
      | 'access:new-feature';
    ```
-3. Assign the new permission to the appropriate roles in the `ROLE_PERMISSIONS` mapping:
-   ```typescript
-   const ROLE_PERMISSIONS: Record<string, Permission[]> = {
-     'admin': [
-       // Existing permissions
-       'access:new-feature'  // Add your new permission here
-     ],
-     // Update other roles as needed
-   };
+
+3. Assign the permission to the appropriate roles through the UI or directly in the database:
+   ```sql
+   INSERT INTO public.rbac_role_permissions (role_id, permission_id)
+   VALUES (
+     (SELECT id FROM public.rbac_roles WHERE name = 'admin'),
+     (SELECT id FROM public.rbac_permissions WHERE name = 'access:new-feature')
+   );
    ```
 
 ### Creating a New Guard for a Permission
@@ -87,22 +129,14 @@ You can find this configuration in:
 3. **Default Deny**: Always default to no access and explicitly grant permissions
 4. **UI Components**: Use `PermissionGate` for conditional UI rendering
 
-## Implementing a Database-Backed RBAC System
+## Managing Permissions Through the UI
 
-For a production environment, consider moving from hardcoded permissions to a database schema:
+The application includes UI tools for managing permissions at `/admin/access-control`. This interface allows you to:
 
-1. Create tables for:
-   - `permissions` - List of all permissions
-   - `roles` - List of all roles
-   - `role_permissions` - Many-to-many relationship between roles and permissions
-   - `user_roles` - Many-to-many relationship between users and roles
-
-2. Create API endpoints to:
-   - Fetch permissions for a user
-   - Assign/remove roles from users
-   - Modify permissions for roles
-
-3. Update the RBAC context to fetch permissions from the API instead of using hardcoded values
+1. View all roles and their assigned permissions
+2. Add or remove permissions from roles
+3. Assign roles to users
+4. Create new roles or permissions if needed
 
 ## Testing RBAC Implementation
 

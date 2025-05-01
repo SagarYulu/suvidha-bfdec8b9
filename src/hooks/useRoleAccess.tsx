@@ -14,7 +14,7 @@ interface UseRoleAccessOptions {
  */
 export const useRoleAccess = () => {
   const { authState } = useAuth();
-  const { hasPermission, userRole } = useRBAC();
+  const { hasPermission, userRole, isLoading } = useRBAC();
   const navigate = useNavigate();
 
   /**
@@ -27,6 +27,11 @@ export const useRoleAccess = () => {
     permission: Permission,
     { redirectTo = '/', showToast = true }: UseRoleAccessOptions = {}
   ): boolean => {
+    // If still loading permissions, allow access (will be checked again once loaded)
+    if (isLoading) {
+      return true;
+    }
+    
     // Special case for developer account
     if (authState.user?.email === 'sagar.km@yulu.bike') {
       console.log('Developer account - granting full access');
@@ -68,6 +73,7 @@ export const useRoleAccess = () => {
   return {
     checkAccess,
     isAuthenticated: authState.isAuthenticated,
-    userRole
+    userRole,
+    isLoading
   };
 };
