@@ -42,20 +42,24 @@ const AccessControl = () => {
   // Check if current user is admin
   useEffect(() => {
     if (!authState.isAuthenticated) {
+      console.log("Not authenticated in AccessControl page, redirecting to login");
       navigate("/admin/login");
       return;
     }
 
-    if (authState.role !== "admin") {
+    // Allow both admin and security-admin roles to access this page
+    if (authState.role !== "admin" && authState.role !== "security-admin") {
+      console.log("Access denied: User role =", authState.role);
       toast({
         title: "Access Denied",
         description: "You do not have admin privileges",
         variant: "destructive",
       });
-      navigate("/");
+      navigate("/admin/dashboard");
       return;
     }
 
+    console.log("User authorized for access control page:", authState.user?.name);
     loadDashboardUsers();
   }, [authState, navigate]);
 

@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from "@/hooks/use-toast"; 
 
 import BaseLayout from './layouts/BaseLayout';
 import AdminHeader from './layouts/headers/AdminHeader';
@@ -27,7 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   useEffect(() => {
     // Set a short timeout to ensure auth state is loaded
     const checkAuth = setTimeout(() => {
-      // Check if user is authenticated and has admin role
+      // Check if user is authenticated
       if (!authState.isAuthenticated) {
         console.log("Not authenticated, redirecting to admin login");
         navigate("/admin/login", { replace: true });
@@ -36,7 +37,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
       
       // Check if user has admin or security-admin role
       if (authState.role !== "admin" && authState.role !== "security-admin") {
-        console.log("Not an admin user, redirecting to home");
+        console.log("Not an admin user, role:", authState.role, "redirecting to home");
+        toast({
+          title: "Access Denied",
+          description: "You do not have admin privileges",
+          variant: "destructive",
+        });
         navigate("/", { replace: true });
         return;
       }

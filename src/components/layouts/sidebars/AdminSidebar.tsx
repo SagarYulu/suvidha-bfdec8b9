@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   LayoutDashboard,
   TicketCheck,
@@ -36,7 +37,8 @@ interface DropdownMenuProps {
 }
 
 const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, isActive: forcedActiveState }) => {
-  const isActive = forcedActiveState !== undefined ? forcedActiveState : window.location.pathname === href;
+  const location = useLocation();
+  const isActive = forcedActiveState !== undefined ? forcedActiveState : location.pathname === href;
 
   return (
     <Link
@@ -109,6 +111,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
     dashboardUsers: false
   });
+  const { authState } = useAuth();
+  const location = useLocation();
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus(prev => ({
@@ -116,6 +120,17 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       [menuName]: !prev[menuName]
     }));
   };
+
+  // Determine active link based on current location
+  useEffect(() => {
+    // Check if we're in a subpath and open the corresponding dropdown
+    if (location.pathname.includes('/admin/dashboard-users')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        dashboardUsers: true
+      }));
+    }
+  }, [location]);
 
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
@@ -142,11 +157,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             href="/admin/dashboard-users/add" 
             icon={UserPlus} 
             label="Add Dashboard User" 
-            isActive={window.location.pathname === "/admin/dashboard-users/add"}
+            isActive={location.pathname === "/admin/dashboard-users/add"}
           />
         </DropdownMenu>
         
-        <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
+        {/* Only show Access Control to admin and security-admin roles */}
+        {(authState.role === "admin" || authState.role === "security-admin") && (
+          <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
+        )}
         <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
       </div>
 
