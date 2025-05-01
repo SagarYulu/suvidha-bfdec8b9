@@ -1,7 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import BaseLayout from "./layouts/BaseLayout";
 import MobileHeader from "./layouts/headers/MobileHeader";
@@ -20,33 +20,49 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // Redirect if not authenticated
-    if (!authState.isAuthenticated) {
-      console.log("Not authenticated, redirecting to mobile login");
-      navigate("/mobile/login");
-      return;
-    }
-    
-    // If user is admin, redirect to admin dashboard
-    if (authState.role === "admin") {
-      console.log("Admin detected in mobile app, redirecting to admin dashboard");
-      toast({
-        title: "Admin Access Detected",
-        description: "Redirecting to admin dashboard",
-      });
-      navigate("/admin/dashboard");
-      return;
-    }
+    // Set a short timeout to ensure auth state is loaded
+    const checkAuth = setTimeout(() => {
+      // Redirect if not authenticated
+      if (!authState.isAuthenticated) {
+        console.log("Not authenticated, redirecting to mobile login");
+        navigate("/mobile/login", { replace: true });
+        return;
+      }
+      
+      // If user is admin, redirect to admin dashboard
+      if (authState.role === "admin" || authState.role === "security-admin") {
+        console.log("Admin detected in mobile app, redirecting to admin dashboard");
+        toast({
+          title: "Admin Access Detected",
+          description: "Redirecting to admin dashboard",
+        });
+        navigate("/admin/dashboard", { replace: true });
+        return;
+      }
 
-    console.log("Employee authenticated in mobile app", authState.user);
+      console.log("Employee authenticated in mobile app", authState.user);
+      setIsCheckingAuth(false);
+    }, 100);
+
+    return () => clearTimeout(checkAuth);
   }, [authState, navigate]);
 
   const handleLogout = () => {
     logout();
-    navigate("/mobile/login");
+    navigate("/mobile/login", { replace: true });
   };
+
+  // Show loading state while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
+  }
 
   const header = (
     <MobileHeader

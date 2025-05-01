@@ -47,7 +47,7 @@ export const login = async (email: string, password: string): Promise<User | nul
   console.log('Login attempt:', { email, password });
 
   try {
-    // Step 1: Check if it's the admin user
+    // Step 1: Check if it's the default admin user
     if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
         password === DEFAULT_ADMIN_USER.password) {
       console.log('Default admin login successful');

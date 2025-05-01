@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { DEFAULT_ADMIN_USER } from '@/services/authService';
+import { login as authServiceLogin } from '@/services/authService';
 
 // Define the AuthContext type
 interface AuthContextType {
@@ -17,17 +17,17 @@ interface AuthContextType {
     role: string | null;
   };
   isLoading: boolean;
-  user: { // Add direct user property for easier access
+  user: { // Direct user property for easier access
     id: string;
     email: string;
     name: string;
   } | null;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  login: (email: string, password: string) => Promise<boolean>; // Add alias for login
+  login: (email: string, password: string) => Promise<boolean>; // Alias for signIn
   refreshSession: () => Promise<void>;
-  refreshAuth: () => Promise<void>; // Add alias for refreshSession
+  refreshAuth: () => Promise<void>; // Alias for refreshSession
 }
 
 // Create the AuthContext with a default value
@@ -47,37 +47,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshSession = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Check if we have a mock user in localStorage (for demo purposes)
+      const mockUserStr = localStorage.getItem('mockUser');
+      if (mockUserStr) {
+        try {
+          const mockUser = JSON.parse(mockUserStr);
+          console.log("Found mockUser in localStorage:", mockUser);
+          
+          setAuthState({
+            isAuthenticated: true,
+            user: {
+              id: mockUser.id,
+              email: mockUser.email,
+              name: mockUser.name,
+            },
+            session: null, // No Supabase session for mock users
+            role: mockUser.role,
+          });
+          setIsLoading(false);
+          return; // Exit early
+        } catch (e) {
+          console.error("Error parsing mock user:", e);
+          localStorage.removeItem('mockUser'); // Clear invalid data
+        }
+      }
+
+      // If no mock user found, check for Supabase session
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("Supabase session:", session);
 
       if (session) {
         const { user } = session;
-
-        // Fetch user details from the dashboard_users table
+        
+        // Try to fetch user details from the dashboard_users table
         const { data: dashboardUser, error } = await supabase
           .from('dashboard_users')
           .select('*')
           .eq('email', user.email)
           .single();
+        
+        console.log("Dashboard user data:", dashboardUser, "Error:", error);
 
-        if (error) {
-          console.error("Error fetching dashboard user:", error);
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            session: null,
-            role: null,
-          });
-          return;
-        }
-
-        // Determine the user's role
-        let role = dashboardUser?.role || null;
-
-        // For the default admin user, assign the admin role
-        if (user.id === DEFAULT_ADMIN_USER.id) {
-          role = 'admin';
-        }
-
+        // Set user state based on Supabase session
         setAuthState({
           isAuthenticated: true,
           user: {
@@ -86,31 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name: dashboardUser?.name || user.email,
           },
           session: session,
-          role: role,
+          role: dashboardUser?.role || null,
         });
       } else {
-        // Check if we have a mock user in localStorage (for demo purposes)
-        const mockUserStr = localStorage.getItem('mockUser');
-        if (mockUserStr) {
-          try {
-            const mockUser = JSON.parse(mockUserStr);
-            setAuthState({
-              isAuthenticated: true,
-              user: {
-                id: mockUser.id,
-                email: mockUser.email,
-                name: mockUser.name,
-              },
-              session: null, // No Supabase session for mock users
-              role: mockUser.role,
-            });
-            return; // Exit early
-          } catch (e) {
-            console.error("Error parsing mock user:", e);
-            localStorage.removeItem('mockUser'); // Clear invalid data
-          }
-        }
-
+        // No mock user and no Supabase session, user is not authenticated
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -151,60 +142,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [refreshSession]);
 
-  // Sign-in function
-  const signIn = async (email: string, password: string) => {
+  // Sign-in function - tries both local auth and Supabase auth
+  const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const { data: { session, user }, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (session && user) {
-        // Fetch user details from the dashboard_users table
-        const { data: dashboardUser, error } = await supabase
-          .from('dashboard_users')
-          .select('*')
-          .eq('email', user.email)
-          .single();
-
-        if (error) {
-          console.error("Error fetching dashboard user:", error);
-          setAuthState({
-            isAuthenticated: false,
-            user: null,
-            session: null,
-            role: null,
+      
+      // First try local authentication (for demo users)
+      const localUser = await authServiceLogin(email, password);
+      
+      if (localUser) {
+        console.log("Local authentication succeeded with:", localUser);
+        // Local auth success, try Supabase auth but don't fail if it doesn't work
+        try {
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
           });
-          return;
+          
+          if (!error && data.session) {
+            console.log("Supabase authentication also succeeded");
+          } else {
+            console.log("Supabase authentication failed, but using local auth instead");
+          }
+        } catch (error) {
+          console.log("Supabase authentication error, falling back to local auth:", error);
         }
-
-        // Determine the user's role
-        let role = dashboardUser?.role || null;
-
-        // For the default admin user, assign the admin role
-        if (user.id === DEFAULT_ADMIN_USER.id) {
-          role = 'admin';
-        }
-
-        setAuthState({
-          isAuthenticated: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: dashboardUser?.name || user.email,
-          },
-          session: session,
-          role: role,
-        });
+        
+        // Refresh auth state to update the UI
+        await refreshSession();
+        return true;
       }
-    } catch (error: any) {
+      
+      // If local auth failed, try Supabase-only authentication
+      console.log("Local authentication failed, trying Supabase-only authentication");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        console.error("Supabase authentication error:", error);
+        return false;
+      }
+      
+      if (data.session) {
+        console.log("Supabase-only authentication succeeded");
+        await refreshSession();
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
       console.error("Sign-in error:", error);
-      throw new Error(error.message || "Failed to sign in");
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -224,16 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (session && user) {
-        setAuthState({
-          isAuthenticated: true,
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.email, // Default to email, can be updated later
-          },
-          session: session,
-          role: null, // Default role
-        });
+        await refreshSession();
       }
     } catch (error: any) {
       console.error("Sign-up error:", error);
@@ -247,11 +228,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
       
-      // Also clear any mock user from localStorage
+      // Clear mock user from localStorage
       localStorage.removeItem('mockUser');
       
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Update auth state
       setAuthState({
         isAuthenticated: false,
         user: null,
@@ -266,16 +250,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Login function (alias for signIn but returns a boolean for success)
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      await signIn(email, password);
-      return true;
-    } catch (error) {
-      console.error("Login error:", error);
-      return false;
-    }
-  };
+  // login function (alias for signIn)
+  const login = signIn;
 
   // Provide the auth context value
   const value: AuthContextType = {

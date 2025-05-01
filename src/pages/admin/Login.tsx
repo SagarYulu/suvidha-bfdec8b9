@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { login } from '@/services/authService';
 
 interface LocationState {
   returnTo?: string;
@@ -19,7 +18,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, authState, refreshAuth } = useAuth();
+  const { authState, signIn, refreshAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { returnTo } = (location.state as LocationState) || {};
@@ -34,7 +33,7 @@ const Login = () => {
     // Check if user is already logged in
     if (authState.isAuthenticated) {
       console.log("User already authenticated, redirecting to:", returnTo || '/admin/dashboard');
-      navigate(returnTo || '/admin/dashboard');
+      navigate(returnTo || '/admin/dashboard', { replace: true });
     }
   }, [authState.isAuthenticated, navigate, returnTo]);
 
@@ -47,18 +46,10 @@ const Login = () => {
       console.log("Attempting to login with:", email);
       console.log("Return path after login:", returnTo);
       
-      // First, try local authentication with authService
-      const localUser = await login(email, password);
+      // Try login through authContext
+      const success = await signIn(email, password);
       
-      if (localUser) {
-        // If local authentication succeeds, try Supabase authentication
-        try {
-          await signIn(email, password);
-        } catch (error) {
-          console.log("Supabase authentication failed, but using local auth");
-          // We'll continue with local auth even if Supabase auth fails
-        }
-        
+      if (success) {
         toast({
           description: 'Login successful!'
         });
@@ -69,13 +60,13 @@ const Login = () => {
         // Redirect to the return URL if provided, or to the dashboard
         const redirectPath = returnTo || '/admin/dashboard';
         console.log("Login successful, redirecting to:", redirectPath);
-        navigate(redirectPath);
+        navigate(redirectPath, { replace: true });
       } else {
         setErrorMessage('Invalid email or password');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
-      setErrorMessage('An error occurred during login');
+      setErrorMessage(error.message || 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }

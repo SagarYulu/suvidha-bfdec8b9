@@ -1,6 +1,4 @@
-
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issueService";
 import { getIssues } from "@/services/issueService";
@@ -8,31 +6,15 @@ import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AlertTriangle, CheckCircle, Clock, FileText, Users } from "lucide-react";
-import { Issue, User } from "@/types";
-import { useAuth } from "@/contexts/AuthContext";
+import { Issue } from "@/types";
 
 const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userCount, setUserCount] = useState(0);
-  const { authState } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authState.isAuthenticated) {
-      console.log("Not authenticated, redirecting to home");
-      navigate("/");
-      return;
-    } 
-    
-    if (authState.role !== "admin") {
-      console.log("Not an admin, redirecting to home");
-      navigate("/");
-      return;
-    }
-
-    console.log("Admin authenticated, loading dashboard data");
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
@@ -60,7 +42,7 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, [authState, navigate]);
+  }, []);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
