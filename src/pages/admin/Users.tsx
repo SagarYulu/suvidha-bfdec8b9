@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -38,6 +37,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ROLE_OPTIONS, CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 import { useToast } from "@/hooks/use-toast";
 import Papa from "papaparse";
+import { getCSVTemplate } from "@/utils/csvTemplateUtils";
+import { validateEmployeeData } from "@/utils/validationUtils";
 
 const AdminUsers = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -235,33 +236,8 @@ const AdminUsers = () => {
   };
 
   // CSV Template generation and download
-  const generateCSVTemplate = () => {
-    const headers = [
-      'id',           // UUID (auto-generated, can be left empty)
-      'User ID',      // Manual User ID (numeric, required)
-      'emp_id',       // Employee ID (required)
-      'name',         // Name (required)
-      'email',        // Email (required)
-      'phone',        // Phone
-      'city',         // City (required)
-      'cluster',      // Cluster (required)
-      'manager',      // Manager (required)
-      'role',         // Role (required)
-      'password'      // Password
-    ];
-
-    // Example data
-    const exampleRows = [
-      ',1234567,YL001,John Doe,john@yulu.com,9876543210,Bangalore,Koramangala,Jane Smith,Mechanic,changeme123',
-      ',2345678,YL002,Jane Smith,jane@yulu.com,9876543211,Delhi,GURGAON,Mark Johnson,Zone Screener,changeme123'
-    ];
-
-    const csvContent = [headers.join(','), ...exampleRows].join('\n');
-    return csvContent;
-  };
-
   const downloadCSVTemplate = () => {
-    const csvContent = generateCSVTemplate();
+    const csvContent = getCSVTemplate();
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -272,7 +248,7 @@ const AdminUsers = () => {
     document.body.removeChild(link);
   };
 
-  // Handle CSV upload
+  // Handle CSV upload with validation
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -293,9 +269,11 @@ const AdminUsers = () => {
             return;
           }
 
+          console.log("Parsed CSV data:", results.data);
+          
           // Process each row
-          const validUsers = [];
-          const invalidRows = [];
+          const validUsers: Omit<User, 'id'>[] = [];
+          const invalidRows: { row: Record<string, string>; errors: string[] }[] = [];
           
           for (const row of results.data) {
             // Skip empty rows
@@ -304,86 +282,89 @@ const AdminUsers = () => {
             }
 
             // Extract data with multiple possible header names
-            const userId = 
-              row.userId || 
-              row.user_id || 
-              row.userid || 
-              row['User ID'] || 
-              row['user id'] || 
-              row['USER ID'] || 
-              row['UserId'] || 
-              '';
-
-            const empId = (
-              row.emp_id || 
-              row.empId || 
-              row.employee_id || 
-              row.employeeId || 
-              row.EmployeeID ||
-              row['Employee ID'] ||
-              row['emp id'] ||
-              row['EMP ID'] ||
-              ''
-            ).trim();
-
-            // Basic validation
-            if (!userId || !empId || !row.name || !row.email || !row.city || !row.cluster || !row.manager || !row.role) {
-              invalidRows.push({
-                row,
-                message: "Missing required fields"
-              });
-              continue;
-            }
-
-            // Create user object
-            validUsers.push({
+            const userId = row['User ID'] || row.user_id || row.userId || '';
+            const empId = row.emp_id || row.empId || row.employee_id || '';
+            
+            // Create user object mapping all fields
+            const userData = {
               userId: userId,
               employeeId: empId,
-              name: row.name,
-              email: row.email,
-              phone: row.phone || "",
-              city: row.city,
-              cluster: row.cluster,
-              manager: row.manager,
-              role: row.role,
-              password: row.password || "changeme123",
-              dateOfJoining: "",
-              bloodGroup: "",
-              dateOfBirth: "",
-              accountNumber: "",
-              ifscCode: ""
+              name: row.name || '',
+              email: row.email || '',
+              phone: row.phone || '',
+              city: row.city || '',
+              cluster: row.cluster || '',
+              manager: row.manager || '',
+              role: row.role || '',
+              password: row.password || 'changeme123',
+              dateOfJoining: row.date_of_joining || '',
+              bloodGroup: row.blood_group || '',
+              dateOfBirth: row.date_of_birth || '',
+              accountNumber: row.account_number || '',
+              ifscCode: row.ifsc_code || ''
+            };
+
+            // Validate using the common validation function
+            const validation = validateEmployeeData({
+              emp_id: userData.employeeId,
+              name: userData.name,
+              email: userData.email,
+              role: userData.role,
+              user_id: userData.userId,
+              city: userData.city,
+              cluster: userData.cluster,
+              manager: userData.manager
             });
+            
+            if (validation.isValid) {
+              validUsers.push(userData);
+            } else {
+              invalidRows.push({ row, errors: validation.errors });
+            }
           }
 
-          if (validUsers.length === 0) {
+          if (invalidRows.length > 0) {
+            console.log("Invalid rows:", invalidRows);
+            const errorMessages = invalidRows.map((item, index) => 
+              `Row ${index + 1}: ${item.errors.join(', ')}`
+            );
+            
             toast({
               variant: "destructive",
-              title: "Validation Failed",
-              description: `No valid users found. Please check the CSV format.`,
+              title: `${invalidRows.length} invalid row(s) found`,
+              description: errorMessages.join('\n').substring(0, 200) + 
+                (errorMessages.join('\n').length > 200 ? '...' : ''),
             });
-          } else {
-            try {
-              // Create users in batch
-              for (const userData of validUsers) {
-                await createUser(userData);
-              }
-              
-              toast({
-                title: "Upload Successful",
-                description: `Successfully added ${validUsers.length} users.`,
-              });
-              
-              // Close the dialog and refresh the user list
-              setIsAddUserDialogOpen(false);
-              fetchUsers();
-            } catch (error) {
-              console.error('Error creating users:', error);
-              toast({
-                variant: "destructive",
-                title: "Upload Failed",
-                description: "There was an error adding the users to the database.",
-              });
+            
+            if (validUsers.length === 0) {
+              setIsLoading(false);
+              return;
             }
+          }
+
+          try {
+            // Create users in batch
+            for (const userData of validUsers) {
+              await createUser(userData);
+            }
+            
+            toast({
+              title: "Upload Successful",
+              description: `Successfully added ${validUsers.length} users.${
+                invalidRows.length > 0 ? ` (${invalidRows.length} invalid rows were skipped)` : ''
+              }`,
+            });
+            
+            // Close the dialog and refresh the user list
+            setIsAddUserDialogOpen(false);
+            fetchUsers();
+          } catch (error) {
+            console.error('Error creating users:', error);
+            toast({
+              variant: "destructive",
+              title: "Upload Failed",
+              description: "There was an error adding the users to the database.",
+            });
           }
           
           setIsLoading(false);
@@ -729,28 +710,21 @@ const AdminUsers = () => {
                             <div className="flex items-start">
                               <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
                               <div className="text-sm">
-                                <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, city, cluster, manager, role
+                                <span className="font-medium">Required Fields:</span> User ID, emp_id, name, email, city, cluster, manager, role
                               </div>
                             </div>
 
                             <div className="flex items-start">
                               <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
                               <div className="text-sm">
-                                <span className="font-medium">Optional Headers:</span> phone, password
+                                <span className="font-medium">Optional Fields:</span> phone, password, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code
                               </div>
                             </div>
 
                             <div className="flex items-start">
                               <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
                               <div className="text-sm">
-                                <span className="font-medium">User ID Format:</span> Must be a 7-digit number (e.g., 1234567)
-                              </div>
-                            </div>
-
-                            <div className="flex items-start">
-                              <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-                              <div className="text-sm">
-                                <span className="font-medium">Password:</span> If not provided, defaults to "changeme123"
+                                <span className="font-medium">User ID Format:</span> Must be a numeric value (e.g., 1234567)
                               </div>
                             </div>
                           </div>
