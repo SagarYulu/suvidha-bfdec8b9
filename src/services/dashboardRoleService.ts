@@ -107,7 +107,11 @@ export const getDashboardUsers = async (): Promise<DashboardUser[]> => {
       return [];
     }
     
-    return data || [];
+    // Cast the role from string to DashboardRole before returning
+    return (data || []).map(user => ({
+      ...user,
+      role: user.role as DashboardRole
+    })) as DashboardUser[];
   } catch (error) {
     console.error("Error in getDashboardUsers:", error);
     return [];
