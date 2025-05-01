@@ -49,7 +49,7 @@ export const useRoleAccess = () => {
       if (showToast) {
         toast({
           title: 'Access Denied',
-          description: 'You do not have permission to access this resource',
+          description: `You do not have the "${permission}" permission required for this page`,
           variant: 'destructive',
         });
       }

@@ -112,9 +112,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
     dashboardUsers: false
   });
-  const { hasPermission } = useRBAC();
+  const { hasPermission, userRole } = useRBAC();
   const location = useLocation();
-  const { logout } = useAuth(); // Move hook call to component level
+  const { logout } = useAuth();
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus(prev => ({
@@ -143,6 +143,13 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       console.error("Logout failed:", error);
     }
   };
+
+  console.log("Current user role:", userRole);
+  console.log("Has dashboard permission:", hasPermission("view:dashboard"));
+  console.log("Has issues permission:", hasPermission("manage:issues"));
+  console.log("Has users permission:", hasPermission("manage:users"));
+  console.log("Has analytics permission:", hasPermission("manage:analytics"));
+  console.log("Has security permission:", hasPermission("access:security"));
 
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">

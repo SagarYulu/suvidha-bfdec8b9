@@ -24,11 +24,13 @@ const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'access:security',
     'create:dashboardUser'
   ],
-  // Security admin has security-specific permissions
+  // Security admin has security-specific permissions plus dashboard view
   'security-admin': [
     'view:dashboard', 
     'access:security',
-    'manage:users'
+    'manage:users',
+    'manage:issues',
+    'manage:analytics'
   ],
   // Super Admin (from dashboard_users) has all permissions
   'Super Admin': [
