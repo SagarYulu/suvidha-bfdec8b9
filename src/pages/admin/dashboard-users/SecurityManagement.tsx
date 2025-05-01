@@ -19,6 +19,9 @@ import { ShieldAlert, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
+// List of authorized emails that can access the security management page
+const AUTHORIZED_EMAILS = ['admin@yulu.com', 'sagar.km@yulu.bike'];
+
 const SecurityManagement: React.FC = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const navigate = useNavigate();
@@ -39,7 +42,8 @@ const SecurityManagement: React.FC = () => {
             variant: "destructive"
           });
           navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
-        } else if (authState.role !== 'admin') {
+        } else if (authState.role !== 'admin' && !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
+          // Check if user is admin OR has an authorized email
           toast({
             title: "Access Denied",
             description: "You must have admin privileges to access this page",

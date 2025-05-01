@@ -24,6 +24,12 @@ const Login = () => {
   const location = useLocation();
   const { returnTo } = (location.state as LocationState) || {};
 
+  // Demo credentials for testing specific access
+  const demoCredentials = [
+    { email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' },
+    { email: 'sagar.km@yulu.bike', password: '123456', label: 'Sagar KM' }
+  ];
+
   useEffect(() => {
     // Check if user is already logged in
     if (authState.isAuthenticated) {
@@ -83,6 +89,11 @@ const Login = () => {
     }
   };
 
+  const fillDemoCredentials = (email: string, password: string) => {
+    setEmail(email);
+    setPassword(password);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-6">
@@ -133,10 +144,23 @@ const Login = () => {
               </Button>
             </form>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-2">
             <p className="text-center text-sm text-muted-foreground w-full">
-              Use the default admin credentials (admin@yulu.com / admin123) or your assigned login
+              Demo credentials for testing
             </p>
+            <div className="flex flex-col gap-2 w-full">
+              {demoCredentials.map((cred, index) => (
+                <Button 
+                  key={index}
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fillDemoCredentials(cred.email, cred.password)}
+                  className="w-full"
+                >
+                  Use {cred.label} credentials
+                </Button>
+              ))}
+            </div>
           </CardFooter>
         </Card>
       </div>

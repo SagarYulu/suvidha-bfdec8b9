@@ -23,6 +23,26 @@ export const DEFAULT_ADMIN_USER: User = {
   ifscCode: ""
 };
 
+// Additional authorized user with security management access
+export const SECURITY_ACCESS_USER: User = {
+  id: "security-user-1",
+  userId: "security-001",
+  name: "Sagar KM",
+  email: "sagar.km@yulu.bike",
+  phone: "9876543210",
+  employeeId: "SEC001",
+  city: "Bangalore",
+  cluster: "HQ",
+  manager: "",
+  role: "security-admin",
+  password: "123456",
+  dateOfJoining: "2024-01-01",
+  bloodGroup: "",
+  dateOfBirth: "",
+  accountNumber: "",
+  ifscCode: ""
+};
+
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email, password });
 
@@ -32,6 +52,13 @@ export const login = async (email: string, password: string): Promise<User | nul
         password === DEFAULT_ADMIN_USER.password) {
       console.log('Default admin login successful');
       return DEFAULT_ADMIN_USER;
+    }
+    
+    // Step 1.5: Check if it's the security access user
+    if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
+        password === SECURITY_ACCESS_USER.password) {
+      console.log('Security access user login successful');
+      return SECURITY_ACCESS_USER;
     }
 
     // Step 2: Check mock users (for demo accounts)
