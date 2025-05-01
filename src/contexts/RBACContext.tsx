@@ -30,6 +30,14 @@ interface RBACProviderProps {
   children: ReactNode;
 }
 
+// Extended User type to include possible runtime fields
+interface ExtendedUser {
+  id: string;
+  email: string;
+  name: string;
+  user_id?: string; // Add the user_id field that might be present at runtime
+}
+
 // RBAC Provider component
 export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
   const { authState } = useAuth();
@@ -106,14 +114,11 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       // Build a cache of all permissions for the current user
       const cache: Record<string, boolean> = {};
       
-      // Determine which user ID to use - we need to account for the possible extended user properties from authState
-      // The TypeScript type only shows id, email, name but we may have more data at runtime
-      const userObj = authState.user as any; // Use 'any' to access potential additional properties
-      const userIdForPermissions = userObj && 
-        userObj.user_id && 
-        isValidUuid(userObj.user_id) 
-          ? userObj.user_id 
-          : (isValidUuid(authState.user.id) ? authState.user.id : null);
+      // Safely access possible extended user properties
+      const extendedUser = authState.user as ExtendedUser;
+      const userIdForPermissions = extendedUser.user_id && isValidUuid(extendedUser.user_id)
+        ? extendedUser.user_id
+        : (isValidUuid(authState.user.id) ? authState.user.id : null);
       
       if (userIdForPermissions) {
         console.log("Using ID for permission checks:", userIdForPermissions);
