@@ -1,6 +1,6 @@
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { ValidationResult } from "@/types";
 
 interface ValidationAlertsProps {
@@ -10,6 +10,7 @@ interface ValidationAlertsProps {
 const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
   const { invalidRows, validEmployees } = validationResults;
 
+  // Always show validation status, even when there are no errors
   if (invalidRows.length > 0) {
     return (
       <Alert variant="destructive" className="mb-4">
@@ -31,6 +32,18 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
         <AlertTitle className="text-green-700">All Data Valid</AlertTitle>
         <AlertDescription className="text-green-700">
           {validEmployees.length} valid employee(s) ready to be uploaded.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (validEmployees.length === 0 && invalidRows.length === 0) {
+    return (
+      <Alert variant="default" className="mb-4 border-blue-500 bg-blue-50">
+        <Info className="h-4 w-4 text-blue-500" />
+        <AlertTitle className="text-blue-700">No Data to Validate</AlertTitle>
+        <AlertDescription className="text-blue-700">
+          The CSV file appears to be empty or doesn't contain any recognizable employee data.
         </AlertDescription>
       </Alert>
     );

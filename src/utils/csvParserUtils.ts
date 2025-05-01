@@ -62,11 +62,11 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || null,
             role: row.role || '',
             password: row.password || 'changeme123',
-            date_of_joining: row.date_of_joining || null,
-            date_of_birth: row.date_of_birth || null,
-            blood_group: row.blood_group || null,
-            account_number: row.account_number || null,
-            ifsc_code: row.ifsc_code || null
+            date_of_joining: row.date_of_joining || row['date of joining'] || null,
+            date_of_birth: row.date_of_birth || row['date of birth'] || null,
+            blood_group: row.blood_group || row['blood group'] || null,
+            account_number: row.account_number || row['account number'] || null,
+            ifsc_code: row.ifsc_code || row['ifsc code'] || null
           };
 
           // Generate a structured data object for display
@@ -82,12 +82,14 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || '',
             role: row.role || '',
             password: row.password || 'changeme123',
-            date_of_joining: row.date_of_joining || '',
-            date_of_birth: row.date_of_birth || '',
-            blood_group: row.blood_group || '',
-            account_number: row.account_number || '',
-            ifsc_code: row.ifsc_code || ''
+            date_of_joining: row.date_of_joining || row['date of joining'] || '',
+            date_of_birth: row.date_of_birth || row['date of birth'] || '',
+            blood_group: row.blood_group || row['blood group'] || '',
+            account_number: row.account_number || row['account number'] || '',
+            ifsc_code: row.ifsc_code || row['ifsc code'] || ''
           };
+
+          console.log(`Validating row ${index}:`, employeeData);
 
           // Validate the data using the common validation function
           const validation = validateEmployeeData({
@@ -119,6 +121,10 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
         // Debug: Log the valid employees for troubleshooting
         if (validEmployees.length > 0) {
           console.log('Valid employees ready for upload:', validEmployees);
+        }
+        
+        if (invalidRows.length > 0) {
+          console.log('Invalid rows:', invalidRows);
         }
 
         resolve({ validEmployees, invalidRows });

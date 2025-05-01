@@ -24,6 +24,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
     setIsUploading(true);
     try {
+      console.log("Starting CSV upload and validation for file:", file.name);
       const result = await parseEmployeeCSV(file);
       
       setValidationResults(result);
@@ -41,6 +42,15 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
           variant: "destructive",
           title: "Empty File",
           description: "The CSV file doesn't contain any valid data rows.",
+        });
+      }
+      
+      // Always show validation results even if there are no errors
+      if (result.invalidRows.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Validation Issues Found",
+          description: `${result.invalidRows.length} rows contain validation errors. Please review and fix them.`,
         });
       }
       
@@ -90,7 +100,14 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         role: editedRow.role || '',
         manager: editedRow.manager || null,
         password: editedRow.password || 'changeme123',
+        date_of_joining: editedRow.date_of_joining || null,
+        date_of_birth: editedRow.date_of_birth || null,
+        blood_group: editedRow.blood_group || null,
+        account_number: editedRow.account_number || null,
+        ifsc_code: editedRow.ifsc_code || null
       };
+      
+      console.log("Validating edited row:", employeeData);
       
       // Validate the edited data
       const validation = validateEmployeeData({

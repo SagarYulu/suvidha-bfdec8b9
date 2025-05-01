@@ -55,6 +55,13 @@ const ValidationDialog = ({
     }
   };
 
+  // Always show validation alerts even if there are no invalid rows
+  const showValidationSection = () => {
+    return (
+      <ValidationAlerts validationResults={validationResults} />
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseDialog}>
       <DialogContent className="max-w-5xl max-h-[90vh]">
@@ -62,7 +69,7 @@ const ValidationDialog = ({
           <DialogTitle>CSV Validation Results</DialogTitle>
         </DialogHeader>
         
-        <ValidationAlerts validationResults={validationResults} />
+        {showValidationSection()}
         
         <ScrollArea className="h-[50vh]">
           <div className="space-y-6">

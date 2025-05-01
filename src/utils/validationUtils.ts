@@ -23,6 +23,8 @@ export const isValidUserID = (userId: string): boolean => {
 export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
   
+  console.log("Validating employee data:", data);
+  
   // Required fields - check for userId or user_id
   const userId = data.userId || data.user_id || '';
   
@@ -85,6 +87,8 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
     errors.push(`Invalid date of birth format: ${data.date_of_birth}. Use YYYY-MM-DD.`);
   }
+
+  console.log("Validation results:", { isValid: errors.length === 0, errors });
 
   return {
     isValid: errors.length === 0,
