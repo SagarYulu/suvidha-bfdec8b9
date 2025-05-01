@@ -18,6 +18,8 @@ import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
+import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
+import SecurityManagement from "./pages/admin/dashboard-users/SecurityManagement";
 import { AuthProvider } from "./contexts/AuthContext";
 
 // Create a new QueryClient instance
@@ -45,6 +47,10 @@ const App = () => {
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/access-control" element={<AdminAccessControl />} />
+              
+              {/* Dashboard Users Routes */}
+              <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
+              <Route path="/admin/dashboard-users/security" element={<SecurityManagement />} />
               
               {/* Mobile Routes */}
               <Route path="/mobile/login" element={<MobileLogin />} />

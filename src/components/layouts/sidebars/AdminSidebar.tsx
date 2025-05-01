@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -9,6 +9,9 @@ import {
   LogOut,
   Settings,
   Shield,
+  ChevronDown,
+  UserPlus,
+  Lock
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -18,14 +21,23 @@ interface SidebarLinkProps {
   href: string;
   icon: React.ElementType;
   label: string;
+  isActive?: boolean;
 }
 
 interface AdminSidebarProps {
   onLogout: () => void;
 }
 
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) => {
-  const isActive = window.location.pathname === href;
+interface DropdownMenuProps {
+  label: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  isOpen: boolean;
+  toggleOpen: () => void;
+}
+
+const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, isActive: forcedActiveState }) => {
+  const isActive = forcedActiveState !== undefined ? forcedActiveState : window.location.pathname === href;
 
   return (
     <Link
@@ -43,7 +55,63 @@ const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label }) =>
   );
 };
 
+const DropdownMenu: React.FC<DropdownMenuProps> = ({ 
+  label, 
+  icon: Icon, 
+  children, 
+  isOpen, 
+  toggleOpen 
+}) => {
+  const isActive = isOpen || Array.isArray(children) && 
+    children.some(child => 
+      React.isValidElement(child) && 
+      child.props.href && 
+      window.location.pathname === child.props.href
+    );
+
+  return (
+    <div className="flex flex-col">
+      <button 
+        onClick={toggleOpen}
+        className={cn(
+          "flex items-center justify-between py-3 px-6 text-sm font-medium border-l-2 transition-colors",
+          isActive
+            ? "bg-blue-50 border-blue-500 text-blue-700"
+            : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+        )}
+      >
+        <div className="flex items-center">
+          <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
+          {label}
+        </div>
+        <ChevronDown 
+          className={cn(
+            "h-4 w-4 transition-transform", 
+            isOpen ? "transform rotate-180" : ""
+          )} 
+        />
+      </button>
+      {isOpen && (
+        <div className="bg-gray-50 pl-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
+    dashboardUsers: false
+  });
+
+  const toggleMenu = (menuName: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [menuName]: !prev[menuName]
+    }));
+  };
+
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
       <div className="py-6 px-6 border-b">
@@ -57,6 +125,28 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
         <SidebarLink href="/admin/users" icon={Users} label="Users" />
         <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+        
+        {/* Dashboard Users Dropdown Menu */}
+        <DropdownMenu 
+          label="Dashboard Users" 
+          icon={Users} 
+          isOpen={openMenus.dashboardUsers} 
+          toggleOpen={() => toggleMenu('dashboardUsers')}
+        >
+          <SidebarLink 
+            href="/admin/dashboard-users/add" 
+            icon={UserPlus} 
+            label="Add Dashboard User" 
+            isActive={window.location.pathname === "/admin/dashboard-users/add"}
+          />
+          <SidebarLink 
+            href="/admin/dashboard-users/security" 
+            icon={Lock} 
+            label="Security Management"
+            isActive={window.location.pathname === "/admin/dashboard-users/security"} 
+          />
+        </DropdownMenu>
+        
         <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
         <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
       </div>

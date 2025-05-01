@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      dashboard_user_audit_logs: {
+        Row: {
+          action: string
+          changes: Json
+          entity_id: string
+          entity_type: string
+          id: string
+          performed_at: string | null
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          changes: Json
+          entity_id: string
+          entity_type: string
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          performed_at?: string | null
+          performed_by?: string | null
+        }
+        Relationships: []
+      }
+      dashboard_users: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          employee_id: string | null
+          id: string
+          last_updated_by: string | null
+          name: string
+          password: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          employee_id?: string | null
+          id?: string
+          last_updated_by?: string | null
+          name: string
+          password: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          employee_id?: string | null
+          id?: string
+          last_updated_by?: string | null
+          name?: string
+          password?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           account_number: string | null
@@ -298,6 +367,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      security_permissions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      user_permissions: {
+        Row: {
+          granted_at: string | null
+          granted_by: string | null
+          id: string
+          permission_id: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_id: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string | null
+          granted_by?: string | null
+          id?: string
+          permission_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "security_permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "dashboard_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
