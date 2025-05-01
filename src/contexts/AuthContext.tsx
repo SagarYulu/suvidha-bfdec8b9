@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { login as authLogin, DEFAULT_ADMIN_USER } from "@/services/authService";
 import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   authState: AuthState;
@@ -31,6 +33,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
+        
+        // Sign in with Supabase using stored credentials to maintain session
+        if (user.email && user.password) {
+          supabase.auth.signInWithPassword({
+            email: user.email,
+            password: user.password
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error("Failed to restore Supabase session:", error);
+            } else {
+              console.log("Restored Supabase session");
+            }
+          });
+        }
+        
         setAuthState({
           isAuthenticated: true,
           user,
@@ -42,40 +59,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem("yuluUser");
       }
     }
+    
+    // Also listen for Supabase auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Supabase auth state change:", event, session?.user?.email);
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const user = await authLogin(email, password);
-    
-    if (user) {
-      // Check if the user has admin role in the database
-      if (user.role !== 'admin') {
-        const hasAdminRole = await checkUserRole(user.id, 'admin');
-        if (hasAdminRole) {
-          user.role = 'admin';
-        }
+    try {
+      // First try to sign in with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (authError) {
+        console.error("Supabase auth error:", authError);
+        // Continue with mock login as fallback
+      } else {
+        console.log("Supabase auth success:", authData);
       }
       
-      setAuthState({
-        isAuthenticated: true,
-        user,
-        role: user.role,
-      });
-      localStorage.setItem("yuluUser", JSON.stringify(user));
-      return true;
+      // Proceed with the existing login flow
+      const user = await authLogin(email, password);
+      
+      if (user) {
+        // Check if the user has admin role in the database
+        if (user.role !== 'admin') {
+          const hasAdminRole = await checkUserRole(user.id, 'admin');
+          if (hasAdminRole) {
+            user.role = 'admin';
+          }
+        }
+        
+        setAuthState({
+          isAuthenticated: true,
+          user,
+          role: user.role,
+        });
+        localStorage.setItem("yuluUser", JSON.stringify(user));
+        return true;
+      }
+    } catch (error) {
+      console.error("Login error:", error);
     }
     
     return false;
   };
 
-  const logout = () => {
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      role: null,
-    });
-    localStorage.removeItem("yuluUser");
-    console.log("User logged out");
+  const logout = async () => {
+    try {
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error signing out of Supabase:", error);
+      }
+    } catch (error) {
+      console.error("Error in logout:", error);
+    } finally {
+      // Always clean up local state regardless of Supabase errors
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        role: null,
+      });
+      localStorage.removeItem("yuluUser");
+      console.log("User logged out");
+    }
   };
 
   const handleCheckUserRole = async (userId: string, role: string): Promise<boolean> => {

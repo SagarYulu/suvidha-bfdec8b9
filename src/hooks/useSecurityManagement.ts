@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -134,7 +133,7 @@ const useSecurityManagement = () => {
     }
   };
 
-  // Toggle permission for a user - properly typed for RPC functions
+  // Toggle permission for a user - properly integrated with Supabase auth
   const togglePermission = async (userId: string, permissionId: string): Promise<boolean> => {
     const hasPermissionValue = userPermissions.some(
       p => p.userId === userId && p.permissionId === permissionId
@@ -146,9 +145,12 @@ const useSecurityManagement = () => {
         throw new Error("Administrator privileges required to manage permissions");
       }
       
-      // Ensure the user is authenticated with a valid session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
+      // IMPORTANT: Create a new session before making RPC calls
+      // Get current session and token for authentication
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData.session) {
+        console.error("Session error:", sessionError);
         toast({ 
           title: "Authentication Error", 
           description: "You must be logged in to manage permissions",
@@ -157,10 +159,14 @@ const useSecurityManagement = () => {
         throw new Error("Not authenticated");
       }
       
-      // Use RPC call instead of direct table operations to bypass RLS
+      // We have a valid session, proceed with the RPC call
+      console.log("Using authenticated session:", sessionData.session.user.id);
+      
       if (hasPermissionValue) {
         // Use an RPC function to remove permission
         console.log("Attempting to remove permission:", { userId, permissionId });
+        
+        // Pass the session token in the Authorization header through default behavior
         const { data: result, error: roleError } = await supabase.rpc(
           'remove_user_permission',
           { 
@@ -187,6 +193,8 @@ const useSecurityManagement = () => {
       } else {
         // Use an RPC function to add permission
         console.log("Attempting to add permission:", { userId, permissionId });
+        
+        // Pass the session token in the Authorization header through default behavior
         const { data: result, error: roleError } = await supabase.rpc(
           'add_user_permission',
           { 

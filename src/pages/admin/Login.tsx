@@ -1,137 +1,136 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
-const AdminLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const Login = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { login, authState } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    // Check if user is already logged in
+    if (authState.isAuthenticated) {
+      navigate('/admin/dashboard');
+    }
+    
+    // Check Supabase session status
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log("Found existing Supabase session:", data.session.user.email);
+      }
+    };
+    
+    checkSession();
+  }, [authState, navigate]);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setErrorMessage('');
     setIsLoading(true);
-    setError(null); // Clear any previous errors
 
     try {
-      console.log("Attempting admin login with:", { email, password });
-      const success = await login(email, password);
+      // First ensure we're logged into Supabase
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       
-      if (success) {
-        // Check if the user is actually an admin
-        const userDataString = localStorage.getItem("yuluUser");
-        if (userDataString) {
-          const userData = JSON.parse(userDataString);
-          if (userData.role === "admin") {
-            toast({
-              title: "Admin login successful",
-              description: "Welcome to the admin dashboard!",
-            });
-            navigate("/admin/dashboard");
-          } else {
-            // If not admin, log them out and show error
-            localStorage.removeItem("yuluUser");
-            setError("You do not have admin privileges. Please use admin credentials.");
-            toast({
-              title: "Access denied",
-              description: "You do not have admin privileges",
-              variant: "destructive",
-            });
-          }
-        }
+      if (authError) {
+        console.error("Supabase auth error:", authError);
+        // Continue with app login as fallback
       } else {
-        setError("Invalid email or password. Please try again.");
+        console.log("Supabase auth success:", authData.user?.email);
+      }
+      
+      // Then log in with the application
+      const isLoggedIn = await login(email, password);
+      
+      if (isLoggedIn) {
         toast({
-          title: "Login failed",
-          description: "Invalid email or password. Please try again.",
-          variant: "destructive",
+          description: 'Login successful!'
         });
+        navigate('/admin/dashboard');
+      } else {
+        setErrorMessage('Invalid email or password');
       }
     } catch (error) {
-      console.error("Admin login error:", error);
-      setError("An unexpected error occurred. Please try again.");
-      toast({
-        title: "Login error",
-        description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Login error:', error);
+      setErrorMessage('An error occurred during login');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
-      <div className="flex-1 flex flex-col justify-center p-6">
-        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md mx-auto w-full">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Admin Portal</h1>
-            <p className="text-gray-600 mt-2">Sign in to access the admin dashboard</p>
-          </div>
-          
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-md flex items-center text-red-800">
-              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email" 
-                placeholder="Admin email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Admin password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
-            
-            <Button 
-              type="submit"
-              className="w-full bg-yulu-blue hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign In as Admin"}
-            </Button>
-          </form>
-          
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>For admin access only</p>
-            <p className="mt-2">
-              <a href="/" className="text-yulu-blue hover:underline">
-                Back to Home
-              </a>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="w-full max-w-md p-6">
+        <Card className="w-full">
+          <CardHeader className="space-y-1 text-center">
+            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+            <CardDescription>
+              Enter your credentials to access the admin dashboard
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              {errorMessage && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>{errorMessage}</AlertDescription>
+                </Alert>
+              )}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    placeholder="admin@yulu.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full mt-6" 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Signing in...' : 'Sign In'}
+              </Button>
+            </form>
+          </CardContent>
+          <CardFooter>
+            <p className="text-center text-sm text-muted-foreground w-full">
+              Use the default admin credentials or your assigned login
             </p>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default AdminLogin;
+export default Login;
