@@ -21,23 +21,27 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   className,
   showBackButton = true
 }) => {
-  const { authState, logout } = useAuth();
+  const { authState } = useAuth();
   const navigate = useNavigate();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
   
   useEffect(() => {
-    // Set a short timeout to ensure auth state is loaded
-    const checkAuth = setTimeout(() => {
-      // Check if user is authenticated
-      if (!authState.isAuthenticated) {
+    // Check if user is authenticated and has the right role
+    const checkAuth = () => {
+      const { isAuthenticated, role } = authState;
+      
+      // If not authenticated, redirect to login
+      if (!isAuthenticated) {
         console.log("Not authenticated, redirecting to admin login");
         navigate("/admin/login", { replace: true });
         return;
       }
       
-      // Check if user has admin or security-admin role
-      if (authState.role !== "admin" && authState.role !== "security-admin") {
-        console.log("Not an admin user, role:", authState.role, "redirecting to home");
+      // Check admin roles - include all valid admin roles
+      const isAdmin = role === "admin" || role === "security-admin" || role === "Super Admin";
+      
+      if (!isAdmin) {
+        console.log("Not an admin user, role:", role, "redirecting to home");
         toast({
           title: "Access Denied",
           description: "You do not have admin privileges",
@@ -47,20 +51,21 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         return;
       }
       
-      console.log("Admin authenticated:", authState.user);
-      setIsCheckingAuth(false);
-    }, 100);
-
-    return () => clearTimeout(checkAuth);
+      console.log("Admin authenticated:", authState.user, "with role:", role);
+      setAuthorized(true);
+    };
+    
+    checkAuth();
   }, [authState, navigate]);
-  
+
   const handleLogout = async () => {
+    const { logout } = useAuth();
     await logout();
     navigate('/admin/login', { replace: true });
   };
 
   // Show loading state while checking authentication
-  if (isCheckingAuth) {
+  if (!authorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>

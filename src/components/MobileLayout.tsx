@@ -20,11 +20,11 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    // Set a short timeout to ensure auth state is loaded
-    const checkAuth = setTimeout(() => {
+    // Check if user is authenticated for mobile access
+    const checkAuth = () => {
       // Redirect if not authenticated
       if (!authState.isAuthenticated) {
         console.log("Not authenticated, redirecting to mobile login");
@@ -32,8 +32,11 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
         return;
       }
       
+      // List of admin roles that should be redirected
+      const adminRoles = ["admin", "security-admin", "Super Admin"];
+      
       // If user is admin, redirect to admin dashboard
-      if (authState.role === "admin" || authState.role === "security-admin") {
+      if (adminRoles.includes(authState.role || "")) {
         console.log("Admin detected in mobile app, redirecting to admin dashboard");
         toast({
           title: "Admin Access Detected",
@@ -44,10 +47,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       }
 
       console.log("Employee authenticated in mobile app", authState.user);
-      setIsCheckingAuth(false);
-    }, 100);
-
-    return () => clearTimeout(checkAuth);
+      setAuthorized(true);
+    };
+    
+    checkAuth();
   }, [authState, navigate]);
 
   const handleLogout = () => {
@@ -55,8 +58,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     navigate("/mobile/login", { replace: true });
   };
 
-  // Show loading state while checking authentication
-  if (isCheckingAuth) {
+  // Show loading state while checking authorization
+  if (!authorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>

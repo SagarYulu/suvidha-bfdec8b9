@@ -44,7 +44,7 @@ export const SECURITY_ACCESS_USER: User = {
 };
 
 export const login = async (email: string, password: string): Promise<User | null> => {
-  console.log('Login attempt:', { email, password });
+  console.log('Login attempt:', { email });
 
   try {
     // Step 1: Check if it's the default admin user
@@ -81,7 +81,7 @@ export const login = async (email: string, password: string): Promise<User | nul
       .single();
     
     if (dashboardError) {
-      console.log('No matching user found in dashboard_users');
+      console.log('No matching user found in dashboard_users or error occurred:', dashboardError.message);
     }
 
     if (dashboardUser) {

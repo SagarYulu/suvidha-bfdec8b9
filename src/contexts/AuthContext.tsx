@@ -42,11 +42,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     role: null,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // Function to refresh the session
   const refreshSession = useCallback(async () => {
-    try {
+    // Avoid multiple concurrent refreshes
+    if (!isInitializing) {
       setIsLoading(true);
+    }
+    
+    try {
+      console.log("Refreshing session...");
       
       // Check if we have a mock user in localStorage (for demo purposes)
       const mockUserStr = localStorage.getItem('mockUser');
@@ -67,6 +73,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               session: null, // No Supabase session for mock users
               role: mockUser.role || 'user',
             });
+            
+            if (isInitializing) {
+              setIsInitializing(false);
+            }
             setIsLoading(false);
             return; // Exit early
           }
@@ -78,19 +88,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // If no mock user found, check for Supabase session
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Supabase session:", session);
+      console.log("Supabase session check result:", session ? "Session found" : "No session");
 
       if (session) {
         const { user } = session;
         
-        // Try to fetch user details from the dashboard_users table
-        const { data: dashboardUser, error } = await supabase
-          .from('dashboard_users')
-          .select('*')
-          .eq('email', user.email)
-          .single();
+        // Fetch user details but don't block on this
+        let userRole: string | null = null;
         
-        console.log("Dashboard user data:", dashboardUser, "Error:", error);
+        try {
+          // Try to fetch user details from the dashboard_users table
+          const { data: dashboardUser, error } = await supabase
+            .from('dashboard_users')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          console.log("Dashboard user data:", dashboardUser, "Error:", error);
+          
+          if (dashboardUser) {
+            userRole = dashboardUser.role || null;
+          }
+        } catch (error) {
+          console.error("Error fetching user details:", error);
+        }
 
         // Set user state based on Supabase session
         setAuthState({
@@ -98,10 +119,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user: {
             id: user.id,
             email: user.email || '',
-            name: dashboardUser?.name || user.email || 'Unnamed User',
+            name: user.email?.split('@')[0] || 'Unnamed User',
           },
           session: session,
-          role: dashboardUser?.role || null,
+          role: userRole,
         });
       } else {
         // No mock user and no Supabase session, user is not authenticated
@@ -121,9 +142,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: null,
       });
     } finally {
+      if (isInitializing) {
+        setIsInitializing(false);
+      }
       setIsLoading(false);
     }
-  }, []);
+  }, [isInitializing]);
 
   // Alias for refreshSession
   const refreshAuth = refreshSession;
@@ -131,20 +155,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initial load to check the session when the component mounts
   useEffect(() => {
     console.log("AuthProvider initializing, checking session...");
-    refreshSession();
-
-    // Setup listener for auth changes
+    
+    // Set up listener for auth changes before checking session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log(`Auth event: ${event}`);
-      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        refreshSession();
+      // Avoid refreshSession on initialization as we call it separately
+      if (!isInitializing) {
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+          refreshSession();
+        }
       }
     });
+
+    // Initial session check
+    refreshSession();
 
     return () => {
       subscription?.unsubscribe();
     };
-  }, [refreshSession]);
+  }, [refreshSession, isInitializing]);
 
   // Sign-in function - tries both local auth and Supabase auth
   const signIn = async (email: string, password: string): Promise<boolean> => {
@@ -181,8 +210,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: localUser.role
         }));
         
-        // Refresh auth state to update the UI
-        await refreshSession();
+        // Update auth state directly instead of refreshing
+        setAuthState({
+          isAuthenticated: true,
+          user: {
+            id: localUser.id,
+            email: localUser.email,
+            name: localUser.name,
+          },
+          session: null,
+          role: localUser.role,
+        });
+        
+        setIsLoading(false);
         return true;
       }
       
@@ -195,21 +235,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Supabase authentication error:", error);
+        setIsLoading(false);
         return false;
       }
       
       if (data.session) {
         console.log("Supabase-only authentication succeeded");
-        await refreshSession();
+        // We don't need to call refreshSession here - the onAuthStateChange handler will do that
+        setIsLoading(false);
         return true;
       }
       
+      setIsLoading(false);
       return false;
     } catch (error) {
       console.error("Sign-in error:", error);
-      return false;
-    } finally {
       setIsLoading(false);
+      return false;
     }
   };
 
@@ -226,14 +268,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
 
-      if (session && user) {
-        await refreshSession();
-      }
+      // We don't need to call refreshSession here - the onAuthStateChange handler will do that
+      setIsLoading(false);
     } catch (error: any) {
       console.error("Sign-up error:", error);
-      throw new Error(error.message || "Failed to sign up");
-    } finally {
       setIsLoading(false);
+      throw new Error(error.message || "Failed to sign up");
     }
   };
 
@@ -248,23 +288,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Sign out from Supabase
       await supabase.auth.signOut();
       
-      // Update auth state
+      // Update auth state explicitly
       setAuthState({
         isAuthenticated: false,
         user: null,
         session: null,
         role: null,
       });
+      
+      setIsLoading(false);
     } catch (error: any) {
       console.error("Logout error:", error);
-      throw new Error(error.message || "Failed to log out");
-    } finally {
       setIsLoading(false);
+      throw new Error(error.message || "Failed to log out");
     }
   };
 
   // login function (alias for signIn)
   const login = signIn;
+
+  // Only render a loading indicator during initial load
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
+  }
 
   // Provide the auth context value
   const value: AuthContextType = {
@@ -278,15 +328,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshSession,
     refreshAuth, // Add refreshAuth alias
   };
-
-  // Only render children once initial auth check is complete
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
-      </div>
-    );
-  }
 
   return (
     <AuthContext.Provider value={value}>
