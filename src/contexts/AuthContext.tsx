@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,10 +17,17 @@ interface AuthContextType {
     role: string | null;
   };
   isLoading: boolean;
+  user: { // Add direct user property for easier access
+    id: string;
+    email: string;
+    name: string;
+  } | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>; // Add alias for login
   refreshSession: () => Promise<void>;
+  refreshAuth: () => Promise<void>; // Add alias for refreshSession
 }
 
 // Create the AuthContext with a default value
@@ -100,6 +108,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   }, []);
+
+  // Alias for refreshSession
+  const refreshAuth = refreshSession;
 
   // Initial load to check the session when the component mounts
   useEffect(() => {
@@ -229,14 +240,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Login function (alias for signIn but returns a boolean for success)
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      await signIn(email, password);
+      return true;
+    } catch (error) {
+      console.error("Login error:", error);
+      return false;
+    }
+  };
+
   // Provide the auth context value
   const value: AuthContextType = {
     authState,
     isLoading,
+    user: authState.user, // Add direct user access
     signIn,
     signUp,
     logout,
+    login, // Add login alias
     refreshSession,
+    refreshAuth, // Add refreshAuth alias
   };
 
   return (
