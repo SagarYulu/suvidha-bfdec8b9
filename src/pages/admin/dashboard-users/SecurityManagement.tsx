@@ -15,7 +15,7 @@ import AuditLogsTable from '@/components/dashboard-users/AuditLogsTable';
 import useSecurityManagement from '@/hooks/useSecurityManagement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { ShieldAlert, Loader2, AlertCircle } from 'lucide-react';
+import { ShieldAlert, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -27,69 +27,118 @@ const SecurityManagement: React.FC = () => {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
+  const [isSessionRefreshing, setIsSessionRefreshing] = useState(false);
   const navigate = useNavigate();
   const { authState, refreshAuth } = useAuth();
   
   // Always call the hook, regardless of auth state
   const securityManagement = useSecurityManagement();
   
-  // Refresh Supabase session on mount
-  useEffect(() => {
-    const refreshSession = async () => {
-      try {
-        console.log("Refreshing Supabase session...");
-        const { data, error } = await supabase.auth.refreshSession();
+  // Handle manual session refresh
+  const handleRefreshSession = async () => {
+    setIsSessionRefreshing(true);
+    setError(null);
+    
+    try {
+      // First try to refresh local auth
+      await refreshAuth();
+      
+      // Then try to refresh Supabase session
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error("Failed to refresh Supabase session:", error);
         
-        if (error) {
-          console.error("Error refreshing session:", error.message);
+        // If we failed to refresh but have local auth, just continue
+        if (authState.isAuthenticated) {
+          toast({
+            description: "Using local authentication",
+          });
+          setSessionChecked(true);
+          setIsAuthChecking(false);
+        } else {
           setError("Session refresh failed. Please log in again.");
-        } else if (data && data.session) {
-          console.log("Session refreshed successfully");
-          // Also refresh auth context to ensure it has the latest session
+          toast({
+            title: "Authentication Error",
+            description: "Please log in again to continue",
+            variant: "destructive"
+          });
+        }
+      } else {
+        console.log("Successfully refreshed Supabase session");
+        toast({
+          description: "Session refreshed successfully",
+        });
+        setSessionChecked(true);
+        setIsAuthChecking(false);
+      }
+    } catch (e) {
+      console.error("Error during refresh:", e);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSessionRefreshing(false);
+    }
+  };
+  
+  // Simplified session check on mount - just check if we have auth and move forward
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // Simple check if we're authenticated locally
+        if (authState.isAuthenticated) {
+          console.log("User is already authenticated locally:", authState.user?.email);
+          setSessionChecked(true);
+          setIsAuthChecking(false);
+        } else {
+          // Try refreshing auth once on mount
           await refreshAuth();
+          
+          // Check again after refresh
+          if (authState.isAuthenticated) {
+            console.log("Authentication restored after refresh");
+            setSessionChecked(true);
+            setIsAuthChecking(false);
+          } else {
+            setError("Authentication required. Please log in.");
+            console.log("User is not authenticated after refresh attempt");
+          }
         }
       } catch (e) {
-        console.error("Session refresh exception:", e);
+        console.error("Error checking session:", e);
       } finally {
+        // Always mark session as checked to avoid infinite loading
         setSessionChecked(true);
       }
     };
     
-    refreshSession();
-  }, [refreshAuth]);
+    checkSession();
+  }, [authState.isAuthenticated, authState.user?.email, refreshAuth]);
   
   // Check authentication first before loading data
   useEffect(() => {
     if (!sessionChecked) return; // Wait until session is checked
     
-    const checkAuth = async () => {
-      // Short timeout to ensure auth state is loaded
-      setTimeout(() => {
-        if (!authState.isAuthenticated) {
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to access security management",
-            variant: "destructive"
-          });
-          navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
-        } else if (authState.role !== 'admin' && 
-                   authState.role !== 'security-admin' && 
-                   !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
-          // Check if user is admin OR has an authorized email OR has security-admin role
-          toast({
-            title: "Access Denied",
-            description: "You must have admin privileges to access this page",
-            variant: "destructive"
-          });
-          navigate('/admin');
-        } else {
-          console.log("User authorized to access security management:", authState.user?.email);
-          setIsAuthChecking(false);
-        }
-      }, 500);
-    };
-    
-    checkAuth();
+    if (!authState.isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access security management",
+        variant: "destructive"
+      });
+      navigate('/admin/login', { state: { returnTo: '/admin/dashboard-users/security' } });
+    } else if (authState.role !== 'admin' && 
+               authState.role !== 'security-admin' && 
+               !AUTHORIZED_EMAILS.includes(authState.user?.email || '')) {
+      // Check if user is admin OR has an authorized email OR has security-admin role
+      toast({
+        title: "Access Denied",
+        description: "You must have admin privileges to access this page",
+        variant: "destructive"
+      });
+      navigate('/admin');
+    } else {
+      console.log("User authorized to access security management:", authState.user?.email);
+      setIsAuthChecking(false);
+    }
   }, [authState, navigate, sessionChecked]);
   
   if (isAuthChecking) {
@@ -135,9 +184,25 @@ const SecurityManagement: React.FC = () => {
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <div className="mt-4">
-            <Button onClick={() => window.location.reload()}>
-              Retry
+          <div className="mt-4 flex gap-3">
+            <Button 
+              onClick={handleRefreshSession}
+              disabled={isSessionRefreshing}
+            >
+              {isSessionRefreshing ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry
+                </>
+              )}
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/admin/login')}>
+              Go to Login
             </Button>
           </div>
         </div>

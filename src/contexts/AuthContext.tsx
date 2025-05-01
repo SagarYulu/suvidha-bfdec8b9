@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthState } from "@/types";
 import { login as authLogin, DEFAULT_ADMIN_USER } from "@/services/authService";
@@ -14,7 +13,7 @@ interface AuthContextType {
   checkUserRole: (userId: string, role: string) => Promise<boolean>;
   assignRole: (userId: string, role: string) => Promise<boolean>;
   removeRole: (userId: string, role: string) => Promise<boolean>;
-  refreshAuth: () => Promise<void>; // Add the missing refreshAuth function
+  refreshAuth: () => Promise<void>; 
 }
 
 // Create the context with a default undefined value
@@ -28,68 +27,144 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     role: null,
   });
 
-  // Add refreshAuth function implementation
+  // Improved refreshAuth function implementation
   const refreshAuth = async (): Promise<void> => {
     try {
+      console.log("Refreshing auth state...");
+      
+      // First check if we have a valid Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If we have a Supabase session, use it
+      if (session) {
+        console.log("Found valid Supabase session:", session.user.email);
+        // Continue using the existing session
+      } else {
+        console.log("No Supabase session found, checking local storage");
+        // Otherwise, check localStorage for existing session
+        const storedUser = localStorage.getItem("yuluUser");
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            
+            // Attempt to re-authenticate with Supabase silently
+            if (user.email && user.password) {
+              try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                  email: user.email,
+                  password: user.password
+                });
+                
+                if (error) {
+                  console.log("Could not restore Supabase session: ", error.message);
+                } else {
+                  console.log("Successfully restored Supabase session");
+                }
+              } catch (e) {
+                console.error("Error restoring Supabase session:", e);
+              }
+            }
+            
+            setAuthState({
+              isAuthenticated: true,
+              user,
+              role: user.role,
+            });
+            console.log("Refreshed user session from local storage:", user);
+          } catch (error) {
+            console.error("Failed to parse stored user data during refresh:", error);
+            // Clear corrupted data
+            localStorage.removeItem("yuluUser");
+          }
+        } else {
+          console.log("No stored user session found during refresh");
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing auth:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to refresh your session. Please log in again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  useEffect(() => {
+    // First set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Supabase auth state change:", event, session?.user?.email);
+      
+      // If we have a session, sync it with our local auth state
+      if (session) {
+        // Check for local user data that matches this email
+        const storedUser = localStorage.getItem("yuluUser");
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            if (user.email === session.user.email) {
+              setAuthState({
+                isAuthenticated: true,
+                user,
+                role: user.role,
+              });
+            }
+          } catch (error) {
+            console.error("Failed to parse stored user data:", error);
+          }
+        }
+      } else if (event === "SIGNED_OUT") {
+        // Clear local auth state on sign out
+        setAuthState({
+          isAuthenticated: false,
+          user: null,
+          role: null,
+        });
+        localStorage.removeItem("yuluUser");
+      }
+    });
+    
+    // Then check for existing session
+    const initAuth = async () => {
       // Check localStorage for existing session
       const storedUser = localStorage.getItem("yuluUser");
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser);
+          
+          // Update local auth state
           setAuthState({
             isAuthenticated: true,
             user,
             role: user.role,
           });
-          console.log("Refreshed user session:", user);
-        } catch (error) {
-          console.error("Failed to parse stored user data during refresh:", error);
-        }
-      } else {
-        console.log("No stored user session found during refresh");
-      }
-    } catch (error) {
-      console.error("Error refreshing auth:", error);
-    }
-  };
-
-  useEffect(() => {
-    // Check localStorage for existing session
-    const storedUser = localStorage.getItem("yuluUser");
-    if (storedUser) {
-      try {
-        const user = JSON.parse(storedUser);
-        
-        // Sign in with Supabase using stored credentials to maintain session
-        if (user.email && user.password) {
-          supabase.auth.signInWithPassword({
-            email: user.email,
-            password: user.password
-          }).then(({ data, error }) => {
-            if (error) {
-              console.error("Failed to restore Supabase session:", error);
-            } else {
-              console.log("Restored Supabase session");
+          console.log("Restored user session:", user);
+          
+          // Synchronize with Supabase
+          if (user.email && user.password) {
+            try {
+              const { data, error } = await supabase.auth.signInWithPassword({
+                email: user.email,
+                password: user.password
+              });
+              
+              if (error) {
+                console.error("Failed to restore Supabase session:", error);
+              } else {
+                console.log("Restored Supabase session");
+              }
+            } catch (e) {
+              console.error("Error syncing with Supabase:", e);
             }
-          });
+          }
+        } catch (error) {
+          console.error("Failed to parse stored user data:", error);
+          localStorage.removeItem("yuluUser");
         }
-        
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          role: user.role,
-        });
-        console.log("Restored user session:", user);
-      } catch (error) {
-        console.error("Failed to parse stored user data:", error);
-        localStorage.removeItem("yuluUser");
       }
-    }
+    };
     
-    // Also listen for Supabase auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Supabase auth state change:", event, session?.user?.email);
-    });
+    initAuth();
     
     return () => {
       subscription.unsubscribe();
@@ -98,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log("Logging in user:", email);
+      
       // First try to sign in with Supabase
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -128,11 +205,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user,
           role: user.role,
         });
-        localStorage.setItem("yuluUser", JSON.stringify(user));
+        
+        // Store critical authentication data
+        const userToStore = {
+          ...user,
+          // Make sure password is included for session restoration
+          password: password 
+        };
+        
+        localStorage.setItem("yuluUser", JSON.stringify(userToStore));
+        
+        toast({
+          description: "Login successful!"
+        });
+        
         return true;
       }
     } catch (error) {
       console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: "Please check your credentials and try again",
+        variant: "destructive"
+      });
     }
     
     return false;
@@ -156,6 +251,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       localStorage.removeItem("yuluUser");
       console.log("User logged out");
+      
+      toast({
+        description: "Logged out successfully"
+      });
     }
   };
 
@@ -181,7 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       checkUserRole: handleCheckUserRole,
       assignRole: handleAssignRole,
       removeRole: handleRemoveRole,
-      refreshAuth // Add the refreshAuth function to the context value
+      refreshAuth
     }}>
       {children}
     </AuthContext.Provider>
