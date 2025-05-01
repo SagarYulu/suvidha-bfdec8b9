@@ -134,8 +134,8 @@ const useSecurityManagement = () => {
     }
   };
 
-  // Toggle permission for a user - this function has been completely rewritten
-  const togglePermission = async (userId: string, permissionId: string) => {
+  // Toggle permission for a user - properly typed for RPC functions
+  const togglePermission = async (userId: string, permissionId: string): Promise<boolean> => {
     const hasPermissionValue = userPermissions.some(
       p => p.userId === userId && p.permissionId === permissionId
     );
@@ -149,10 +149,13 @@ const useSecurityManagement = () => {
       // Use RPC call instead of direct table operations to bypass RLS
       if (hasPermissionValue) {
         // Use an RPC function to remove permission
-        const { data: roleData, error: roleError } = await supabase.rpc('remove_user_permission', { 
-          target_user_id: userId,
-          target_permission_id: permissionId
-        });
+        const { data: result, error: roleError } = await supabase.rpc(
+          'remove_user_permission',
+          { 
+            target_user_id: userId,
+            target_permission_id: permissionId
+          }
+        );
         
         if (roleError) {
           console.error("Error removing permission:", roleError);
@@ -160,17 +163,24 @@ const useSecurityManagement = () => {
         }
         
         // Update local state only if the operation succeeded
-        setUserPermissions(prev => 
-          prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
-        );
-        
-        toast({ description: "Permission removed successfully" });
+        if (result === true) {
+          setUserPermissions(prev => 
+            prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
+          );
+          
+          toast({ description: "Permission removed successfully" });
+        } else {
+          throw new Error("Failed to remove permission");
+        }
       } else {
         // Use an RPC function to add permission
-        const { data: roleData, error: roleError } = await supabase.rpc('add_user_permission', { 
-          target_user_id: userId,
-          target_permission_id: permissionId
-        });
+        const { data: result, error: roleError } = await supabase.rpc(
+          'add_user_permission',
+          { 
+            target_user_id: userId,
+            target_permission_id: permissionId
+          }
+        );
         
         if (roleError) {
           console.error("Error adding permission:", roleError);
@@ -178,9 +188,12 @@ const useSecurityManagement = () => {
         }
         
         // Update local state only if the operation succeeded
-        setUserPermissions(prev => [...prev, { userId, permissionId }]);
-        
-        toast({ description: "Permission added successfully" });
+        if (result === true) {
+          setUserPermissions(prev => [...prev, { userId, permissionId }]);
+          toast({ description: "Permission added successfully" });
+        } else {
+          throw new Error("Failed to add permission");
+        }
       }
       
       // Refresh audit logs to show the new changes

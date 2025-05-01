@@ -451,9 +451,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_user_permission: {
+        Args: { target_user_id: string; target_permission_id: string }
+        Returns: boolean
+      }
       insert_dashboard_users_with_audit: {
         Args: { users_json: Json }
         Returns: Json
+      }
+      remove_user_permission: {
+        Args: { target_user_id: string; target_permission_id: string }
+        Returns: boolean
       }
     }
     Enums: {

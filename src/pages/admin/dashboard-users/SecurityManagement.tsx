@@ -26,6 +26,16 @@ const SecurityManagement: React.FC = () => {
     togglePermission
   } = useSecurityManagement();
 
+  // Create a wrapper that adapts the return type for UserPermissionsTable
+  const handleTogglePermission = async (userId: string, permissionId: string): Promise<void> => {
+    try {
+      await togglePermission(userId, permissionId);
+    } catch (error) {
+      // Error is already handled in togglePermission
+      console.error("Permission toggle failed:", error);
+    }
+  };
+
   return (
     <AdminLayout title="Security Management">
       <div className="container mx-auto py-6">
@@ -49,7 +59,7 @@ const SecurityManagement: React.FC = () => {
                   permissions={permissions}
                   isLoading={isLoading}
                   hasPermission={hasPermission}
-                  togglePermission={togglePermission}
+                  togglePermission={handleTogglePermission}
                 />
               </CardContent>
             </Card>
