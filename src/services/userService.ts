@@ -94,6 +94,7 @@ export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
       dateOfBirth
     });
 
+    // Create the employee object with correctly formatted dates
     const employee = {
       name: userData.name,
       email: userData.email,

@@ -7,20 +7,32 @@ export const isValidDate = (dateString: string | null | undefined): boolean => {
   if (!dateString) return false;
   
   // Check if date is in DD/MM/YYYY format
-  const ddmmyyyyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  const ddmmyyyyRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
   if (ddmmyyyyRegex.test(dateString)) {
     const [_, day, month, year] = ddmmyyyyRegex.exec(dateString) || [];
+    
+    // Handle 2-digit years by expanding them
+    const fullYear = year.length === 2 ? 
+      (parseInt(year) > 50 ? `19${year}` : `20${year}`) : 
+      year;
+    
     // Create a Date object and check if it's valid
-    const date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+    const date = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
     return !isNaN(date.getTime());
   }
   
   // Check for DD-MM-YYYY format
-  const ddmmyyyyHyphenRegex = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
+  const ddmmyyyyHyphenRegex = /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/;
   if (ddmmyyyyHyphenRegex.test(dateString)) {
     const [_, day, month, year] = ddmmyyyyHyphenRegex.exec(dateString) || [];
+    
+    // Handle 2-digit years by expanding them
+    const fullYear = year.length === 2 ? 
+      (parseInt(year) > 50 ? `19${year}` : `20${year}`) : 
+      year;
+    
     // Create a Date object and check if it's valid
-    const date = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+    const date = new Date(`${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
     return !isNaN(date.getTime());
   }
   
@@ -37,6 +49,7 @@ export const isValidDate = (dateString: string | null | undefined): boolean => {
 /**
  * Converts a date string from any supported format to YYYY-MM-DD format
  * Supports DD/MM/YYYY, DD-MM-YYYY, and YYYY-MM-DD formats
+ * Handles 2-digit years by expanding them (19XX for years > 50, 20XX for years <= 50)
  */
 export const formatDateToYYYYMMDD = (dateString: string): string => {
   if (!dateString) return '';
@@ -46,26 +59,38 @@ export const formatDateToYYYYMMDD = (dateString: string): string => {
     return dateString;
   }
   
-  // Convert from DD/MM/YYYY to YYYY-MM-DD
-  const slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+  // Convert from DD/MM/YYYY to YYYY-MM-DD, handle 2-digit years
+  const slashPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/;
   if (slashPattern.test(dateString)) {
     const match = slashPattern.exec(dateString);
     if (match) {
       const day = match[1].padStart(2, '0');
       const month = match[2].padStart(2, '0');
-      const year = match[3];
+      let year = match[3];
+      
+      // Handle 2-digit years by expanding them
+      if (year.length === 2) {
+        year = parseInt(year) > 50 ? `19${year}` : `20${year}`;
+      }
+      
       return `${year}-${month}-${day}`;
     }
   }
   
-  // Convert from DD-MM-YYYY to YYYY-MM-DD
-  const hyphenPattern = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
+  // Convert from DD-MM-YYYY to YYYY-MM-DD, handle 2-digit years
+  const hyphenPattern = /^(\d{1,2})-(\d{1,2})-(\d{2,4})$/;
   if (hyphenPattern.test(dateString)) {
     const match = hyphenPattern.exec(dateString);
     if (match) {
       const day = match[1].padStart(2, '0');
       const month = match[2].padStart(2, '0');
-      const year = match[3];
+      let year = match[3];
+      
+      // Handle 2-digit years by expanding them
+      if (year.length === 2) {
+        year = parseInt(year) > 50 ? `19${year}` : `20${year}`;
+      }
+      
       return `${year}-${month}-${day}`;
     }
   }

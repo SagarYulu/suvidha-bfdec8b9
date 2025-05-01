@@ -34,6 +34,7 @@ export const getCSVTemplate = () => {
     '# 3. Date format: Use YYYY-MM-DD format (e.g., 2023-01-15) or DD/MM/YYYY format (e.g., 15/01/2023)',
     '# 4. Employee roles can be any string value. Common examples include: Customer Service, Supervisor, Team Lead, Project Manager, etc.',
     '# 5. If password is not provided, it defaults to "changeme123"',
+    '# 6. For two-digit years (e.g., 15/06/96), years > 50 are treated as 19xx and years <= 50 are treated as 20xx'
   ].join('\n');
 
   return csvContent;

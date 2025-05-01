@@ -52,21 +52,30 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           ).trim();
           
           // Format dates and handle multiple possible header names for date fields
-          const dateOfJoining = formatDateToYYYYMMDD(
+          const rawDateOfJoining = 
             row.date_of_joining || 
             row['date of joining'] || 
             row.dateOfJoining || 
             row.DateOfJoining || 
-            ''
-          );
-          
-          const dateOfBirth = formatDateToYYYYMMDD(
+            '';
+            
+          const rawDateOfBirth =
             row.date_of_birth || 
             row['date of birth'] || 
             row.dateOfBirth || 
             row.DateOfBirth || 
-            ''
-          );
+            '';
+          
+          // Properly format dates to YYYY-MM-DD format
+          const dateOfJoining = formatDateToYYYYMMDD(rawDateOfJoining);
+          const dateOfBirth = formatDateToYYYYMMDD(rawDateOfBirth);
+          
+          console.log(`Row ${index} date conversion:`, {
+            rawDateOfJoining,
+            formattedDateOfJoining: dateOfJoining,
+            rawDateOfBirth,
+            formattedDateOfBirth: dateOfBirth
+          });
           
           // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
           const employeeData: CSVEmployeeData = {
