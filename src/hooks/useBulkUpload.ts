@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -152,7 +151,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
-        .from('dashboard_users')
+        .from('employees')
         .select('emp_id')
         .in('emp_id', empIdsToCheck);
       
