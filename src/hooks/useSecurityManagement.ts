@@ -1,8 +1,8 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { Json } from '@/integrations/supabase/types';
 
 interface DashboardUser {
   id: string;
@@ -12,22 +12,11 @@ interface DashboardUser {
   employee_id: string | null;
 }
 
-interface Permission {
-  id: string;
-  name: string;
-  description: string | null;
-}
-
-interface UserPermission {
-  userId: string;
-  permissionId: string;
-}
+// Removed Permission interface that was causing issues
 
 const useSecurityManagement = () => {
   const { authState } = useAuth();
   const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
-  const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [userPermissions, setUserPermissions] = useState<UserPermission[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
@@ -55,26 +44,17 @@ const useSecurityManagement = () => {
       console.log("Fetching security management data...");
       
       // Load all data in parallel
-      const [usersData, permissionsData, userPermissionsData, auditLogsData] = await Promise.all([
+      const [usersData, auditLogsData] = await Promise.all([
         fetchDashboardUsers(),
-        fetchPermissions(),
-        fetchUserPermissions(),
         fetchAuditLogs()
       ]);
       
       // Update state only once with all the data
       setDashboardUsers(usersData || []);
-      setPermissions(permissionsData || []);
-      setUserPermissions(
-        (userPermissionsData || []).map(item => ({
-          userId: item.user_id,
-          permissionId: item.permission_id
-        }))
-      );
       setAuditLogs(auditLogsData || []);
       setLastRefresh(new Date());
       
-      console.log("All security data loaded successfully");
+      console.log("Security data loaded successfully");
     } catch (error: any) {
       console.error("Error loading security management data:", error);
       setError(error.message || "Failed to load security management data");
@@ -121,47 +101,6 @@ const useSecurityManagement = () => {
     }
   };
 
-  // Fetch permissions
-  const fetchPermissions = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('security_permissions')
-        .select('*')
-        .order('name');
-      
-      if (error) {
-        console.error("Error fetching permissions:", error);
-        throw new Error("Failed to fetch permissions");
-      }
-      
-      return data;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
-  // Fetch user permissions
-  const fetchUserPermissions = async () => {
-    try {
-      console.log("Fetching user permissions...");
-      const { data, error } = await supabase
-        .from('user_permissions')
-        .select('*');
-      
-      if (error) {
-        console.error("Error fetching user permissions:", error);
-        throw new Error("Failed to fetch user permissions");
-      }
-      
-      console.log("User permissions fetched:", data?.length || 0);
-      return data;
-    } catch (error) {
-      console.error("Error:", error);
-      throw error;
-    }
-  };
-
   // Fetch audit logs
   const fetchAuditLogs = async () => {
     try {
@@ -183,123 +122,6 @@ const useSecurityManagement = () => {
     }
   };
 
-  // Toggle permission for a user - properly integrated with Supabase auth
-  const togglePermission = async (userId: string, permissionId: string): Promise<boolean> => {
-    const hasPermissionValue = userPermissions.some(
-      p => p.userId === userId && p.permissionId === permissionId
-    );
-    
-    console.log(`Toggling permission: User ${userId}, Permission ${permissionId}, Current status: ${hasPermissionValue}`);
-    
-    try {
-      // Check if current user has admin role - required for permission management
-      if (authState.role !== 'admin' && authState.role !== 'security-admin') {
-        console.error("User doesn't have admin or security-admin role:", authState.role);
-        throw new Error("Administrator privileges required to manage permissions");
-      }
-      
-      // Optimistic UI update
-      if (hasPermissionValue) {
-        // Remove permission locally
-        setUserPermissions(prev => 
-          prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
-        );
-      } else {
-        // Add permission locally
-        setUserPermissions(prev => [...prev, { userId, permissionId }]);
-      }
-      
-      // Local permission management (fallback)
-      const useLocalManagement = !authState.user?.id || process.env.NODE_ENV === 'development';
-      
-      if (useLocalManagement) {
-        console.log("Using local permission management");
-        
-        // Try to sync with Supabase if possible
-        try {
-          if (authState.user?.id) {
-            console.log("Attempting to sync with Supabase");
-            
-            if (hasPermissionValue) {
-              await supabase
-                .from('user_permissions')
-                .delete()
-                .eq('user_id', userId)
-                .eq('permission_id', permissionId);
-            } else {
-              await supabase
-                .from('user_permissions')
-                .insert({
-                  user_id: userId,
-                  permission_id: permissionId,
-                  granted_by: authState.user.id
-                });
-            }
-            
-            // Refresh audit logs after successful operation
-            const newAuditLogs = await fetchAuditLogs();
-            setAuditLogs(newAuditLogs || []);
-          }
-        } catch (e) {
-          console.log("Failed to sync with Supabase, continuing with local state only", e);
-        }
-        
-        // Return success for local operations
-        toast({ 
-          description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
-        });
-        return true;
-      }
-      
-      // Otherwise use the Supabase RPC functions
-      console.log("Using Supabase RPC for permission management");
-      
-      const method = hasPermissionValue ? 'remove_user_permission' : 'add_user_permission';
-      const params = { 
-        target_user_id: userId,
-        target_permission_id: permissionId
-      };
-      
-      console.log(`Calling ${method}:`, params);
-      
-      const { data: result, error } = await supabase.rpc(method, params);
-      
-      if (error) {
-        console.error(`Error in ${method}:`, error);
-        
-        // Revert the optimistic update on error
-        if (hasPermissionValue) {
-          // Re-add permission locally since removal failed
-          setUserPermissions(prev => [...prev, { userId, permissionId }]);
-        } else {
-          // Remove permission locally since addition failed
-          setUserPermissions(prev => 
-            prev.filter(p => !(p.userId === userId && p.permissionId === permissionId))
-          );
-        }
-        
-        throw new Error(`Failed to ${hasPermissionValue ? 'remove' : 'add'} permission: ${error.message}`);
-      }
-      
-      console.log(`${method} result:`, result);
-      
-      // We don't need to update local state again since we did it optimistically
-      
-      toast({ 
-        description: `Permission ${hasPermissionValue ? 'removed' : 'added'} successfully` 
-      });
-      
-      // Refresh audit logs to show the new changes, but don't refresh everything
-      const newAuditLogs = await fetchAuditLogs();
-      setAuditLogs(newAuditLogs || []);
-      
-      return true;
-    } catch (error: any) {
-      console.error("Error in togglePermission:", error);
-      throw error;
-    }
-  };
-
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -310,13 +132,6 @@ const useSecurityManagement = () => {
       hour: '2-digit',
       minute: '2-digit'
     }).format(date);
-  };
-
-  // Check if user has permission
-  const hasPermission = (userId: string, permissionId: string) => {
-    return userPermissions.some(
-      p => p.userId === userId && p.permissionId === permissionId
-    );
   };
 
   // Refresh all data - with debounce protection
@@ -337,16 +152,12 @@ const useSecurityManagement = () => {
 
   return {
     dashboardUsers,
-    permissions,
-    userPermissions,
     isLoading,
     isRefreshing,
     activeTab,
     setActiveTab,
     auditLogs,
     formatDate,
-    hasPermission,
-    togglePermission,
     refreshData,
     error,
     lastRefresh

@@ -144,7 +144,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             label="Add Dashboard User" 
             isActive={window.location.pathname === "/admin/dashboard-users/add"}
           />
-          {/* Security Management menu item removed */}
         </DropdownMenu>
         
         <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
