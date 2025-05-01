@@ -37,6 +37,7 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
 
       <FormatInstructions />
 
+      {/* The ValidationDialog component is always rendered, but only shown when showValidationDialog is true */}
       <ValidationDialog 
         isOpen={showValidationDialog}
         onOpenChange={setShowValidationDialog}

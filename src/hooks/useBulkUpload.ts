@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,7 +26,10 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       console.log("Starting CSV upload and validation for file:", file.name);
       const result = await parseEmployeeCSV(file);
       
+      console.log("CSV parsing complete, validation results:", result);
+      
       setValidationResults(result);
+      
       // Initialize edited rows with original data
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
@@ -35,6 +37,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       });
       setEditedRows(initialEditedRows);
       
+      // Always show the validation dialog, regardless of validation results
       setShowValidationDialog(true);
       
       if (result.validEmployees.length === 0 && result.invalidRows.length === 0) {
@@ -45,16 +48,20 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         });
       }
       
-      // Always show validation results even if there are no errors
+      // Show validation status toast but don't proceed automatically
       if (result.invalidRows.length > 0) {
         toast({
           variant: "destructive",
           title: "Validation Issues Found",
           description: `${result.invalidRows.length} rows contain validation errors. Please review and fix them.`,
         });
+      } else if (result.validEmployees.length > 0) {
+        toast({
+          title: "Validation Successful",
+          description: `${result.validEmployees.length} valid employee(s) ready to be uploaded.`,
+        });
       }
       
-      setIsUploading(false);
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -62,8 +69,8 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         title: "Upload Failed",
         description: "There was an error processing the CSV file. Please check the format.",
       });
-      setIsUploading(false);
     } finally {
+      setIsUploading(false);
       if (event.target) event.target.value = '';
     }
   };

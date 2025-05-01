@@ -19,6 +19,13 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
         // Debug: Log the parse results
         console.log(`CSV parse complete. Found ${results.data.length} rows:`, results);
         
+        // Skip processing if no rows were found
+        if (results.data.length === 0) {
+          console.log("No data rows found in CSV");
+          resolve({ validEmployees: [], invalidRows: [] });
+          return;
+        }
+        
         // Process each row
         results.data.forEach((row, index) => {
           // Skip empty rows
@@ -109,8 +116,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             manager: row.manager || '',
             role: row.role || '',
             password: row.password || 'changeme123',
-            date_of_joining: dateOfJoining || '',
-            date_of_birth: dateOfBirth || '',
+            date_of_joining: rawDateOfJoining || '', // Keep original format for display
+            date_of_birth: rawDateOfBirth || '', // Keep original format for display
             blood_group: row.blood_group || row['blood group'] || '',
             account_number: row.account_number || row['account number'] || '',
             ifsc_code: row.ifsc_code || row['ifsc code'] || ''
