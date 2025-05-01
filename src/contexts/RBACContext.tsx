@@ -106,10 +106,14 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       // Build a cache of all permissions for the current user
       const cache: Record<string, boolean> = {};
       
-      // Determine which user ID to use
-      const userIdForPermissions = authState.user.user_id && isValidUuid(authState.user.user_id) 
-        ? authState.user.user_id 
-        : (isValidUuid(authState.user.id) ? authState.user.id : null);
+      // Determine which user ID to use - we need to account for the possible extended user properties from authState
+      // The TypeScript type only shows id, email, name but we may have more data at runtime
+      const userObj = authState.user as any; // Use 'any' to access potential additional properties
+      const userIdForPermissions = userObj && 
+        userObj.user_id && 
+        isValidUuid(userObj.user_id) 
+          ? userObj.user_id 
+          : (isValidUuid(authState.user.id) ? authState.user.id : null);
       
       if (userIdForPermissions) {
         console.log("Using ID for permission checks:", userIdForPermissions);
