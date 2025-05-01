@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRBAC } from '@/contexts/RBACContext';
 import {
   LayoutDashboard,
   TicketCheck,
@@ -112,6 +113,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
     dashboardUsers: false
   });
   const { authState } = useAuth();
+  const { hasPermission } = useRBAC();
   const location = useLocation();
 
   const toggleMenu = (menuName: string) => {
@@ -141,31 +143,52 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       </div>
 
       <div className="py-3 flex-grow">
-        <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
-        <SidebarLink href="/admin/users" icon={Users} label="Users" />
-        <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+        {/* Dashboard - All admin users have access */}
+        {hasPermission("view:dashboard") && (
+          <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
+        )}
         
-        {/* Dashboard Users Dropdown Menu */}
-        <DropdownMenu 
-          label="Dashboard Users" 
-          icon={Users} 
-          isOpen={openMenus.dashboardUsers} 
-          toggleOpen={() => toggleMenu('dashboardUsers')}
-        >
-          <SidebarLink 
-            href="/admin/dashboard-users/add" 
-            icon={UserPlus} 
-            label="Add Dashboard User" 
-            isActive={location.pathname === "/admin/dashboard-users/add"}
-          />
-        </DropdownMenu>
+        {/* Issues - Available to users with manage:issues permission */}
+        {hasPermission("manage:issues") && (
+          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
+        )}
         
-        {/* Only show Access Control to admin and security-admin roles */}
-        {(authState.role === "admin" || authState.role === "security-admin") && (
+        {/* Users - Available to users with manage:users permission */}
+        {hasPermission("manage:users") && (
+          <SidebarLink href="/admin/users" icon={Users} label="Users" />
+        )}
+        
+        {/* Analytics - Available to users with manage:analytics permission */}
+        {hasPermission("manage:analytics") && (
+          <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+        )}
+        
+        {/* Dashboard Users dropdown - Available to users with create:dashboardUser permission */}
+        {hasPermission("create:dashboardUser") && (
+          <DropdownMenu 
+            label="Dashboard Users" 
+            icon={Users} 
+            isOpen={openMenus.dashboardUsers} 
+            toggleOpen={() => toggleMenu('dashboardUsers')}
+          >
+            <SidebarLink 
+              href="/admin/dashboard-users/add" 
+              icon={UserPlus} 
+              label="Add Dashboard User" 
+              isActive={location.pathname === "/admin/dashboard-users/add"}
+            />
+          </DropdownMenu>
+        )}
+        
+        {/* Access Control - Available to users with access:security permission */}
+        {hasPermission("access:security") && (
           <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
         )}
-        <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
+        
+        {/* Settings - Available to users with manage:settings permission */}
+        {hasPermission("manage:settings") && (
+          <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
+        )}
       </div>
 
       <div className="p-4 border-t">
