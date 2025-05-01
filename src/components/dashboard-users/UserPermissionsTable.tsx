@@ -188,36 +188,52 @@ const UserPermissionsTable: React.FC<UserPermissionsTableProps> = ({
                   
                   return (
                     <TableCell key={permissionKey} className="text-center">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div>
-                              <Checkbox 
-                                checked={isSuperAdmin || isChecked}
-                                disabled={isPending || isSuperAdmin || isSelf}
-                                onCheckedChange={() => handleTogglePermission(user.id, permission.id)}
-                                className={isPending ? "opacity-50 animate-pulse" : 
-                                          isSuperAdmin ? "opacity-80" : 
-                                          isSelf ? "opacity-70" : ""}
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>
-                              {isSuperAdmin 
-                                ? "Super Admins have all permissions by default"
-                                : isSelf
-                                ? "You cannot modify your own permissions"
-                                : isPending 
-                                  ? "Processing..." 
-                                  : isChecked 
-                                    ? `Remove "${permission.name}" permission from ${user.name}` 
-                                    : `Grant "${permission.name}" permission to ${user.name}`
-                              }
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <div 
+                        className="flex justify-center items-center" 
+                        onClick={(e) => {
+                          if (!isPending && !isSuperAdmin && !isSelf) {
+                            e.stopPropagation();
+                            handleTogglePermission(user.id, permission.id);
+                          }
+                        }}
+                      >
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="inline-flex cursor-pointer">
+                                <Checkbox 
+                                  id={permissionKey}
+                                  checked={isSuperAdmin || isChecked}
+                                  disabled={isPending || isSuperAdmin || isSelf}
+                                  className={`cursor-pointer ${isPending ? "opacity-50 animate-pulse" : 
+                                            isSuperAdmin ? "opacity-80" : 
+                                            isSelf ? "opacity-70" : ""}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!isPending && !isSuperAdmin && !isSelf) {
+                                      handleTogglePermission(user.id, permission.id);
+                                    }
+                                  }}
+                                />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {isSuperAdmin 
+                                  ? "Super Admins have all permissions by default"
+                                  : isSelf
+                                  ? "You cannot modify your own permissions"
+                                  : isPending 
+                                    ? "Processing..." 
+                                    : isChecked 
+                                      ? `Remove "${permission.name}" permission from ${user.name}` 
+                                      : `Grant "${permission.name}" permission to ${user.name}`
+                                }
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </TableCell>
                   );
                 })}
