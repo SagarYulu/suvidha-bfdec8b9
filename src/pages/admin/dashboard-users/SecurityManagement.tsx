@@ -24,6 +24,9 @@ const SecurityManagement: React.FC = () => {
   const navigate = useNavigate();
   const { authState } = useAuth();
   
+  // Always call the hook, regardless of auth state
+  const securityManagement = useSecurityManagement();
+  
   // Check authentication first before loading data
   useEffect(() => {
     const checkAuth = async () => {
@@ -51,9 +54,6 @@ const SecurityManagement: React.FC = () => {
     
     checkAuth();
   }, [authState, navigate]);
-
-  // Only load the security management hook after authentication is confirmed
-  const securityManagement = !isAuthChecking ? useSecurityManagement() : null;
   
   if (isAuthChecking) {
     return (

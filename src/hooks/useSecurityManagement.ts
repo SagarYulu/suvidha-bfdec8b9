@@ -32,39 +32,27 @@ const useSecurityManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('users');
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
-  const [authStatus, setAuthStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>('checking');
-
-  // Check authentication status first
+  
+  // Don't use authStatus state since it causes the hook count to change
+  // Only fetch data if user is authenticated
   useEffect(() => {
-    const checkAuth = async () => {
-      if (!authState.isAuthenticated) {
-        console.error("User is not authenticated");
-        setAuthStatus('unauthenticated');
-        return;
-      }
-
-      // Make sure we have a valid Supabase session
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        console.error("No valid Supabase session found");
-        setAuthStatus('unauthenticated');
-        return;
-      }
-
-      console.log("User authenticated, session valid:", sessionData.session.user.id);
-      setAuthStatus('authenticated');
-    };
-
-    checkAuth();
-  }, [authState]);
-
-  // Fetch data only after authentication is confirmed
-  useEffect(() => {
-    if (authStatus !== 'authenticated') return;
+    if (!authState.isAuthenticated) {
+      console.log("User not authenticated, skipping data fetch");
+      return;
+    }
 
     const loadData = async () => {
       setIsLoading(true);
       try {
+        // Make sure we have a valid Supabase session
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          console.error("No valid Supabase session found");
+          return;
+        }
+
+        console.log("User authenticated, session valid:", sessionData.session.user.id);
+        
         await Promise.all([
           fetchDashboardUsers(),
           fetchPermissions(),
@@ -84,7 +72,7 @@ const useSecurityManagement = () => {
     };
     
     loadData();
-  }, [authStatus]);
+  }, [authState.isAuthenticated]);
 
   // Fetch dashboard users
   const fetchDashboardUsers = async () => {
@@ -309,8 +297,7 @@ const useSecurityManagement = () => {
     auditLogs,
     formatDate,
     hasPermission,
-    togglePermission,
-    authStatus
+    togglePermission
   };
 };
 
