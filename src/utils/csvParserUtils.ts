@@ -2,7 +2,6 @@
 import Papa from 'papaparse';
 import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
 import { validateEmployeeData } from './validationUtils';
-import { formatDateToYYYYMMDD } from './dateUtils';
 
 /**
  * Parses and validates a CSV file containing employee data
@@ -25,9 +24,6 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           if (Object.values(row).every(val => val === null || val === '')) {
             return;
           }
-          
-          // Add debug log to check the original CSV data
-          console.log(`[Row ${index}] Original CSV row:`, row);
           
           // Check multiple possible header names for user_id field with better detection
           // This handles different header variations including "User ID" with space
@@ -66,11 +62,6 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             cluster: row.cluster || null,
             manager: row.manager || null,
             role: row.role || '',
-            date_of_joining: row.date_of_joining || null,
-            date_of_birth: row.date_of_birth || null,
-            blood_group: row.blood_group || null,
-            account_number: row.account_number || null,
-            ifsc_code: row.ifsc_code || null,
             password: row.password || 'changeme123', // Use provided password or default
           };
 
@@ -86,21 +77,8 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
             cluster: row.cluster || '',
             manager: row.manager || '',
             role: row.role || '',
-            date_of_joining: row.date_of_joining || '',
-            date_of_birth: row.date_of_birth || '',
-            blood_group: row.blood_group || '',
-            account_number: row.account_number || '',
-            ifsc_code: row.ifsc_code || '',
             password: row.password || 'changeme123' // Use provided password or default
           };
-
-          // Add debug log to check extracted values
-          console.log(`[Row ${index}] Processing CSV row:`, { 
-            originalRow: row,
-            extractedUserId: userId,
-            extractedEmpId: empId,
-            parsedData: employeeData
-          });
 
           // Validate the data using the common validation function
           const validation = validateEmployeeData({
@@ -111,9 +89,6 @@ export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
           if (validation.isValid) {
             validEmployees.push({
               ...employeeData as CSVEmployeeData,
-              // Convert dates to YYYY-MM-DD format for database
-              date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
-              date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
               password: employeeData.password || 'changeme123' // Ensure password is set
             });
           } else {

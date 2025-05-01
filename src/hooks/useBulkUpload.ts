@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
-import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
 
@@ -17,9 +16,6 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   });
   const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
   const { toast } = useToast();
-
-  // Log the callback presence for debugging
-  console.log("useBulkUpload hook initialized with onUploadSuccess callback:", !!onUploadSuccess);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -92,43 +88,25 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         cluster: editedRow.cluster || null,
         role: editedRow.role || '',
         manager: editedRow.manager || null,
-        date_of_joining: editedRow.date_of_joining || null,
-        date_of_birth: editedRow.date_of_birth || null,
-        blood_group: editedRow.blood_group || null,
-        account_number: editedRow.account_number || null,
-        ifsc_code: editedRow.ifsc_code || null,
         password: editedRow.password || 'changeme123',
       };
       
       // Validate the edited data
       const validation = validateEmployeeData({
-        user_id: employeeData.userId, // Map userId to user_id for validation
-        emp_id: employeeData.emp_id,
-        name: employeeData.name,
-        email: employeeData.email,
-        phone: employeeData.phone,
-        city: employeeData.city,
-        cluster: employeeData.cluster,
-        role: employeeData.role,
-        manager: employeeData.manager,
-        date_of_joining: employeeData.date_of_joining,
-        date_of_birth: employeeData.date_of_birth,
-        blood_group: employeeData.blood_group,
-        account_number: employeeData.account_number,
-        ifsc_code: employeeData.ifsc_code,
-        password: employeeData.password
+        ...employeeData,
+        user_id: employeeData.userId // Map userId to user_id for validation
       });
       
       if (validation.isValid) {
         correctedEmployees.push({
           ...employeeData as CSVEmployeeData,
-          date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
-          date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
-          password: employeeData.password || 'changeme123'
+          password: employeeData.password || 'changeme123' // Ensure password is set
         });
       } else {
         stillInvalid.push({
-          row: employeeData as CSVEmployeeData,
+          row: {
+            ...employeeData as CSVEmployeeData
+          }, 
           errors: validation.errors,
           rowData: editedRow
         });
@@ -167,11 +145,9 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const uploadValidEmployees = async (employees: CSVEmployeeData[]) => {
     try {
       setIsUploading(true);
-      console.log("Attempting to upload employees:", employees);
       
       // First check for duplicate emp_ids in the database
       const empIdsToCheck = employees.map(emp => emp.emp_id);
-      console.log("Checking for duplicate employee IDs:", empIdsToCheck);
       
       // Check for existing employee IDs to avoid constraint violations
       const { data: existingEmps, error: checkError } = await supabase
@@ -186,16 +162,10 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       // Extract the list of existing employee IDs
       const existingEmpIds = existingEmps?.map(emp => emp.emp_id) || [];
-      console.log("Found existing employee IDs:", existingEmpIds);
       
       // Filter out employees with duplicate emp_ids
       const newEmployees = employees.filter(emp => !existingEmpIds.includes(emp.emp_id));
       const duplicateEmployees = employees.filter(emp => existingEmpIds.includes(emp.emp_id));
-      
-      if (duplicateEmployees.length > 0) {
-        console.log(`Found ${duplicateEmployees.length} duplicate employee IDs, they will be skipped:`, 
-          duplicateEmployees.map(e => e.emp_id));
-      }
       
       if (newEmployees.length === 0) {
         toast({
@@ -224,22 +194,15 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
           cluster: emp.cluster || null,
           role: exactRole, // Use the exact case matching role from master tables
           password: emp.password || 'changeme123',
-          date_of_joining: emp.date_of_joining || null,
-          date_of_birth: emp.date_of_birth || null,
-          blood_group: emp.blood_group || null,
-          account_number: emp.account_number || null,
-          ifsc_code: emp.ifsc_code || null,
           manager: emp.manager || null,
         };
       });
-      
-      console.log("Inserting employees with data:", employeesData);
       
       // Use the insert method - UUID will be auto-generated
       const { data, error } = await supabase
         .from('employees')
         .insert(employeesData)
-        .select(); // Add select to return the inserted data
+        .select();
 
       if (error) {
         console.error('Upload to database error:', error);
@@ -266,8 +229,6 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       if (onUploadSuccess) {
         console.log("Calling onUploadSuccess callback to refresh user list");
         onUploadSuccess();
-      } else {
-        console.warn("No onUploadSuccess callback provided, user list won't refresh automatically");
       }
       
       setShowValidationDialog(false);

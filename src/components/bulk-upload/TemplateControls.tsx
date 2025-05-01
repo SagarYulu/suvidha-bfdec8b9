@@ -22,7 +22,7 @@ const TemplateControls = ({ isUploading, handleFileUpload }: TemplateControlsPro
   };
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-4 w-full justify-start">
       <Button
         variant="outline"
         onClick={downloadTemplate}
@@ -41,7 +41,7 @@ const TemplateControls = ({ isUploading, handleFileUpload }: TemplateControlsPro
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         />
         <Button
-          variant="default"
+          variant="outline"
           disabled={isUploading}
           className="flex items-center gap-2"
         >

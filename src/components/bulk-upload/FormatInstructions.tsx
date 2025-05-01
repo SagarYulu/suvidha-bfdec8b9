@@ -20,14 +20,14 @@ const FormatInstructions = () => {
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, role
+              <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, city, cluster, manager, role
             </div>
           </div>
 
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">Optional Headers:</span> phone, city, cluster, manager, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code, password
+              <span className="font-medium">Optional Headers:</span> phone, password
             </div>
           </div>
 
@@ -35,13 +35,6 @@ const FormatInstructions = () => {
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
               <span className="font-medium">User ID Format:</span> Must be a 7-digit number (e.g., 1234567)
-            </div>
-          </div>
-
-          <div className="flex items-start">
-            <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
-            <div className="text-sm">
-              <span className="font-medium">Date Format:</span> DD-MM-YYYY or DD/MM/YYYY
             </div>
           </div>
 

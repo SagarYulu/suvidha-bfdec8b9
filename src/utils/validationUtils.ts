@@ -26,8 +26,8 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   // Required fields - check for userId or user_id
   const userId = data.userId || data.user_id || '';
   
-  // Check required fields
-  const requiredFields = ['emp_id', 'name', 'email', 'role'];
+  // Check required fields - now including city, cluster, and manager
+  const requiredFields = ['emp_id', 'name', 'email', 'role', 'city', 'cluster', 'manager'];
   const missingFields = requiredFields.filter(field => 
     !data[field as keyof typeof data]
   );
@@ -75,15 +75,6 @@ export const validateEmployeeData = (data: Partial<EmployeeData>): { isValid: bo
   // Email format validation
   if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
     errors.push(`Invalid email format: ${data.email}`);
-  }
-
-  // Date format validation for optional date fields
-  if (data.date_of_joining && !isValidDate(data.date_of_joining)) {
-    errors.push(`Invalid date of joining: ${data.date_of_joining}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
-  }
-
-  if (data.date_of_birth && !isValidDate(data.date_of_birth)) {
-    errors.push(`Invalid date of birth: ${data.date_of_birth}. Use format DD-MM-YYYY or DD/MM/YYYY.`);
   }
 
   return {

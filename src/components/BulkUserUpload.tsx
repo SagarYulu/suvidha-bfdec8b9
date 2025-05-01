@@ -22,14 +22,14 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
-  console.log("BulkUserUpload render with onUploadSuccess:", !!onUploadSuccess);
-
   return (
-    <div className="space-y-4">
-      <TemplateControls 
-        isUploading={isUploading}
-        handleFileUpload={handleFileUpload}
-      />
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <TemplateControls 
+          isUploading={isUploading}
+          handleFileUpload={handleFileUpload}
+        />
+      </div>
 
       <FormatInstructions />
 
