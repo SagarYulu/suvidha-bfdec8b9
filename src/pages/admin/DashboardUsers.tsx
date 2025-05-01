@@ -116,7 +116,7 @@ const DashboardUsers = () => {
                     <SelectValue placeholder="City" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Cities</SelectItem>
+                    <SelectItem value="all">All Cities</SelectItem>
                     {CITY_OPTIONS.map(city => (
                       <SelectItem key={city} value={city}>{city}</SelectItem>
                     ))}
@@ -132,7 +132,7 @@ const DashboardUsers = () => {
                     <SelectValue placeholder={!filterCity ? "Select city first" : "Cluster"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Clusters</SelectItem>
+                    <SelectItem value="all">All Clusters</SelectItem>
                     {availableClusters.map(cluster => (
                       <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                     ))}
