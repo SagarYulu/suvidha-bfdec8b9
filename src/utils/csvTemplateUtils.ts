@@ -32,7 +32,8 @@ export const getCSVTemplate = () => {
     '# 1. User ID must be numeric (e.g., 1234567)',
     '# 2. Required fields: User ID, emp_id, name, email, city, cluster, manager, role',
     '# 3. Date format: Use YYYY-MM-DD format (e.g., 2023-01-15) or DD/MM/YYYY format (e.g., 15/01/2023)',
-    '# 4. If password is not provided, it defaults to "changeme123"',
+    '# 4. Role must be one of: Mechanic, Pilot, Marshal, Zone Screener, Yulu Captain, Bike Captain, Operator, Bike Fitter, Cleaning Associate, Warehouse Associate, Warehouse Manager, Inventory Associate, Sales Associate, Promoter, Team Leader - rider enablement, Cluster Executive, Area Incharge, Quality Check associate, Mobile QC, Welder, Admin',
+    '# 5. If password is not provided, it defaults to "changeme123"',
   ].join('\n');
 
   return csvContent;

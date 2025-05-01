@@ -2,6 +2,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 import { ValidationResult } from "@/types";
+import { ROLE_OPTIONS } from "@/data/formOptions";
 
 interface ValidationAlertsProps {
   validationResults: ValidationResult;
@@ -31,6 +32,9 @@ const ValidationAlerts = ({ validationResults }: ValidationAlertsProps) => {
             ))}
             {invalidRows.length > 3 && <li>... and more</li>}
           </ul>
+          
+          <p className="mt-2 font-medium">Available roles:</p>
+          <p className="text-xs text-wrap break-words">{ROLE_OPTIONS.join(', ')}</p>
         </div>
       </Alert>
     );
