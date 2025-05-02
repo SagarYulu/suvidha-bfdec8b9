@@ -13,7 +13,7 @@ const MobileLogin = () => {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -22,7 +22,7 @@ const MobileLogin = () => {
     setError(null); // Clear any previous errors
 
     try {
-      console.log("Attempting mobile login with:", { email, password });
+      console.log("Attempting mobile login with:", { email });
       const success = await login(email, password);
       
       if (success) {
@@ -31,23 +31,14 @@ const MobileLogin = () => {
         if (userDataString) {
           const userData = JSON.parse(userDataString);
           
-          // Check if user has a dashboard role - if so, reject login
-          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
+          // Define dashboard user roles that should be rejected
+          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
           
-          if (userData.role && dashboardUserRoles.includes(userData.role)) {
+          // Check if user is a dashboard user by role or email
+          if ((userData.role && dashboardUserRoles.includes(userData.role)) || 
+              userData.email === 'sagar.km@yulu.bike' || 
+              userData.email === 'admin@yulu.com') {
             // This is a dashboard user trying to log into the mobile app - reject
-            setError("Access denied. Please use the admin dashboard login.");
-            toast({
-              title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
-              variant: "destructive",
-            });
-            // Log them out immediately
-            await logout();
-            setIsLoading(false);
-            return;
-          } else if (userData.email === 'sagar.km@yulu.bike') {
-            // Special case for known dashboard user - reject
             setError("Access denied. Please use the admin dashboard login.");
             toast({
               title: "Access Denied",
@@ -95,8 +86,6 @@ const MobileLogin = () => {
       setIsLoading(false);
     }
   };
-
-  const { logout } = useAuth(); // Add logout function for rejecting dashboard users
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">

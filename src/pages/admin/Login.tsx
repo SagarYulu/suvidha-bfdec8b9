@@ -31,11 +31,25 @@ const Login = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    if (authState.isAuthenticated) {
-      console.log("User already authenticated, redirecting to:", returnTo || '/admin/dashboard');
-      navigate(returnTo || '/admin/dashboard', { replace: true });
+    if (authState.isAuthenticated && authState.role) {
+      // Define dashboard roles
+      const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+      
+      // Only redirect if user has a dashboard role
+      if (dashboardUserRoles.includes(authState.role) || authState.user?.email === 'sagar.km@yulu.bike' || authState.user?.email === 'admin@yulu.com') {
+        console.log("Admin user already authenticated, redirecting to:", returnTo || '/admin/dashboard');
+        navigate(returnTo || '/admin/dashboard', { replace: true });
+      } else {
+        // If logged in but not an admin user, show error and log them out
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to access the admin dashboard.",
+          variant: "destructive",
+        });
+        logout();
+      }
     }
-  }, [authState.isAuthenticated, navigate, returnTo]);
+  }, [authState.isAuthenticated, authState.role, authState.user, navigate, returnTo, logout]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,7 +58,6 @@ const Login = () => {
 
     try {
       console.log("Attempting to login to admin dashboard with:", email);
-      console.log("Return path after login:", returnTo);
       
       // Try login through authContext
       const success = await signIn(email, password);
@@ -53,45 +66,53 @@ const Login = () => {
         // Ensure auth state is refreshed
         await refreshAuth();
         
-        // Check if the user is an admin/dashboard user or regular employee
+        // Get updated user data
         const userDataString = localStorage.getItem("yuluUser");
-        if (userDataString) {
-          const userData = JSON.parse(userDataString);
+        const userData = userDataString ? JSON.parse(userDataString) : null;
+        
+        // Define dashboard roles
+        const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+        
+        // Check if user has permission to access admin dashboard
+        const isAdmin = userData?.role && dashboardUserRoles.includes(userData.role);
+        const isSpecialAdmin = userData?.email === 'sagar.km@yulu.bike' || userData?.email === 'admin@yulu.com';
+        
+        if (isAdmin || isSpecialAdmin) {
+          toast({
+            description: 'Login successful!'
+          });
           
-          // Define dashboard roles
-          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
-          
-          // Check if user has permission to access admin dashboard
-          if ((userData.role && dashboardUserRoles.includes(userData.role)) || userData.email === 'sagar.km@yulu.bike') {
-            toast({
-              description: 'Login successful!'
-            });
-            
-            // Redirect to the return URL if provided, or to the dashboard
-            const redirectPath = returnTo || '/admin/dashboard';
-            console.log("Admin login successful, redirecting to:", redirectPath);
-            navigate(redirectPath, { replace: true });
-          } else {
-            // This is an employee trying to log into the admin dashboard - reject
-            setErrorMessage("Access denied. You don't have permission to access the admin dashboard.");
-            toast({
-              title: "Access Denied",
-              description: "You don't have permission to access the admin dashboard. Please use the employee app.",
-              variant: "destructive",
-            });
-            // Log them out immediately
-            await logout();
-          }
+          // Redirect to the return URL if provided, or to the dashboard
+          const redirectPath = returnTo || '/admin/dashboard';
+          console.log("Admin login successful, redirecting to:", redirectPath);
+          navigate(redirectPath, { replace: true });
         } else {
-          setErrorMessage("User data not found. Please try again.");
+          // This is an employee trying to log into the admin dashboard - reject
+          setErrorMessage("Access denied. You don't have permission to access the admin dashboard.");
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access the admin dashboard. Please use the employee app.",
+            variant: "destructive",
+          });
+          // Log them out immediately
           await logout();
         }
       } else {
         setErrorMessage('Invalid email or password');
+        toast({
+          title: "Login failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
       }
     } catch (error: any) {
       console.error('Login error:', error);
       setErrorMessage(error.message || 'An error occurred during login');
+      toast({
+        title: "Login error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
