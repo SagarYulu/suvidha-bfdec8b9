@@ -1,9 +1,15 @@
-
 import { Issue, IssueComment } from "@/types";
 import { MOCK_ISSUES } from "@/data/mockData";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
+
+// Define filter types
+export type IssueFilters = {
+  city: string | null;
+  cluster: string | null;
+  issueType: string | null;
+};
 
 // Helper function to convert database issue to app Issue type
 const mapDbIssueToAppIssue = (dbIssue: any, comments: IssueComment[] = []): Issue => {
@@ -150,13 +156,47 @@ const migrateLocalStorageIssuesToDb = async () => {
 // Try to migrate on service initialization
 migrateLocalStorageIssuesToDb();
 
-export const getIssues = async (): Promise<Issue[]> => {
+export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
   try {
-    // Get all issues from the database
-    const { data: dbIssues, error } = await supabase
+    // Start with the base query
+    let query = supabase
       .from('issues')
       .select('*')
       .order('created_at', { ascending: false });
+
+    // Apply filters if provided
+    if (filters) {
+      // We'll need to join with users table to filter by city or cluster
+      if (filters.city || filters.cluster) {
+        // Get users that match city/cluster criteria
+        let userQuery = supabase.from('employees').select('user_id');
+        
+        if (filters.city) {
+          userQuery = userQuery.eq('city', filters.city);
+        }
+        
+        if (filters.cluster) {
+          userQuery = userQuery.eq('cluster', filters.cluster);
+        }
+        
+        const { data: filteredUsers } = await userQuery;
+        
+        if (filteredUsers && filteredUsers.length > 0) {
+          const userIds = filteredUsers.map(user => user.user_id);
+          query = query.in('user_id', userIds);
+        } else {
+          // No users match the criteria, return empty result
+          return [];
+        }
+      }
+      
+      // Filter by issue type
+      if (filters.issueType) {
+        query = query.eq('type_id', filters.issueType);
+      }
+    }
+    
+    const { data: dbIssues, error } = await query;
     
     if (error) {
       console.error('Error fetching issues:', error);
@@ -482,15 +522,12 @@ export const getIssueSubTypeLabel = (typeId: string, subTypeId: string): string 
   return subType?.label || subTypeId;
 };
 
-export const getAnalytics = async () => {
+export const getAnalytics = async (filters?: IssueFilters) => {
   try {
-    // Get all issues for analytics
-    const { data: dbIssues, error } = await supabase
-      .from('issues')
-      .select('*');
+    // Get all issues that match filters (reuse the getIssues function)
+    const issues = await getIssues(filters);
     
-    if (error) {
-      console.error('Error fetching issues for analytics:', error);
+    if (issues.length === 0) {
       return {
         totalIssues: 0,
         resolvedIssues: 0,
@@ -503,15 +540,6 @@ export const getAnalytics = async () => {
         typeCounts: {},
       };
     }
-    
-    // Map raw DB issues to our application Issue type
-    const issues = dbIssues.map(dbIssue => ({
-      ...mapDbIssueToAppIssue(dbIssue),
-      // Ensure these properties exist for analytics calculations
-      closedAt: dbIssue.closed_at,
-      userId: dbIssue.user_id,
-      typeId: dbIssue.type_id,
-    }));
     
     // Calculate various analytics based on the issues data
     const totalIssues = issues.length;
@@ -581,8 +609,6 @@ export const getAnalytics = async () => {
     
     if (auditError) {
       console.error('Error fetching audit trail:', auditError);
-    } else {
-      console.log('Recent audit trail entries:', auditTrailData.length);
     }
     
     return {

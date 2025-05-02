@@ -1,8 +1,6 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getAnalytics } from "@/services/issueService";
-import { getIssues } from "@/services/issueService";
+import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -15,10 +13,10 @@ const AdminDashboard = () => {
   const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userCount, setUserCount] = useState(0);
-  const [filters, setFilters] = useState({
-    city: null as string | null,
-    cluster: null as string | null,
-    issueType: null as string | null
+  const [filters, setFilters] = useState<IssueFilters>({
+    city: null,
+    cluster: null,
+    issueType: null
   });
 
   useEffect(() => {
@@ -26,11 +24,10 @@ const AdminDashboard = () => {
       setIsLoading(true);
       try {
         console.log("Fetching analytics data with filters:", filters);
-        // Make sure to await the async getAnalytics function and pass filters
         const analyticsData = await getAnalytics(filters);
         setAnalytics(analyticsData);
         
-        console.log("Fetching issues data");
+        console.log("Fetching issues data with filters:", filters);
         const issues = await getIssues(filters);
         const sortedIssues = [...issues].sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -51,11 +48,7 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, [filters]);
 
-  const handleFilterChange = (newFilters: {
-    city: string | null;
-    cluster: string | null;
-    issueType: string | null;
-  }) => {
+  const handleFilterChange = (newFilters: IssueFilters) => {
     setFilters(newFilters);
   };
 
