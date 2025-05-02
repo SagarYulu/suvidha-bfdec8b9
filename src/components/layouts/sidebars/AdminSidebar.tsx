@@ -165,9 +165,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
         )}
         
-        {/* Issues - Available to users with manage:issues permission */}
+        {/* Tickets (renamed from Issues) - Available to users with manage:issues permission */}
         {hasPermission("manage:issues") && (
-          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Issues" />
+          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Tickets" />
         )}
         
         {/* Users - Available to users with manage:users permission */}

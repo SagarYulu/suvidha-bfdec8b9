@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, TicketCheck } from "lucide-react";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
@@ -51,15 +51,15 @@ const MobileLogin = () => {
             return;
           }
           
-          // For regular employees, allow login and redirect to mobile issues
+          // For regular employees, allow login and redirect to mobile tickets
           toast({
             title: "Login successful",
             description: "Welcome back!",
           });
-          console.log("Employee login successful, redirecting to mobile issues");
+          console.log("Employee login successful, redirecting to mobile tickets");
           navigate("/mobile/issues");
         } else {
-          // Default to mobile issues if no user data found
+          // Default to mobile tickets if no user data found
           toast({
             title: "Login successful",
             description: "Welcome back!",
@@ -93,7 +93,7 @@ const MobileLogin = () => {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-yulu-blue">Yulu Employee App</h1>
-            <p className="text-gray-600 mt-2">Sign in to continue</p>
+            <p className="text-gray-600 mt-2">Sign in to manage your tickets</p>
           </div>
           
           {error && (
@@ -141,6 +141,10 @@ const MobileLogin = () => {
           
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>For employee login, use your employee email and password</p>
+            <div className="flex items-center justify-center mt-4 text-yulu-blue">
+              <TicketCheck className="h-4 w-4 mr-1" />
+              <span>Raise and track tickets easily</span>
+            </div>
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home

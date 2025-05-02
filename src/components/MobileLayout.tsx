@@ -33,7 +33,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     
     // Dashboard users should not access mobile app
     // Check if user is from dashboard users (via email)
-    if (authState.user?.email === 'sagar.km@yulu.bike') {
+    if (authState.user?.email === 'sagar.km@yulu.bike' || authState.user?.email === 'admin@yulu.com') {
       console.log("Dashboard user detected via email, redirecting to admin dashboard");
       toast({
         title: "Access Denied",
@@ -47,7 +47,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     
     // Check if user is a dashboard user (should not have mobile access)
     // Dashboard users usually have specific roles assigned to them
-    const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
+    const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
     
     // If the user has a dashboard user role, redirect to admin dashboard
     if (dashboardUserRoles.includes(authState.role || '')) {

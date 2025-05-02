@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, TicketCheck } from "lucide-react";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
@@ -63,7 +63,7 @@ const AdminIssues = () => {
         
         setUserNames(names);
       } catch (error) {
-        console.error("Error fetching issues:", error);
+        console.error("Error fetching tickets:", error);
       } finally {
         setIsLoading(false);
       }
@@ -128,7 +128,7 @@ const AdminIssues = () => {
   };
 
   return (
-    <AdminLayout title="Issues Management">
+    <AdminLayout title="Tickets Management" requiredPermission="manage:issues">
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div className="flex space-x-4 items-center">
@@ -136,7 +136,7 @@ const AdminIssues = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Search issues..."
+                placeholder="Search tickets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -164,7 +164,7 @@ const AdminIssues = () => {
           
           <div>
             <span className="text-sm text-gray-500">
-              Showing {filteredIssues.length} of {issues.length} issues
+              Showing {filteredIssues.length} of {issues.length} tickets
             </span>
           </div>
         </div>
@@ -180,7 +180,7 @@ const AdminIssues = () => {
                 <TableRow>
                   <TableHead>ID</TableHead>
                   <TableHead>Employee</TableHead>
-                  <TableHead>Issue Type</TableHead>
+                  <TableHead>Ticket Type</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
@@ -238,8 +238,8 @@ const AdminIssues = () => {
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-6">
                       {searchTerm || statusFilter !== "all"
-                        ? "No issues matching filters"
-                        : "No issues found"
+                        ? "No tickets matching filters"
+                        : "No tickets found"
                       }
                     </TableCell>
                   </TableRow>

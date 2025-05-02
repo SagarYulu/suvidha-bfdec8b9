@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { checkUserPermission, getPermissions } from '@/services/rbacService';
@@ -72,9 +73,27 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
+      // Special handling for admin users by email
+      if (authState.user.email === 'admin@yulu.com') {
+        console.log('Default admin account detected - granting all permissions');
+        const allPermissions = {
+          'view:dashboard': true,
+          'manage:users': true,
+          'manage:issues': true,
+          'manage:analytics': true,
+          'manage:settings': true,
+          'access:security': true,
+          'create:dashboardUser': true
+        };
+        setPermissionCache(allPermissions);
+        setIsLoading(false);
+        return;
+      }
+      
       // Special handling for non-UUID users
       if (authState.user.id === 'security-user-1' && authState.role === 'security-admin') {
         // Grant all permissions to this demo user
+        console.log('Security admin demo account - granting all permissions');
         const demoPermissions = {
           'view:dashboard': true,
           'manage:users': true,
@@ -92,6 +111,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       // Skip UUID validation for the developer account
       if (authState.user.email === 'sagar.km@yulu.bike') {
         // Grant all permissions to developer account
+        console.log('Developer account - granting all permissions');
         const allPermissions = {
           'view:dashboard': true,
           'manage:users': true,
@@ -136,13 +156,24 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         // Assign default permissions based on role
         if (authState.role === 'admin' || authState.role === 'Super Admin') {
           // Grant all permissions to admins
+          console.log('Admin or Super Admin role detected - granting all permissions');
           for (const perm of allPermissions) {
             cache[perm.name] = true;
           }
         } else if (authState.role === 'security-admin') {
+          console.log('Security admin role detected - granting specific permissions');
           cache['view:dashboard'] = true;
           cache['access:security'] = true;
           cache['manage:users'] = true;
+        } else if (authState.role === 'City Head' || 
+                   authState.role === 'Revenue and Ops Head' || 
+                   authState.role === 'CRM' || 
+                   authState.role === 'Cluster Head' || 
+                   authState.role === 'Payroll Ops' || 
+                   authState.role === 'HR Admin') {
+          console.log('Management role detected - granting dashboard access');
+          cache['view:dashboard'] = true;
+          cache['manage:issues'] = true;
         }
       }
       
@@ -168,9 +199,15 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return false;
       }
       
+      // Special case for admin@yulu.com - grant all permissions
+      if (authState.user?.email === 'admin@yulu.com') {
+        console.log('Default admin account - granting access to:', permission);
+        return true;
+      }
+      
       // Special case for sagar.km@yulu.bike - grant all permissions
       if (authState.user?.email === 'sagar.km@yulu.bike') {
-        console.log('Special access granted for developer account');
+        console.log('Developer account - granting access to:', permission);
         return true;
       }
       
@@ -180,13 +217,31 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return true;
       }
       
+      // For other admin roles, grant full dashboard access
+      if (authState.role === 'admin' || authState.role === 'Super Admin') {
+        console.log('Admin role - granting permission:', permission);
+        return true;
+      }
+      
+      // For management roles, grant specific dashboard permissions
+      if ((permission === 'view:dashboard' || permission === 'manage:issues') && 
+          (authState.role === 'City Head' || 
+           authState.role === 'Revenue and Ops Head' || 
+           authState.role === 'CRM' || 
+           authState.role === 'Cluster Head' || 
+           authState.role === 'Payroll Ops' || 
+           authState.role === 'HR Admin')) {
+        console.log('Management role - granting permission:', permission);
+        return true;
+      }
+      
       // Check the permission cache
       return permissionCache[permission] || false;
     },
     userRole,
     isLoading,
     refreshPermissions
-  }), [authState.isAuthenticated, userRole, authState.user, permissionCache, isLoading]);
+  }), [authState.isAuthenticated, userRole, authState.user, permissionCache, isLoading, authState.role]);
   
   return (
     <RBACContext.Provider value={contextValue}>

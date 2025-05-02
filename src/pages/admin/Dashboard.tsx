@@ -5,7 +5,7 @@ import { getIssues } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { AlertTriangle, CheckCircle, Clock, FileText, Users } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, TicketCheck, Users } from "lucide-react";
 import { Issue } from "@/types";
 
 const AdminDashboard = () => {
@@ -75,18 +75,18 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Issues</CardTitle>
-                <FileText className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
+                <TicketCheck className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{analytics?.totalIssues || 0}</div>
-                <p className="text-xs text-muted-foreground">Total issues raised</p>
+                <p className="text-xs text-muted-foreground">Total tickets raised</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Resolved Issues</CardTitle>
+                <CardTitle className="text-sm font-medium">Resolved Tickets</CardTitle>
                 <CheckCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -104,7 +104,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{analytics?.avgResolutionTime || '0'} hrs</div>
-                <p className="text-xs text-muted-foreground">Average time to resolve issues</p>
+                <p className="text-xs text-muted-foreground">Average time to resolve tickets</p>
               </CardContent>
             </Card>
             
@@ -123,7 +123,7 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>Issues by Type</CardTitle>
+                <CardTitle>Tickets by Type</CardTitle>
               </CardHeader>
               <CardContent className="h-[300px]">
                 {typePieData.length > 0 ? (
@@ -156,7 +156,7 @@ const AdminDashboard = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Issues by City</CardTitle>
+                <CardTitle>Tickets by City</CardTitle>
               </CardHeader>
               <CardContent className="h-[300px]">
                 {cityBarData.length > 0 ? (
@@ -175,7 +175,7 @@ const AdminDashboard = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="value" name="Issues" fill="#1E40AF" />
+                      <Bar dataKey="value" name="Tickets" fill="#1E40AF" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Issues</CardTitle>
+              <CardTitle>Recent Tickets</CardTitle>
             </CardHeader>
             <CardContent>
               {recentIssues.length > 0 ? (
@@ -198,17 +198,32 @@ const AdminDashboard = () => {
                     <thead>
                       <tr>
                         <th className="text-left font-medium p-2">ID</th>
-                        <th className="text-left font-medium p-2">Type</th>
+                        <th className="text-left font-medium p-2">Employee</th>
+                        <th className="text-left font-medium p-2">Ticket Type</th>
+                        <th className="text-left font-medium p-2">Description</th>
                         <th className="text-left font-medium p-2">Status</th>
                         <th className="text-left font-medium p-2">Priority</th>
                         <th className="text-left font-medium p-2">Created</th>
+                        <th className="text-left font-medium p-2">Updated</th>
+                        <th className="text-left font-medium p-2">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {recentIssues.map(issue => (
+                      {recentIssues.map((issue) => (
                         <tr key={issue.id} className="border-t">
                           <td className="p-2">{issue.id}</td>
-                          <td className="p-2">{issue.typeId}</td>
+                          <td className="p-2"></td>
+                          <td className="p-2">
+                            <div>
+                              <div></div>
+                              <div className="text-xs text-gray-500">
+                                
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-2 max-w-xs truncate">
+                            {issue.description}
+                          </td>
                           <td className="p-2">
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               issue.status === "open" ? "bg-red-100 text-red-800" :
@@ -230,14 +245,28 @@ const AdminDashboard = () => {
                           <td className="p-2">
                             {new Date(issue.createdAt).toLocaleDateString()}
                           </td>
+                          <td className="p-2">
+                            {new Date(issue.updatedAt).toLocaleDateString()}
+                          </td>
+                          <td className="p-2">
+                            
+                          </td>
                         </tr>
                       ))}
+                      
+                      {recentIssues.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="text-center py-6">
+                            No tickets found
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
-                  No recent issues found
+                  No recent tickets found
                 </div>
               )}
             </CardContent>
