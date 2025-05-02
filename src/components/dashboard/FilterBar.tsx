@@ -1,3 +1,4 @@
+
 import { useState, useEffect, memo } from 'react';
 import { 
   Select, 
@@ -13,13 +14,24 @@ import { IssueFilters } from "@/services/issues/issueFilters";
 
 type FilterBarProps = {
   onFilterChange: (filters: IssueFilters) => void;
+  initialFilters?: IssueFilters; // Add prop for initial filters
 };
 
 // Using memo to prevent unnecessary re-renders
-const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
-  const [city, setCity] = useState<string | null>(null);
-  const [cluster, setCluster] = useState<string | null>(null);
-  const [issueType, setIssueType] = useState<string | null>(null);
+const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
+  // Initialize state with initialFilters if provided
+  const [city, setCity] = useState<string | null>(initialFilters?.city || null);
+  const [cluster, setCluster] = useState<string | null>(initialFilters?.cluster || null);
+  const [issueType, setIssueType] = useState<string | null>(initialFilters?.issueType || null);
+  
+  // Update local state when initialFilters prop changes
+  useEffect(() => {
+    if (initialFilters) {
+      setCity(initialFilters.city);
+      setCluster(initialFilters.cluster);
+      setIssueType(initialFilters.issueType);
+    }
+  }, [initialFilters]);
   
   // Get available clusters based on selected city
   const availableClusters = city && city !== "all" && CLUSTER_OPTIONS[city] 

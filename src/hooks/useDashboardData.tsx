@@ -123,7 +123,7 @@ export const useDashboardData = () => {
     recentIssues,
     isLoading,
     userCount,
-    filters,
+    filters, // Export filters for use in UI
     handleFilterChange,
     typePieData,
     cityBarData,

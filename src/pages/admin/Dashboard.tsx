@@ -28,7 +28,8 @@ const DashboardContent = () => {
     userCount,
     handleFilterChange,
     typePieData,
-    cityBarData
+    cityBarData,
+    filters // Get current filters
   } = useDashboardData();
 
   return (
@@ -37,8 +38,11 @@ const DashboardContent = () => {
         <DashboardLoader />
       ) : (
         <div className="space-y-6">
-          {/* Add FilterBar component */}
-          <FilterBar onFilterChange={handleFilterChange} />
+          {/* Pass current filters to FilterBar */}
+          <FilterBar 
+            onFilterChange={handleFilterChange} 
+            initialFilters={filters}
+          />
           
           {/* Dashboard Metrics */}
           <DashboardMetrics 
