@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issueService";
@@ -7,24 +8,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { AlertTriangle, CheckCircle, Clock, TicketCheck, Users } from "lucide-react";
 import { Issue } from "@/types";
+import FilterBar from "@/components/dashboard/FilterBar";
 
 const AdminDashboard = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userCount, setUserCount] = useState(0);
+  const [filters, setFilters] = useState({
+    city: null as string | null,
+    cluster: null as string | null,
+    issueType: null as string | null
+  });
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching analytics data");
-        // Make sure to await the async getAnalytics function
-        const analyticsData = await getAnalytics();
+        console.log("Fetching analytics data with filters:", filters);
+        // Make sure to await the async getAnalytics function and pass filters
+        const analyticsData = await getAnalytics(filters);
         setAnalytics(analyticsData);
         
         console.log("Fetching issues data");
-        const issues = await getIssues();
+        const issues = await getIssues(filters);
         const sortedIssues = [...issues].sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
@@ -42,7 +49,15 @@ const AdminDashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [filters]);
+
+  const handleFilterChange = (newFilters: {
+    city: string | null;
+    cluster: string | null;
+    issueType: string | null;
+  }) => {
+    setFilters(newFilters);
+  };
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
@@ -72,6 +87,9 @@ const AdminDashboard = () => {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Add FilterBar component */}
+          <FilterBar onFilterChange={handleFilterChange} />
+          
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
