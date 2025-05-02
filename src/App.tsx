@@ -1,133 +1,79 @@
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { RBACProvider } from './contexts/RBACContext';
+import LoginPage from './pages/LoginPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AccessControl from './pages/admin/AccessControl';
+import MobileLoginPage from './pages/mobile/MobileLoginPage';
+import MobileIssues from './pages/mobile/Issues';
+import MobileLayout from './components/MobileLayout';
+import RoleBasedGuard from './components/guards/RoleBasedGuard';
+import { SecurityGuard } from './components/guards/PermissionGuards';
+import { Toast } from "@/components/ui/toast"
+import { Toaster } from "@/components/ui/toaster"
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { RBACProvider } from "./contexts/RBACContext";
-
-// Import all pages
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
-import AdminIssues from "./pages/admin/Issues";
-import AdminIssueDetails from "./pages/admin/IssueDetails";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminSettings from "./pages/admin/Settings";
-import AdminLogin from "./pages/admin/Login";
-import AdminAccessControl from "./pages/admin/AccessControl";
-import MobileLogin from "./pages/mobile/Login";
-import MobileIssues from "./pages/mobile/Issues";
-import MobileNewIssue from "./pages/mobile/NewIssue";
-import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
-
-// Import guards
-import {
-  DashboardGuard,
-  UserManagementGuard,
-  IssuesGuard,
-  AnalyticsGuard,
-  SettingsGuard,
-  SecurityGuard,
-  CreateDashboardUserGuard
-} from "./components/guards/PermissionGuards";
-
-// Create a new QueryClient instance with more relaxed defaults
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
-
-const App = () => {
-  console.log("App rendering - setting up providers");
-  
+function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RBACProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                
-                {/* Protected Admin Routes with Guards */}
-                <Route path="/admin/dashboard" element={
-                  <DashboardGuard redirectTo="/admin/login">
-                    <AdminDashboard />
-                  </DashboardGuard>
-                } />
-                
-                <Route path="/admin/users" element={
-                  <UserManagementGuard>
-                    <AdminUsers />
-                  </UserManagementGuard>
-                } />
-                
-                <Route path="/admin/issues" element={
-                  <IssuesGuard>
-                    <AdminIssues />
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/issues/:id" element={
-                  <IssuesGuard>
-                    <AdminIssueDetails />
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/analytics" element={
-                  <AnalyticsGuard>
-                    <AdminAnalytics />
-                  </AnalyticsGuard>
-                } />
-                
-                <Route path="/admin/settings" element={
-                  <SettingsGuard>
-                    <AdminSettings />
-                  </SettingsGuard>
-                } />
-                
-                <Route path="/admin/access-control" element={
-                  <SecurityGuard>
-                    <AdminAccessControl />
-                  </SecurityGuard>
-                } />
-                
-                {/* Dashboard Users Routes */}
-                <Route path="/admin/dashboard-users/add" element={
-                  <CreateDashboardUserGuard>
-                    <AddDashboardUser />
-                  </CreateDashboardUserGuard>
-                } />
-                
-                {/* Mobile Routes */}
-                <Route path="/mobile/login" element={<MobileLogin />} />
-                <Route path="/mobile/issues" element={<MobileIssues />} />
-                <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
-                <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-                
-                {/* Fallback route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </RBACProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <RBACProvider>
+        <Router>
+          <AppContent />
+          <Toaster />
+        </Router>
+      </RBACProvider>
+    </AuthProvider>
   );
-};
+}
+
+function AppContent() {
+  const { authState } = useAuth();
+
+  // Function to determine if the user is an admin
+  const isAdmin = authState.role === 'admin' || authState.role === 'security-admin' || authState.role === 'Super Admin';
+
+  // Custom route for handling redirection based on authentication status
+  const AuthRoute = ({ children }: { children: React.ReactNode }) => {
+    return authState.isAuthenticated ? (
+      isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/dashboard" replace />
+    ) : (
+      children
+    );
+  };
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+      <Route path="/admin/login" element={<AuthRoute><AdminLoginPage /></AuthRoute>} />
+      <Route path="/mobile/login" element={<AuthRoute><MobileLoginPage /></AuthRoute>} />
+
+      {/* Common Routes */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+      {/* User Routes */}
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/mobile/issues" element={
+        <MobileLayout title="My Issues">
+          <MobileIssues />
+        </MobileLayout>
+      } />
+
+      {/* Admin Routes */}
+      <Route path="/admin/dashboard" element={
+        <RoleBasedGuard permission="view:dashboard" redirectTo="/admin/login">
+          <AdminDashboard />
+        </RoleBasedGuard>
+      } />
+      <Route path="/admin/access-control" element={
+        <SecurityGuard redirectTo="/admin/dashboard">
+          <AccessControl />
+        </SecurityGuard>
+      } />
+    </Routes>
+  );
+}
 
 export default App;

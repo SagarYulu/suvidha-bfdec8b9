@@ -71,8 +71,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
 
   const footer = (
     <MobileBottomNav
-      onHomeClick={() => navigate("/mobile/issues")}
-      onNewIssueClick={() => navigate("/mobile/issues/new")}
+      onHomeClick={() => navigate("/mobile/login")} // Changed to redirect to login
+      onNewIssueClick={() => navigate("/mobile/login")} // Changed to redirect to login
       onLogoutClick={handleLogout}
     />
   );
