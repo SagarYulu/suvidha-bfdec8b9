@@ -31,21 +31,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       return;
     }
     
-    // List of admin roles that should be redirected
-    const adminRoles = ["admin", "security-admin", "Super Admin"];
+    // We're removing the automatic redirection of admin users to the admin dashboard
+    // This will allow all authenticated users to access mobile pages
     
-    // If user is admin, redirect to admin dashboard
-    if (adminRoles.includes(authState.role || "")) {
-      console.log("Admin detected in mobile app, redirecting to admin dashboard");
-      toast({
-        title: "Admin Access Detected",
-        description: "Redirecting to admin dashboard",
-      });
-      navigate("/admin/dashboard", { replace: true });
-      return;
-    }
-
-    console.log("Employee authenticated in mobile app", authState.user);
+    console.log("User authenticated in mobile app", authState.user);
   }, [authState, navigate, checkAccess]);
 
   const handleLogout = () => {
