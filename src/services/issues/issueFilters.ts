@@ -34,16 +34,16 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
     }
     
     // At least one filter is active, so we need to apply filtering
-    let userIds: string[] = [];
-    let shouldFilterByUsers = false;
+    let employeeIds: string[] = [];
+    let shouldFilterByEmployees = false;
     
     // Only query employees if city or cluster filter is active
     if (filters.city || filters.cluster) {
       console.log("Applying city/cluster filter");
-      shouldFilterByUsers = true;
+      shouldFilterByEmployees = true;
       
       // Build employee query
-      let employeeQuery = supabase.from('employees').select('user_id');
+      let employeeQuery = supabase.from('employees').select('id');
       
       if (filters.city) {
         console.log("Filtering employees by city:", filters.city);
@@ -63,13 +63,13 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
         return [];
       }
       
-      // Extract user IDs from filtered employees
-      userIds = employees?.map(emp => emp.user_id) || [];
-      console.log(`Found ${userIds.length} employees matching the city/cluster filters with userIds:`, userIds);
+      // Extract employee IDs from filtered employees
+      employeeIds = employees?.map(emp => emp.id) || [];
+      console.log(`Found ${employeeIds.length} employees matching the city/cluster filters with IDs:`, employeeIds);
       
       // If filtering by city/cluster but no matching employees found, return empty result
-      if (userIds.length === 0) {
-        console.log("No users match the city/cluster criteria, returning empty result");
+      if (employeeIds.length === 0) {
+        console.log("No employees match the city/cluster criteria, returning empty result");
         return [];
       }
     }
@@ -80,10 +80,10 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       .select('*')
       .order('created_at', { ascending: false });
     
-    // Apply user_id filter if needed
-    if (shouldFilterByUsers && userIds.length > 0) {
-      console.log("Applying user_id filter with IDs:", userIds);
-      issuesQuery = issuesQuery.in('user_id', userIds);
+    // Apply user_id filter if needed - this filters based on the employee ID that's stored in user_id field
+    if (shouldFilterByEmployees && employeeIds.length > 0) {
+      console.log("Applying user_id filter with employee IDs:", employeeIds);
+      issuesQuery = issuesQuery.in('user_id', employeeIds);
     }
     
     // Filter by issue type if specified

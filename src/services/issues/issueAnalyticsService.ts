@@ -50,9 +50,16 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
     }
     
-    // Fetch user data to correctly map city/cluster information
-    const users = await getUsers();
-    console.log(`Retrieved ${users.length} users for analytics processing`);
+    // Fetch employee data directly from the employees table
+    const { data: employees, error: employeesError } = await supabase
+      .from('employees')
+      .select('*');
+      
+    if (employeesError) {
+      console.error('Error fetching employees for analytics:', employeesError);
+    }
+    
+    console.log(`Retrieved ${employees?.length || 0} employees for analytics processing`);
     
     // City-wise issues
     const cityCounts: Record<string, number> = {};
@@ -63,10 +70,10 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     // Issue type distribution
     const typeCounts: Record<string, number> = {};
     
-    // Process each issue and map it to the correct user data
+    // Process each issue and map it to the correct employee data
     for (const issue of issues) {
-      // Find the employee who created this issue
-      const employee = users.find(u => u.id === issue.userId);
+      // Find the employee who created this issue - match by the ID stored in issue.userId
+      const employee = employees?.find(emp => emp.id === issue.userId);
       
       if (employee) {
         // Use actual employee data for analytics
