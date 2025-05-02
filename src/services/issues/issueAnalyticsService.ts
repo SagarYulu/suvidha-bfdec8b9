@@ -65,22 +65,22 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     // Process each issue and map it to the correct user data
     for (const issue of issues) {
-      // Find the user who created this issue
-      const user = users.find(u => u.id === issue.userId);
+      // Find the employee who created this issue
+      const employee = users.find(u => u.id === issue.userId);
       
-      if (user) {
-        // Use actual user data for analytics
-        const city = user.city || "Unknown";
+      if (employee) {
+        // Use actual employee data for analytics
+        const city = employee.city || "Unknown";
         cityCounts[city] = (cityCounts[city] || 0) + 1;
         
-        const cluster = user.cluster || "Unknown";
+        const cluster = employee.cluster || "Unknown";
         clusterCounts[cluster] = (clusterCounts[cluster] || 0) + 1;
         
-        // Use the actual manager name from user data
-        const manager = user.manager || "Unassigned";
+        // Use the actual manager name from employee data
+        const manager = employee.manager || "Unassigned";
         managerCounts[manager] = (managerCounts[manager] || 0) + 1;
       } else {
-        // Fallback for issues without valid user data
+        // Fallback for issues without valid employee data
         cityCounts["Unknown"] = (cityCounts["Unknown"] || 0) + 1;
         clusterCounts["Unknown"] = (clusterCounts["Unknown"] || 0) + 1;
         managerCounts["Unassigned"] = (managerCounts["Unassigned"] || 0) + 1;
