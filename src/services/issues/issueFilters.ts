@@ -80,7 +80,7 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       .select('*')
       .order('created_at', { ascending: false });
     
-    // Apply user_id filter if needed - this filters based on the employee ID that's stored in user_id field
+    // Apply user_id filter if needed - user_id in issues table contains the employee.id
     if (shouldFilterByEmployees && employeeIds.length > 0) {
       console.log("Applying user_id filter with employee IDs:", employeeIds);
       issuesQuery = issuesQuery.in('user_id', employeeIds);
