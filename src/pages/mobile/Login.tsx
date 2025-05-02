@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,37 +22,57 @@ const MobileLogin = () => {
     setError(null); // Clear any previous errors
 
     try {
-      console.log("Attempting login with:", { email, password });
+      console.log("Attempting mobile login with:", { email, password });
       const success = await login(email, password);
       
       if (success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        
         // Get user data to check role
         const userDataString = localStorage.getItem("yuluUser");
         if (userDataString) {
           const userData = JSON.parse(userDataString);
           
-          // Check if user has a dashboard role - if so, send to admin dashboard
+          // Check if user has a dashboard role - if so, reject login
           const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
           
           if (userData.role && dashboardUserRoles.includes(userData.role)) {
-            console.log("Dashboard user detected by role, redirecting to admin dashboard");
-            navigate("/admin/dashboard");
+            // This is a dashboard user trying to log into the mobile app - reject
+            setError("Access denied. Please use the admin dashboard login.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            // Log them out immediately
+            await logout();
+            setIsLoading(false);
+            return;
           } else if (userData.email === 'sagar.km@yulu.bike') {
-            // Special case for known dashboard user
-            console.log("Dashboard user detected via email, redirecting to admin dashboard");
-            navigate("/admin/dashboard");
-          } else {
-            // For regular employees, always redirect to mobile issues
-            console.log("Employee detected, redirecting to mobile issues");
-            navigate("/mobile/issues");
+            // Special case for known dashboard user - reject
+            setError("Access denied. Please use the admin dashboard login.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            // Log them out immediately
+            await logout();
+            setIsLoading(false);
+            return;
           }
+          
+          // For regular employees, allow login and redirect to mobile issues
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
+          console.log("Employee login successful, redirecting to mobile issues");
+          navigate("/mobile/issues");
         } else {
           // Default to mobile issues if no user data found
+          toast({
+            title: "Login successful",
+            description: "Welcome back!",
+          });
           navigate("/mobile/issues");
         }
       } else {
@@ -74,6 +95,8 @@ const MobileLogin = () => {
       setIsLoading(false);
     }
   };
+
+  const { logout } = useAuth(); // Add logout function for rejecting dashboard users
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100">
@@ -132,6 +155,11 @@ const MobileLogin = () => {
             <p className="mt-2">
               <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home
+              </a>
+            </p>
+            <p className="mt-2">
+              <a href="/admin/login" className="text-yulu-blue hover:underline">
+                Go to Admin Dashboard Login
               </a>
             </p>
           </div>

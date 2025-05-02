@@ -31,16 +31,17 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       return;
     }
     
+    // Dashboard users should not access mobile app
     // Check if user is from dashboard users (via email)
-    // We specifically check for the developer account which was added via dashboard users
     if (authState.user?.email === 'sagar.km@yulu.bike') {
-      console.log("Dashboard user detected via email check, redirecting to admin dashboard");
+      console.log("Dashboard user detected via email, redirecting to admin dashboard");
       toast({
         title: "Access Denied",
-        description: "Mobile app is only for employees. Redirecting to admin dashboard.",
+        description: "Mobile app is only for employees. Please use the admin dashboard.",
         variant: "destructive"
       });
-      navigate("/admin/dashboard", { replace: true });
+      logout();
+      navigate("/admin/login", { replace: true });
       return;
     }
     
@@ -53,15 +54,16 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       console.log("Dashboard user detected by role, redirecting to admin dashboard");
       toast({
         title: "Access Denied",
-        description: "Mobile app is only for employees. Redirecting to admin dashboard.",
+        description: "Mobile app is only for employees. Please use the admin dashboard.",
         variant: "destructive"
       });
-      navigate("/admin/dashboard", { replace: true });
+      logout();
+      navigate("/admin/login", { replace: true });
       return;
     }
     
     console.log("Employee authenticated in mobile app", authState.user);
-  }, [authState, navigate, checkAccess]);
+  }, [authState, navigate, checkAccess, logout]);
 
   const handleLogout = () => {
     logout();

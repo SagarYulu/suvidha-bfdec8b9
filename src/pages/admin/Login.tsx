@@ -18,7 +18,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { authState, signIn, refreshAuth } = useAuth();
+  const { authState, signIn, refreshAuth, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { returnTo } = (location.state as LocationState) || {};
@@ -43,24 +43,49 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      console.log("Attempting to login with:", email);
+      console.log("Attempting to login to admin dashboard with:", email);
       console.log("Return path after login:", returnTo);
       
       // Try login through authContext
       const success = await signIn(email, password);
       
       if (success) {
-        toast({
-          description: 'Login successful!'
-        });
-        
         // Ensure auth state is refreshed
         await refreshAuth();
         
-        // Redirect to the return URL if provided, or to the dashboard
-        const redirectPath = returnTo || '/admin/dashboard';
-        console.log("Login successful, redirecting to:", redirectPath);
-        navigate(redirectPath, { replace: true });
+        // Check if the user is an admin/dashboard user or regular employee
+        const userDataString = localStorage.getItem("yuluUser");
+        if (userDataString) {
+          const userData = JSON.parse(userDataString);
+          
+          // Define dashboard roles
+          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
+          
+          // Check if user has permission to access admin dashboard
+          if ((userData.role && dashboardUserRoles.includes(userData.role)) || userData.email === 'sagar.km@yulu.bike') {
+            toast({
+              description: 'Login successful!'
+            });
+            
+            // Redirect to the return URL if provided, or to the dashboard
+            const redirectPath = returnTo || '/admin/dashboard';
+            console.log("Admin login successful, redirecting to:", redirectPath);
+            navigate(redirectPath, { replace: true });
+          } else {
+            // This is an employee trying to log into the admin dashboard - reject
+            setErrorMessage("Access denied. You don't have permission to access the admin dashboard.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have permission to access the admin dashboard. Please use the employee app.",
+              variant: "destructive",
+            });
+            // Log them out immediately
+            await logout();
+          }
+        } else {
+          setErrorMessage("User data not found. Please try again.");
+          await logout();
+        }
       } else {
         setErrorMessage('Invalid email or password');
       }
@@ -143,6 +168,11 @@ const Login = () => {
                   Use {cred.label} credentials
                 </Button>
               ))}
+            </div>
+            <div className="mt-4 text-center w-full">
+              <a href="/mobile/login" className="text-sm text-blue-600 hover:underline">
+                Go to Employee App Login
+              </a>
             </div>
           </CardFooter>
         </Card>
