@@ -57,7 +57,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   if (!authState.isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -71,8 +71,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
 
   const footer = (
     <MobileBottomNav
-      onHomeClick={() => navigate("/mobile/login")} // Changed to redirect to login
-      onNewIssueClick={() => navigate("/mobile/login")} // Changed to redirect to login
+      onHomeClick={() => navigate("/dashboard")} // Changed to redirect to dashboard
+      onNewIssueClick={() => navigate("/dashboard")} // Changed to redirect to dashboard
       onLogoutClick={handleLogout}
     />
   );
