@@ -2,7 +2,17 @@
 import { IssueComment } from "@/types";
 import { MOCK_ISSUES } from "@/data/mockData";
 
-// Helper function to convert database issue to app Issue type
+/**
+ * Helper function to convert database issue to app Issue type
+ * 
+ * Database mapping notes:
+ * - dbIssue.id → Issue.id (unique issue identifier)
+ * - dbIssue.user_id → Issue.userId (employee UUID from employees.id)
+ * 
+ * @param dbIssue The raw issue from the database
+ * @param comments Comments associated with the issue
+ * @returns Processed Issue object with correct field mapping
+ */
 export const mapDbIssueToAppIssue = (dbIssue: any, comments: IssueComment[] = []) => {
   return {
     id: dbIssue.id,

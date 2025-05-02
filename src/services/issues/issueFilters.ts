@@ -10,6 +10,16 @@ export type IssueFilters = {
   issueType: string | null;
 };
 
+/**
+ * Gets issues based on specified filters
+ * 
+ * Database mapping notes:
+ * - In the issues table, `id` is the unique issue identifier
+ * - In the issues table, `user_id` contains the employee's UUID (maps to employees.id)
+ * 
+ * @param filters Optional filters for city, cluster, and issue type
+ * @returns Processed list of issues
+ */
 export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
   try {
     console.log("getIssues called with filters:", filters);

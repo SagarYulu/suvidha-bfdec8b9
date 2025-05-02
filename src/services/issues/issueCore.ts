@@ -5,6 +5,14 @@ import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 import { getCommentsForIssue } from "./issueCommentService";
 import { logAuditTrail } from "./issueAuditService";
 
+/**
+ * Issue core service - handles basic CRUD operations for issues
+ * 
+ * Database mapping notes:
+ * - In the issues table, `id` is the unique issue identifier
+ * - In the issues table, `user_id` contains the employee's UUID (maps to employees.id)
+ */
+
 // Initialize service
 const initializeService = () => {
   console.log("Issue core service initialized");
