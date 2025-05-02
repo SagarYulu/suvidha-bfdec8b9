@@ -31,10 +31,23 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       return;
     }
     
-    // We're removing the automatic redirection of admin users to the admin dashboard
-    // This will allow all authenticated users to access mobile pages
+    // Check if user is a dashboard user (should not have mobile access)
+    // Dashboard users usually have specific roles assigned to them
+    const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin'];
     
-    console.log("User authenticated in mobile app", authState.user);
+    // If the user has a dashboard user role, redirect to admin dashboard
+    if (dashboardUserRoles.includes(authState.role || '')) {
+      console.log("Dashboard user detected, redirecting to admin dashboard");
+      toast({
+        title: "Access Denied",
+        description: "Mobile app is only for employees. Redirecting to admin dashboard.",
+        variant: "destructive"
+      });
+      navigate("/admin/dashboard", { replace: true });
+      return;
+    }
+    
+    console.log("Employee authenticated in mobile app", authState.user);
   }, [authState, navigate, checkAccess]);
 
   const handleLogout = () => {
