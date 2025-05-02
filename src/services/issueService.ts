@@ -8,12 +8,15 @@ export type { IssueFilters };
 
 // Re-export all the functions from the modular services
 export { 
-  getIssues,
   getIssueById,
   getIssuesByUserId,
   createIssue,
   updateIssueStatus
 } from "./issues/issueCore";
+
+export {
+  getIssues
+} from "./issues/issueFilters";
 
 export { 
   getIssueTypeLabel, 
