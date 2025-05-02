@@ -152,37 +152,8 @@ const AccessControl = () => {
       console.log("New role:", selectedRole);
       console.log("Current user role:", authState.role);
       
-      // Determine which ID to use:
-      // 1. If user.user_id exists and is a valid UUID, use that for role assignment
-      // 2. Otherwise use the user.id if it's a valid UUID
-      // 3. For non-UUID IDs, just update the local state without database updates
-      
-      const userIdForRoles = selectedUser.user_id && isValidUuid(selectedUser.user_id) 
-        ? selectedUser.user_id 
-        : (isValidUuid(selectedUser.id) ? selectedUser.id : null);
-      
-      console.log("Using ID for role assignment:", userIdForRoles);
-      
-      let dbUpdateSuccess = true;
-      
-      if (userIdForRoles) {
-        // Remove all existing roles first (clean slate)
-        if (selectedUser.role) {
-          await removeRole(userIdForRoles, selectedUser.role);
-        }
-        
-        // Assign new role
-        const result = await assignRole(userIdForRoles, selectedRole);
-        
-        if (!result) {
-          throw new Error("Failed to update user role in the database");
-        }
-      } else {
-        console.log("No valid UUID for role assignment in database, skipping RBAC update");
-      }
-      
-      // Update the dashboard_users table
-      const { error } = await supabase
+      // First, update the dashboard_users table
+      const { error: dashboardUpdateError } = await supabase
         .from('dashboard_users')
         .update({ 
           role: selectedRole,
@@ -190,12 +161,40 @@ const AccessControl = () => {
         })
         .eq('id', selectedUser.id);
       
-      if (error) {
-        console.error("Supabase update error:", error);
-        throw error;
+      if (dashboardUpdateError) {
+        console.error("Supabase dashboard_users update error:", dashboardUpdateError);
+        throw dashboardUpdateError;
       }
       
-      // Update the local state
+      // Determine which ID to use for RBAC role assignment:
+      // 1. If user.user_id exists and is a valid UUID, use that
+      // 2. Otherwise use the user.id if it's a valid UUID
+      const userIdForRoles = (selectedUser.user_id && isValidUuid(selectedUser.user_id)) 
+        ? selectedUser.user_id 
+        : (isValidUuid(selectedUser.id) ? selectedUser.id : null);
+      
+      console.log("Using ID for role assignment:", userIdForRoles);
+      
+      // Only try RBAC role assignment if we have a valid UUID
+      if (userIdForRoles) {
+        // Remove all existing roles first (clean slate)
+        if (selectedUser.role) {
+          const removeResult = await removeRole(userIdForRoles, selectedUser.role);
+          console.log("Remove role result:", removeResult);
+        }
+        
+        // Assign new role
+        const assignResult = await assignRole(userIdForRoles, selectedRole);
+        console.log("Assign role result:", assignResult);
+        
+        if (!assignResult) {
+          console.warn("RBAC role assignment may have failed, but dashboard user was updated");
+        }
+      } else {
+        console.log("No valid UUID for role assignment in RBAC system - skipping RBAC update");
+      }
+      
+      // Update the local state regardless of RBAC result
       setDashboardUsers(prev => 
         prev.map(user => 
           user.id === selectedUser.id 
@@ -222,6 +221,8 @@ const AccessControl = () => {
         title: "Success",
         description: `Role updated to ${selectedRole} for ${selectedUser.name}`,
       });
+      
+      setDialogOpen(false);
     } catch (error: any) {
       console.error("Error updating role:", error);
       setErrorMessage(error.message || "Failed to update user role");
@@ -232,7 +233,6 @@ const AccessControl = () => {
       });
     } finally {
       setIsUpdating(false);
-      setDialogOpen(false);
     }
   };
 

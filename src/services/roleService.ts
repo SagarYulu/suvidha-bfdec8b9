@@ -40,17 +40,35 @@ export const checkUserRole = async (userId: string, role: string): Promise<boole
       role_name: role
     };
     
-    // Use functions.invoke with proper typing
-    const { data, error } = await supabase.functions.invoke<boolean>('has_role', {
-      body: params
-    });
+    try {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('has_role', {
+        body: params
+      });
 
-    if (error) {
-      console.error('Error checking user role:', error);
-      return false;
+      if (error) {
+        console.error('Error checking user role:', error);
+        return false;
+      }
+
+      return data === true;
+    } catch (invokeError) {
+      console.error('Function invoke error:', invokeError);
+      
+      // Fallback to direct query if function invoke fails
+      console.log("Falling back to direct query for role check");
+      const { data, error } = await supabase.rpc('has_role', {
+        user_id: userId,
+        role_name: role
+      });
+      
+      if (error) {
+        console.error('Direct RPC error checking user role:', error);
+        return false;
+      }
+      
+      return data === true;
     }
-
-    return data === true;
   } catch (error) {
     console.error('Error in checkUserRole:', error);
     return false;
@@ -72,20 +90,38 @@ export const assignRole = async (userId: string, role: string): Promise<boolean>
       role_name: role
     };
     
-    // Use functions.invoke with proper typing
-    const { data, error } = await supabase.functions.invoke<boolean>('assign_role', {
-      body: params
-    });
+    try {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('assign_role', {
+        body: params
+      });
 
-    if (error) {
-      console.error('Error assigning role:', error);
-      return false;
+      if (error) {
+        console.error('Error assigning role via function:', error);
+        throw error;
+      }
+
+      return data === true;
+    } catch (invokeError) {
+      console.error('Function invoke error:', invokeError);
+      console.log("Falling back to direct RPC for role assignment");
+      
+      // Fallback to direct RPC if function invoke fails
+      const { data: rpcData, error: rpcError } = await supabase.rpc('assign_role', {
+        target_user_id: userId,
+        role_name: role
+      });
+      
+      if (rpcError) {
+        console.error('Direct RPC error assigning role:', rpcError);
+        throw rpcError;
+      }
+      
+      return rpcData === true;
     }
-
-    return data === true;
   } catch (error) {
     console.error('Error in assignRole:', error);
-    return false;
+    throw new Error('Failed to update user role in the database');
   }
 };
 
@@ -102,20 +138,38 @@ export const removeRole = async (userId: string, role: string): Promise<boolean>
       role_name: role
     };
     
-    // Use functions.invoke with proper typing
-    const { data, error } = await supabase.functions.invoke<boolean>('remove_role', {
-      body: params
-    });
+    try {
+      // Use functions.invoke with proper typing
+      const { data, error } = await supabase.functions.invoke<boolean>('remove_role', {
+        body: params
+      });
 
-    if (error) {
-      console.error('Error removing role:', error);
-      return false;
+      if (error) {
+        console.error('Error removing role via function:', error);
+        throw error;
+      }
+
+      return data === true;
+    } catch (invokeError) {
+      console.error('Function invoke error:', invokeError);
+      console.log("Falling back to direct RPC for role removal");
+      
+      // Fallback to direct RPC if function invoke fails
+      const { data: rpcData, error: rpcError } = await supabase.rpc('remove_role', {
+        target_user_id: userId,
+        role_name: role
+      });
+      
+      if (rpcError) {
+        console.error('Direct RPC error removing role:', rpcError);
+        throw rpcError;
+      }
+      
+      return rpcData === true;
     }
-
-    return data === true;
   } catch (error) {
     console.error('Error in removeRole:', error);
-    return false;
+    throw new Error('Failed to remove user role in the database');
   }
 };
 
