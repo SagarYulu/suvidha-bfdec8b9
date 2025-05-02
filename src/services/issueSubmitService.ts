@@ -11,9 +11,13 @@ export type IssueSubmitData = {
 };
 
 export const submitIssue = async (data: IssueSubmitData) => {
+  // Generate a UUID for the issue
+  const id = crypto.randomUUID();
+  
   const { error } = await supabase
     .from('issues')
     .insert({
+      id: id,
       user_id: data.userId,
       type_id: data.typeId,
       sub_type_id: data.subTypeId,
