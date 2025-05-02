@@ -52,7 +52,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              No data available
+              No data available for the selected filters
             </div>
           )}
         </CardContent>
@@ -84,7 +84,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
             </ResponsiveContainer>
           ) : (
             <div className="h-full flex items-center justify-center text-muted-foreground">
-              No data available
+              No data available for the selected filters
             </div>
           )}
         </CardContent>

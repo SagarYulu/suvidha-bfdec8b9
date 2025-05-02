@@ -30,29 +30,29 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       }
       
       // Process issues with comments and return
-      return await processIssues(dbIssues);
+      return await processIssues(dbIssues || []);
     }
     
     // At least one filter is active, so we need to apply filtering
     let userIds: string[] = [];
+    let shouldFilterByUsers = false;
     
     // Only query employees if city or cluster filter is active
     if (filters.city || filters.cluster) {
       console.log("Applying city/cluster filter");
+      shouldFilterByUsers = true;
       
       // Build employee query
       let employeeQuery = supabase.from('employees').select('user_id');
       
       if (filters.city) {
         console.log("Filtering employees by city:", filters.city);
-        // Use ilike for case-insensitive matching
-        employeeQuery = employeeQuery.ilike('city', `%${filters.city}%`);
+        employeeQuery = employeeQuery.ilike('city', filters.city);
       }
       
       if (filters.cluster) {
         console.log("Filtering employees by cluster:", filters.cluster);
-        // Use ilike for case-insensitive matching
-        employeeQuery = employeeQuery.ilike('cluster', `%${filters.cluster}%`);
+        employeeQuery = employeeQuery.ilike('cluster', filters.cluster);
       }
       
       // Execute employee query
@@ -81,7 +81,7 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       .order('created_at', { ascending: false });
     
     // Apply user_id filter if needed
-    if ((filters.city || filters.cluster) && userIds.length > 0) {
+    if (shouldFilterByUsers && userIds.length > 0) {
       console.log("Applying user_id filter with IDs:", userIds);
       issuesQuery = issuesQuery.in('user_id', userIds);
     }

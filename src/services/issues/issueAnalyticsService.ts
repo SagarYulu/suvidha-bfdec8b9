@@ -52,6 +52,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     // Fetch user data to correctly map city/cluster information
     const users = await getUsers();
+    console.log(`Retrieved ${users.length} users for analytics processing`);
     
     // City-wise issues
     const cityCounts: Record<string, number> = {};

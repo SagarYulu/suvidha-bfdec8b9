@@ -30,6 +30,7 @@ export const useDashboardData = () => {
       return result;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+    refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
   // Query for analytics data with proper caching - making sure to use the fresh filters
@@ -45,7 +46,7 @@ export const useDashboardData = () => {
       return getAnalytics(filters);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
-    enabled: !isIssuesLoading, // Only run after issues query completes
+    refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
   // Query for users data with proper caching
@@ -56,15 +57,15 @@ export const useDashboardData = () => {
     queryKey: ['users'],
     queryFn: () => getUsers(),
     staleTime: 30 * 60 * 1000, // 30 minutes before refetching
+    refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
-  // Force refetch when filters change to ensure we get fresh data
+  // Force immediate refetch when filters change
   useEffect(() => {
     const fetchData = async () => {
       console.log("Filter changed, refetching data with:", filters);
       try {
-        await refetchIssues();
-        await refetchAnalytics();
+        await Promise.all([refetchIssues(), refetchAnalytics()]);
       } catch (error) {
         console.error("Error refetching data:", error);
       }
@@ -100,19 +101,29 @@ export const useDashboardData = () => {
   
   // Memoize chart data to prevent recalculations
   const typePieData = useMemo(() => {
-    if (!analytics || !analytics.typeCounts) return [];
-    return Object.entries(analytics.typeCounts).map(([name, value]: [string, any]) => ({
+    if (!analytics?.typeCounts) {
+      console.log("No type counts data available for pie chart");
+      return [];
+    }
+    const data = Object.entries(analytics.typeCounts).map(([name, value]) => ({
       name,
       value
     }));
+    console.log("Generated type pie data:", data);
+    return data;
   }, [analytics]);
   
   const cityBarData = useMemo(() => {
-    if (!analytics || !analytics.cityCounts) return [];
-    return Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
+    if (!analytics?.cityCounts) {
+      console.log("No city counts data available for bar chart");
+      return [];
+    }
+    const data = Object.entries(analytics.cityCounts).map(([name, value]) => ({
       name,
       value
     }));
+    console.log("Generated city bar data:", data);
+    return data;
   }, [analytics]);
   
   // Improved filter change handler with consistent state management
