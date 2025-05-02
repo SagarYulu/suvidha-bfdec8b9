@@ -34,10 +34,10 @@ const MobileLogin = () => {
           // Define dashboard user roles that should be rejected
           const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
           
-          // Check if user is a dashboard user by role or email
-          if ((userData.role && dashboardUserRoles.includes(userData.role)) || 
-              userData.email === 'sagar.km@yulu.bike' || 
-              userData.email === 'admin@yulu.com') {
+          // Check if user is a dashboard user - ONLY by specific email or role
+          // Users from employee table should be allowed in mobile app
+          if ((userData.email === 'sagar.km@yulu.bike' || userData.email === 'admin@yulu.com') || 
+              (userData.role && dashboardUserRoles.includes(userData.role))) {
             // This is a dashboard user trying to log into the mobile app - reject
             setError("Access denied. Please use the admin dashboard login.");
             toast({
