@@ -32,7 +32,7 @@ const MobileNewIssue = () => {
     if (!authState.user?.id) {
       toast({
         title: "Authentication error",
-        description: "You need to be logged in to submit an issue.",
+        description: "You need to be logged in to submit a ticket.",
         variant: "destructive",
       });
       return;
@@ -41,7 +41,7 @@ const MobileNewIssue = () => {
     if (!selectedType || !selectedSubType) {
       toast({
         title: "Validation error",
-        description: "Please select an issue type and subtype.",
+        description: "Please select a ticket type and subtype.",
         variant: "destructive",
       });
       return;
@@ -50,7 +50,7 @@ const MobileNewIssue = () => {
     if (!description.trim()) {
       toast({
         title: "Validation error",
-        description: "Please provide a description of the issue.",
+        description: "Please provide a description of the ticket.",
         variant: "destructive",
       });
       return;
@@ -69,16 +69,16 @@ const MobileNewIssue = () => {
       });
 
       toast({
-        title: "Issue submitted",
-        description: "Your issue has been successfully submitted.",
+        title: "Ticket submitted",
+        description: "Your ticket has been successfully submitted.",
       });
       
       navigate("/mobile/issues");
     } catch (error) {
-      console.error("Error submitting issue:", error);
+      console.error("Error submitting ticket:", error);
       toast({
         title: "Submission error",
-        description: "An error occurred while submitting your issue. Please try again.",
+        description: "An error occurred while submitting your ticket. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -87,11 +87,11 @@ const MobileNewIssue = () => {
   };
 
   return (
-    <MobileLayout title="New Issue">
+    <MobileLayout title="Raise Ticket">
       <div className="pb-16">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="issue-type">Issue Type</Label>
+            <Label htmlFor="issue-type">Ticket Type</Label>
             <Select
               value={selectedType}
               onValueChange={(value) => {
@@ -100,7 +100,7 @@ const MobileNewIssue = () => {
               }}
             >
               <SelectTrigger id="issue-type">
-                <SelectValue placeholder="Select issue type" />
+                <SelectValue placeholder="Select ticket type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -116,13 +116,13 @@ const MobileNewIssue = () => {
 
           {selectedType && (
             <div className="space-y-2">
-              <Label htmlFor="issue-subtype">Issue Subtype</Label>
+              <Label htmlFor="issue-subtype">Ticket Subtype</Label>
               <Select
                 value={selectedSubType}
                 onValueChange={setSelectedSubType}
               >
                 <SelectTrigger id="issue-subtype">
-                  <SelectValue placeholder="Select issue subtype" />
+                  <SelectValue placeholder="Select ticket subtype" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -155,7 +155,7 @@ const MobileNewIssue = () => {
               className="w-full bg-yulu-blue hover:bg-blue-700"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Submitting..." : "Submit Issue"}
+              {isSubmitting ? "Submitting..." : "Submit Ticket"}
             </Button>
           </div>
         </form>

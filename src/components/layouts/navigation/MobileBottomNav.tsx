@@ -28,7 +28,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           className="flex flex-col items-center py-3 flex-1"
         >
           <FilePlus className="h-5 w-5" />
-          <span className="text-xs mt-1">New Issue</span>
+          <span className="text-xs mt-1">Raise Ticket</span>
         </button>
         <button
           onClick={onLogoutClick}
