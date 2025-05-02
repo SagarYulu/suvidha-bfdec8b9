@@ -19,7 +19,7 @@ type FilterBarProps = {
   }) => void;
 };
 
-// Use memo to prevent unnecessary re-renders
+// Using memo to prevent unnecessary re-renders
 const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
   const [city, setCity] = useState<string | null>(null);
   const [cluster, setCluster] = useState<string | null>(null);
@@ -58,13 +58,37 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
     applyFilters();
   }, [cluster, issueType, applyFilters]);
 
+  // Handle city selection
+  const handleCityChange = (value: string) => {
+    console.log("City changed to:", value);
+    const newCity = value === "all" ? null : value;
+    setCity(newCity);
+    
+    // Reset cluster when city changes
+    if (newCity !== city) {
+      setCluster(null);
+    }
+  };
+
+  // Handle cluster selection
+  const handleClusterChange = (value: string) => {
+    console.log("Cluster changed to:", value);
+    setCluster(value === "all" ? null : value);
+  };
+
+  // Handle issue type selection
+  const handleIssueTypeChange = (value: string) => {
+    console.log("Issue type changed to:", value);
+    setIssueType(value === "all" ? null : value);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
       <div>
         <Label htmlFor="city-filter" className="mb-1 block">City</Label>
         <Select
           value={city || "all"}
-          onValueChange={(value) => setCity(value === "all" ? null : value)}
+          onValueChange={handleCityChange}
         >
           <SelectTrigger id="city-filter">
             <SelectValue placeholder="All Cities" />
@@ -84,7 +108,7 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
         <Label htmlFor="cluster-filter" className="mb-1 block">Cluster</Label>
         <Select
           value={cluster || "all"}
-          onValueChange={(value) => setCluster(value === "all" ? null : value)}
+          onValueChange={handleClusterChange}
           disabled={!city || city === "all" || availableClusters.length === 0}
         >
           <SelectTrigger id="cluster-filter">
@@ -105,7 +129,7 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
         <Label htmlFor="issue-type-filter" className="mb-1 block">Issue Type</Label>
         <Select
           value={issueType || "all"}
-          onValueChange={(value) => setIssueType(value === "all" ? null : value)}
+          onValueChange={handleIssueTypeChange}
         >
           <SelectTrigger id="issue-type-filter">
             <SelectValue placeholder="All Issue Types" />

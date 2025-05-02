@@ -26,6 +26,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
         clusterCounts: {},
         managerCounts: {},
         typeCounts: {},
+        recentActivity: []
       };
     }
     
@@ -56,7 +57,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     const cityCounts: Record<string, number> = {};
     // Cluster-wise issues
     const clusterCounts: Record<string, number> = {};
-    // Manager-wise issues - fixed to use real user data
+    // Manager-wise issues
     const managerCounts: Record<string, number> = {};
     // Issue type distribution
     const typeCounts: Record<string, number> = {};
@@ -123,6 +124,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       clusterCounts: {},
       managerCounts: {},
       typeCounts: {},
+      recentActivity: []
     };
   }
 };

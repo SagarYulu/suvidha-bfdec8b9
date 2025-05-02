@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
 import { Issue } from "@/types";
+import { toast } from "sonner";
 
 export const useDashboardData = () => {
   const [filters, setFilters] = useState<IssueFilters>({
@@ -16,21 +17,25 @@ export const useDashboardData = () => {
   const { 
     data: issues = [], 
     isLoading: isIssuesLoading,
-    refetch: refetchIssues
+    refetch: refetchIssues,
+    error: issuesError
   } = useQuery({
     queryKey: ['issues', filters],
-    queryFn: () => {
+    queryFn: async () => {
       console.log("Fetching issues with filters:", filters);
-      return getIssues(filters);
+      const result = await getIssues(filters);
+      console.log(`Retrieved ${result.length} issues after filtering`);
+      return result;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
   });
   
-  // Query for analytics data with proper caching - making sure to pass the fresh issues
+  // Query for analytics data with proper caching - making sure to use the fresh filters
   const { 
     data: analytics, 
     isLoading: isAnalyticsLoading,
-    refetch: refetchAnalytics
+    refetch: refetchAnalytics,
+    error: analyticsError
   } = useQuery({
     queryKey: ['analytics', filters],
     queryFn: async () => {
@@ -52,10 +57,29 @@ export const useDashboardData = () => {
     staleTime: 30 * 60 * 1000, // 30 minutes before refetching
   });
   
-  // Force a refetch of both issues and analytics when filters change
+  // Force refetches when filters change
   useEffect(() => {
-    refetchIssues();
-  }, [filters, refetchIssues]);
+    const fetchData = async () => {
+      console.log("Filter changed, refetching data with:", filters);
+      await refetchIssues();
+      await refetchAnalytics();
+    };
+    
+    fetchData();
+  }, [filters, refetchIssues, refetchAnalytics]);
+
+  // Display errors if they occur
+  useEffect(() => {
+    if (issuesError) {
+      console.error("Error fetching issues:", issuesError);
+      toast.error("Failed to load issues data");
+    }
+    
+    if (analyticsError) {
+      console.error("Error fetching analytics:", analyticsError);
+      toast.error("Failed to load analytics data");
+    }
+  }, [issuesError, analyticsError]);
   
   // Memoize these calculations to prevent recalculations on re-renders
   const recentIssues = useMemo(() => {

@@ -1,4 +1,3 @@
-
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -23,111 +22,148 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
   try {
     console.log("getIssues called with filters:", filters);
     
-    // Get all employees first to apply city/cluster filters
-    const { data: employees, error: employeeError } = await supabase
-      .from('employees')
-      .select('*');
+    // If no filters provided or all filters are null, return all issues
+    if (!filters || (!filters.city && !filters.cluster && !filters.issueType)) {
+      console.log("No filters applied, fetching all issues");
       
-    if (employeeError) {
-      console.error('Error fetching employees for filtering:', employeeError);
-      return [];
+      // Get all issues
+      const { data: dbIssues, error } = await supabase
+        .from('issues')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching all issues:', error);
+        return [];
+      }
+      
+      // Process issues with comments and return
+      return await processIssues(dbIssues);
     }
     
-    // Apply city and cluster filters to get matching user IDs
-    let filteredEmployees = employees;
-    if (filters?.city) {
-      console.log("Filtering by city:", filters.city);
-      filteredEmployees = filteredEmployees.filter(emp => 
-        emp.city && emp.city.toLowerCase() === filters.city?.toLowerCase()
-      );
+    // At least one filter is active, so we need to apply filtering
+    let userIds: string[] = [];
+    let needUserFiltering = false;
+    
+    // Only query employees if city or cluster filter is active
+    if (filters.city || filters.cluster) {
+      needUserFiltering = true;
+      
+      // Build employee query
+      let employeeQuery = supabase.from('employees').select('*');
+      
+      if (filters.city) {
+        console.log("Filtering employees by city:", filters.city);
+        employeeQuery = employeeQuery.ilike('city', filters.city);
+      }
+      
+      if (filters.cluster) {
+        console.log("Filtering employees by cluster:", filters.cluster);
+        employeeQuery = employeeQuery.ilike('cluster', filters.cluster);
+      }
+      
+      // Execute employee query
+      const { data: employees, error: employeeError } = await employeeQuery;
+      
+      if (employeeError) {
+        console.error('Error fetching employees for filtering:', employeeError);
+        return [];
+      }
+      
+      // Extract user IDs from filtered employees
+      userIds = employees.map(emp => emp.user_id);
+      console.log(`Found ${employees.length} employees matching the city/cluster filters with userIds:`, userIds);
+      
+      // If filtering by city/cluster but no matching employees found, return empty result
+      if (userIds.length === 0) {
+        console.log("No users match the city/cluster criteria, returning empty result");
+        return [];
+      }
     }
     
-    if (filters?.cluster) {
-      console.log("Filtering by cluster:", filters.cluster);
-      filteredEmployees = filteredEmployees.filter(emp => 
-        emp.cluster && emp.cluster.toLowerCase() === filters.cluster?.toLowerCase()
-      );
-    }
-    
-    console.log(`Found ${filteredEmployees.length} employees matching the city/cluster filters`);
-    
-    // Extract user IDs from filtered employees
-    const userIds = filteredEmployees.map(emp => emp.user_id);
-    
-    // Start with the base query
-    let query = supabase
+    // Start building the issues query
+    let issuesQuery = supabase
       .from('issues')
       .select('*')
       .order('created_at', { ascending: false });
-
-    // Apply user_id filter if city or cluster filters are active
-    if ((filters?.city || filters?.cluster) && userIds.length > 0) {
+    
+    // Apply user_id filter if needed
+    if (needUserFiltering && userIds.length > 0) {
       console.log("Applying user_id filter with IDs:", userIds);
-      query = query.in('user_id', userIds);
-    } else if ((filters?.city || filters?.cluster) && userIds.length === 0) {
-      console.log("No users match the city/cluster criteria, returning empty result");
-      return []; // No users match, so no issues will match
+      issuesQuery = issuesQuery.in('user_id', userIds);
     }
     
-    // Filter by issue type
-    if (filters?.issueType) {
+    // Filter by issue type if specified
+    if (filters.issueType) {
       console.log("Filtering by issue type:", filters.issueType);
-      query = query.eq('type_id', filters.issueType);
+      issuesQuery = issuesQuery.eq('type_id', filters.issueType);
     }
     
-    const { data: dbIssues, error } = await query;
+    // Execute the final issues query
+    const { data: dbIssues, error } = await issuesQuery;
     
     if (error) {
-      console.error('Error fetching issues:', error);
+      console.error('Error fetching filtered issues:', error);
       return [];
     }
     
     console.log(`Found ${dbIssues.length} issues matching the filters`);
     
-    // Get all comments for these issues
-    const issueIds = dbIssues.map(issue => issue.id);
-    let commentsByIssueId: Record<string, any[]> = {};
-    
-    if (issueIds.length > 0) {
-      const { data: dbComments, error: commentsError } = await supabase
-        .from('issue_comments')
-        .select('*')
-        .in('issue_id', issueIds)
-        .order('created_at', { ascending: true });
-      
-      if (commentsError) {
-        console.error('Error fetching comments:', commentsError);
-      }
-      
-      // Group comments by issue_id
-      if (dbComments) {
-        dbComments.forEach(comment => {
-          const issueId = comment.issue_id;
-          if (!commentsByIssueId[issueId]) {
-            commentsByIssueId[issueId] = [];
-          }
-          
-          commentsByIssueId[issueId].push({
-            id: comment.id,
-            userId: comment.user_id,
-            content: comment.content,
-            createdAt: comment.created_at
-          });
-        });
-      }
-    }
-    
-    // Map database issues to app Issue type with comments
-    const issues = dbIssues.map(dbIssue => 
-      mapDbIssueToAppIssue(dbIssue, commentsByIssueId[dbIssue.id] || [])
-    );
-    
-    return issues;
+    // Process issues with comments and return
+    return await processIssues(dbIssues);
   } catch (error) {
     console.error('Error in getIssues:', error);
     return [];
   }
 };
+
+// Helper function to process issues with their comments
+async function processIssues(dbIssues: any[]): Promise<Issue[]> {
+  // If no issues found, return empty array
+  if (dbIssues.length === 0) {
+    return [];
+  }
+  
+  // Get all comments for these issues
+  const issueIds = dbIssues.map(issue => issue.id);
+  let commentsByIssueId: Record<string, any[]> = {};
+  
+  if (issueIds.length > 0) {
+    const { data: dbComments, error: commentsError } = await supabase
+      .from('issue_comments')
+      .select('*')
+      .in('issue_id', issueIds)
+      .order('created_at', { ascending: true });
+    
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError);
+    }
+    
+    // Group comments by issue_id
+    if (dbComments) {
+      dbComments.forEach(comment => {
+        const issueId = comment.issue_id;
+        if (!commentsByIssueId[issueId]) {
+          commentsByIssueId[issueId] = [];
+        }
+        
+        commentsByIssueId[issueId].push({
+          id: comment.id,
+          userId: comment.user_id,
+          content: comment.content,
+          createdAt: comment.created_at
+        });
+      });
+    }
+  }
+  
+  // Map database issues to app Issue type with comments
+  const issues = dbIssues.map(dbIssue => 
+    mapDbIssueToAppIssue(dbIssue, commentsByIssueId[dbIssue.id] || [])
+  );
+  
+  return issues;
+}
 
 export const getIssuesByUserId = async (userId: string): Promise<Issue[]> => {
   try {
