@@ -8,6 +8,7 @@ import { Issue } from "@/types";
 import { toast } from "sonner";
 
 export const useDashboardData = () => {
+  // Initialize with null values for all filter fields
   const [filters, setFilters] = useState<IssueFilters>({
     city: null,
     cluster: null,
@@ -114,15 +115,15 @@ export const useDashboardData = () => {
     }));
   }, [analytics]);
   
-  // Filter change handler with improved state management
+  // Improved filter change handler with consistent state management
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
     console.log("Filter change requested:", newFilters);
     
+    // Update all filters at once to ensure consistency
     setFilters(prevFilters => {
-      // Create a new filters object with only the non-null values from new filters
-      // This prevents overriding current filters with null values
       const updatedFilters = { ...prevFilters };
       
+      // Update city if specified
       if ('city' in newFilters) {
         updatedFilters.city = newFilters.city;
         // If city changes, reset cluster
@@ -131,10 +132,12 @@ export const useDashboardData = () => {
         }
       }
       
+      // Update cluster if specified
       if ('cluster' in newFilters) {
         updatedFilters.cluster = newFilters.cluster;
       }
       
+      // Update issueType if specified
       if ('issueType' in newFilters) {
         updatedFilters.issueType = newFilters.issueType;
       }

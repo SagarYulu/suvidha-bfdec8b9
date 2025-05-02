@@ -29,7 +29,7 @@ const DashboardContent = () => {
     handleFilterChange,
     typePieData,
     cityBarData,
-    filters // Get current filters
+    filters // Get current filters to pass to FilterBar
   } = useDashboardData();
 
   // Log the current filters for debugging
@@ -43,7 +43,7 @@ const DashboardContent = () => {
         <DashboardLoader />
       ) : (
         <div className="space-y-6">
-          {/* Pass current filters to FilterBar */}
+          {/* Pass current filters to FilterBar to ensure UI stays in sync */}
           <FilterBar 
             onFilterChange={handleFilterChange} 
             initialFilters={filters}

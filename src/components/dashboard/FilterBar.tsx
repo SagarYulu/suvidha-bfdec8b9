@@ -84,8 +84,11 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
     });
   };
 
-  // Convert null values to "all" for dropdown display
-  const getSelectValue = (value: string | null) => value || "all";
+  // IMPORTANT: To fix the UI display of selected filters
+  // Get the appropriate select value to display, handling null values properly
+  const getSelectValue = (value: string | null): string => {
+    return value || "all";
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
