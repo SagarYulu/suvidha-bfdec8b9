@@ -30,7 +30,7 @@ export const submitIssue = async (data: IssueSubmitData) => {
     throw error;
   }
 
-  return { success: true };
+  return { success: true, issueId: id };
 };
 
 export const uploadBankProof = async (file: File, userId: string): Promise<string | null> => {

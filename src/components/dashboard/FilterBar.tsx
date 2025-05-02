@@ -25,8 +25,9 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
   const [issueType, setIssueType] = useState<string | null>(null);
   const [availableClusters, setAvailableClusters] = useState<string[]>([]);
 
+  // Update available clusters when city changes
   useEffect(() => {
-    if (city && CLUSTER_OPTIONS[city]) {
+    if (city && city !== "all" && CLUSTER_OPTIONS[city]) {
       setAvailableClusters(CLUSTER_OPTIONS[city]);
     } else {
       setCluster(null);
@@ -34,8 +35,17 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
     }
   }, [city]);
 
+  // Debounce filter changes to prevent excessive API calls
   useEffect(() => {
-    onFilterChange({ city, cluster, issueType });
+    const timer = setTimeout(() => {
+      onFilterChange({ 
+        city: city === "all" ? null : city, 
+        cluster: cluster === "all" ? null : cluster, 
+        issueType: issueType === "all" ? null : issueType 
+      });
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, [city, cluster, issueType, onFilterChange]);
 
   return (
@@ -65,10 +75,10 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
         <Select
           value={cluster || undefined}
           onValueChange={(value) => setCluster(value || null)}
-          disabled={!city || availableClusters.length === 0}
+          disabled={!city || city === "all" || availableClusters.length === 0}
         >
           <SelectTrigger id="cluster-filter">
-            <SelectValue placeholder={city ? "All Clusters" : "Select City First"} />
+            <SelectValue placeholder={city && city !== "all" ? "All Clusters" : "Select City First"} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Clusters</SelectItem>

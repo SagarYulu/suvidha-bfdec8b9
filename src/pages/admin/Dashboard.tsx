@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
@@ -18,40 +18,42 @@ const AdminDashboard = () => {
     cluster: null,
     issueType: null
   });
+  
+  // Memoize the filter change handler to prevent unnecessary re-renders
+  const handleFilterChange = useCallback((newFilters: IssueFilters) => {
+    setFilters(newFilters);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching analytics data with filters:", filters);
-        const analyticsData = await getAnalytics(filters);
+        // Fetch analytics and issues data in parallel to speed up loading
+        const [analyticsData, issues, users] = await Promise.all([
+          getAnalytics(filters),
+          getIssues(filters),
+          getUsers()
+        ]);
+        
         setAnalytics(analyticsData);
         
-        console.log("Fetching issues data with filters:", filters);
-        const issues = await getIssues(filters);
         const sortedIssues = [...issues].sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setRecentIssues(sortedIssues.slice(0, 5));
         
-        console.log("Fetching users data");
-        const users = await getUsers();
         setUserCount(users.filter(user => user.role === "employee").length);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {
         setIsLoading(false);
-        console.log("Dashboard data loaded");
       }
     };
 
     fetchDashboardData();
   }, [filters]);
 
-  const handleFilterChange = (newFilters: IssueFilters) => {
-    setFilters(newFilters);
-  };
-
+  // Constants for chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
   // Add null checks before using Object.entries
@@ -75,14 +77,16 @@ const AdminDashboard = () => {
   return (
     <AdminLayout title="Dashboard">
       {isLoading ? (
-        <div className="flex justify-center py-12">
+        <div className="flex justify-center items-center py-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
+          <span className="ml-3 text-lg text-gray-600">Loading dashboard data...</span>
         </div>
       ) : (
         <div className="space-y-6">
           {/* Add FilterBar component */}
           <FilterBar onFilterChange={handleFilterChange} />
           
+          {/* Dashboard Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -131,6 +135,7 @@ const AdminDashboard = () => {
             </Card>
           </div>
 
+          {/* Charts Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
@@ -198,6 +203,7 @@ const AdminDashboard = () => {
             </Card>
           </div>
 
+          {/* Recent Tickets Table */}
           <Card>
             <CardHeader>
               <CardTitle>Recent Tickets</CardTitle>
