@@ -40,7 +40,6 @@ export const useDashboardData = () => {
     queryKey: ['analytics', filters],
     queryFn: async () => {
       console.log("Fetching analytics with filters:", filters);
-      // Always fetch fresh analytics based on the current filters
       return getAnalytics(filters);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
@@ -110,7 +109,7 @@ export const useDashboardData = () => {
     }));
   }, [analytics]);
   
-  // Filter change handler - using useCallback to prevent unnecessary recreations
+  // Filter change handler - immediately triggers data refresh
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
     console.log("Filter changed:", newFilters);
     setFilters(newFilters);

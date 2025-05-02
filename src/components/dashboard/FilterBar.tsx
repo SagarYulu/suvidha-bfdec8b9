@@ -1,5 +1,5 @@
 
-import { useState, useEffect, memo, useCallback } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -30,56 +30,49 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
     ? CLUSTER_OPTIONS[city] 
     : [];
 
-  // Apply filters immediately when they change
-  const applyFilters = useCallback(() => {
-    console.log('Applying filters:', { 
-      city: city === "all" ? null : city, 
-      cluster: cluster === "all" ? null : cluster, 
-      issueType: issueType === "all" ? null : issueType 
-    });
-    
-    onFilterChange({ 
-      city: city === "all" ? null : city, 
-      cluster: cluster === "all" ? null : cluster, 
-      issueType: issueType === "all" ? null : issueType 
-    });
-  }, [city, cluster, issueType, onFilterChange]);
-
-  // Reset cluster when city changes
-  useEffect(() => {
-    if (city === null || city === "all" || !CLUSTER_OPTIONS[city]) {
-      setCluster(null);
-    }
-    applyFilters();
-  }, [city, applyFilters]);
-  
-  // Apply filter changes for cluster and issueType
-  useEffect(() => {
-    applyFilters();
-  }, [cluster, issueType, applyFilters]);
-
-  // Handle city selection
+  // Handle city selection - immediately apply the filter
   const handleCityChange = (value: string) => {
     console.log("City changed to:", value);
     const newCity = value === "all" ? null : value;
     setCity(newCity);
     
     // Reset cluster when city changes
-    if (newCity !== city) {
-      setCluster(null);
-    }
+    setCluster(null);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city: newCity,
+      cluster: null, // Reset cluster in filter when city changes
+      issueType: issueType === "all" ? null : issueType 
+    });
   };
 
-  // Handle cluster selection
+  // Handle cluster selection - immediately apply the filter
   const handleClusterChange = (value: string) => {
     console.log("Cluster changed to:", value);
-    setCluster(value === "all" ? null : value);
+    const newCluster = value === "all" ? null : value;
+    setCluster(newCluster);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city: city === "all" ? null : city,
+      cluster: newCluster,
+      issueType: issueType === "all" ? null : issueType 
+    });
   };
 
-  // Handle issue type selection
+  // Handle issue type selection - immediately apply the filter
   const handleIssueTypeChange = (value: string) => {
     console.log("Issue type changed to:", value);
-    setIssueType(value === "all" ? null : value);
+    const newIssueType = value === "all" ? null : value;
+    setIssueType(newIssueType);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city: city === "all" ? null : city,
+      cluster: cluster === "all" ? null : cluster,
+      issueType: newIssueType
+    });
   };
 
   return (

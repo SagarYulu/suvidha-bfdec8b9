@@ -1,3 +1,4 @@
+
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -13,7 +14,6 @@ export type IssueFilters = {
 
 // Initialize service
 const initializeService = () => {
-  // migrateLocalStorageIssuesToDb(); - uncomment if needed
   console.log("Issue service initialized");
 };
 initializeService();
@@ -43,23 +43,24 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
     
     // At least one filter is active, so we need to apply filtering
     let userIds: string[] = [];
-    let needUserFiltering = false;
     
     // Only query employees if city or cluster filter is active
     if (filters.city || filters.cluster) {
-      needUserFiltering = true;
+      console.log("Applying city/cluster filter");
       
       // Build employee query
-      let employeeQuery = supabase.from('employees').select('*');
+      let employeeQuery = supabase.from('employees').select('user_id');
       
       if (filters.city) {
         console.log("Filtering employees by city:", filters.city);
-        employeeQuery = employeeQuery.ilike('city', filters.city);
+        // Use ilike for case-insensitive matching
+        employeeQuery = employeeQuery.ilike('city', `%${filters.city}%`);
       }
       
       if (filters.cluster) {
         console.log("Filtering employees by cluster:", filters.cluster);
-        employeeQuery = employeeQuery.ilike('cluster', filters.cluster);
+        // Use ilike for case-insensitive matching
+        employeeQuery = employeeQuery.ilike('cluster', `%${filters.cluster}%`);
       }
       
       // Execute employee query
@@ -71,8 +72,8 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       }
       
       // Extract user IDs from filtered employees
-      userIds = employees.map(emp => emp.user_id);
-      console.log(`Found ${employees.length} employees matching the city/cluster filters with userIds:`, userIds);
+      userIds = employees?.map(emp => emp.user_id) || [];
+      console.log(`Found ${employees?.length || 0} employees matching the city/cluster filters with userIds:`, userIds);
       
       // If filtering by city/cluster but no matching employees found, return empty result
       if (userIds.length === 0) {
@@ -88,7 +89,7 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       .order('created_at', { ascending: false });
     
     // Apply user_id filter if needed
-    if (needUserFiltering && userIds.length > 0) {
+    if ((filters.city || filters.cluster) && userIds.length > 0) {
       console.log("Applying user_id filter with IDs:", userIds);
       issuesQuery = issuesQuery.in('user_id', userIds);
     }
@@ -107,10 +108,10 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       return [];
     }
     
-    console.log(`Found ${dbIssues.length} issues matching the filters`);
+    console.log(`Found ${dbIssues?.length || 0} issues matching the filters`);
     
     // Process issues with comments and return
-    return await processIssues(dbIssues);
+    return await processIssues(dbIssues || []);
   } catch (error) {
     console.error('Error in getIssues:', error);
     return [];
@@ -120,7 +121,7 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
 // Helper function to process issues with their comments
 async function processIssues(dbIssues: any[]): Promise<Issue[]> {
   // If no issues found, return empty array
-  if (dbIssues.length === 0) {
+  if (!dbIssues || dbIssues.length === 0) {
     return [];
   }
   
