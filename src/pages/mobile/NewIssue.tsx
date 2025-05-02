@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { BankNote, CreditCard, FileText, Upload } from "lucide-react";
+import { Banknote, CreditCard, FileText, Upload } from "lucide-react";
 
 const bankAccountSchema = z.object({
   accountNumber: z.string().min(1, "Account number is required"),
@@ -308,7 +307,7 @@ ${data.description ? `\nAdditional Notes: ${data.description}` : ''}
               <form onSubmit={form.handleSubmit(handleBankDetailsSubmit)} className="space-y-6">
                 <div className="bg-blue-50 p-4 rounded-md border border-blue-100 mb-4">
                   <div className="flex items-center mb-2">
-                    <BankNote className="h-5 w-5 text-blue-500 mr-2" />
+                    <Banknote className="h-5 w-5 text-blue-500 mr-2" />
                     <h3 className="font-medium text-blue-700">Bank Account Update Request</h3>
                   </div>
                   <p className="text-sm text-blue-600">
