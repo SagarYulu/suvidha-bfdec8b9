@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
@@ -12,16 +12,6 @@ export const useDashboardData = () => {
     issueType: null
   });
   
-  // Query for analytics data with proper caching
-  const { 
-    data: analytics, 
-    isLoading: isAnalyticsLoading 
-  } = useQuery({
-    queryKey: ['analytics', filters],
-    queryFn: () => getAnalytics(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
-  });
-  
   // Query for issues data with proper caching
   const { 
     data: issues = [], 
@@ -30,6 +20,17 @@ export const useDashboardData = () => {
     queryKey: ['issues', filters],
     queryFn: () => getIssues(filters),
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+  });
+  
+  // Query for analytics data with proper caching - NOTE: passing the issues directly
+  const { 
+    data: analytics, 
+    isLoading: isAnalyticsLoading 
+  } = useQuery({
+    queryKey: ['analytics', filters, issues.length],
+    queryFn: () => getAnalytics(filters, issues),
+    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+    enabled: !isIssuesLoading, // Only run after issues query completes
   });
   
   // Query for users data with proper caching
@@ -71,17 +72,10 @@ export const useDashboardData = () => {
     }));
   }, [analytics]);
   
-  // Filter change handler (memoized to prevent recreation)
-  const handleFilterChange = useMemo(() => {
-    return (newFilters: IssueFilters) => {
-      setFilters(prevFilters => {
-        // Only update if filters actually changed
-        if (JSON.stringify(prevFilters) === JSON.stringify(newFilters)) {
-          return prevFilters;
-        }
-        return newFilters;
-      });
-    };
+  // Filter change handler - using useCallback instead of useMemo for a function
+  const handleFilterChange = useCallback((newFilters: IssueFilters) => {
+    console.log("Filter changed:", newFilters);
+    setFilters(newFilters);
   }, []);
 
   const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;
@@ -94,6 +88,7 @@ export const useDashboardData = () => {
     filters,
     handleFilterChange,
     typePieData,
-    cityBarData
+    cityBarData,
+    issues // Export issues for debugging
   };
 };

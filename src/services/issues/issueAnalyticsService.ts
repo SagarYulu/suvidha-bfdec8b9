@@ -4,11 +4,12 @@ import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueService";
 import { getIssues } from "./issueService";
 import { getAuditTrail } from "./issueAuditService";
+import { Issue } from "@/types";
 
-export const getAnalytics = async (filters?: IssueFilters) => {
+export const getAnalytics = async (filters?: IssueFilters, preloadedIssues?: Issue[]) => {
   try {
-    // Get all issues that match filters (reuse the getIssues function)
-    const issues = await getIssues(filters);
+    // Use preloaded issues if available, otherwise fetch them
+    const issues = preloadedIssues || await getIssues(filters);
     
     if (issues.length === 0) {
       return {
@@ -23,6 +24,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
         typeCounts: {},
       };
     }
+    
+    console.log(`Analytics processing ${issues.length} issues with filters:`, filters);
     
     // Calculate various analytics based on the issues data
     const totalIssues = issues.length;
@@ -44,7 +47,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
     }
     
-    // Fetch user data to correctly map manager information
+    // Fetch user data to correctly map city/cluster information
     const users = await getUsers();
     
     // City-wise issues
@@ -57,7 +60,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     const typeCounts: Record<string, number> = {};
     
     // Process each issue and map it to the correct user data
-    issues.forEach(issue => {
+    for (const issue of issues) {
       // Find the user who created this issue
       const user = users.find(u => u.id === issue.userId);
       
@@ -81,6 +84,13 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       
       // Real issue type data
       typeCounts[issue.typeId] = (typeCounts[issue.typeId] || 0) + 1;
+    }
+    
+    console.log("Generated analytics:", { 
+      totalIssues, 
+      cityCounts, 
+      clusterCounts, 
+      typeCounts 
     });
     
     // Get audit trail data for advanced analytics if needed

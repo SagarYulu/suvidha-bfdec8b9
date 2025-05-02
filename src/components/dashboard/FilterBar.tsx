@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo, memo } from 'react';
+import { useState, useEffect, memo, useCallback } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -26,32 +26,37 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
   const [issueType, setIssueType] = useState<string | null>(null);
   
   // Memoize available clusters to prevent recalculation
-  const availableClusters = useMemo(() => {
-    if (city && city !== "all" && CLUSTER_OPTIONS[city]) {
-      return CLUSTER_OPTIONS[city];
-    }
-    return [];
-  }, [city]);
+  const availableClusters = city && city !== "all" && CLUSTER_OPTIONS[city] 
+    ? CLUSTER_OPTIONS[city] 
+    : [];
+
+  // Apply filters immediately without debounce since filters changes should be explicit
+  const applyFilters = useCallback(() => {
+    console.log('Applying filters:', { 
+      city: city === "all" ? null : city, 
+      cluster: cluster === "all" ? null : cluster, 
+      issueType: issueType === "all" ? null : issueType 
+    });
+    
+    onFilterChange({ 
+      city: city === "all" ? null : city, 
+      cluster: cluster === "all" ? null : cluster, 
+      issueType: issueType === "all" ? null : issueType 
+    });
+  }, [city, cluster, issueType, onFilterChange]);
 
   // Reset cluster when city changes
   useEffect(() => {
     if (city === null || city === "all" || !CLUSTER_OPTIONS[city]) {
       setCluster(null);
     }
-  }, [city]);
-
-  // Use a 500ms debounce for filters to prevent rapid changes
+    applyFilters();
+  }, [city, applyFilters]);
+  
+  // Apply filter changes for cluster and issueType
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onFilterChange({ 
-        city: city === "all" ? null : city, 
-        cluster: cluster === "all" ? null : cluster, 
-        issueType: issueType === "all" ? null : issueType 
-      });
-    }, 500);
-    
-    return () => clearTimeout(timer);
-  }, [city, cluster, issueType, onFilterChange]);
+    applyFilters();
+  }, [cluster, issueType, applyFilters]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
