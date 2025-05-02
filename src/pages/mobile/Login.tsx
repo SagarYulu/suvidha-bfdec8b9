@@ -38,8 +38,8 @@ const MobileLogin = () => {
           if (userData.role === "admin") {
             navigate("/admin/dashboard");
           } else {
-            // For any other role, navigate to dashboard instead of mobile issues
-            navigate("/dashboard");
+            // For any other role, navigate to mobile issues
+            navigate("/mobile/issues");
           }
         }
       } else {
@@ -108,7 +108,7 @@ const MobileLogin = () => {
             
             <Button 
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
+              className="w-full bg-yulu-blue hover:bg-blue-700"
               disabled={isLoading}
             >
               {isLoading ? "Signing in..." : "Sign In"}
@@ -118,7 +118,7 @@ const MobileLogin = () => {
           <div className="mt-6 text-center text-sm text-gray-500">
             <p>For employee login, use your employee email and password</p>
             <p className="mt-2">
-              <a href="/" className="text-blue-600 hover:underline">
+              <a href="/" className="text-yulu-blue hover:underline">
                 Back to Home
               </a>
             </p>

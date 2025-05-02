@@ -1,18 +1,19 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RBACProvider } from './contexts/RBACContext';
-import Login from './pages/Login';
-import AdminLogin from './pages/admin/Login';
+import LoginPage from './pages/LoginPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 import Dashboard from './pages/Dashboard';
-import AdminDashboard from './pages/admin/Dashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import AccessControl from './pages/admin/AccessControl';
-import MobileLogin from './pages/mobile/Login';
+import MobileLoginPage from './pages/mobile/MobileLoginPage';
+import MobileIssues from './pages/mobile/Issues';
 import MobileLayout from './components/MobileLayout';
 import RoleBasedGuard from './components/guards/RoleBasedGuard';
 import { SecurityGuard } from './components/guards/PermissionGuards';
-import { Toaster } from "@/components/ui/toaster";
+import { Toast } from "@/components/ui/toast"
+import { Toaster } from "@/components/ui/toaster"
 
 function App() {
   return (
@@ -45,15 +46,20 @@ function AppContent() {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
-      <Route path="/admin/login" element={<AuthRoute><AdminLogin /></AuthRoute>} />
-      <Route path="/mobile/login" element={<AuthRoute><MobileLogin /></AuthRoute>} />
+      <Route path="/login" element={<AuthRoute><LoginPage /></AuthRoute>} />
+      <Route path="/admin/login" element={<AuthRoute><AdminLoginPage /></AuthRoute>} />
+      <Route path="/mobile/login" element={<AuthRoute><MobileLoginPage /></AuthRoute>} />
 
       {/* Common Routes */}
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
       {/* User Routes */}
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/mobile/issues" element={
+        <MobileLayout title="My Issues">
+          <MobileIssues />
+        </MobileLayout>
+      } />
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={
