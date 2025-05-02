@@ -26,55 +26,59 @@ const MobileLogin = () => {
       const success = await login(email, password);
       
       if (success) {
-        // Get user data to check role
+        console.log("Login successful, checking access rights");
+        
+        // Get user data from localStorage - could be from mockUser or yuluUser
         const userDataString = localStorage.getItem("yuluUser") || localStorage.getItem("mockUser");
+        
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          console.log("User data after login:", userData);
+          console.log("User data found:", userData);
           
-          // Define dashboard user roles that should be rejected
+          // Explicitly defined dashboard user emails that should never access mobile app
+          const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+          
+          // Dashboard user roles that should be redirected to admin dashboard
           const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
           
-          // ONLY reject if the user is specifically one of the two admin emails
-          // All other users including employees added via user management should be allowed
-          if (userData.email === 'sagar.km@yulu.bike' || userData.email === 'admin@yulu.com') {
-            console.log("Admin email detected, rejecting mobile access");
+          // Check if user email is explicitly restricted
+          if (restrictedEmails.includes(userData.email)) {
+            console.log("Restricted email detected:", userData.email);
             setError("Access denied. Please use the admin dashboard login.");
             toast({
               title: "Access Denied",
               description: "You don't have access to the mobile app. Please use the admin dashboard.",
               variant: "destructive",
             });
-            // Log them out immediately
             await logout();
             setIsLoading(false);
             return;
           }
           
-          // Check if user has a dashboard role - these users should use admin dashboard
+          // Check if user has a dashboard role
           if (userData.role && dashboardUserRoles.includes(userData.role)) {
-            console.log("Dashboard role detected, rejecting mobile access:", userData.role);
+            console.log("Dashboard role detected:", userData.role);
             setError("Access denied. Please use the admin dashboard login.");
             toast({
               title: "Access Denied",
               description: "You don't have access to the mobile app. Please use the admin dashboard.",
               variant: "destructive",
             });
-            // Log them out immediately
             await logout();
             setIsLoading(false);
             return;
           }
           
-          // For regular employees, allow login and redirect to mobile tickets
+          // All other users (including those from employee table) should be allowed access
+          console.log("User has mobile app access, redirecting to tickets");
           toast({
             title: "Login successful",
             description: "Welcome back!",
           });
-          console.log("Employee login successful, redirecting to mobile tickets");
           navigate("/mobile/issues");
         } else {
-          // Default to mobile tickets if no user data found
+          console.log("No user data found, assuming regular employee");
+          // If we can't determine the user type, assume they're a regular employee
           toast({
             title: "Login successful",
             description: "Welcome back!",
@@ -82,6 +86,7 @@ const MobileLogin = () => {
           navigate("/mobile/issues");
         }
       } else {
+        console.log("Login failed");
         setError("Invalid email or password. Please try again.");
         toast({
           title: "Login failed",

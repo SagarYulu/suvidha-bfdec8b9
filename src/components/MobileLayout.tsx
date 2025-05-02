@@ -31,30 +31,18 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       return;
     }
     
-    // Dashboard users should not access mobile app
-    // Check if user is from dashboard users (via email)
-    if (authState.user?.email === 'sagar.km@yulu.bike' || authState.user?.email === 'admin@yulu.com') {
-      console.log("Dashboard user detected via email, redirecting to admin dashboard");
-      toast({
-        title: "Access Denied",
-        description: "Mobile app is only for employees. Please use the admin dashboard.",
-        variant: "destructive"
-      });
-      logout();
-      navigate("/admin/login", { replace: true });
-      return;
-    }
+    // Explicitly defined dashboard user emails that should never access mobile app
+    const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
     
-    // Check if user is a dashboard user (should not have mobile access)
-    // Dashboard users usually have specific roles assigned to them
+    // Dashboard user roles that should be redirected to admin dashboard
     const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
     
-    // If the user has a dashboard user role, redirect to admin dashboard
-    if (dashboardUserRoles.includes(authState.role || '')) {
-      console.log("Dashboard user detected by role, redirecting to admin dashboard");
+    // Check if email is in restricted list
+    if (authState.user?.email && restrictedEmails.includes(authState.user.email)) {
+      console.log("Restricted email detected in MobileLayout:", authState.user.email);
       toast({
         title: "Access Denied",
-        description: "Mobile app is only for employees. Please use the admin dashboard.",
+        description: "You don't have access to the mobile app. Please use the admin dashboard.",
         variant: "destructive"
       });
       logout();
@@ -62,7 +50,20 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
       return;
     }
     
-    console.log("Employee authenticated in mobile app", authState.user);
+    // Check if user has a dashboard role
+    if (authState.role && dashboardUserRoles.includes(authState.role)) {
+      console.log("Dashboard role detected in MobileLayout:", authState.role);
+      toast({
+        title: "Access Denied",
+        description: "You don't have access to the mobile app. Please use the admin dashboard.",
+        variant: "destructive"
+      });
+      logout();
+      navigate("/admin/login", { replace: true });
+      return;
+    }
+    
+    console.log("Employee authenticated in mobile app:", authState.user);
   }, [authState, navigate, checkAccess, logout]);
 
   const handleLogout = () => {
