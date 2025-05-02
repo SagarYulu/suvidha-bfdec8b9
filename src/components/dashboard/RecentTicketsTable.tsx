@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
 import {
   Table,
   TableBody,
@@ -16,7 +17,8 @@ type RecentTicketsTableProps = {
   isLoading: boolean;
 };
 
-const RecentTicketsTable = ({ recentIssues, isLoading }: RecentTicketsTableProps) => {
+// Using memo to prevent unnecessary re-renders
+const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
   if (isLoading) return null;
 
   return (
@@ -44,13 +46,13 @@ const RecentTicketsTable = ({ recentIssues, isLoading }: RecentTicketsTableProps
               <TableBody>
                 {recentIssues.map((issue) => (
                   <TableRow key={issue.id}>
-                    <TableCell>{issue.id}</TableCell>
-                    <TableCell></TableCell>
+                    <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
+                    <TableCell>{issue.userId}</TableCell>
                     <TableCell>
                       <div>
-                        <div></div>
+                        <div>{getIssueTypeLabel(issue.typeId)}</div>
                         <div className="text-xs text-gray-500">
-                          
+                          {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
                         </div>
                       </div>
                     </TableCell>
@@ -105,6 +107,9 @@ const RecentTicketsTable = ({ recentIssues, isLoading }: RecentTicketsTableProps
       </CardContent>
     </Card>
   );
-};
+});
+
+// Display name for debugging
+RecentTicketsTable.displayName = 'RecentTicketsTable';
 
 export default RecentTicketsTable;

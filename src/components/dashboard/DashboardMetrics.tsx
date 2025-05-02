@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TicketCheck, CheckCircle, Clock, Users } from "lucide-react";
 
@@ -9,7 +9,8 @@ type DashboardMetricsProps = {
   isLoading: boolean;
 };
 
-const DashboardMetrics = ({ analytics, userCount, isLoading }: DashboardMetricsProps) => {
+// Using memo to prevent unnecessary re-renders
+const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMetricsProps) => {
   if (isLoading) return null;
 
   return (
@@ -61,6 +62,9 @@ const DashboardMetrics = ({ analytics, userCount, isLoading }: DashboardMetricsP
       </Card>
     </div>
   );
-};
+});
+
+// Display name for debugging
+DashboardMetrics.displayName = 'DashboardMetrics';
 
 export default DashboardMetrics;

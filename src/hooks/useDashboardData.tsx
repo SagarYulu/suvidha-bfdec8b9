@@ -1,67 +1,90 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
 import { Issue } from "@/types";
 
 export const useDashboardData = () => {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [recentIssues, setRecentIssues] = useState<Issue[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [userCount, setUserCount] = useState(0);
   const [filters, setFilters] = useState<IssueFilters>({
     city: null,
     cluster: null,
     issueType: null
   });
   
-  // Memoize the filter change handler to prevent unnecessary re-renders
-  const handleFilterChange = useCallback((newFilters: IssueFilters) => {
-    setFilters(newFilters);
+  // Query for analytics data with proper caching
+  const { 
+    data: analytics, 
+    isLoading: isAnalyticsLoading 
+  } = useQuery({
+    queryKey: ['analytics', filters],
+    queryFn: () => getAnalytics(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+  });
+  
+  // Query for issues data with proper caching
+  const { 
+    data: issues = [], 
+    isLoading: isIssuesLoading 
+  } = useQuery({
+    queryKey: ['issues', filters],
+    queryFn: () => getIssues(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+  });
+  
+  // Query for users data with proper caching
+  const { 
+    data: users = [], 
+    isLoading: isUsersLoading 
+  } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => getUsers(),
+    staleTime: 30 * 60 * 1000, // 30 minutes before refetching
+  });
+  
+  // Memoize these calculations to prevent recalculations on re-renders
+  const recentIssues = useMemo(() => {
+    const sortedIssues = [...issues].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    return sortedIssues.slice(0, 5);
+  }, [issues]);
+  
+  const userCount = useMemo(() => {
+    return users.filter(user => user.role === "employee").length;
+  }, [users]);
+  
+  // Memoize chart data to prevent recalculations
+  const typePieData = useMemo(() => {
+    if (!analytics || !analytics.typeCounts) return [];
+    return Object.entries(analytics.typeCounts).map(([name, value]: [string, any]) => ({
+      name,
+      value
+    }));
+  }, [analytics]);
+  
+  const cityBarData = useMemo(() => {
+    if (!analytics || !analytics.cityCounts) return [];
+    return Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
+      name,
+      value
+    }));
+  }, [analytics]);
+  
+  // Filter change handler (memoized to prevent recreation)
+  const handleFilterChange = useMemo(() => {
+    return (newFilters: IssueFilters) => {
+      setFilters(prevFilters => {
+        // Only update if filters actually changed
+        if (JSON.stringify(prevFilters) === JSON.stringify(newFilters)) {
+          return prevFilters;
+        }
+        return newFilters;
+      });
+    };
   }, []);
 
-  // Prepare chart data
-  const typePieData = analytics && analytics.typeCounts ? 
-    Object.entries(analytics.typeCounts).map(([name, value]: [string, any]) => ({
-      name,
-      value
-    })) : [];
-
-  const cityBarData = analytics && analytics.cityCounts ? 
-    Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
-      name,
-      value
-    })) : [];
-
-  // Load dashboard data
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch analytics and issues data in parallel to speed up loading
-        const [analyticsData, issues, users] = await Promise.all([
-          getAnalytics(filters),
-          getIssues(filters),
-          getUsers()
-        ]);
-        
-        setAnalytics(analyticsData);
-        
-        const sortedIssues = [...issues].sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        setRecentIssues(sortedIssues.slice(0, 5));
-        
-        setUserCount(users.filter(user => user.role === "employee").length);
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [filters]);
+  const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;
 
   return {
     analytics,

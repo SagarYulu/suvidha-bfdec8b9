@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -19,23 +19,28 @@ type FilterBarProps = {
   }) => void;
 };
 
-const FilterBar = ({ onFilterChange }: FilterBarProps) => {
+// Use memo to prevent unnecessary re-renders
+const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
   const [city, setCity] = useState<string | null>(null);
   const [cluster, setCluster] = useState<string | null>(null);
   const [issueType, setIssueType] = useState<string | null>(null);
-  const [availableClusters, setAvailableClusters] = useState<string[]>([]);
-
-  // Update available clusters when city changes
-  useEffect(() => {
+  
+  // Memoize available clusters to prevent recalculation
+  const availableClusters = useMemo(() => {
     if (city && city !== "all" && CLUSTER_OPTIONS[city]) {
-      setAvailableClusters(CLUSTER_OPTIONS[city]);
-    } else {
+      return CLUSTER_OPTIONS[city];
+    }
+    return [];
+  }, [city]);
+
+  // Reset cluster when city changes
+  useEffect(() => {
+    if (city === null || city === "all" || !CLUSTER_OPTIONS[city]) {
       setCluster(null);
-      setAvailableClusters([]);
     }
   }, [city]);
 
-  // Debounce filter changes to prevent excessive API calls
+  // Use a 500ms debounce for filters to prevent rapid changes
   useEffect(() => {
     const timer = setTimeout(() => {
       onFilterChange({ 
@@ -43,7 +48,7 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
         cluster: cluster === "all" ? null : cluster, 
         issueType: issueType === "all" ? null : issueType 
       });
-    }, 300);
+    }, 500);
     
     return () => clearTimeout(timer);
   }, [city, cluster, issueType, onFilterChange]);
@@ -53,8 +58,8 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       <div>
         <Label htmlFor="city-filter" className="mb-1 block">City</Label>
         <Select
-          value={city || undefined}
-          onValueChange={(value) => setCity(value || null)}
+          value={city || "all"}
+          onValueChange={(value) => setCity(value === "all" ? null : value)}
         >
           <SelectTrigger id="city-filter">
             <SelectValue placeholder="All Cities" />
@@ -73,8 +78,8 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       <div>
         <Label htmlFor="cluster-filter" className="mb-1 block">Cluster</Label>
         <Select
-          value={cluster || undefined}
-          onValueChange={(value) => setCluster(value || null)}
+          value={cluster || "all"}
+          onValueChange={(value) => setCluster(value === "all" ? null : value)}
           disabled={!city || city === "all" || availableClusters.length === 0}
         >
           <SelectTrigger id="cluster-filter">
@@ -94,8 +99,8 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       <div>
         <Label htmlFor="issue-type-filter" className="mb-1 block">Issue Type</Label>
         <Select
-          value={issueType || undefined}
-          onValueChange={(value) => setIssueType(value || null)}
+          value={issueType || "all"}
+          onValueChange={(value) => setIssueType(value === "all" ? null : value)}
         >
           <SelectTrigger id="issue-type-filter">
             <SelectValue placeholder="All Issue Types" />
@@ -112,6 +117,9 @@ const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       </div>
     </div>
   );
-};
+});
+
+// Display name for debugging
+FilterBar.displayName = 'FilterBar';
 
 export default FilterBar;
