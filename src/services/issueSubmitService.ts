@@ -1,0 +1,56 @@
+
+import { supabase } from "@/integrations/supabase/client";
+
+export type IssueSubmitData = {
+  userId: string;
+  typeId: string;
+  subTypeId: string;
+  description: string;
+  status?: string;
+  priority?: string;
+};
+
+export const submitIssue = async (data: IssueSubmitData) => {
+  const { error } = await supabase
+    .from('issues')
+    .insert({
+      user_id: data.userId,
+      type_id: data.typeId,
+      subtype_id: data.subTypeId,
+      description: data.description,
+      status: data.status || "open",
+      priority: data.priority || "medium",
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return { success: true };
+};
+
+export const uploadBankProof = async (file: File, userId: string): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const filePath = `bank-proofs/${fileName}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('issue-attachments')
+      .upload(filePath, file);
+      
+    if (uploadError) {
+      console.error("Error uploading file:", uploadError);
+      return null;
+    }
+    
+    const { data } = supabase.storage
+      .from('issue-attachments')
+      .getPublicUrl(filePath);
+      
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error in file upload function:", error);
+    return null;
+  }
+};
