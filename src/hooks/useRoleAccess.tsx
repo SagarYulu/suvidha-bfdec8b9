@@ -52,6 +52,20 @@ export const useRoleAccess = () => {
       return false;
     }
 
+    // Special handling for employee users (non-dashboard users)
+    // If a user doesn't have an explicit dashboard role, and they're trying to access
+    // a permission that doesn't require special access, grant access
+    const isEmployeeUser = authState.user && 
+      !['admin', 'Super Admin', 'security-admin', 'City Head', 'Revenue and Ops Head', 
+        'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin'].includes(authState.role || '');
+    
+    const isBasicEmployeePermission = ['view:dashboard', 'manage:issues'].includes(permission);
+    
+    if (isEmployeeUser && isBasicEmployeePermission) {
+      console.log('Employee user granted basic permission:', permission);
+      return true;
+    }
+
     // Handle special case for security-user-1 demo account
     // This is a non-UUID user that needs special handling
     if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {

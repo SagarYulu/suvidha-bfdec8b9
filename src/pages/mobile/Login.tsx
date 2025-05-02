@@ -16,6 +16,12 @@ const MobileLogin = () => {
   const { login, logout } = useAuth();
   const navigate = useNavigate();
 
+  // Explicitly defined dashboard user roles that should be redirected to admin dashboard
+  const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+  
+  // Explicitly defined dashboard user emails that should never access mobile app
+  const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -29,17 +35,11 @@ const MobileLogin = () => {
         console.log("Login successful, checking access rights");
         
         // Get user data from localStorage - could be from mockUser or yuluUser
-        const userDataString = localStorage.getItem("yuluUser") || localStorage.getItem("mockUser");
+        const userDataString = localStorage.getItem("mockUser");
         
         if (userDataString) {
           const userData = JSON.parse(userDataString);
           console.log("User data found:", userData);
-          
-          // Explicitly defined dashboard user emails that should never access mobile app
-          const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
-          
-          // Dashboard user roles that should be redirected to admin dashboard
-          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
           
           // Check if user email is explicitly restricted
           if (restrictedEmails.includes(userData.email)) {
@@ -77,13 +77,58 @@ const MobileLogin = () => {
           });
           navigate("/mobile/issues");
         } else {
-          console.log("No user data found, assuming regular employee");
           // If we can't determine the user type, assume they're a regular employee
-          toast({
-            title: "Login successful",
-            description: "Welcome back!",
-          });
-          navigate("/mobile/issues");
+          console.log("No user data found in localStorage, checking auth state");
+          
+          // Try to get user from auth state
+          const authState = JSON.parse(localStorage.getItem("authState") || "{}");
+          if (authState && authState.user) {
+            console.log("Found user in auth state:", authState.user);
+            
+            // Double check restricted emails
+            if (authState.user.email && restrictedEmails.includes(authState.user.email)) {
+              console.log("Restricted email detected in auth state:", authState.user.email);
+              setError("Access denied. Please use the admin dashboard login.");
+              toast({
+                title: "Access Denied",
+                description: "You don't have access to the mobile app. Please use the admin dashboard.",
+                variant: "destructive",
+              });
+              await logout();
+              setIsLoading(false);
+              return;
+            }
+            
+            // Double check dashboard roles
+            if (authState.role && dashboardUserRoles.includes(authState.role)) {
+              console.log("Dashboard role detected in auth state:", authState.role);
+              setError("Access denied. Please use the admin dashboard login.");
+              toast({
+                title: "Access Denied",
+                description: "You don't have access to the mobile app. Please use the admin dashboard.",
+                variant: "destructive",
+              });
+              await logout();
+              setIsLoading(false);
+              return;
+            }
+            
+            // If no restrictions found, allow access
+            console.log("User has mobile app access through auth state, redirecting to tickets");
+            toast({
+              title: "Login successful",
+              description: "Welcome back!",
+            });
+            navigate("/mobile/issues");
+          } else {
+            // No user data found anywhere, but login was successful
+            console.log("No user data found, assuming regular employee");
+            toast({
+              title: "Login successful",
+              description: "Welcome back!",
+            });
+            navigate("/mobile/issues");
+          }
         }
       } else {
         console.log("Login failed");
