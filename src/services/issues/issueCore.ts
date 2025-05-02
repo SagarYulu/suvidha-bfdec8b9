@@ -10,7 +10,7 @@ import { logAuditTrail } from "./issueAuditService";
  * 
  * Database mapping notes:
  * - In the issues table, `id` is the unique issue identifier
- * - In the issues table, `user_id` contains the employee's UUID (maps to employees.id)
+ * - In the issues table, `employee_uuid` contains the employee's UUID (maps to employees.id)
  */
 
 // Initialize service
@@ -51,7 +51,7 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
         
         commentsByIssueId[issueId].push({
           id: comment.id,
-          userId: comment.user_id,
+          employeeUuid: comment.employee_uuid,
           content: comment.content,
           createdAt: comment.created_at
         });
@@ -92,13 +92,13 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
   }
 };
 
-export const getIssuesByUserId = async (userId: string): Promise<Issue[]> => {
+export const getIssuesByUserId = async (employeeUuid: string): Promise<Issue[]> => {
   try {
     // Get user issues from the database
     const { data: dbIssues, error } = await supabase
       .from('issues')
       .select('*')
-      .eq('user_id', userId)
+      .eq('employee_uuid', employeeUuid)
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -124,7 +124,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
       .from('issues')
       .insert({
         id: newIssueId,
-        user_id: issue.userId,
+        employee_uuid: issue.employeeUuid,
         type_id: issue.typeId,
         sub_type_id: issue.subTypeId,
         description: issue.description,
@@ -143,7 +143,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
     // Log audit trail
     await logAuditTrail(
       dbIssue.id,
-      issue.userId,
+      issue.employeeUuid,
       'issue_created',
       undefined,
       dbIssue.status,

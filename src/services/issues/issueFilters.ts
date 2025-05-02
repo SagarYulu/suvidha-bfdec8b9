@@ -15,7 +15,7 @@ export type IssueFilters = {
  * 
  * Database mapping notes:
  * - In the issues table, `id` is the unique issue identifier
- * - In the issues table, `user_id` contains the employee's UUID (maps to employees.id)
+ * - In the issues table, `employee_uuid` contains the employee's UUID (maps to employees.id)
  * 
  * @param filters Optional filters for city, cluster, and issue type
  * @returns Processed list of issues
@@ -90,10 +90,10 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       .select('*')
       .order('created_at', { ascending: false });
     
-    // Apply user_id filter if needed - user_id in issues table contains the employee.id
+    // Apply employee_uuid filter if needed - employee_uuid in issues table contains the employee.id
     if (shouldFilterByEmployees && employeeIds.length > 0) {
-      console.log("Applying user_id filter with employee IDs:", employeeIds);
-      issuesQuery = issuesQuery.in('user_id', employeeIds);
+      console.log("Applying employee_uuid filter with employee IDs:", employeeIds);
+      issuesQuery = issuesQuery.in('employee_uuid', employeeIds);
     }
     
     // Filter by issue type if specified

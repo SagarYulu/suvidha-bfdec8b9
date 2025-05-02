@@ -11,7 +11,7 @@ import { Issue } from "@/types";
  * 
  * Database mapping notes:
  * - In the issues table, `id` is the unique issue identifier
- * - In the issues table, `user_id` contains the employee's UUID (maps to employees.id)
+ * - In the issues table, `employee_uuid` contains the employee's UUID (maps to employees.id)
  * - All analytics are based on these relationships
  */
 export const getAnalytics = async (filters?: IssueFilters) => {
@@ -80,9 +80,9 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     // Process each issue and map it to the correct employee data
     for (const issue of issues) {
-      // Find the employee who created this issue - match by the ID stored in issue.userId
-      // NOTE: issue.userId maps to employee.id (UUID)
-      const employee = employees?.find(emp => emp.id === issue.userId);
+      // Find the employee who created this issue - match by the ID stored in issue.employeeUuid
+      // NOTE: issue.employeeUuid maps to employee.id (UUID)
+      const employee = employees?.find(emp => emp.id === issue.employeeUuid);
       
       if (employee) {
         // Use actual employee data for analytics

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -42,13 +43,13 @@ const AdminIssues = () => {
         setFilteredIssues(fetchedIssues);
         
         // Fetch user names for each issue
-        const uniqueUserIds = new Set(fetchedIssues.map(issue => issue.userId));
-        const namesPromises = Array.from(uniqueUserIds).map(async (userId) => {
+        const uniqueUserIds = new Set(fetchedIssues.map(issue => issue.employeeUuid));
+        const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
           try {
-            const user = await getUserById(userId);
-            return user ? { userId, name: user.name } : null;
+            const user = await getUserById(employeeUuid);
+            return user ? { employeeUuid, name: user.name } : null;
           } catch (error) {
-            console.error(`Error fetching user ${userId}:`, error);
+            console.error(`Error fetching user ${employeeUuid}:`, error);
             return null;
           }
         });
@@ -57,7 +58,7 @@ const AdminIssues = () => {
         const names: Record<string, string> = {};
         results.forEach(result => {
           if (result) {
-            names[result.userId] = result.name;
+            names[result.employeeUuid] = result.name;
           }
         });
         
@@ -85,7 +86,7 @@ const AdminIssues = () => {
         const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
-        const userName = userNames[issue.userId]?.toLowerCase() || "";
+        const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
         
         return (
           typeLabel.includes(searchLower) ||
@@ -193,7 +194,7 @@ const AdminIssues = () => {
                 {filteredIssues.map((issue) => (
                   <TableRow key={issue.id}>
                     <TableCell>{issue.id}</TableCell>
-                    <TableCell>{userNames[issue.userId] || "Unknown"}</TableCell>
+                    <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
                     <TableCell>
                       <div>
                         <div>{getIssueTypeLabel(issue.typeId)}</div>

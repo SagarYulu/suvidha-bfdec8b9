@@ -7,7 +7,7 @@ import { MOCK_ISSUES } from "@/data/mockData";
  * 
  * Database mapping notes:
  * - dbIssue.id → Issue.id (unique issue identifier)
- * - dbIssue.user_id → Issue.userId (employee UUID from employees.id)
+ * - dbIssue.employee_uuid → Issue.employeeUuid (employee UUID from employees.id)
  * 
  * @param dbIssue The raw issue from the database
  * @param comments Comments associated with the issue
@@ -16,7 +16,7 @@ import { MOCK_ISSUES } from "@/data/mockData";
 export const mapDbIssueToAppIssue = (dbIssue: any, comments: IssueComment[] = []) => {
   return {
     id: dbIssue.id,
-    userId: dbIssue.user_id,
+    employeeUuid: dbIssue.employee_uuid,
     typeId: dbIssue.type_id,
     subTypeId: dbIssue.sub_type_id,
     description: dbIssue.description,

@@ -8,7 +8,7 @@ import { logAuditTrail } from "./issueAuditService";
 const mapAppCommentToDbComment = (comment: Omit<IssueComment, 'id' | 'createdAt'>, issueId: string) => {
   return {
     issue_id: issueId,
-    user_id: comment.userId,
+    employee_uuid: comment.employeeUuid,
     content: comment.content
   };
 };
@@ -40,7 +40,7 @@ export const addComment = async (issueId: string, comment: Omit<IssueComment, 'i
     // Log audit trail for adding comment
     await logAuditTrail(
       issueId,
-      comment.userId,
+      comment.employeeUuid,
       'comment_added',
       undefined,
       undefined,
@@ -71,7 +71,7 @@ export const getCommentsForIssue = async (issueId: string): Promise<IssueComment
     // Map database comments to app IssueComment type
     return dbComments.map(comment => ({
       id: comment.id,
-      userId: comment.user_id,
+      employeeUuid: comment.employee_uuid,
       content: comment.content,
       createdAt: comment.created_at
     }));

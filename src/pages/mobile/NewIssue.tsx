@@ -42,14 +42,14 @@ const MobileNewIssue = () => {
             <>
               {isBankAccountChange ? (
                 <BankAccountChangeForm 
-                  userId={authState.user?.id || ""}
+                  employeeUuid={authState.user?.id || ""}
                   selectedType={selectedType}
                   selectedSubType={selectedSubType}
                   onSuccess={handleSuccess}
                 />
               ) : (
                 <StandardIssueForm 
-                  userId={authState.user?.id || ""}
+                  employeeUuid={authState.user?.id || ""}
                   selectedType={selectedType}
                   selectedSubType={selectedSubType}
                   onSuccess={handleSuccess}

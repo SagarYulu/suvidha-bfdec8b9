@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type IssueSubmitData = {
-  userId: string;
+  employeeUuid: string; // Changed from userId to employeeUuid
   typeId: string;
   subTypeId: string;
   description: string;
@@ -18,7 +18,7 @@ export const submitIssue = async (data: IssueSubmitData) => {
     .from('issues')
     .insert({
       id: id,
-      user_id: data.userId,
+      employee_uuid: data.employeeUuid, // Changed from user_id to employee_uuid
       type_id: data.typeId,
       sub_type_id: data.subTypeId,
       description: data.description,
@@ -33,10 +33,10 @@ export const submitIssue = async (data: IssueSubmitData) => {
   return { success: true, issueId: id };
 };
 
-export const uploadBankProof = async (file: File, userId: string): Promise<string | null> => {
+export const uploadBankProof = async (file: File, employeeUuid: string): Promise<string | null> => {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${userId}-${Date.now()}.${fileExt}`;
+    const fileName = `${employeeUuid}-${Date.now()}.${fileExt}`;
     const filePath = `bank-proofs/${fileName}`;
     
     const { error: uploadError } = await supabase.storage

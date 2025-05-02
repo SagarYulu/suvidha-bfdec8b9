@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 // Helper function to log audit trail
 export const logAuditTrail = async (
   issueId: string, 
-  userId: string, 
+  employeeUuid: string, 
   action: string, 
   previousStatus?: string, 
   newStatus?: string,
@@ -13,7 +13,7 @@ export const logAuditTrail = async (
   try {
     await supabase.from('issue_audit_trail').insert({
       issue_id: issueId,
-      user_id: userId,
+      employee_uuid: employeeUuid,
       action,
       previous_status: previousStatus,
       new_status: newStatus,

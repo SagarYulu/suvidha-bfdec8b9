@@ -39,7 +39,7 @@ const MobileIssueDetails = () => {
           return;
         }
         
-        if (issueData.userId !== authState.user?.id) {
+        if (issueData.employeeUuid !== authState.user?.id) {
           setErrorMessage("You do not have permission to view this issue");
           return;
         }
@@ -50,14 +50,14 @@ const MobileIssueDetails = () => {
         
         // Fetch commenter names
         const uniqueUserIds = new Set<string>();
-        issueData.comments.forEach(comment => uniqueUserIds.add(comment.userId));
+        issueData.comments.forEach(comment => uniqueUserIds.add(comment.employeeUuid));
         
-        const namesPromises = Array.from(uniqueUserIds).map(async (userId) => {
+        const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
           try {
-            const user = await getUserById(userId);
-            return user ? { userId, name: user.name } : null;
+            const user = await getUserById(employeeUuid);
+            return user ? { employeeUuid, name: user.name } : null;
           } catch (error) {
-            console.error(`Error fetching user ${userId}:`, error);
+            console.error(`Error fetching user ${employeeUuid}:`, error);
             return null;
           }
         });
@@ -66,7 +66,7 @@ const MobileIssueDetails = () => {
         const names: Record<string, string> = {};
         results.forEach(result => {
           if (result) {
-            names[result.userId] = result.name;
+            names[result.employeeUuid] = result.name;
           }
         });
         
@@ -109,7 +109,7 @@ const MobileIssueDetails = () => {
       console.log("Adding comment as user:", authState.user.id);
       
       const updatedIssue = await addComment(id, {
-        userId: authState.user.id,
+        employeeUuid: authState.user.id,
         content: newComment.trim(),
       });
       
@@ -181,16 +181,16 @@ const MobileIssueDetails = () => {
             // Update commenter names for any new comments
             const uniqueUserIds = new Set<string>();
             refreshedIssue.comments.forEach(comment => {
-              if (!commenterNames[comment.userId]) {
-                uniqueUserIds.add(comment.userId);
+              if (!commenterNames[comment.employeeUuid]) {
+                uniqueUserIds.add(comment.employeeUuid);
               }
             });
             
             if (uniqueUserIds.size > 0) {
-              const namesPromises = Array.from(uniqueUserIds).map(async (userId) => {
+              const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
                 try {
-                  const user = await getUserById(userId);
-                  return user ? { userId, name: user.name } : null;
+                  const user = await getUserById(employeeUuid);
+                  return user ? { employeeUuid, name: user.name } : null;
                 } catch (error) {
                   return null;
                 }
@@ -201,7 +201,7 @@ const MobileIssueDetails = () => {
                 const updated = { ...prev };
                 results.forEach(result => {
                   if (result) {
-                    updated[result.userId] = result.name;
+                    updated[result.employeeUuid] = result.name;
                   }
                 });
                 return updated;
@@ -276,9 +276,9 @@ const MobileIssueDetails = () => {
           <div className="space-y-3 max-h-[350px] overflow-y-auto mb-4 p-1">
             {issue.comments.length > 0 ? (
               issue.comments.map((comment) => {
-                const isCurrentUser = comment.userId === authState.user?.id;
-                const isAdmin = comment.userId === "1";
-                const userName = commenterNames[comment.userId] || (isAdmin ? "Admin" : "Unknown");
+                const isCurrentUser = comment.employeeUuid === authState.user?.id;
+                const isAdmin = comment.employeeUuid === "1";
+                const userName = commenterNames[comment.employeeUuid] || (isAdmin ? "Admin" : "Unknown");
                 
                 return (
                   <div 
