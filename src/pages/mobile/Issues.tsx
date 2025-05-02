@@ -8,8 +8,9 @@ import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Clock, File, Search, User as UserIcon } from "lucide-react";
+import { Clock, File, Search, User as UserIcon, Calendar, Building, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { format } from "date-fns";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -96,12 +97,9 @@ const MobileIssues = () => {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "N/A";
+    return format(new Date(dateString), "MMM dd, yyyy");
   };
 
   return (
@@ -141,7 +139,46 @@ const MobileIssues = () => {
                 <p className="text-gray-500">Cluster</p>
                 <p className="font-medium">{employeeDetails.cluster || "N/A"}</p>
               </div>
+              <div>
+                <p className="text-gray-500">Role</p>
+                <p className="font-medium">{employeeDetails.role || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Reporting Manager</p>
+                <p className="font-medium">{employeeDetails.manager || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Date of Joining</p>
+                <p className="font-medium">{employeeDetails.dateOfJoining ? formatDate(employeeDetails.dateOfJoining) : "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Date of Birth</p>
+                <p className="font-medium">{employeeDetails.dateOfBirth ? formatDate(employeeDetails.dateOfBirth) : "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Blood Group</p>
+                <p className="font-medium">{employeeDetails.bloodGroup || "N/A"}</p>
+              </div>
             </div>
+            {/* Financial Details in a separate section */}
+            {(employeeDetails.accountNumber || employeeDetails.ifscCode) && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  Financial Details
+                </h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-gray-500">Account Number</p>
+                    <p className="font-medium">{employeeDetails.accountNumber || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">IFSC Code</p>
+                    <p className="font-medium">{employeeDetails.ifscCode || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
         )}
 
