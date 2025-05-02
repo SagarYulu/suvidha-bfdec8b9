@@ -16,7 +16,7 @@ export const submitIssue = async (data: IssueSubmitData) => {
     .insert({
       user_id: data.userId,
       type_id: data.typeId,
-      subtype_id: data.subTypeId,
+      sub_type_id: data.subTypeId,
       description: data.description,
       status: data.status || "open",
       priority: data.priority || "medium",

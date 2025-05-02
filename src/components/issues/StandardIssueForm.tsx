@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { submitIssue } from "@/services/issueSubmitService";
 
 type StandardIssueFormProps = {
   userId: string;
@@ -55,20 +55,14 @@ const StandardIssueForm = ({
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase
-        .from('issues')
-        .insert({
-          user_id: userId,
-          type_id: selectedType,
-          subtype_id: selectedSubType,
-          description: description.trim(),
-          status: "open",
-          priority: "medium",
-        });
-
-      if (error) {
-        throw error;
-      }
+      await submitIssue({
+        userId,
+        typeId: selectedType,
+        subTypeId: selectedSubType,
+        description: description.trim(),
+        status: "open",
+        priority: "medium",
+      });
 
       toast({
         title: "Ticket submitted",

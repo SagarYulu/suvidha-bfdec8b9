@@ -3,7 +3,6 @@ import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
 import { Banknote, CreditCard, FileText, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { submitIssue, uploadBankProof } from "@/services/issueSubmitService";
 
 const bankAccountSchema = z.object({
   accountNumber: z.string().min(1, "Account number is required"),
@@ -78,32 +78,6 @@ const BankAccountChangeForm = ({
       setProofFile(file);
     }
   };
-  
-  const uploadFileToSupabase = async (file: File): Promise<string | null> => {
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `bank-proofs/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('issue-attachments')
-        .upload(filePath, file);
-        
-      if (uploadError) {
-        console.error("Error uploading file:", uploadError);
-        return null;
-      }
-      
-      const { data } = supabase.storage
-        .from('issue-attachments')
-        .getPublicUrl(filePath);
-        
-      return data.publicUrl;
-    } catch (error) {
-      console.error("Error in file upload function:", error);
-      return null;
-    }
-  };
 
   const handleBankDetailsSubmit = async (data: z.infer<typeof bankAccountSchema>) => {
     if (!userId) {
@@ -129,7 +103,7 @@ const BankAccountChangeForm = ({
 
     try {
       // Upload the file first
-      const fileUrl = await uploadFileToSupabase(proofFile);
+      const fileUrl = await uploadBankProof(proofFile, userId);
       
       if (!fileUrl) {
         toast({
@@ -150,20 +124,14 @@ Uploaded Proof: ${fileUrl}
 ${data.description ? `\nAdditional Notes: ${data.description}` : ''}
       `.trim();
       
-      const { error } = await supabase
-        .from('issues')
-        .insert({
-          user_id: userId,
-          type_id: selectedType,
-          subtype_id: selectedSubType,
-          description: enhancedDescription,
-          status: "open",
-          priority: "medium",
-        });
-
-      if (error) {
-        throw error;
-      }
+      await submitIssue({
+        userId,
+        typeId: selectedType,
+        subTypeId: selectedSubType,
+        description: enhancedDescription,
+        status: "open",
+        priority: "medium",
+      });
 
       toast({
         title: "Bank details change request submitted",
