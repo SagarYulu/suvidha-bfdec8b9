@@ -1,7 +1,8 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
+import { getAnalytics } from "@/services/issues/issueAnalyticsService";
+import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
 import { Issue } from "@/types";
 import { toast } from "sonner";

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, memo } from 'react';
 import { 
   Select, 
@@ -10,13 +9,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
+import { IssueFilters } from "@/services/issues/issueFilters";
 
 type FilterBarProps = {
-  onFilterChange: (filters: {
-    city: string | null;
-    cluster: string | null;
-    issueType: string | null;
-  }) => void;
+  onFilterChange: (filters: IssueFilters) => void;
 };
 
 // Using memo to prevent unnecessary re-renders

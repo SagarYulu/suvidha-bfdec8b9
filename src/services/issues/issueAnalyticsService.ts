@@ -1,8 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
-import { IssueFilters } from "./issueService";
-import { getIssues } from "./issueService";
+import { IssueFilters } from "./issueFilters";
+import { getIssues } from "./issueFilters";
 import { getAuditTrail } from "./issueAuditService";
 import { Issue } from "@/types";
 

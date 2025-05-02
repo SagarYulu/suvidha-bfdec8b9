@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
-import { getIssues, getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
+import { getIssues } from "@/services/issues/issueFilters";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 import { getUserById } from "@/services/userService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, TicketCheck } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
