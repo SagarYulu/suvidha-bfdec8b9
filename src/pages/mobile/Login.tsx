@@ -27,18 +27,33 @@ const MobileLogin = () => {
       
       if (success) {
         // Get user data to check role
-        const userDataString = localStorage.getItem("yuluUser");
+        const userDataString = localStorage.getItem("yuluUser") || localStorage.getItem("mockUser");
         if (userDataString) {
           const userData = JSON.parse(userDataString);
+          console.log("User data after login:", userData);
           
           // Define dashboard user roles that should be rejected
           const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
           
-          // Check if user is a dashboard user - ONLY by specific email or role
-          // Users from employee table should be allowed in mobile app
-          if ((userData.email === 'sagar.km@yulu.bike' || userData.email === 'admin@yulu.com') || 
-              (userData.role && dashboardUserRoles.includes(userData.role))) {
-            // This is a dashboard user trying to log into the mobile app - reject
+          // ONLY reject if the user is specifically one of the two admin emails
+          // All other users including employees added via user management should be allowed
+          if (userData.email === 'sagar.km@yulu.bike' || userData.email === 'admin@yulu.com') {
+            console.log("Admin email detected, rejecting mobile access");
+            setError("Access denied. Please use the admin dashboard login.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            // Log them out immediately
+            await logout();
+            setIsLoading(false);
+            return;
+          }
+          
+          // Check if user has a dashboard role - these users should use admin dashboard
+          if (userData.role && dashboardUserRoles.includes(userData.role)) {
+            console.log("Dashboard role detected, rejecting mobile access:", userData.role);
             setError("Access denied. Please use the admin dashboard login.");
             toast({
               title: "Access Denied",
