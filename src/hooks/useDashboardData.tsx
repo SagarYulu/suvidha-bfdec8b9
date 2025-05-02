@@ -57,12 +57,16 @@ export const useDashboardData = () => {
     staleTime: 30 * 60 * 1000, // 30 minutes before refetching
   });
   
-  // Force refetches when filters change
+  // Force refetch when filters change to ensure we get fresh data
   useEffect(() => {
     const fetchData = async () => {
       console.log("Filter changed, refetching data with:", filters);
-      await refetchIssues();
-      await refetchAnalytics();
+      try {
+        await refetchIssues();
+        await refetchAnalytics();
+      } catch (error) {
+        console.error("Error refetching data:", error);
+      }
     };
     
     fetchData();
@@ -110,13 +114,34 @@ export const useDashboardData = () => {
     }));
   }, [analytics]);
   
-  // Filter change handler - immediately triggers data refresh
+  // Filter change handler with improved state management
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
-    console.log("Filter changed:", newFilters);
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      ...newFilters
-    }));
+    console.log("Filter change requested:", newFilters);
+    
+    setFilters(prevFilters => {
+      // Create a new filters object with only the non-null values from new filters
+      // This prevents overriding current filters with null values
+      const updatedFilters = { ...prevFilters };
+      
+      if ('city' in newFilters) {
+        updatedFilters.city = newFilters.city;
+        // If city changes, reset cluster
+        if (newFilters.city !== prevFilters.city) {
+          updatedFilters.cluster = null;
+        }
+      }
+      
+      if ('cluster' in newFilters) {
+        updatedFilters.cluster = newFilters.cluster;
+      }
+      
+      if ('issueType' in newFilters) {
+        updatedFilters.issueType = newFilters.issueType;
+      }
+      
+      console.log("Setting new filters:", updatedFilters);
+      return updatedFilters;
+    });
   }, []);
 
   const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;
@@ -126,10 +151,10 @@ export const useDashboardData = () => {
     recentIssues,
     isLoading,
     userCount,
-    filters, // Export filters for use in UI
+    filters,
     handleFilterChange,
     typePieData,
     cityBarData,
-    issues // Export issues for debugging
+    issues
   };
 };

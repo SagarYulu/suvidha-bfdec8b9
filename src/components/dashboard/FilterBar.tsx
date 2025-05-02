@@ -14,19 +14,20 @@ import { IssueFilters } from "@/services/issues/issueFilters";
 
 type FilterBarProps = {
   onFilterChange: (filters: IssueFilters) => void;
-  initialFilters?: IssueFilters; // Add prop for initial filters
+  initialFilters?: IssueFilters;
 };
 
 // Using memo to prevent unnecessary re-renders
 const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
-  // Initialize state with initialFilters if provided
-  const [city, setCity] = useState<string | null>(initialFilters?.city || null);
-  const [cluster, setCluster] = useState<string | null>(initialFilters?.cluster || null);
-  const [issueType, setIssueType] = useState<string | null>(initialFilters?.issueType || null);
+  // State to track dropdown values
+  const [city, setCity] = useState<string | null>(null);
+  const [cluster, setCluster] = useState<string | null>(null);
+  const [issueType, setIssueType] = useState<string | null>(null);
   
-  // Update local state when initialFilters prop changes
+  // Sync component state with parent component filters
   useEffect(() => {
     if (initialFilters) {
+      console.log("Updating FilterBar state with initialFilters:", initialFilters);
       setCity(initialFilters.city);
       setCluster(initialFilters.cluster);
       setIssueType(initialFilters.issueType);
@@ -51,7 +52,7 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
     onFilterChange({ 
       city: newCity,
       cluster: null, // Reset cluster in filter when city changes
-      issueType: issueType === "all" ? null : issueType 
+      issueType // Maintain current issue type
     });
   };
 
@@ -63,9 +64,9 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
     
     // Immediately apply the filter
     onFilterChange({ 
-      city: city === "all" ? null : city,
+      city, // Maintain current city
       cluster: newCluster,
-      issueType: issueType === "all" ? null : issueType 
+      issueType // Maintain current issue type
     });
   };
 
@@ -77,29 +78,21 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
     
     // Immediately apply the filter
     onFilterChange({ 
-      city: city === "all" ? null : city,
-      cluster: cluster === "all" ? null : cluster,
+      city, // Maintain current city
+      cluster, // Maintain current cluster
       issueType: newIssueType
     });
   };
 
-  // Helper function to determine display values for each dropdown
-  const getDisplayValue = (type: 'city' | 'cluster' | 'issueType') => {
-    if (type === 'city') {
-      return city || 'all';
-    } else if (type === 'cluster') {
-      return cluster || 'all';
-    } else {
-      return issueType || 'all';
-    }
-  };
+  // Convert null values to "all" for dropdown display
+  const getSelectValue = (value: string | null) => value || "all";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
       <div>
         <Label htmlFor="city-filter" className="mb-1 block">City</Label>
         <Select
-          value={getDisplayValue('city')}
+          value={getSelectValue(city)}
           onValueChange={handleCityChange}
         >
           <SelectTrigger id="city-filter">
@@ -119,7 +112,7 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
       <div>
         <Label htmlFor="cluster-filter" className="mb-1 block">Cluster</Label>
         <Select
-          value={getDisplayValue('cluster')}
+          value={getSelectValue(cluster)}
           onValueChange={handleClusterChange}
           disabled={!city || city === "all" || availableClusters.length === 0}
         >
@@ -140,7 +133,7 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
       <div>
         <Label htmlFor="issue-type-filter" className="mb-1 block">Issue Type</Label>
         <Select
-          value={getDisplayValue('issueType')}
+          value={getSelectValue(issueType)}
           onValueChange={handleIssueTypeChange}
         >
           <SelectTrigger id="issue-type-filter">

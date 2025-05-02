@@ -2,6 +2,7 @@
 import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { getIssueTypeLabel } from "@/services/issues/issueTypeHelpers";
 
 type ChartSectionProps = {
   typePieData: any[];
@@ -16,6 +17,12 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
   // Constants for chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
+  // Format the issue type names for better display
+  const formattedTypePieData = typePieData.map(item => ({
+    ...item,
+    name: getIssueTypeLabel(item.name) // Use the helper to get readable labels
+  }));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card>
@@ -23,11 +30,11 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
           <CardTitle>Tickets by Type</CardTitle>
         </CardHeader>
         <CardContent className="h-[300px]">
-          {typePieData.length > 0 ? (
+          {formattedTypePieData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={typePieData}
+                  data={formattedTypePieData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -36,7 +43,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                   dataKey="value"
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
-                  {typePieData.map((entry, index) => (
+                  {formattedTypePieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

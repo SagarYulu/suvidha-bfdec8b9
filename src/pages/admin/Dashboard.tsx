@@ -32,9 +32,14 @@ const DashboardContent = () => {
     filters // Get current filters
   } = useDashboardData();
 
+  // Log the current filters for debugging
+  React.useEffect(() => {
+    console.log("Dashboard current filters:", filters);
+  }, [filters]);
+
   return (
     <AdminLayout title="Dashboard">
-      {isLoading ? (
+      {isLoading && !analytics ? (
         <DashboardLoader />
       ) : (
         <div className="space-y-6">
