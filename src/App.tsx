@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RBACProvider } from './contexts/RBACContext';
@@ -12,8 +13,7 @@ import MobileIssues from './pages/mobile/Issues';
 import MobileLayout from './components/MobileLayout';
 import RoleBasedGuard from './components/guards/RoleBasedGuard';
 import { SecurityGuard } from './components/guards/PermissionGuards';
-import { Toast } from "@/components/ui/toast"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "@/components/ui/toaster";
 
 function App() {
   return (
