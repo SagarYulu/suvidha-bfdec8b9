@@ -7,14 +7,14 @@ import { toast } from "@/hooks/use-toast";
 import { submitIssue } from "@/services/issueSubmitService";
 
 type StandardIssueFormProps = {
-  userId: string;
+  employeeUuid: string;
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
 };
 
 const StandardIssueForm = ({
-  userId,
+  employeeUuid,
   selectedType,
   selectedSubType,
   onSuccess,
@@ -25,7 +25,7 @@ const StandardIssueForm = ({
   const handleStandardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!userId) {
+    if (!employeeUuid) {
       toast({
         title: "Authentication error",
         description: "You need to be logged in to submit a ticket.",
@@ -56,7 +56,7 @@ const StandardIssueForm = ({
 
     try {
       await submitIssue({
-        userId,
+        employeeUuid,
         typeId: selectedType,
         subTypeId: selectedSubType,
         description: description.trim(),

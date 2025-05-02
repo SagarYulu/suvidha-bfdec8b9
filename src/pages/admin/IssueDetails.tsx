@@ -66,7 +66,7 @@ const AdminIssueDetails = () => {
         
         // Fetch employee
         try {
-          const employeeData = await getUserById(issueData.userId);
+          const employeeData = await getUserById(issueData.employeeUuid);
           setEmployee(employeeData || null);
         } catch (error) {
           console.error("Error fetching employee:", error);
@@ -74,14 +74,14 @@ const AdminIssueDetails = () => {
         
         // Fetch commenter names
         const uniqueUserIds = new Set<string>();
-        issueData.comments.forEach(comment => uniqueUserIds.add(comment.userId));
+        issueData.comments.forEach(comment => uniqueUserIds.add(comment.employeeUuid));
         
-        const namesPromises = Array.from(uniqueUserIds).map(async (userId) => {
+        const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
           try {
-            const user = await getUserById(userId);
-            return user ? { userId, name: user.name } : null;
+            const user = await getUserById(employeeUuid);
+            return user ? { employeeUuid, name: user.name } : null;
           } catch (error) {
-            console.error(`Error fetching user ${userId}:`, error);
+            console.error(`Error fetching user ${employeeUuid}:`, error);
             return null;
           }
         });
@@ -90,7 +90,7 @@ const AdminIssueDetails = () => {
         const names: Record<string, string> = {};
         results.forEach(result => {
           if (result) {
-            names[result.userId] = result.name;
+            names[result.employeeUuid] = result.name;
           }
         });
         
@@ -150,7 +150,7 @@ const AdminIssueDetails = () => {
     
     try {
       const updatedIssue = await addComment(id!, {
-        userId: "1", // Admin user ID
+        employeeUuid: "1", // Admin user ID
         content: newComment.trim(),
       });
       
@@ -316,8 +316,8 @@ const AdminIssueDetails = () => {
                 <div className="flex flex-col space-y-4 max-h-[400px] overflow-y-auto p-2">
                   {issue.comments.length > 0 ? (
                     issue.comments.map((comment) => {
-                      const isAdmin = comment.userId === "1";
-                      const userName = commenterNames[comment.userId] || "Unknown user";
+                      const isAdmin = comment.employeeUuid === "1";
+                      const userName = commenterNames[comment.employeeUuid] || "Unknown user";
                       const userInitial = userName.charAt(0).toUpperCase();
                       
                       return (

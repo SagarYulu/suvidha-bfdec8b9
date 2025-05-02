@@ -26,14 +26,14 @@ const bankAccountSchema = z.object({
 });
 
 type BankAccountFormProps = {
-  userId: string;
+  employeeUuid: string;
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
 };
 
 const BankAccountChangeForm = ({
-  userId,
+  employeeUuid,
   selectedType,
   selectedSubType,
   onSuccess,
@@ -80,7 +80,7 @@ const BankAccountChangeForm = ({
   };
 
   const handleBankDetailsSubmit = async (data: z.infer<typeof bankAccountSchema>) => {
-    if (!userId) {
+    if (!employeeUuid) {
       toast({
         title: "Authentication error",
         description: "You need to be logged in to submit a ticket.",
@@ -103,7 +103,7 @@ const BankAccountChangeForm = ({
 
     try {
       // Upload the file first
-      const fileUrl = await uploadBankProof(proofFile, userId);
+      const fileUrl = await uploadBankProof(proofFile, employeeUuid);
       
       if (!fileUrl) {
         toast({
@@ -125,7 +125,7 @@ ${data.description ? `\nAdditional Notes: ${data.description}` : ''}
       `.trim();
       
       await submitIssue({
-        userId,
+        employeeUuid,
         typeId: selectedType,
         subTypeId: selectedSubType,
         description: enhancedDescription,

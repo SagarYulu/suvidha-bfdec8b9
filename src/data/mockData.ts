@@ -46,7 +46,7 @@ export const MOCK_USERS: User[] = [
 export const MOCK_ISSUES: Issue[] = [
   {
     id: "1",
-    userId: "2",
+    employeeUuid: "2",
     typeId: "salary",
     subTypeId: "salary-not-received",
     description: "I haven't received my salary for the month of March 2025.",
@@ -58,7 +58,7 @@ export const MOCK_ISSUES: Issue[] = [
     comments: [
       {
         id: "1",
-        userId: "2",
+        employeeUuid: "2",
         content: "Please resolve this urgently as I need to pay my rent.",
         createdAt: "2025-03-28T10:35:00Z",
       }
@@ -66,7 +66,7 @@ export const MOCK_ISSUES: Issue[] = [
   },
   {
     id: "2",
-    userId: "3",
+    employeeUuid: "3",
     typeId: "facility",
     subTypeId: "no-water",
     description: "There has been no water in the workshop for the past 3 days.",
@@ -78,13 +78,13 @@ export const MOCK_ISSUES: Issue[] = [
     comments: [
       {
         id: "2",
-        userId: "3",
+        employeeUuid: "3",
         content: "It's becoming difficult to work in these conditions.",
         createdAt: "2025-03-25T09:20:00Z",
       },
       {
         id: "3",
-        userId: "1",
+        employeeUuid: "1",
         content: "We've contacted the facility management. They will fix it by tomorrow.",
         createdAt: "2025-03-26T11:20:00Z",
       }

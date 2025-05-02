@@ -47,7 +47,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                 {recentIssues.map((issue) => (
                   <TableRow key={issue.id}>
                     <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
-                    <TableCell>{issue.userId}</TableCell>
+                    <TableCell>{issue.employeeUuid}</TableCell>
                     <TableCell>
                       <div>
                         <div>{getIssueTypeLabel(issue.typeId)}</div>
