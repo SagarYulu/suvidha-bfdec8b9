@@ -6,12 +6,16 @@ import { getIssues } from "./issueService";
 import { getAuditTrail } from "./issueAuditService";
 import { Issue } from "@/types";
 
-export const getAnalytics = async (filters?: IssueFilters, preloadedIssues?: Issue[]) => {
+export const getAnalytics = async (filters?: IssueFilters) => {
   try {
-    // Use preloaded issues if available, otherwise fetch them
-    const issues = preloadedIssues || await getIssues(filters);
+    console.log("getAnalytics called with filters:", filters);
+    
+    // Always fetch fresh issues based on the provided filters
+    const issues = await getIssues(filters);
+    console.log(`Analytics processing ${issues.length} issues with filters:`, filters);
     
     if (issues.length === 0) {
+      console.log("No issues found for the given filters, returning empty analytics");
       return {
         totalIssues: 0,
         resolvedIssues: 0,
@@ -24,8 +28,6 @@ export const getAnalytics = async (filters?: IssueFilters, preloadedIssues?: Iss
         typeCounts: {},
       };
     }
-    
-    console.log(`Analytics processing ${issues.length} issues with filters:`, filters);
     
     // Calculate various analytics based on the issues data
     const totalIssues = issues.length;

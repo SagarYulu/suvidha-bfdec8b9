@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAnalytics, getIssues, IssueFilters } from "@/services/issueService";
 import { getUsers } from "@/services/userService";
@@ -15,20 +15,29 @@ export const useDashboardData = () => {
   // Query for issues data with proper caching
   const { 
     data: issues = [], 
-    isLoading: isIssuesLoading 
+    isLoading: isIssuesLoading,
+    refetch: refetchIssues
   } = useQuery({
     queryKey: ['issues', filters],
-    queryFn: () => getIssues(filters),
+    queryFn: () => {
+      console.log("Fetching issues with filters:", filters);
+      return getIssues(filters);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
   });
   
-  // Query for analytics data with proper caching - NOTE: passing the issues directly
+  // Query for analytics data with proper caching - making sure to pass the fresh issues
   const { 
     data: analytics, 
-    isLoading: isAnalyticsLoading 
+    isLoading: isAnalyticsLoading,
+    refetch: refetchAnalytics
   } = useQuery({
-    queryKey: ['analytics', filters, issues.length],
-    queryFn: () => getAnalytics(filters, issues),
+    queryKey: ['analytics', filters],
+    queryFn: async () => {
+      console.log("Fetching analytics with filters:", filters);
+      // Always fetch fresh analytics based on the current filters
+      return getAnalytics(filters);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     enabled: !isIssuesLoading, // Only run after issues query completes
   });
@@ -42,6 +51,11 @@ export const useDashboardData = () => {
     queryFn: () => getUsers(),
     staleTime: 30 * 60 * 1000, // 30 minutes before refetching
   });
+  
+  // Force a refetch of both issues and analytics when filters change
+  useEffect(() => {
+    refetchIssues();
+  }, [filters, refetchIssues]);
   
   // Memoize these calculations to prevent recalculations on re-renders
   const recentIssues = useMemo(() => {
@@ -72,7 +86,7 @@ export const useDashboardData = () => {
     }));
   }, [analytics]);
   
-  // Filter change handler - using useCallback instead of useMemo for a function
+  // Filter change handler - using useCallback to prevent unnecessary recreations
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
     console.log("Filter changed:", newFilters);
     setFilters(newFilters);

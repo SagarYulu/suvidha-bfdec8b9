@@ -25,12 +25,12 @@ const FilterBar = memo(({ onFilterChange }: FilterBarProps) => {
   const [cluster, setCluster] = useState<string | null>(null);
   const [issueType, setIssueType] = useState<string | null>(null);
   
-  // Memoize available clusters to prevent recalculation
+  // Get available clusters based on selected city
   const availableClusters = city && city !== "all" && CLUSTER_OPTIONS[city] 
     ? CLUSTER_OPTIONS[city] 
     : [];
 
-  // Apply filters immediately without debounce since filters changes should be explicit
+  // Apply filters immediately when they change
   const applyFilters = useCallback(() => {
     console.log('Applying filters:', { 
       city: city === "all" ? null : city, 
