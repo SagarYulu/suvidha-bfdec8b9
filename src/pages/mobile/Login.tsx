@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,16 +30,29 @@ const MobileLogin = () => {
           description: "Welcome back!",
         });
         
-        // Check if the user is an employee or admin and redirect accordingly
+        // Get user data to check role
         const userDataString = localStorage.getItem("yuluUser");
         if (userDataString) {
           const userData = JSON.parse(userDataString);
-          if (userData.role === "admin") {
+          
+          // Check if user has a dashboard role - if so, send to admin dashboard
+          const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin'];
+          
+          if (userData.role && dashboardUserRoles.includes(userData.role)) {
+            console.log("Dashboard user detected by role, redirecting to admin dashboard");
+            navigate("/admin/dashboard");
+          } else if (userData.email === 'sagar.km@yulu.bike') {
+            // Special case for known dashboard user
+            console.log("Dashboard user detected via email, redirecting to admin dashboard");
             navigate("/admin/dashboard");
           } else {
-            // For any other role, navigate to mobile issues
+            // For regular employees, always redirect to mobile issues
+            console.log("Employee detected, redirecting to mobile issues");
             navigate("/mobile/issues");
           }
+        } else {
+          // Default to mobile issues if no user data found
+          navigate("/mobile/issues");
         }
       } else {
         setError("Invalid email or password. Please try again.");
