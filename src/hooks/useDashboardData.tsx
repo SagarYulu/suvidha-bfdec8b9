@@ -113,7 +113,10 @@ export const useDashboardData = () => {
   // Filter change handler - immediately triggers data refresh
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
     console.log("Filter changed:", newFilters);
-    setFilters(newFilters);
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      ...newFilters
+    }));
   }, []);
 
   const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;

@@ -83,12 +83,23 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
     });
   };
 
+  // Helper function to determine display values for each dropdown
+  const getDisplayValue = (type: 'city' | 'cluster' | 'issueType') => {
+    if (type === 'city') {
+      return city || 'all';
+    } else if (type === 'cluster') {
+      return cluster || 'all';
+    } else {
+      return issueType || 'all';
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
       <div>
         <Label htmlFor="city-filter" className="mb-1 block">City</Label>
         <Select
-          value={city || "all"}
+          value={getDisplayValue('city')}
           onValueChange={handleCityChange}
         >
           <SelectTrigger id="city-filter">
@@ -108,7 +119,7 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
       <div>
         <Label htmlFor="cluster-filter" className="mb-1 block">Cluster</Label>
         <Select
-          value={cluster || "all"}
+          value={getDisplayValue('cluster')}
           onValueChange={handleClusterChange}
           disabled={!city || city === "all" || availableClusters.length === 0}
         >
@@ -129,7 +140,7 @@ const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
       <div>
         <Label htmlFor="issue-type-filter" className="mb-1 block">Issue Type</Label>
         <Select
-          value={issueType || "all"}
+          value={getDisplayValue('issueType')}
           onValueChange={handleIssueTypeChange}
         >
           <SelectTrigger id="issue-type-filter">
