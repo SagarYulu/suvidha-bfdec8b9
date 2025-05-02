@@ -34,66 +34,31 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
     }
     
     // At least one filter is active, so we need to apply filtering
-    let userIds: string[] = [];
-    let shouldFilterByUsers = false;
-    
-    // Only query employees if city or cluster filter is active
-    if (filters.city || filters.cluster) {
-      console.log("Applying city/cluster filter");
-      shouldFilterByUsers = true;
-      
-      // Build employee query
-      let employeeQuery = supabase.from('employees').select('user_id');
-      
-      if (filters.city) {
-        console.log("Filtering employees by city:", filters.city);
-        employeeQuery = employeeQuery.ilike('city', filters.city);
-      }
-      
-      if (filters.cluster) {
-        console.log("Filtering employees by cluster:", filters.cluster);
-        employeeQuery = employeeQuery.ilike('cluster', filters.cluster);
-      }
-      
-      // Execute employee query
-      const { data: employees, error: employeeError } = await employeeQuery;
-      
-      if (employeeError) {
-        console.error('Error fetching employees for filtering:', employeeError);
-        return [];
-      }
-      
-      // Extract user IDs from filtered employees
-      userIds = employees?.map(emp => emp.user_id) || [];
-      console.log(`Found ${employees?.length || 0} employees matching the city/cluster filters with userIds:`, userIds);
-      
-      // If filtering by city/cluster but no matching employees found, return empty result
-      if (userIds.length === 0) {
-        console.log("No users match the city/cluster criteria, returning empty result");
-        return [];
-      }
-    }
-    
-    // Start building the issues query
-    let issuesQuery = supabase
+    let query = supabase
       .from('issues')
-      .select('*')
+      .select('*, employees!inner(*)')
       .order('created_at', { ascending: false });
     
-    // Apply user_id filter if needed
-    if (shouldFilterByUsers && userIds.length > 0) {
-      console.log("Applying user_id filter with IDs:", userIds);
-      issuesQuery = issuesQuery.in('user_id', userIds);
+    // Filter by city if specified
+    if (filters.city) {
+      console.log("Filtering by city:", filters.city);
+      query = query.eq('employees.city', filters.city);
+    }
+    
+    // Filter by cluster if specified
+    if (filters.cluster) {
+      console.log("Filtering by cluster:", filters.cluster);
+      query = query.eq('employees.cluster', filters.cluster);
     }
     
     // Filter by issue type if specified
     if (filters.issueType) {
       console.log("Filtering by issue type:", filters.issueType);
-      issuesQuery = issuesQuery.eq('type_id', filters.issueType);
+      query = query.eq('type_id', filters.issueType);
     }
     
-    // Execute the final issues query
-    const { data: dbIssues, error } = await issuesQuery;
+    // Execute the query
+    const { data: dbIssues, error } = await query;
     
     if (error) {
       console.error('Error fetching filtered issues:', error);
