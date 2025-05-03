@@ -24,7 +24,7 @@ export {
 } from "./issues/issueTypeHelpers";
 
 export { 
-  addComment 
+  addNewComment as addComment 
 } from "./issues/issueCommentService";
 
 export { 

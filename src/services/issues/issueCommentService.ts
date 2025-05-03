@@ -31,7 +31,7 @@ export const getCommentsForIssue = async (issueId: string): Promise<IssueComment
 export const addNewComment = async (
   issueId: string, 
   comment: { 
-    employeeUuid: string; // Ensure this is the admin's actual UUID, not a dummy value
+    employeeUuid: string; 
     content: string;
   }
 ): Promise<IssueComment | undefined> => {
@@ -79,3 +79,6 @@ export const addNewComment = async (
     return undefined;
   }
 };
+
+// Just for backward compatibility
+export const addComment = addNewComment;
