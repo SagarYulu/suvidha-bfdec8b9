@@ -30,3 +30,8 @@ export {
 export { 
   getAnalytics 
 } from "./issues/issueAnalyticsService";
+
+export {
+  getEmployeeNameByUuid,
+  mapEmployeeUuidsToNames
+} from "./issues/issueUtils";

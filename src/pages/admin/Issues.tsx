@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext"; // Import auth context
 import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { getUserById } from "@/services/userService";
+import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; // Import from correct path
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,25 +43,9 @@ const AdminIssues = () => {
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
         
-        // Fetch user names for each issue
-        const uniqueUserIds = new Set(fetchedIssues.map(issue => issue.employeeUuid));
-        const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
-          try {
-            const user = await getUserById(employeeUuid);
-            return user ? { employeeUuid, name: user.name } : null;
-          } catch (error) {
-            console.error(`Error fetching user ${employeeUuid}:`, error);
-            return null;
-          }
-        });
-        
-        const results = await Promise.all(namesPromises);
-        const names: Record<string, string> = {};
-        results.forEach(result => {
-          if (result) {
-            names[result.employeeUuid] = result.name;
-          }
-        });
+        // Use the new utility to map employee UUIDs to names
+        const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid);
+        const names = await mapEmployeeUuidsToNames(employeeUuids);
         
         // Add current admin user to the names list for future comments
         if (authState.user && authState.user.id) {

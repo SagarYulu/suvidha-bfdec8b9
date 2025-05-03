@@ -1,8 +1,9 @@
 
-import React, { memo } from "react";
+import React, { memo, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
+import { getUserById } from "@/services/userService";
 import {
   Table,
   TableBody,
@@ -19,6 +20,39 @@ type RecentTicketsTableProps = {
 
 // Using memo to prevent unnecessary re-renders
 const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
+  const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
+
+  // Fetch employee names when issues change
+  useEffect(() => {
+    const fetchEmployeeNames = async () => {
+      if (recentIssues.length === 0) return;
+      
+      // Get unique employee IDs
+      const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid))];
+      
+      // Fetch names for each unique employee ID
+      const names: Record<string, string> = {};
+      
+      for (const employeeId of uniqueEmployeeIds) {
+        try {
+          const user = await getUserById(employeeId);
+          if (user) {
+            names[employeeId] = user.name;
+          } else {
+            names[employeeId] = employeeId === "1" ? "Admin" : "Unknown";
+          }
+        } catch (error) {
+          console.error(`Error fetching name for employee ${employeeId}:`, error);
+          names[employeeId] = "Unknown";
+        }
+      }
+      
+      setEmployeeNames(names);
+    };
+    
+    fetchEmployeeNames();
+  }, [recentIssues]);
+
   if (isLoading) return null;
 
   return (
@@ -47,7 +81,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                 {recentIssues.map((issue) => (
                   <TableRow key={issue.id}>
                     <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
-                    <TableCell>{issue.employeeUuid}</TableCell>
+                    <TableCell>{employeeNames[issue.employeeUuid] || "Loading..."}</TableCell>
                     <TableCell>
                       <div>
                         <div>{getIssueTypeLabel(issue.typeId)}</div>
