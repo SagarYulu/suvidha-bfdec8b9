@@ -40,6 +40,7 @@ const IssueDetails = () => {
       return;
     }
 
+    console.log("Fetching issue with ID:", issueId);
     fetchIssue();
   }, [issueId]);
 
@@ -56,12 +57,19 @@ const IssueDetails = () => {
   }, [issue]);
 
   const fetchIssue = async () => {
+    if (!issueId) {
+      setError("Issue ID is required");
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
 
     try {
       const issueData = await getIssueById(issueId);
       if (issueData) {
+        console.log("Issue data loaded:", issueData);
         setIssue(issueData);
       } else {
         setError("Issue not found");
@@ -75,13 +83,13 @@ const IssueDetails = () => {
   };
 
   const handleStatusChange = async (newStatus: Issue["status"]) => {
-    if (!issue || !authState.user) return;
+    if (!issue || !authState.user || !issueId) return;
     
     try {
       // Pass the current user's ID when updating the status
       console.log('Updating status with user ID:', authState.user.id);
       const updatedIssue = await updateIssueStatus(
-        issue.id, 
+        issueId, 
         newStatus, 
         authState.user.id // Pass the actual user ID
       );
@@ -106,14 +114,14 @@ const IssueDetails = () => {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!commentText.trim() || !issue || !authState.user) return;
+    if (!commentText.trim() || !issue || !authState.user || !issueId) return;
     
     setSubmittingComment(true);
     
     try {
       // Use the actual user ID when adding a comment
       console.log('Adding comment with user ID:', authState.user.id);
-      const newComment = await addComment(issue.id, {
+      const newComment = await addComment(issueId, {
         employeeUuid: authState.user.id, // Use the authenticated user's ID
         content: commentText,
       });
@@ -140,15 +148,41 @@ const IssueDetails = () => {
   };
 
   if (loading) {
-    return <div>Loading issue details...</div>;
+    return (
+      <div className="container mx-auto mt-8 flex justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="container mx-auto mt-8">
+        <Card className="bg-red-50">
+          <CardContent className="pt-6">
+            <p className="text-red-600 font-semibold">Error: {error}</p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/issues')}>
+              Back to Issues List
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (!issue) {
-    return <div>Issue not found</div>;
+    return (
+      <div className="container mx-auto mt-8">
+        <Card className="bg-yellow-50">
+          <CardContent className="pt-6">
+            <p className="text-yellow-600 font-semibold">Issue not found</p>
+            <Button variant="outline" className="mt-4" onClick={() => navigate('/admin/issues')}>
+              Back to Issues List
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

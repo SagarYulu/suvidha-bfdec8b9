@@ -1,8 +1,10 @@
 
 import React, { memo, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
-import { getIssueTypeLabel, getIssueSubTypeLabel, mapEmployeeUuidsToNames } from "@/services/issueService";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
+import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
 import {
   Table,
   TableBody,
@@ -11,6 +13,8 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 type RecentTicketsTableProps = {
   recentIssues: Issue[];
@@ -19,6 +23,7 @@ type RecentTicketsTableProps = {
 
 // Using memo to prevent unnecessary re-renders
 const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
+  const navigate = useNavigate();
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
 
   // Fetch employee names when issues change
@@ -40,6 +45,11 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     
     fetchEmployeeNames();
   }, [recentIssues]);
+
+  const handleViewIssue = (issueId: string) => {
+    console.log("Navigating to issue details with ID:", issueId);
+    navigate(`/admin/issues/${issueId}`);
+  };
 
   if (isLoading) return null;
 
@@ -106,7 +116,14 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       {new Date(issue.updatedAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleViewIssue(issue.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

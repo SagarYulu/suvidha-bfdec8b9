@@ -28,19 +28,21 @@ export const logAuditTrail = async (
   }
 };
 
-export const getAuditTrail = async (issueId?: string, limit = 100) => {
+export const getAuditTrail = async (issueId: string, limit = 100) => {
   try {
-    let query = supabase
-      .from('issue_audit_trail')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-    
-    if (issueId) {
-      query = query.eq('issue_id', issueId);
+    if (!issueId) {
+      console.error('Error: Issue ID is required for fetching audit trail');
+      return [];
     }
     
-    const { data, error } = await query;
+    console.log(`Fetching audit trail for issue ID: ${issueId}`);
+    
+    const { data, error } = await supabase
+      .from('issue_audit_trail')
+      .select('*')
+      .eq('issue_id', issueId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
     
     if (error) {
       console.error('Error fetching audit trail:', error);
