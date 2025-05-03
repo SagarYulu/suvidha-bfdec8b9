@@ -39,8 +39,8 @@ export const addNewComment = async (
     // Generate UUID for the comment
     const commentId = crypto.randomUUID();
     
-    // First log the original comment data for debugging
-    console.log('Adding comment with employee UUID:', comment.employeeUuid);
+    // Log the raw employee UUID
+    console.log('Adding comment with employee UUID (raw):', comment.employeeUuid);
     
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
@@ -58,7 +58,7 @@ export const addNewComment = async (
       return undefined;
     }
     
-    // Log audit trail for new comment
+    // Log audit trail for new comment - pass through the exact employeeUuid
     await logAuditTrail(
       issueId,
       comment.employeeUuid,

@@ -11,15 +11,18 @@ export const logAuditTrail = async (
   details?: any
 ) => {
   try {
+    console.log(`Logging audit trail with employee UUID: ${employeeUuid}`);
+    
     await supabase.from('issue_audit_trail').insert({
       issue_id: issueId,
-      employee_uuid: employeeUuid,
+      employee_uuid: employeeUuid, // Use the exact UUID passed in
       action,
       previous_status: previousStatus,
       new_status: newStatus,
       details
     });
-    console.log(`Audit trail logged: ${action} for issue ${issueId}`);
+    
+    console.log(`Audit trail logged: ${action} for issue ${issueId} by employee ${employeeUuid}`);
   } catch (error) {
     console.error('Error logging audit trail:', error);
   }

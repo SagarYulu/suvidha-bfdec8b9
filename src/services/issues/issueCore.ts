@@ -1,4 +1,3 @@
-
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -158,7 +157,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
   }
 };
 
-export const updateIssueStatus = async (id: string, status: Issue['status']): Promise<Issue | undefined> => {
+export const updateIssueStatus = async (id: string, status: Issue['status'], updatedByUuid?: string): Promise<Issue | undefined> => {
   try {
     // First get the current issue to capture previous status
     const { data: currentIssue, error: fetchError } = await supabase
@@ -197,10 +196,13 @@ export const updateIssueStatus = async (id: string, status: Issue['status']): Pr
       return undefined;
     }
     
-    // Log audit trail for status change
+    // Log the user UUID being used for audit
+    console.log('Updating issue status with user UUID:', updatedByUuid || 'No UUID provided');
+    
+    // Log audit trail for status change - use the actual user ID who made the change
     await logAuditTrail(
       id,
-      'system', // Ideally should be the currently logged-in user ID
+      updatedByUuid || 'system', // Use the provided UUID or fall back to 'system'
       'status_changed',
       previousStatus,
       status,
