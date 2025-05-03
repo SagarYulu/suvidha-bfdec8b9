@@ -56,7 +56,6 @@ export const addNewComment = async (
         validEmployeeUuid === 'null' ||
         validEmployeeUuid === 'admin-fallback' || 
         validEmployeeUuid === 'system' || 
-        validEmployeeUuid === 'security-user-1' ||
         validEmployeeUuid === '') {
       
       console.warn(`Potentially invalid employeeUuid provided: "${validEmployeeUuid}". Checking alternatives.`);
@@ -76,9 +75,7 @@ export const addNewComment = async (
       }
       
       // If still invalid, check for yuluUser
-      if (validEmployeeUuid === 'system' || 
-          validEmployeeUuid === 'security-user-1' || 
-          !validEmployeeUuid) {
+      if (validEmployeeUuid === 'system' || !validEmployeeUuid) {
         const yuluUserStr = localStorage.getItem('yuluUser');
         if (yuluUserStr) {
           try {
@@ -94,9 +91,7 @@ export const addNewComment = async (
       }
       
       // If still invalid, try to get from Supabase session
-      if (validEmployeeUuid === 'system' || 
-          validEmployeeUuid === 'security-user-1' || 
-          !validEmployeeUuid) {
+      if (validEmployeeUuid === 'system' || !validEmployeeUuid) {
         // Get the current authenticated user directly from session
         const { data } = await supabase.auth.getSession();
         const session = data?.session;
@@ -107,22 +102,8 @@ export const addNewComment = async (
         }
       }
       
-      // Attempt to get dashboard user if it's a special case
-      if (validEmployeeUuid === 'admin-uuid-1' || validEmployeeUuid === 'security-user-1') {
-        const { data: dashboardUser, error } = await supabase
-          .from('dashboard_users')
-          .select('id')
-          .eq('email', validEmployeeUuid === 'admin-uuid-1' ? 'admin@yulu.com' : 'sagar.km@yulu.bike')
-          .maybeSingle();
-        
-        if (!error && dashboardUser) {
-          validEmployeeUuid = dashboardUser.id;
-          console.log(`Resolved to actual dashboard user ID: ${validEmployeeUuid}`);
-        }
-      }
-      
       // If still not valid, use a fallback
-      if (!validEmployeeUuid || validEmployeeUuid === 'system' || validEmployeeUuid === 'security-user-1') {
+      if (!validEmployeeUuid || validEmployeeUuid === 'system') {
         console.error('No authenticated user found for comment');
       }
     }

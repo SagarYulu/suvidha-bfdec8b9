@@ -25,9 +25,7 @@ export const logAuditTrail = async (
     if (!validEmployeeUuid || 
         validEmployeeUuid === 'undefined' || 
         validEmployeeUuid === 'null' ||
-        validEmployeeUuid === 'system' || 
-        validEmployeeUuid === 'admin-fallback' ||
-        validEmployeeUuid === 'security-user-1') {
+        validEmployeeUuid === 'system') {
       
       console.warn(`Warning: Invalid or missing employeeUuid: "${validEmployeeUuid}" for action "${action}". Fetching current user from session.`);
       
@@ -83,20 +81,6 @@ export const logAuditTrail = async (
     }
     
     console.log(`Final employeeUuid being used for audit: ${validEmployeeUuid}`);
-
-    // Attempt to get dashboard user if it's a special case
-    if (validEmployeeUuid === 'admin-uuid-1' || validEmployeeUuid === 'security-user-1') {
-      const { data: dashboardUser, error } = await supabase
-        .from('dashboard_users')
-        .select('id')
-        .eq('email', validEmployeeUuid === 'admin-uuid-1' ? 'admin@yulu.com' : 'sagar.km@yulu.bike')
-        .maybeSingle();
-      
-      if (!error && dashboardUser) {
-        validEmployeeUuid = dashboardUser.id;
-        console.log(`Resolved to actual dashboard user ID: ${validEmployeeUuid}`);
-      }
-    }
 
     // Insert the audit trail entry with the validated employee UUID
     const { data, error } = await supabase.from('issue_audit_trail').insert({

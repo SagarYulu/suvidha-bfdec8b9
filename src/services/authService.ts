@@ -23,25 +23,7 @@ export const DEFAULT_ADMIN_USER: User = {
   ifscCode: ""
 };
 
-// Additional authorized user with security management access
-export const SECURITY_ACCESS_USER: User = {
-  id: "security-user-1",
-  userId: "security-001",
-  name: "Sagar KM",
-  email: "sagar.km@yulu.bike",
-  phone: "9876543210",
-  employeeId: "SEC001",
-  city: "Bangalore",
-  cluster: "HQ",
-  manager: "",
-  role: "security-admin",
-  password: "123456",
-  dateOfJoining: "2024-01-01",
-  bloodGroup: "",
-  dateOfBirth: "",
-  accountNumber: "",
-  ifscCode: ""
-};
+// Security user removed from demo credentials and will be authenticated normally through database
 
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
@@ -71,30 +53,6 @@ export const login = async (email: string, password: string): Promise<User | nul
       return DEFAULT_ADMIN_USER;
     }
     
-    // Step 1.5: Check if it's the security access user
-    if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
-        password === SECURITY_ACCESS_USER.password) {
-      console.log('Security access user login successful');
-      
-      // Try to fetch actual user from dashboard_users table
-      const { data: dashboardUser, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
-        
-      if (!error && dashboardUser) {
-        // If user exists in the dashboard_users table, use that ID
-        console.log('Found matching dashboard user:', dashboardUser);
-        return {
-          ...SECURITY_ACCESS_USER,
-          id: dashboardUser.id, // Use the actual UUID from database
-        };
-      }
-      
-      return SECURITY_ACCESS_USER;
-    }
-
     // Step 2: Check mock users (for demo accounts)
     const mockUser = MOCK_USERS.find(
       (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password

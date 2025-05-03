@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,8 +26,8 @@ const Login = () => {
 
   // Demo credentials for testing specific access
   const demoCredentials = [
-    { email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' },
-    { email: 'sagar.km@yulu.bike', password: '123456', label: 'Sagar KM (Security Admin)' }
+    { email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' }
+    // Removed security user credentials from demo section
   ];
 
   useEffect(() => {
@@ -61,8 +62,7 @@ const Login = () => {
       
       // Before attempting to login, check if these are demo credentials
       // and try to get the actual UUID from the database
-      if ((email === 'admin@yulu.com' || email === 'sagar.km@yulu.bike') && 
-          (password === 'admin123' || password === '123456')) {
+      if (email === 'admin@yulu.com' && password === 'admin123') {
         
         // Look up actual user in dashboard_users table
         console.log("Demo credential detected, checking for actual user record");
