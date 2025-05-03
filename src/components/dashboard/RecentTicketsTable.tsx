@@ -2,8 +2,7 @@
 import React, { memo, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
-import { getUserById } from "@/services/userService";
+import { getIssueTypeLabel, getIssueSubTypeLabel, mapEmployeeUuidsToNames } from "@/services/issueService";
 import {
   Table,
   TableBody,
@@ -30,24 +29,13 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       // Get unique employee IDs
       const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid))];
       
-      // Fetch names for each unique employee ID
-      const names: Record<string, string> = {};
-      
-      for (const employeeId of uniqueEmployeeIds) {
-        try {
-          const user = await getUserById(employeeId);
-          if (user) {
-            names[employeeId] = user.name;
-          } else {
-            names[employeeId] = employeeId === "1" ? "Admin" : "Unknown";
-          }
-        } catch (error) {
-          console.error(`Error fetching name for employee ${employeeId}:`, error);
-          names[employeeId] = "Unknown";
-        }
+      // Use the utility function to get all names at once
+      try {
+        const names = await mapEmployeeUuidsToNames(uniqueEmployeeIds);
+        setEmployeeNames(names);
+      } catch (error) {
+        console.error("Error fetching employee names:", error);
       }
-      
-      setEmployeeNames(names);
     };
     
     fetchEmployeeNames();
