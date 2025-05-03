@@ -47,6 +47,12 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
   }, [recentIssues]);
 
   const handleViewIssue = (issueId: string) => {
+    // Make sure we have a valid issue ID before navigation
+    if (!issueId) {
+      console.error("Cannot view issue: Invalid issue ID");
+      return;
+    }
+    
     console.log("Navigating to issue details with ID:", issueId);
     navigate(`/admin/issues/${issueId}`);
   };
@@ -121,6 +127,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                         size="sm" 
                         className="h-8 w-8 p-0"
                         onClick={() => handleViewIssue(issue.id)}
+                        title={`View issue ${issue.id}`}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

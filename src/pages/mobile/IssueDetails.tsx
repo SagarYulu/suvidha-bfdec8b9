@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,8 +24,12 @@ const MobileIssueDetails = () => {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
 
+  // Debug log to verify issue ID is received correctly
+  console.log("Mobile IssueDetails - Current issueId from URL:", issueId);
+
   useEffect(() => {
     if (!issueId) {
+      console.error("Issue ID is missing from URL parameters");
       setError("Issue ID is required");
       setLoading(false);
       return;
@@ -37,7 +42,13 @@ const MobileIssueDetails = () => {
     const fetchEmployeeNames = async () => {
       if (!issue) return;
       try {
-        const names = await mapEmployeeUuidsToNames([issue.employeeUuid]);
+        // Include all employee UUIDs from the issue and its comments
+        const employeeUuids = [
+          issue.employeeUuid,
+          ...issue.comments.map(comment => comment.employeeUuid)
+        ];
+        const uniqueUuids = [...new Set(employeeUuids)];
+        const names = await mapEmployeeUuidsToNames(uniqueUuids);
         setEmployeeNames(names);
       } catch (err) {
         console.error("Error fetching employee names:", err);
@@ -48,18 +59,28 @@ const MobileIssueDetails = () => {
   }, [issue]);
 
   const fetchIssue = async () => {
+    if (!issueId) {
+      setError("Issue ID is required");
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
+      console.log(`Mobile: Fetching issue with ID: "${issueId}"`);
       const fetchedIssue = await getIssueById(issueId);
+      
       if (fetchedIssue) {
+        console.log("Mobile: Issue data loaded:", fetchedIssue);
         setIssue(fetchedIssue);
       } else {
+        console.error("Mobile: Issue not found for ID:", issueId);
         setError("Issue not found");
       }
     } catch (err) {
       setError("Failed to fetch issue");
-      console.error("Error fetching issue:", err);
+      console.error("Mobile: Error fetching issue:", err);
     } finally {
       setLoading(false);
     }

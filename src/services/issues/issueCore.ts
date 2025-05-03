@@ -68,6 +68,13 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
 
 export const getIssueById = async (id: string): Promise<Issue | undefined> => {
   try {
+    if (!id) {
+      console.error('Error: Issue ID is required for fetching issue details');
+      return undefined;
+    }
+    
+    console.log(`Fetching issue with ID: "${id}"`);
+    
     // Get the issue from the database
     const { data: dbIssue, error } = await supabase
       .from('issues')
@@ -76,9 +83,16 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
       .single();
     
     if (error) {
-      console.error('Error fetching issue by ID:', error);
+      console.error(`Error fetching issue by ID ${id}:`, error);
       return undefined;
     }
+    
+    if (!dbIssue) {
+      console.error(`No issue found with ID: ${id}`);
+      return undefined;
+    }
+    
+    console.log(`Issue found:`, dbIssue);
     
     // Get comments for this issue
     const comments = await getCommentsForIssue(id);
@@ -86,7 +100,7 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
     // Map database issue to app Issue type
     return mapDbIssueToAppIssue(dbIssue, comments);
   } catch (error) {
-    console.error('Error in getIssueById:', error);
+    console.error(`Error in getIssueById (${id}):`, error);
     return undefined;
   }
 };

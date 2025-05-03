@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,71 +28,75 @@ const IssueDetails = () => {
   const navigate = useNavigate();
   const { authState } = useAuth();
   const [issue, setIssue] = useState<Issue | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    if (!issueId) {
-      setError("Issue ID is required");
-      setLoading(false);
-      return;
-    }
+  // Debug log to verify issue ID is received correctly
+  console.log("Admin IssueDetails - Current issueId from URL:", issueId);
 
-    console.log("Fetching issue with ID:", issueId);
-    fetchIssue();
+  useEffect(() => {
+    const fetchIssueData = async () => {
+      if (!issueId) {
+        console.error("Issue ID is missing from URL parameters");
+        setError("Issue ID is required");
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        console.log("Fetching issue with ID:", issueId);
+        const fetchedIssue = await getIssueById(issueId);
+        
+        if (fetchedIssue) {
+          console.log("Issue data loaded:", fetchedIssue);
+          setIssue(fetchedIssue);
+          
+          // Fetch employee names
+          const employeeUuids = [
+            fetchedIssue.employeeUuid,
+            ...fetchedIssue.comments.map(comment => comment.employeeUuid)
+          ];
+          
+          const uniqueUuids = [...new Set(employeeUuids)];
+          const names = await mapEmployeeUuidsToNames(uniqueUuids);
+          setEmployeeNames(names);
+        } else {
+          console.error("Issue not found for ID:", issueId);
+          setError("Issue not found");
+        }
+      } catch (err) {
+        console.error("Error fetching issue:", err);
+        setError("Failed to load issue");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchIssueData();
   }, [issueId]);
 
-  useEffect(() => {
-    if (issue) {
-      const fetchNames = async () => {
-        const employeeUuids = issue.comments.map((comment) => comment.employeeUuid).concat(issue.employeeUuid);
-        const names = await mapEmployeeUuidsToNames(employeeUuids);
-        setEmployeeNames(names);
-      };
-
-      fetchNames();
-    }
-  }, [issue]);
-
-  const fetchIssue = async () => {
-    if (!issueId) {
-      setError("Issue ID is required");
-      setLoading(false);
+  const handleStatusChange = async (newStatus: Issue["status"]) => {
+    if (!issue || !authState.user || !issueId) {
+      console.error("Missing required data for status update:", {
+        issue: !!issue,
+        user: !!authState.user,
+        issueId: !!issueId
+      });
       return;
     }
     
-    setLoading(true);
-    setError(null);
-
     try {
-      const issueData = await getIssueById(issueId);
-      if (issueData) {
-        console.log("Issue data loaded:", issueData);
-        setIssue(issueData);
-      } else {
-        setError("Issue not found");
-      }
-    } catch (err) {
-      setError("Failed to load issue");
-      console.error("Error fetching issue:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleStatusChange = async (newStatus: Issue["status"]) => {
-    if (!issue || !authState.user || !issueId) return;
-    
-    try {
-      // Pass the current user's ID when updating the status
       console.log('Updating status with user ID:', authState.user.id);
       const updatedIssue = await updateIssueStatus(
         issueId, 
         newStatus, 
-        authState.user.id // Pass the actual user ID
+        authState.user.id
       );
       
       if (updatedIssue) {
@@ -114,21 +119,41 @@ const IssueDetails = () => {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!commentText.trim() || !issue || !authState.user || !issueId) return;
+    if (!commentText.trim() || !issue || !authState.user || !issueId) {
+      console.error("Missing required data for adding comment:", {
+        commentText: !!commentText.trim(),
+        issue: !!issue,
+        user: !!authState.user,
+        issueId: !!issueId
+      });
+      return;
+    }
     
     setSubmittingComment(true);
     
     try {
-      // Use the actual user ID when adding a comment
       console.log('Adding comment with user ID:', authState.user.id);
       const newComment = await addComment(issueId, {
-        employeeUuid: authState.user.id, // Use the authenticated user's ID
+        employeeUuid: authState.user.id,
         content: commentText,
       });
       
       if (newComment) {
         // Refresh the issue to get the updated comments list
-        await fetchIssue();
+        const updatedIssue = await getIssueById(issueId);
+        if (updatedIssue) {
+          setIssue(updatedIssue);
+          
+          // Update employee names if there are new commenters
+          const allUuids = [
+            updatedIssue.employeeUuid,
+            ...updatedIssue.comments.map(comment => comment.employeeUuid)
+          ];
+          const uniqueUuids = [...new Set(allUuids)];
+          const names = await mapEmployeeUuidsToNames(uniqueUuids);
+          setEmployeeNames(names);
+        }
+        
         setCommentText("");
         toast({
           title: "Comment added",
