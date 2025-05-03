@@ -1,59 +1,7 @@
 
 import { IssueComment } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
-import { getIssueById } from "./issueService";
 import { logAuditTrail } from "./issueAuditService";
-
-// Helper function to convert app IssueComment to database format
-const mapAppCommentToDbComment = (comment: Omit<IssueComment, 'id' | 'createdAt'>, issueId: string) => {
-  return {
-    issue_id: issueId,
-    employee_uuid: comment.employeeUuid,
-    content: comment.content
-  };
-};
-
-export const addComment = async (issueId: string, comment: Omit<IssueComment, 'id' | 'createdAt'>): Promise<any> => {
-  try {
-    // Insert comment into the database
-    const { data: dbComment, error } = await supabase
-      .from('issue_comments')
-      .insert(mapAppCommentToDbComment(comment, issueId))
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error adding comment:', error);
-      return undefined;
-    }
-    
-    // Update issue's updatedAt timestamp
-    const { error: updateError } = await supabase
-      .from('issues')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', issueId);
-    
-    if (updateError) {
-      console.error('Error updating issue timestamp:', updateError);
-    }
-    
-    // Log audit trail for adding comment
-    await logAuditTrail(
-      issueId,
-      comment.employeeUuid,
-      'comment_added',
-      undefined,
-      undefined,
-      { comment_id: dbComment.id }
-    );
-    
-    // Return the updated issue with all comments
-    return getIssueById(issueId);
-  } catch (error) {
-    console.error('Error in addComment:', error);
-    return undefined;
-  }
-};
 
 export const getCommentsForIssue = async (issueId: string): Promise<IssueComment[]> => {
   try {
@@ -68,15 +16,66 @@ export const getCommentsForIssue = async (issueId: string): Promise<IssueComment
       return [];
     }
     
-    // Map database comments to app IssueComment type
-    return dbComments.map(comment => ({
-      id: comment.id,
-      employeeUuid: comment.employee_uuid,
-      content: comment.content,
-      createdAt: comment.created_at
+    return dbComments.map(dbComment => ({
+      id: dbComment.id,
+      employeeUuid: dbComment.employee_uuid,
+      content: dbComment.content,
+      createdAt: dbComment.created_at
     }));
   } catch (error) {
     console.error('Error in getCommentsForIssue:', error);
     return [];
+  }
+};
+
+export const addNewComment = async (
+  issueId: string, 
+  comment: { 
+    employeeUuid: string; // Ensure this is the admin's actual UUID, not a dummy value
+    content: string;
+  }
+): Promise<IssueComment | undefined> => {
+  try {
+    // Generate UUID for the comment
+    const commentId = crypto.randomUUID();
+    
+    // First log the original comment data for debugging
+    console.log('Adding comment with employee UUID:', comment.employeeUuid);
+    
+    const { data: dbComment, error } = await supabase
+      .from('issue_comments')
+      .insert({
+        id: commentId,
+        issue_id: issueId,
+        employee_uuid: comment.employeeUuid,
+        content: comment.content
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding comment:', error);
+      return undefined;
+    }
+    
+    // Log audit trail for new comment
+    await logAuditTrail(
+      issueId,
+      comment.employeeUuid,
+      'comment_added',
+      undefined,
+      undefined,
+      { comment_id: commentId }
+    );
+    
+    return {
+      id: dbComment.id,
+      employeeUuid: dbComment.employee_uuid,
+      content: dbComment.content,
+      createdAt: dbComment.created_at
+    };
+  } catch (error) {
+    console.error('Error in addNewComment:', error);
+    return undefined;
   }
 };

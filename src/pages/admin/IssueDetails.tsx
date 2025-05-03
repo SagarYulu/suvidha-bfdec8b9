@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
+import { useAuth } from "@/contexts/AuthContext"; // Import the auth context
 import {
   getIssueById,
   getIssueTypeLabel,
@@ -43,7 +45,7 @@ const AdminIssueDetails = () => {
   const [status, setStatus] = useState<Issue["status"]>("open");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
-  const [authState, setAuthState] = useState({ user: null });
+  const { authState } = useAuth(); // Use the auth context hook
 
   useEffect(() => {
     const fetchIssueAndEmployee = async () => {
@@ -150,8 +152,15 @@ const AdminIssueDetails = () => {
     setIsSubmittingComment(true);
     
     try {
+      // Get the current admin user UUID from authState
+      const adminUuid = authState.user?.id;
+      
+      if (!adminUuid) {
+        console.warn("Admin UUID not available, using fallback ID");
+      }
+      
       const updatedIssue = await addComment(id!, {
-        employeeUuid: authState.user?.id || "1", // Use actual admin UUID if available
+        employeeUuid: adminUuid || "admin-fallback",
         content: newComment.trim(),
       });
       
@@ -164,11 +173,10 @@ const AdminIssueDetails = () => {
         });
         
         // Update commenter names if needed
-        const adminId = authState.user?.id || "1";
-        if (!commenterNames[adminId]) {
+        if (adminUuid && !commenterNames[adminUuid]) {
           setCommenterNames(prev => ({
             ...prev,
-            [adminId]: authState.user?.name || "Admin",
+            [adminUuid]: authState.user?.name || "Admin",
           }));
         }
       }
@@ -318,7 +326,11 @@ const AdminIssueDetails = () => {
                 <div className="flex flex-col space-y-4 max-h-[400px] overflow-y-auto p-2">
                   {issue.comments.length > 0 ? (
                     issue.comments.map((comment) => {
-                      const isAdmin = comment.employeeUuid === (authState.user?.id || "1");
+                      // Check if this is the current admin user's comment
+                      const isAdmin = comment.employeeUuid === authState.user?.id || 
+                                      comment.employeeUuid === "1" || 
+                                      comment.employeeUuid === "admin-fallback";
+                      
                       const userName = commenterNames[comment.employeeUuid] || "Unknown user";
                       const userInitial = userName.charAt(0).toUpperCase();
                       

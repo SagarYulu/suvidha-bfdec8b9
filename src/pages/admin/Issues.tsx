@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext"; // Import auth context
 import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
@@ -26,6 +27,7 @@ import { Search, Eye } from "lucide-react";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
+  const { authState } = useAuth(); // Add auth context
   const [issues, setIssues] = useState<Issue[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +63,11 @@ const AdminIssues = () => {
           }
         });
         
+        // Add current admin user to the names list for future comments
+        if (authState.user && authState.user.id) {
+          names[authState.user.id] = authState.user.name;
+        }
+        
         setUserNames(names);
       } catch (error) {
         console.error("Error fetching tickets:", error);
@@ -70,7 +77,7 @@ const AdminIssues = () => {
     };
 
     fetchIssues();
-  }, []);
+  }, [authState.user]);
 
   useEffect(() => {
     let filtered = [...issues];
