@@ -45,29 +45,41 @@ export const addNewComment = async (
     // Generate UUID for the comment
     const commentId = crypto.randomUUID();
     
-    // First check if we have a valid employeeUuid
-    let employeeUuid = comment.employeeUuid;
+    // Determine a valid employee UUID
+    let validEmployeeUuid = comment.employeeUuid;
     
-    console.log('Initial employeeUuid provided:', employeeUuid);
+    console.log('Initial employeeUuid provided:', validEmployeeUuid);
     
-    // If employeeUuid is missing or invalid, try to get the current authenticated user
-    if (!employeeUuid || employeeUuid === 'admin-fallback' || employeeUuid === 'system' || employeeUuid === 'security-user-1') {
-      console.warn(`Warning: Invalid employeeUuid provided: "${employeeUuid}". Attempting to get current user.`);
-      const { data: { session } } = await supabase.auth.getSession();
+    // If employeeUuid is missing or appears to be invalid, try to get the current authenticated user
+    if (!validEmployeeUuid || 
+        validEmployeeUuid === 'admin-fallback' || 
+        validEmployeeUuid === 'system' || 
+        validEmployeeUuid === 'security-user-1' ||
+        validEmployeeUuid === '') {
+      
+      console.warn(`Potentially invalid employeeUuid provided: "${validEmployeeUuid}". Fetching current user from session.`);
+      
+      // Get the current authenticated user directly from session
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
       if (session?.user?.id) {
-        employeeUuid = session.user.id;
-        console.log(`Using authenticated user ID instead: ${employeeUuid}`);
+        validEmployeeUuid = session.user.id;
+        console.log(`Using authenticated user ID from session: ${validEmployeeUuid}`);
+      } else {
+        console.error('No authenticated user found in session');
       }
     }
     
-    console.log('Final employeeUuid being used:', employeeUuid);
+    console.log('Final employeeUuid being used:', validEmployeeUuid);
     
+    // Insert the comment with validated employee UUID
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
       .insert({
         id: commentId,
         issue_id: issueId,
-        employee_uuid: employeeUuid,
+        employee_uuid: validEmployeeUuid,
         content: comment.content
       })
       .select()
@@ -78,10 +90,10 @@ export const addNewComment = async (
       return undefined;
     }
     
-    // Log audit trail for new comment
+    // Log audit trail for new comment using the same validated UUID
     await logAuditTrail(
       issueId,
-      employeeUuid, // Use the same UUID we determined above
+      validEmployeeUuid,
       'comment_added',
       undefined,
       undefined,

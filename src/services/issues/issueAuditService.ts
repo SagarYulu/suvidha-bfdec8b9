@@ -11,33 +11,53 @@ export const logAuditTrail = async (
   details?: any
 ) => {
   try {
-    // Make sure we have a valid employee UUID
-    if (!employeeUuid || employeeUuid === 'system' || employeeUuid === 'admin-fallback' || employeeUuid === 'security-user-1') {
-      console.warn(`Warning: Invalid or missing employeeUuid: "${employeeUuid}" for action "${action}". Using current user.`);
-      // Try to get the current authenticated user from Supabase session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        employeeUuid = session.user.id;
-        console.log(`Using authenticated user ID instead: ${employeeUuid}`);
-      }
-    }
-
-    // Additional validation to ensure issueId is valid
+    // Make sure we have a valid employee UUID and the issueId exists
     if (!issueId) {
       console.error('Error: issueId is required for audit trail');
       return;
     }
 
-    await supabase.from('issue_audit_trail').insert({
+    // Try to get a valid user ID if the provided one seems problematic
+    let validEmployeeUuid = employeeUuid;
+    
+    // Check if we have potentially invalid values
+    if (!validEmployeeUuid || 
+        validEmployeeUuid === 'system' || 
+        validEmployeeUuid === 'admin-fallback' || 
+        validEmployeeUuid === 'security-user-1') {
+      
+      console.warn(`Warning: Invalid or missing employeeUuid: "${employeeUuid}" for action "${action}". Fetching current user from session.`);
+      
+      // Get the current authenticated user from Supabase session (async)
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
+      if (session?.user?.id) {
+        validEmployeeUuid = session.user.id;
+        console.log(`Using authenticated user ID from session: ${validEmployeeUuid}`);
+      } else {
+        // If still no valid user, use a last resort fallback
+        console.error('No authenticated user found in session. Using fallback ID.');
+        validEmployeeUuid = employeeUuid || 'system-fallback';
+      }
+    }
+
+    // Insert the audit trail entry with the validated employee UUID
+    const { data, error } = await supabase.from('issue_audit_trail').insert({
       issue_id: issueId,
-      employee_uuid: employeeUuid,
+      employee_uuid: validEmployeeUuid,
       action,
       previous_status: previousStatus,
       new_status: newStatus,
       details
     });
     
-    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${employeeUuid}`);
+    if (error) {
+      console.error('Error inserting audit trail:', error);
+      return;
+    }
+    
+    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${validEmployeeUuid}`);
   } catch (error) {
     console.error('Error logging audit trail:', error);
   }

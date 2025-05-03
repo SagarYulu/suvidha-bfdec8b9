@@ -5,21 +5,13 @@ import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 import { getCommentsForIssue } from "./issueCommentService";
 import { logAuditTrail } from "./issueAuditService";
 
-/**
- * Issue core service - handles basic CRUD operations for issues
- * 
- * Database mapping notes:
- * - In the issues table, `id` is the unique issue identifier
- * - In the issues table, `employee_uuid` contains the employee's UUID (maps to employees.id)
- */
-
-// Initialize service
+// Initialize service - existing code...
 const initializeService = () => {
   console.log("Issue core service initialized");
 };
 initializeService();
 
-// Helper function to process issues with their comments
+// Helper function to process issues with their comments - existing code...
 export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
   // If no issues found, return empty array
   if (!dbIssues || dbIssues.length === 0) {
@@ -162,6 +154,11 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
   try {
     console.log(`Updating issue status. Issue ID: ${id}, New Status: ${status}, Provided UserID: ${userId || 'not provided'}`);
     
+    if (!id) {
+      console.error('Error: Issue ID is required for status update');
+      return undefined;
+    }
+    
     // First get the current issue to capture previous status
     const { data: currentIssue, error: fetchError } = await supabase
       .from('issues')
@@ -199,19 +196,39 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       return undefined;
     }
     
-    // Get the current user's ID if not provided
-    let userIdentifier = userId;
-    if (!userIdentifier || userIdentifier === 'system' || userIdentifier === 'admin-fallback' || userIdentifier === 'security-user-1') {
-      console.log('Getting current user from session because provided user ID is invalid:', userIdentifier);
-      const { data: { session } } = await supabase.auth.getSession();
-      userIdentifier = session?.user?.id || 'system';
-      console.log('Got user ID from session:', userIdentifier);
+    // Determine the correct user identifier for the audit log
+    let validUserIdentifier: string;
+    
+    // Check if the provided userId needs verification
+    if (!userId || 
+        userId === 'system' || 
+        userId === 'admin-fallback' || 
+        userId === 'security-user-1') {
+      
+      console.log('Provided user ID needs verification:', userId);
+      
+      // Get current authenticated user directly from session
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
+      if (session?.user?.id) {
+        validUserIdentifier = session.user.id;
+        console.log('Found authenticated user in session:', validUserIdentifier);
+      } else {
+        console.warn('No authenticated user found in session, using fallback');
+        validUserIdentifier = userId || 'system-fallback';
+      }
+    } else {
+      // The provided userId appears valid
+      validUserIdentifier = userId;
     }
     
-    // Log audit trail for status change
+    console.log('Final user identifier for audit trail:', validUserIdentifier);
+    
+    // Log audit trail for status change with the validated user ID
     await logAuditTrail(
       id,
-      userIdentifier, // Use the provided or retrieved user ID
+      validUserIdentifier, 
       'status_changed',
       previousStatus,
       status,

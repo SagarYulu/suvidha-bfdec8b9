@@ -113,15 +113,17 @@ const AdminIssueDetails = () => {
   }, [id, navigate]);
 
   const handleStatusChange = async (newStatus: Issue["status"]) => {
+    if (status === newStatus) return; // Don't update if status hasn't changed
+    
     setIsUpdatingStatus(true);
     try {
       // Get the current admin user UUID from authState
       const adminUuid = authState.user?.id;
       
       if (!adminUuid) {
-        console.warn("Admin UUID not available for status change, trying to use session");
+        console.warn("Admin UUID not available for status change");
       } else {
-        console.log("Status change by admin UUID:", adminUuid);
+        console.log("Status change initiated by admin UUID:", adminUuid);
       }
       
       const updatedIssue = await updateIssueStatus(id!, newStatus, adminUuid);
@@ -166,7 +168,7 @@ const AdminIssueDetails = () => {
       if (!adminUuid) {
         console.warn("Admin UUID not available for comment");
       } else {
-        console.log("Comment added by admin UUID:", adminUuid);
+        console.log("Comment being added by admin UUID:", adminUuid);
       }
       
       const comment = await addComment(id!, {
