@@ -11,6 +11,17 @@ export const logAuditTrail = async (
   details?: any
 ) => {
   try {
+    // Make sure we have a valid employee UUID
+    if (!employeeUuid || employeeUuid === 'system' || employeeUuid === 'admin-fallback') {
+      console.warn(`Warning: Invalid or missing employeeUuid: "${employeeUuid}" for action "${action}". Using current user.`);
+      // Try to get the current authenticated user from Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        employeeUuid = session.user.id;
+        console.log(`Using authenticated user ID instead: ${employeeUuid}`);
+      }
+    }
+
     await supabase.from('issue_audit_trail').insert({
       issue_id: issueId,
       employee_uuid: employeeUuid,
@@ -19,7 +30,8 @@ export const logAuditTrail = async (
       new_status: newStatus,
       details
     });
-    console.log(`Audit trail logged: ${action} for issue ${issueId}`);
+    
+    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${employeeUuid}`);
   } catch (error) {
     console.error('Error logging audit trail:', error);
   }

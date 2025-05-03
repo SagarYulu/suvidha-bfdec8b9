@@ -39,15 +39,27 @@ export const addNewComment = async (
     // Generate UUID for the comment
     const commentId = crypto.randomUUID();
     
-    // First log the original comment data for debugging
-    console.log('Adding comment with employee UUID:', comment.employeeUuid);
+    // First check if we have a valid employeeUuid
+    let employeeUuid = comment.employeeUuid;
+    
+    // If employeeUuid is missing or invalid, try to get the current authenticated user
+    if (!employeeUuid || employeeUuid === 'admin-fallback' || employeeUuid === 'system') {
+      console.warn(`Warning: Invalid employeeUuid provided: "${employeeUuid}". Attempting to get current user.`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        employeeUuid = session.user.id;
+        console.log(`Using authenticated user ID instead: ${employeeUuid}`);
+      }
+    }
+    
+    console.log('Adding comment with employee UUID:', employeeUuid);
     
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
       .insert({
         id: commentId,
         issue_id: issueId,
-        employee_uuid: comment.employeeUuid,
+        employee_uuid: employeeUuid,
         content: comment.content
       })
       .select()
@@ -61,7 +73,7 @@ export const addNewComment = async (
     // Log audit trail for new comment
     await logAuditTrail(
       issueId,
-      comment.employeeUuid,
+      employeeUuid, // Use the same UUID we determined above
       'comment_added',
       undefined,
       undefined,

@@ -12,6 +12,9 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import { useNavigate } from "react-router-dom"; 
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 type RecentTicketsTableProps = {
   recentIssues: Issue[];
@@ -21,6 +24,7 @@ type RecentTicketsTableProps = {
 // Using memo to prevent unnecessary re-renders
 const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
+  const navigate = useNavigate(); // Add navigate hook
 
   // Fetch employee names when issues change
   useEffect(() => {
@@ -35,11 +39,29 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       
       for (const employeeId of uniqueEmployeeIds) {
         try {
+          if (!employeeId) {
+            names[""] = "Unknown"; 
+            continue;
+          }
+
+          // Special handling for system users
+          if (employeeId === "system" || employeeId === "admin-fallback") {
+            names[employeeId] = employeeId === "system" ? "System" : "Admin";
+            continue;
+          }
+
           const user = await getUserById(employeeId);
           if (user) {
             names[employeeId] = user.name;
           } else {
-            names[employeeId] = employeeId === "1" ? "Admin" : "Unknown";
+            // Handle special cases with more descriptive names
+            if (employeeId === "1") {
+              names[employeeId] = "Admin";
+            } else if (employeeId.startsWith("security-user")) {
+              names[employeeId] = "Security Team";
+            } else {
+              names[employeeId] = "Unknown User";
+            }
           }
         } catch (error) {
           console.error(`Error fetching name for employee ${employeeId}:`, error);
@@ -52,6 +74,14 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     
     fetchEmployeeNames();
   }, [recentIssues]);
+
+  // Function to handle viewing issue details
+  const handleViewIssue = (issueId: string) => {
+    console.log("Navigating to issue:", issueId);
+    if (issueId) {
+      navigate(`/admin/issues/${issueId}`);
+    }
+  };
 
   if (isLoading) return null;
 
@@ -118,7 +148,14 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       {new Date(issue.updatedAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      
+                      <Button
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0"
+                        onClick={() => handleViewIssue(issue.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

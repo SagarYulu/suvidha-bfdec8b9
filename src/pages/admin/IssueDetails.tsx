@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -116,7 +115,11 @@ const AdminIssueDetails = () => {
   const handleStatusChange = async (newStatus: Issue["status"]) => {
     setIsUpdatingStatus(true);
     try {
-      const updatedIssue = await updateIssueStatus(id!, newStatus);
+      // Get the current admin user UUID from authState
+      const adminUuid = authState.user?.id;
+      console.log("Status change by admin:", adminUuid);
+      
+      const updatedIssue = await updateIssueStatus(id!, newStatus, adminUuid);
       if (updatedIssue) {
         setIssue(updatedIssue);
         setStatus(newStatus);
@@ -156,11 +159,13 @@ const AdminIssueDetails = () => {
       const adminUuid = authState.user?.id;
       
       if (!adminUuid) {
-        console.warn("Admin UUID not available, using fallback ID");
+        console.warn("Admin UUID not available");
       }
       
+      console.log("Comment added by admin:", adminUuid || "undefined");
+      
       const comment = await addComment(id!, {
-        employeeUuid: adminUuid || "admin-fallback",
+        employeeUuid: adminUuid || "",
         content: newComment.trim(),
       });
       
