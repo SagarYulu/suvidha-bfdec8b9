@@ -117,7 +117,12 @@ const AdminIssueDetails = () => {
     try {
       // Get the current admin user UUID from authState
       const adminUuid = authState.user?.id;
-      console.log("Status change by admin:", adminUuid);
+      
+      if (!adminUuid) {
+        console.warn("Admin UUID not available for status change, trying to use session");
+      } else {
+        console.log("Status change by admin UUID:", adminUuid);
+      }
       
       const updatedIssue = await updateIssueStatus(id!, newStatus, adminUuid);
       if (updatedIssue) {
@@ -159,10 +164,10 @@ const AdminIssueDetails = () => {
       const adminUuid = authState.user?.id;
       
       if (!adminUuid) {
-        console.warn("Admin UUID not available");
+        console.warn("Admin UUID not available for comment");
+      } else {
+        console.log("Comment added by admin UUID:", adminUuid);
       }
-      
-      console.log("Comment added by admin:", adminUuid || "undefined");
       
       const comment = await addComment(id!, {
         employeeUuid: adminUuid || "",

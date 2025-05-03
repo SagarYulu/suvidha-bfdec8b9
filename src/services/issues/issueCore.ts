@@ -1,3 +1,4 @@
+
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -159,6 +160,8 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
 
 export const updateIssueStatus = async (id: string, status: Issue['status'], userId?: string): Promise<Issue | undefined> => {
   try {
+    console.log(`Updating issue status. Issue ID: ${id}, New Status: ${status}, Provided UserID: ${userId || 'not provided'}`);
+    
     // First get the current issue to capture previous status
     const { data: currentIssue, error: fetchError } = await supabase
       .from('issues')
@@ -198,9 +201,11 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
     
     // Get the current user's ID if not provided
     let userIdentifier = userId;
-    if (!userIdentifier) {
+    if (!userIdentifier || userIdentifier === 'system' || userIdentifier === 'admin-fallback' || userIdentifier === 'security-user-1') {
+      console.log('Getting current user from session because provided user ID is invalid:', userIdentifier);
       const { data: { session } } = await supabase.auth.getSession();
       userIdentifier = session?.user?.id || 'system';
+      console.log('Got user ID from session:', userIdentifier);
     }
     
     // Log audit trail for status change

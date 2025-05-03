@@ -36,14 +36,22 @@ export const addNewComment = async (
   }
 ): Promise<IssueComment | undefined> => {
   try {
+    // Validate issueId
+    if (!issueId) {
+      console.error('Error: issueId is required for adding a comment');
+      return undefined;
+    }
+    
     // Generate UUID for the comment
     const commentId = crypto.randomUUID();
     
     // First check if we have a valid employeeUuid
     let employeeUuid = comment.employeeUuid;
     
+    console.log('Initial employeeUuid provided:', employeeUuid);
+    
     // If employeeUuid is missing or invalid, try to get the current authenticated user
-    if (!employeeUuid || employeeUuid === 'admin-fallback' || employeeUuid === 'system') {
+    if (!employeeUuid || employeeUuid === 'admin-fallback' || employeeUuid === 'system' || employeeUuid === 'security-user-1') {
       console.warn(`Warning: Invalid employeeUuid provided: "${employeeUuid}". Attempting to get current user.`);
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
@@ -52,7 +60,7 @@ export const addNewComment = async (
       }
     }
     
-    console.log('Adding comment with employee UUID:', employeeUuid);
+    console.log('Final employeeUuid being used:', employeeUuid);
     
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
