@@ -159,25 +159,29 @@ const AdminIssueDetails = () => {
         console.warn("Admin UUID not available, using fallback ID");
       }
       
-      const updatedIssue = await addComment(id!, {
+      const comment = await addComment(id!, {
         employeeUuid: adminUuid || "admin-fallback",
         content: newComment.trim(),
       });
       
-      if (updatedIssue) {
-        setIssue(updatedIssue);
-        setNewComment("");
-        toast({
-          title: "Success",
-          description: "Comment added successfully",
-        });
-        
-        // Update commenter names if needed
-        if (adminUuid && !commenterNames[adminUuid]) {
-          setCommenterNames(prev => ({
-            ...prev,
-            [adminUuid]: authState.user?.name || "Admin",
-          }));
+      if (comment) {
+        // Fetch the updated issue to get all comments
+        const updatedIssue = await getIssueById(id!);
+        if (updatedIssue) {
+          setIssue(updatedIssue);
+          setNewComment("");
+          toast({
+            title: "Success",
+            description: "Comment added successfully",
+          });
+          
+          // Update commenter names if needed
+          if (adminUuid && !commenterNames[adminUuid]) {
+            setCommenterNames(prev => ({
+              ...prev,
+              [adminUuid]: authState.user?.name || "Admin",
+            }));
+          }
         }
       }
     } catch (error) {

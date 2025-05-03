@@ -107,26 +107,30 @@ const MobileIssueDetails = () => {
     try {
       console.log("Adding comment as user:", authState.user.id);
       
-      const updatedIssue = await addComment(id, {
+      const comment = await addComment(id, {
         employeeUuid: authState.user.id,
         content: newComment.trim(),
       });
       
-      if (updatedIssue) {
-        console.log("Updated issue after adding comment:", updatedIssue);
-        setIssue(updatedIssue);
-        setNewComment("");
-        toast({
-          title: "Success",
-          description: "Comment added successfully",
-        });
-        
-        // Update commenter names
-        if (authState.user && !commenterNames[authState.user.id]) {
-          setCommenterNames(prev => ({
-            ...prev,
-            [authState.user!.id]: authState.user!.name,
-          }));
+      if (comment) {
+        // Fetch the updated issue to get all comments
+        const updatedIssue = await getIssueById(id);
+        if (updatedIssue) {
+          console.log("Updated issue after adding comment:", updatedIssue);
+          setIssue(updatedIssue);
+          setNewComment("");
+          toast({
+            title: "Success",
+            description: "Comment added successfully",
+          });
+          
+          // Update commenter names
+          if (authState.user && !commenterNames[authState.user.id]) {
+            setCommenterNames(prev => ({
+              ...prev,
+              [authState.user!.id]: authState.user!.name,
+            }));
+          }
         }
       }
     } catch (error) {
