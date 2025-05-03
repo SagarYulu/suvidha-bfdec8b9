@@ -1,10 +1,9 @@
 
 import React, { memo, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
+import { getUserById } from "@/services/userService";
 import {
   Table,
   TableBody,
@@ -13,8 +12,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 
 type RecentTicketsTableProps = {
   recentIssues: Issue[];
@@ -23,7 +20,6 @@ type RecentTicketsTableProps = {
 
 // Using memo to prevent unnecessary re-renders
 const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
-  const navigate = useNavigate();
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
 
   // Fetch employee names when issues change
@@ -34,28 +30,28 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       // Get unique employee IDs
       const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid))];
       
-      // Use the utility function to get all names at once
-      try {
-        const names = await mapEmployeeUuidsToNames(uniqueEmployeeIds);
-        setEmployeeNames(names);
-      } catch (error) {
-        console.error("Error fetching employee names:", error);
+      // Fetch names for each unique employee ID
+      const names: Record<string, string> = {};
+      
+      for (const employeeId of uniqueEmployeeIds) {
+        try {
+          const user = await getUserById(employeeId);
+          if (user) {
+            names[employeeId] = user.name;
+          } else {
+            names[employeeId] = employeeId === "1" ? "Admin" : "Unknown";
+          }
+        } catch (error) {
+          console.error(`Error fetching name for employee ${employeeId}:`, error);
+          names[employeeId] = "Unknown";
+        }
       }
+      
+      setEmployeeNames(names);
     };
     
     fetchEmployeeNames();
   }, [recentIssues]);
-
-  const handleViewIssue = (issueId: string) => {
-    // Make sure we have a valid issue ID before navigation
-    if (!issueId) {
-      console.error("Cannot view issue: Invalid issue ID");
-      return;
-    }
-    
-    console.log("Navigating to issue details with ID:", issueId);
-    navigate(`/admin/issues/${issueId}`);
-  };
 
   if (isLoading) return null;
 
@@ -122,15 +118,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       {new Date(issue.updatedAt).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleViewIssue(issue.id)}
-                        title={`View issue ${issue.id}`}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      
                     </TableCell>
                   </TableRow>
                 ))}

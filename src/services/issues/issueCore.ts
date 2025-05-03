@@ -1,3 +1,4 @@
+
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -68,13 +69,6 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
 
 export const getIssueById = async (id: string): Promise<Issue | undefined> => {
   try {
-    if (!id) {
-      console.error('Error: Issue ID is required for fetching issue details');
-      return undefined;
-    }
-    
-    console.log(`Fetching issue with ID: "${id}"`);
-    
     // Get the issue from the database
     const { data: dbIssue, error } = await supabase
       .from('issues')
@@ -83,16 +77,9 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
       .single();
     
     if (error) {
-      console.error(`Error fetching issue by ID ${id}:`, error);
+      console.error('Error fetching issue by ID:', error);
       return undefined;
     }
-    
-    if (!dbIssue) {
-      console.error(`No issue found with ID: ${id}`);
-      return undefined;
-    }
-    
-    console.log(`Issue found:`, dbIssue);
     
     // Get comments for this issue
     const comments = await getCommentsForIssue(id);
@@ -100,7 +87,7 @@ export const getIssueById = async (id: string): Promise<Issue | undefined> => {
     // Map database issue to app Issue type
     return mapDbIssueToAppIssue(dbIssue, comments);
   } catch (error) {
-    console.error(`Error in getIssueById (${id}):`, error);
+    console.error('Error in getIssueById:', error);
     return undefined;
   }
 };
@@ -171,7 +158,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
   }
 };
 
-export const updateIssueStatus = async (id: string, status: Issue['status'], updatedByUuid?: string): Promise<Issue | undefined> => {
+export const updateIssueStatus = async (id: string, status: Issue['status']): Promise<Issue | undefined> => {
   try {
     // First get the current issue to capture previous status
     const { data: currentIssue, error: fetchError } = await supabase
@@ -210,13 +197,10 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], upd
       return undefined;
     }
     
-    // Log the user UUID being used for audit
-    console.log('Updating issue status with user UUID:', updatedByUuid || 'No UUID provided');
-    
-    // Log audit trail for status change - use the actual user ID who made the change
+    // Log audit trail for status change
     await logAuditTrail(
       id,
-      updatedByUuid || 'system', // Use the provided UUID or fall back to 'system'
+      'system', // Ideally should be the currently logged-in user ID
       'status_changed',
       previousStatus,
       status,

@@ -5,13 +5,6 @@ import { logAuditTrail } from "./issueAuditService";
 
 export const getCommentsForIssue = async (issueId: string): Promise<IssueComment[]> => {
   try {
-    if (!issueId) {
-      console.error('Error: Issue ID is required for fetching comments');
-      return [];
-    }
-    
-    console.log(`Fetching comments for issue: ${issueId}`);
-    
     const { data: dbComments, error } = await supabase
       .from('issue_comments')
       .select('*')
@@ -43,16 +36,11 @@ export const addNewComment = async (
   }
 ): Promise<IssueComment | undefined> => {
   try {
-    if (!issueId) {
-      console.error('Error: Issue ID is required for adding a comment');
-      return undefined;
-    }
-    
     // Generate UUID for the comment
     const commentId = crypto.randomUUID();
     
-    // Log the raw employee UUID
-    console.log(`Adding comment to issue ${issueId} with employee UUID: ${comment.employeeUuid}`);
+    // First log the original comment data for debugging
+    console.log('Adding comment with employee UUID:', comment.employeeUuid);
     
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
@@ -70,7 +58,7 @@ export const addNewComment = async (
       return undefined;
     }
     
-    // Log audit trail for new comment - pass through the exact employeeUuid
+    // Log audit trail for new comment
     await logAuditTrail(
       issueId,
       comment.employeeUuid,
