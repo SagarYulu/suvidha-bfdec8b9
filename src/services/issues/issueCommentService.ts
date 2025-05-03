@@ -48,30 +48,86 @@ export const addNewComment = async (
     // Determine a valid employee UUID
     let validEmployeeUuid = comment.employeeUuid;
     
-    console.log('Initial employeeUuid provided:', validEmployeeUuid);
+    console.log('Initial employeeUuid provided for comment:', validEmployeeUuid);
     
     // If employeeUuid is missing or appears to be invalid, try to get the current authenticated user
     if (!validEmployeeUuid || 
+        validEmployeeUuid === 'undefined' || 
+        validEmployeeUuid === 'null' ||
         validEmployeeUuid === 'admin-fallback' || 
         validEmployeeUuid === 'system' || 
         validEmployeeUuid === 'security-user-1' ||
         validEmployeeUuid === '') {
       
-      console.warn(`Potentially invalid employeeUuid provided: "${validEmployeeUuid}". Fetching current user from session.`);
+      console.warn(`Potentially invalid employeeUuid provided: "${validEmployeeUuid}". Checking alternatives.`);
       
-      // Get the current authenticated user directly from session
-      const { data } = await supabase.auth.getSession();
-      const session = data?.session;
+      // First check for mockUser in localStorage
+      const mockUserStr = localStorage.getItem('mockUser');
+      if (mockUserStr) {
+        try {
+          const mockUser = JSON.parse(mockUserStr);
+          if (mockUser && mockUser.id) {
+            validEmployeeUuid = mockUser.id;
+            console.log(`Using mockUser ID from localStorage: ${validEmployeeUuid}`);
+          }
+        } catch (e) {
+          console.error("Error parsing mock user:", e);
+        }
+      }
       
-      if (session?.user?.id) {
-        validEmployeeUuid = session.user.id;
-        console.log(`Using authenticated user ID from session: ${validEmployeeUuid}`);
-      } else {
-        console.error('No authenticated user found in session');
+      // If still invalid, check for yuluUser
+      if (validEmployeeUuid === 'system' || 
+          validEmployeeUuid === 'security-user-1' || 
+          !validEmployeeUuid) {
+        const yuluUserStr = localStorage.getItem('yuluUser');
+        if (yuluUserStr) {
+          try {
+            const yuluUser = JSON.parse(yuluUserStr);
+            if (yuluUser && yuluUser.id) {
+              validEmployeeUuid = yuluUser.id;
+              console.log(`Using yuluUser ID from localStorage: ${validEmployeeUuid}`);
+            }
+          } catch (e) {
+            console.error("Error parsing yulu user:", e);
+          }
+        }
+      }
+      
+      // If still invalid, try to get from Supabase session
+      if (validEmployeeUuid === 'system' || 
+          validEmployeeUuid === 'security-user-1' || 
+          !validEmployeeUuid) {
+        // Get the current authenticated user directly from session
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
+        
+        if (session?.user?.id) {
+          validEmployeeUuid = session.user.id;
+          console.log(`Using authenticated user ID from session: ${validEmployeeUuid}`);
+        }
+      }
+      
+      // Attempt to get dashboard user if it's a special case
+      if (validEmployeeUuid === 'admin-uuid-1' || validEmployeeUuid === 'security-user-1') {
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('id')
+          .eq('email', validEmployeeUuid === 'admin-uuid-1' ? 'admin@yulu.com' : 'sagar.km@yulu.bike')
+          .maybeSingle();
+        
+        if (!error && dashboardUser) {
+          validEmployeeUuid = dashboardUser.id;
+          console.log(`Resolved to actual dashboard user ID: ${validEmployeeUuid}`);
+        }
+      }
+      
+      // If still not valid, use a fallback
+      if (!validEmployeeUuid || validEmployeeUuid === 'system' || validEmployeeUuid === 'security-user-1') {
+        console.error('No authenticated user found for comment');
       }
     }
     
-    console.log('Final employeeUuid being used:', validEmployeeUuid);
+    console.log('Final employeeUuid being used for comment:', validEmployeeUuid);
     
     // Insert the comment with validated employee UUID
     const { data: dbComment, error } = await supabase

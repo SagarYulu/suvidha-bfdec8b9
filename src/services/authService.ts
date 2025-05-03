@@ -51,6 +51,23 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
         password === DEFAULT_ADMIN_USER.password) {
       console.log('Default admin login successful');
+      
+      // Try to fetch actual user from dashboard_users table
+      const { data: dashboardUser, error } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+        
+      if (!error && dashboardUser) {
+        // If user exists in the dashboard_users table, use that ID
+        console.log('Found matching dashboard user:', dashboardUser);
+        return {
+          ...DEFAULT_ADMIN_USER,
+          id: dashboardUser.id, // Use the actual UUID from database
+        };
+      }
+      
       return DEFAULT_ADMIN_USER;
     }
     
@@ -58,6 +75,23 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (email.toLowerCase() === SECURITY_ACCESS_USER.email.toLowerCase() && 
         password === SECURITY_ACCESS_USER.password) {
       console.log('Security access user login successful');
+      
+      // Try to fetch actual user from dashboard_users table
+      const { data: dashboardUser, error } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .eq('email', email.toLowerCase())
+        .single();
+        
+      if (!error && dashboardUser) {
+        // If user exists in the dashboard_users table, use that ID
+        console.log('Found matching dashboard user:', dashboardUser);
+        return {
+          ...SECURITY_ACCESS_USER,
+          id: dashboardUser.id, // Use the actual UUID from database
+        };
+      }
+      
       return SECURITY_ACCESS_USER;
     }
 

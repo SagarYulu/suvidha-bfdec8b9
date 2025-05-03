@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from "@/integrations/supabase/client";
 
 interface LocationState {
   returnTo?: string;
@@ -59,6 +59,32 @@ const Login = () => {
     try {
       console.log("Attempting to login to admin dashboard with:", email);
       
+      // Before attempting to login, check if these are demo credentials
+      // and try to get the actual UUID from the database
+      if ((email === 'admin@yulu.com' || email === 'sagar.km@yulu.bike') && 
+          (password === 'admin123' || password === '123456')) {
+        
+        // Look up actual user in dashboard_users table
+        console.log("Demo credential detected, checking for actual user record");
+        
+        try {
+          const { data: dashboardUser, error } = await supabase
+            .from('dashboard_users')
+            .select('*')
+            .eq('email', email.toLowerCase())
+            .maybeSingle();
+          
+          if (!error && dashboardUser) {
+            console.log("Found actual dashboard user record:", dashboardUser.id);
+            // We'll let the login process continue, and the auth service will handle this
+          } else {
+            console.log("No matching dashboard user found in database");
+          }
+        } catch (e) {
+          console.error("Error checking dashboard users:", e);
+        }
+      }
+      
       // Try login through authContext
       const success = await signIn(email, password);
       
@@ -67,7 +93,7 @@ const Login = () => {
         await refreshAuth();
         
         // Get updated user data
-        const userDataString = localStorage.getItem("yuluUser");
+        const userDataString = localStorage.getItem("mockUser");
         const userData = userDataString ? JSON.parse(userDataString) : null;
         
         // Define dashboard roles
