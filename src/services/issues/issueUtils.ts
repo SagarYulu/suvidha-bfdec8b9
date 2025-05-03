@@ -1,3 +1,4 @@
+
 import { Issue } from "@/types";
 
 /**
@@ -51,6 +52,7 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
     return "Admin";
   }
   
+  // Handle security-user IDs - including when they have numbers after
   if (employeeUuid.startsWith("security-user")) {
     userNameCache[employeeUuid] = "Security Team";
     return "Security Team";
