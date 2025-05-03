@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export type IssueSubmitData = {
-  employeeUuid: string; // Changed from userId to employeeUuid
+  employeeUuid: string;
   typeId: string;
   subTypeId: string;
   description: string;
@@ -18,7 +18,7 @@ export const submitIssue = async (data: IssueSubmitData) => {
     .from('issues')
     .insert({
       id: id,
-      employee_uuid: data.employeeUuid, // Changed from user_id to employee_uuid
+      employee_uuid: data.employeeUuid,
       type_id: data.typeId,
       sub_type_id: data.subTypeId,
       description: data.description,

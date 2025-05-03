@@ -43,6 +43,7 @@ const AdminIssueDetails = () => {
   const [status, setStatus] = useState<Issue["status"]>("open");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
+  const [authState, setAuthState] = useState({ user: null });
 
   useEffect(() => {
     const fetchIssueAndEmployee = async () => {
@@ -150,7 +151,7 @@ const AdminIssueDetails = () => {
     
     try {
       const updatedIssue = await addComment(id!, {
-        employeeUuid: "1", // Admin user ID
+        employeeUuid: authState.user?.id || "1", // Use actual admin UUID if available
         content: newComment.trim(),
       });
       
@@ -163,10 +164,11 @@ const AdminIssueDetails = () => {
         });
         
         // Update commenter names if needed
-        if (!commenterNames["1"]) {
+        const adminId = authState.user?.id || "1";
+        if (!commenterNames[adminId]) {
           setCommenterNames(prev => ({
             ...prev,
-            "1": "Admin",
+            [adminId]: authState.user?.name || "Admin",
           }));
         }
       }
@@ -316,7 +318,7 @@ const AdminIssueDetails = () => {
                 <div className="flex flex-col space-y-4 max-h-[400px] overflow-y-auto p-2">
                   {issue.comments.length > 0 ? (
                     issue.comments.map((comment) => {
-                      const isAdmin = comment.employeeUuid === "1";
+                      const isAdmin = comment.employeeUuid === (authState.user?.id || "1");
                       const userName = commenterNames[comment.employeeUuid] || "Unknown user";
                       const userInitial = userName.charAt(0).toUpperCase();
                       

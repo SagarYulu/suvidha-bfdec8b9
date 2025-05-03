@@ -35,7 +35,7 @@ export interface Issue {
 
 export interface IssueComment {
   id: string;
-  employeeUuid: string; // Changed from userId to employeeUuid
+  employeeUuid: string; 
   content: string;
   createdAt: string;
 }
