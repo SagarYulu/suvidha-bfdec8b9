@@ -61,7 +61,7 @@ const Index = () => {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
         <div className="bg-yulu-blue p-8">
-          <h1 className="text-4xl font-bold text-white text-center">Yulu Issue Resolver</h1>
+          <h1 className="text-4xl font-bold text-white text-center">Yulu Suvidha Management</h1>
         </div>
         <div className="p-8 space-y-6">
           <div className="space-y-2">

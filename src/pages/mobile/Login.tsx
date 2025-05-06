@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -157,7 +156,7 @@ const MobileLogin = () => {
       <div className="flex-1 flex flex-col justify-center p-6">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Employee App</h1>
+            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Suvidha Management</h1>
             <p className="text-gray-600 mt-2">Sign in to manage your tickets</p>
           </div>
           

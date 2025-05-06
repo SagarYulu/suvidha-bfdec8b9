@@ -154,7 +154,7 @@ const Login = () => {
       <div className="w-full max-w-md p-6">
         <Card className="w-full">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+            <CardTitle className="text-2xl font-bold">Yulu Suvidha Management</CardTitle>
             <CardDescription>
               Enter your credentials to access the admin dashboard
               {returnTo && <p className="mt-1 text-sm italic">You'll be redirected to {returnTo} after login</p>}
