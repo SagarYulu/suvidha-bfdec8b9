@@ -2,12 +2,15 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
   const navigate = useNavigate();
   const { authState, refreshAuth } = useAuth();
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
   
   useEffect(() => {
     // Try to refresh auth on load
@@ -56,6 +59,30 @@ const Index = () => {
       navigate("/mobile/login");
     }
   };
+
+  const togglePresentationMode = () => {
+    setIsPresentationMode(!isPresentationMode);
+    if (!isPresentationMode) {
+      toast({
+        title: "Presentation mode activated",
+        description: "Press P key to exit presentation mode",
+      });
+    }
+  };
+
+  // Event listener for P key to toggle presentation mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'p') {
+        togglePresentationMode();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPresentationMode]);
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
@@ -87,6 +114,30 @@ const Index = () => {
           </div>
         </div>
       </div>
+      
+      {!isPresentationMode && (
+        <Alert className="fixed bottom-4 right-4 max-w-md shadow-lg border border-gray-200">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Press the <strong>P</strong> key to enter presentation mode and hide this message box.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {/* This div will cover the chat interface when in presentation mode */}
+      {isPresentationMode && (
+        <div 
+          className="fixed top-0 left-0 w-1/2 h-full bg-white z-50"
+          onClick={togglePresentationMode}
+        >
+          <div className="h-full flex items-center justify-center">
+            <p className="text-gray-400 text-xl p-4 text-center">
+              Presentation Mode<br/>
+              Click anywhere or press P to exit
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
