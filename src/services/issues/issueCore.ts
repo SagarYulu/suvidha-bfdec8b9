@@ -1,8 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
-import { mapDbIssueToAppIssue } from "./issueUtils";
-import { generateUUID } from "./issueUtils";
+import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 
 export async function getIssueById(id: string): Promise<Issue | null> {
   try {
@@ -190,7 +188,7 @@ export async function updateIssueStatus(
   }
 }
 
-// Update the assignIssueToUser function to handle "unassigned" value
+// Update the assignIssueToUser function to handle notifications
 export async function assignIssueToUser(
   issueId: string, 
   assigneeId: string,
@@ -240,6 +238,31 @@ export async function assignIssueToUser(
       }
     }
     
+    // Create notification for assignee
+    if (assigneeId !== "unassigned") {
+      try {
+        // Get issue details to include in notification
+        const { data: issue } = await supabase
+          .from('issues')
+          .select('type_id, sub_type_id, id')
+          .eq('id', issueId)
+          .single();
+          
+        // Add notification record
+        await supabase
+          .from('issue_notifications')
+          .insert([{
+            user_id: assigneeId,
+            issue_id: issueId,
+            content: `You've been assigned a new issue: ${issue?.type_id || 'Unknown'} - ${issue?.sub_type_id || 'Unknown'}`,
+            is_read: false,
+            created_at: now
+          }]);
+      } catch (notificationError) {
+        console.error("Error creating assignment notification:", notificationError);
+      }
+    }
+    
     // Fetch comments for this issue to return complete data
     const { data: comments } = await supabase
       .from('issue_comments')
@@ -251,5 +274,39 @@ export async function assignIssueToUser(
   } catch (error) {
     console.error("Error in assignIssueToUser:", error);
     return null;
+  }
+}
+
+// New function to get assigned issues for a specific user
+export async function getAssignedIssuesByUserId(userId: string): Promise<Issue[]> {
+  try {
+    const { data: issues, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('assigned_to', userId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching assigned issues:", error);
+      return [];
+    }
+    
+    // For each issue, fetch its comments
+    const issuesWithComments = await Promise.all(
+      issues.map(async (issue) => {
+        const { data: comments } = await supabase
+          .from('issue_comments')
+          .select('*')
+          .eq('issue_id', issue.id)
+          .order('created_at', { ascending: true });
+        
+        return mapDbIssueToAppIssue(issue, comments || []);
+      })
+    );
+    
+    return issuesWithComments;
+  } catch (error) {
+    console.error("Error in getAssignedIssuesByUserId:", error);
+    return [];
   }
 }

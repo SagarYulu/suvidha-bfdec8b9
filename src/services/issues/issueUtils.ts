@@ -115,17 +115,17 @@ export async function mapEmployeeUuidsToNames(employeeUuids: string[]): Promise<
   }
 }
 
-// New function to get list of managers for assignment dropdown
+// Updated function to get both managers from employees table and dashboard users as potential assignees
 export async function getManagersList(): Promise<Array<{ id: string, name: string }>> {
   try {
-    // First get admin users from dashboard_users
-    const { data: adminUsers, error: adminError } = await supabase
+    // First get all dashboard users that can be assignees
+    const { data: dashboardUsers, error: adminError } = await supabase
       .from('dashboard_users')
       .select('id, name, role')
-      .in('role', ['admin', 'security-admin', 'manager']);
+      .order('name');
       
     if (adminError) {
-      console.error("Error fetching admin users:", adminError);
+      console.error("Error fetching dashboard users:", adminError);
     }
     
     // Get managers from employees table
@@ -141,7 +141,7 @@ export async function getManagersList(): Promise<Array<{ id: string, name: strin
     
     // Combine both lists
     const assignableUsers = [
-      ...(adminUsers || []).map(user => ({ 
+      ...(dashboardUsers || []).map(user => ({ 
         id: user.id, 
         name: `${user.name} (${user.role})`
       })),
