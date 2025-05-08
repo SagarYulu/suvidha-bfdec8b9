@@ -11,7 +11,8 @@ export {
   getIssueById,
   getIssuesByUserId,
   createIssue,
-  updateIssueStatus
+  updateIssueStatus,
+  assignIssueToUser
 } from "./issues/issueCore";
 
 export {
@@ -33,5 +34,6 @@ export {
 
 export {
   getEmployeeNameByUuid,
-  mapEmployeeUuidsToNames
+  mapEmployeeUuidsToNames,
+  getManagersList
 } from "./issues/issueUtils";

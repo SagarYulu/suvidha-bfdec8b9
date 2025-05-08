@@ -245,3 +245,96 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
     return undefined;
   }
 };
+
+// New function to assign issue to a user
+export const assignIssueToUser = async (issueId: string, assigneeId: string, currentUserId?: string): Promise<Issue | undefined> => {
+  try {
+    console.log(`Assigning issue. Issue ID: ${issueId}, Assignee ID: ${assigneeId}, Current User ID: ${currentUserId || 'not provided'}`);
+    
+    if (!issueId) {
+      console.error('Error: Issue ID is required for assignment');
+      return undefined;
+    }
+    
+    // First get the current issue to capture previous assignment
+    const { data: currentIssue, error: fetchError } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('id', issueId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching current issue:', fetchError);
+      return undefined;
+    }
+    
+    const previousAssignment = currentIssue.assigned_to;
+    const now = new Date().toISOString();
+    
+    // Update the issue in the database
+    const { data: dbIssue, error } = await supabase
+      .from('issues')
+      .update({
+        assigned_to: assigneeId,
+        updated_at: now
+      })
+      .eq('id', issueId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error assigning issue:', error);
+      return undefined;
+    }
+    
+    // Determine the correct user identifier for the audit log
+    let validUserIdentifier: string;
+    
+    // Check if the provided userId needs verification
+    if (!currentUserId || 
+        currentUserId === 'system' || 
+        currentUserId === 'admin-fallback' || 
+        currentUserId === 'security-user-1') {
+      
+      console.log('Provided user ID needs verification:', currentUserId);
+      
+      // Get current authenticated user directly from session
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
+      if (session?.user?.id) {
+        validUserIdentifier = session.user.id;
+        console.log('Found authenticated user in session:', validUserIdentifier);
+      } else {
+        console.warn('No authenticated user found in session, using fallback');
+        validUserIdentifier = currentUserId || 'system-fallback';
+      }
+    } else {
+      // The provided userId appears valid
+      validUserIdentifier = currentUserId;
+    }
+    
+    // Log audit trail for assignment change
+    await logAuditTrail(
+      issueId,
+      validUserIdentifier, 
+      'assignment_changed',
+      previousAssignment,
+      assigneeId,
+      { 
+        timestamp: now,
+        previous_assignee: previousAssignment || 'Unassigned',
+        new_assignee: assigneeId
+      }
+    );
+    
+    // Get comments for this issue to return complete issue
+    const comments = await getCommentsForIssue(issueId);
+    
+    // Map database issue to app Issue type and include comments
+    return mapDbIssueToAppIssue(dbIssue, comments);
+  } catch (error) {
+    console.error('Error in assignIssueToUser:', error);
+    return undefined;
+  }
+};
