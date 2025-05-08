@@ -8,7 +8,6 @@ import {
   getIssueSubTypeLabel,
   updateIssueStatus,
   addComment,
-  getManagersList,
   assignIssueToUser,
   getEmployeeNameByUuid
 } from "@/services/issueService";
@@ -35,6 +34,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Clock, Mail, MessageSquare, Phone, Send, User as UserIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { DashboardUser } from "@/types/dashboardUsers";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +55,41 @@ const AdminIssueDetails = () => {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
   const [assigneeName, setAssigneeName] = useState<string>("Unassigned");
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // Function to fetch dashboard users as assignee options
+  const fetchDashboardUsers = async () => {
+    try {
+      // Fetch dashboard users that have manager roles
+      const { data: dashboardUsers, error } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .order('name');
+
+      if (error) {
+        throw error;
+      }
+
+      // Filter users to include only those with manager/admin related roles
+      const managerRoles = ["City Head", "Revenue and Ops Head", "CRM", "Cluster Head", "Super Admin"];
+      
+      const managers = (dashboardUsers || [])
+        .filter(user => managerRoles.includes(user.role))
+        .map(user => ({
+          id: user.id,
+          name: user.name
+        }));
+
+      setAssigneeOptions(managers);
+      
+    } catch (error) {
+      console.error("Error fetching dashboard users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load assignee options",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchIssueAndEmployee = async () => {
@@ -120,9 +156,8 @@ const AdminIssueDetails = () => {
         
         setCommenterNames(names);
         
-        // Fetch potential assignees
-        const managers = await getManagersList();
-        setAssigneeOptions(managers);
+        // Fetch dashboard users as potential assignees
+        await fetchDashboardUsers();
         
       } catch (error) {
         console.error("Error fetching issue details:", error);
@@ -174,7 +209,7 @@ const AdminIssueDetails = () => {
     }
   };
 
-  // New handler for issue assignment
+  // Updated handler for issue assignment
   const handleAssigneeChange = async (assigneeId: string) => {
     if (!id || (issue?.assignedTo === assigneeId)) return;
     
@@ -190,13 +225,17 @@ const AdminIssueDetails = () => {
         setIssue(updatedIssue);
         
         // Get assignee name from options
-        const assignee = assigneeOptions.find(option => option.id === assigneeId);
-        if (assignee) {
-          setAssigneeName(assignee.name);
+        if (assigneeId === "unassigned") {
+          setAssigneeName("Unassigned");
         } else {
-          // If not found in options, fetch directly
-          const name = await getEmployeeNameByUuid(assigneeId);
-          setAssigneeName(name);
+          const assignee = assigneeOptions.find(option => option.id === assigneeId);
+          if (assignee) {
+            setAssigneeName(assignee.name);
+          } else {
+            // If not found in options, fetch directly
+            const name = await getEmployeeNameByUuid(assigneeId);
+            setAssigneeName(name);
+          }
         }
         
         toast({
@@ -543,7 +582,7 @@ const AdminIssueDetails = () => {
               </CardContent>
             </Card>
             
-            {/* New card for issue assignment */}
+            {/* Updated issue assignment card */}
             <Card>
               <CardHeader>
                 <CardTitle>Issue Assignment</CardTitle>
