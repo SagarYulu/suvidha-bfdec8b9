@@ -63,18 +63,42 @@ export async function getIssuesByUserId(userId: string): Promise<Issue[]> {
   }
 }
 
+// Add the processIssues function that was missing
+export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
+  try {
+    // Process each issue to include its comments
+    const processedIssues = await Promise.all(
+      dbIssues.map(async (issue) => {
+        const { data: comments } = await supabase
+          .from('issue_comments')
+          .select('*')
+          .eq('issue_id', issue.id)
+          .order('created_at', { ascending: true });
+        
+        return mapDbIssueToAppIssue(issue, comments || []);
+      })
+    );
+    
+    return processedIssues;
+  } catch (error) {
+    console.error("Error processing issues:", error);
+    return [];
+  }
+}
+
 export async function createIssue(issueData: any): Promise<Issue | null> {
   try {
+    // Fix the insert method to use an object instead of an array of objects
     const { data, error } = await supabase
       .from('issues')
-      .insert([{
+      .insert({
         employee_uuid: issueData.employeeUuid,
         type_id: issueData.typeId,
         sub_type_id: issueData.subTypeId,
         description: issueData.description,
         status: 'open',
         priority: issueData.priority || 'medium',
-      }])
+      })
       .select()
       .single();
     
