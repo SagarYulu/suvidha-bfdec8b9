@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { mapDbIssueToAppIssue } from "./issueUtils";
-import { crypto } from "crypto";
+import { generateUUID } from "./issueUtils";
 
 export async function getIssueById(id: string): Promise<Issue | null> {
   try {
@@ -88,8 +89,8 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
 
 export async function createIssue(issueData: any): Promise<Issue | null> {
   try {
-    // Generate a UUID for the issue
-    const id = crypto.randomUUID();
+    // Generate a UUID for the issue using the utility function
+    const id = generateUUID();
     
     // Using the correct format for Supabase insert - single object
     const { data, error } = await supabase
