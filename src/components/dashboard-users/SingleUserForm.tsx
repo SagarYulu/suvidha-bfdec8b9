@@ -203,22 +203,6 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
               
               <FormField
                 control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mobile Number*</FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="9876543210" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <FormField
-                control={form.control}
                 name="employeeId"
                 render={({ field }) => (
                   <FormItem>
@@ -229,6 +213,22 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                     <FormDescription>
                       Link to an existing employee ID
                     </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mobile Number*</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="9876543210" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -255,9 +255,6 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription>
-                      The role defines the base level of access
-                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
