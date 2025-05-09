@@ -49,6 +49,15 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    /* Mobile specific theme variables */
+    --mobile-header-height: 60px;
+    --mobile-footer-height: 64px;
+    --mobile-background: 210 40% 98%;
+    --mobile-card: 0 0% 100%;
+    --mobile-primary: 222.2 47.4% 11.2%;
+    --mobile-border-radius: 12px;
+    --mobile-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   }
 
   .dark {
@@ -97,5 +106,24 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mobile app specific utilities */
+@layer utilities {
+  .mobile-container {
+    @apply max-w-md mx-auto min-h-screen bg-[hsl(var(--mobile-background))] pb-[var(--mobile-footer-height)];
+  }
+  
+  .mobile-card {
+    @apply bg-[hsl(var(--mobile-card))] rounded-[var(--mobile-border-radius)] shadow-sm mb-3;
+  }
+  
+  .mobile-safe-top {
+    @apply pt-safe;
+  }
+  
+  .mobile-safe-bottom {
+    @apply pb-safe;
   }
 }
