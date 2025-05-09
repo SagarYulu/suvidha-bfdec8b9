@@ -126,6 +126,7 @@ const SecurityManagement = () => {
                 <AuditLogsTable 
                   auditLogs={auditLogs} 
                   formatDate={formatDate}
+                  isLoading={isLoading}
                 />
               )}
             </TabsContent>
