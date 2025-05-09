@@ -87,8 +87,10 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
       setIsSubmitting(true);
       
       // Insert the new dashboard user
+      console.log("Creating new dashboard user with values:", values);
+      
       const { data, error } = await supabase
-        .from('dashboard_users')
+        .from('dashboard_users') // Make sure we're explicitly using dashboard_users table
         .insert({
           name: values.name,
           email: values.email,
@@ -114,6 +116,8 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
         });
         return;
       }
+      
+      console.log("Dashboard user created successfully:", data);
       
       toast({
         title: "Success",

@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from './components/ui/toaster';
@@ -25,6 +24,7 @@ import AdminAnalytics from './pages/admin/Analytics';
 import AdminSecurity from './pages/admin/AccessControl';
 import AddDashboardUser from './pages/admin/dashboard-users/AddDashboardUser';
 import AssignedTickets from './pages/admin/AssignedTickets';
+import SecurityManagement from './pages/admin/dashboard-users/SecurityManagement';
 
 function App() {
   return (
@@ -52,6 +52,7 @@ function App() {
             <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
             <Route path="/admin/dashboard-users" element={<AdminUsers />} />
             <Route path="/admin/assigned-tickets" element={<AssignedTickets />} />
+            <Route path="/admin/dashboard-users/security" element={<SecurityManagement />} />
             
             {/* 404 route */}
             <Route path="*" element={<NotFound />} />
