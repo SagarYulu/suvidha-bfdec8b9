@@ -35,8 +35,16 @@ const SecurityManagement = () => {
     setActiveTab(tab);
   };
 
+  // Debug log to see what data we're working with
+  console.log("SecurityManagement rendering with:", {
+    dashboardUsersCount: dashboardUsers?.length || 0,
+    auditLogsCount: auditLogs?.length || 0,
+    isLoading,
+    activeTab
+  });
+
   return (
-    <AdminLayout title="Security Management">
+    <AdminLayout title="Security Management" requiredPermission="access:security">
       <DashboardUserHeader 
         title="Security Management"
         subtitle="Manage dashboard users and view audit logs"

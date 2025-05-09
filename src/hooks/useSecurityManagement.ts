@@ -34,11 +34,14 @@ const useSecurityManagement = () => {
     try {
       console.log("Fetching security management data...");
       
-      // Load all data in parallel
+      // Load all data in parallel - explicitly separate dashboard users from employees
       const [usersData, auditLogsData] = await Promise.all([
         fetchDashboardUsers(),
         fetchAuditLogs()
       ]);
+      
+      console.log("Dashboard users fetched:", usersData?.length || 0);
+      console.log("Audit logs fetched:", auditLogsData?.length || 0);
       
       // Update state only once with all the data
       setDashboardUsers(usersData || []);
@@ -70,32 +73,36 @@ const useSecurityManagement = () => {
     }
   }, [authState.isAuthenticated, fetchData]);
 
-  // Fetch dashboard users - COMPLETELY REWRITTEN to ensure proper separation
+  // Fetch dashboard users
   const fetchDashboardUsers = async () => {
     try {
-      console.log("Fetching ONLY dashboard users from dashboard_users table...");
+      console.log("Fetching dashboard users explicitly from 'dashboard_users' table...");
       
-      // Explicitly use dashboard_users table, with table name in the query to avoid any confusion
       const { data, error } = await supabase
-        .from('dashboard_users') // ONLY query from dashboard_users table
+        .from('dashboard_users')
         .select('*')
         .order('name');
       
       if (error) {
         console.error("Error fetching dashboard users:", error);
-        throw new Error("Failed to fetch dashboard users");
+        throw new Error(`Failed to fetch dashboard users: ${error.message}`);
       }
       
-      console.log("Dashboard users fetched:", data?.length || 0, data);
+      console.log("Dashboard users response:", data);
       
-      // Ensure we are returning actual dashboard users, not regular employees
-      if (data && Array.isArray(data)) {
-        return data;
+      if (!Array.isArray(data)) {
+        console.error("Dashboard users data is not an array:", data);
+        return [];
       }
       
-      return [];
+      // Log each user to debug
+      data.forEach((user, index) => {
+        console.log(`Dashboard user ${index}:`, user.name, user.email, user.role);
+      });
+      
+      return data as DashboardUser[];
     } catch (error) {
-      console.error("Error fetching dashboard users:", error);
+      console.error("Error in fetchDashboardUsers:", error);
       throw error;
     }
   };
@@ -111,12 +118,12 @@ const useSecurityManagement = () => {
       
       if (error) {
         console.error("Error fetching audit logs:", error);
-        throw new Error("Failed to fetch audit logs");
+        throw new Error(`Failed to fetch audit logs: ${error.message}`);
       }
       
       return data;
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error in fetchAuditLogs:", error);
       throw error;
     }
   };
