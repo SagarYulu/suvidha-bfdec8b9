@@ -36,15 +36,6 @@ const SecurityManagement = () => {
     setActiveTab(tab);
   };
 
-  // Debug log to show what data we're working with
-  console.log("SecurityManagement rendering with:", {
-    dashboardUsersCount: dashboardUsers?.length || 0,
-    auditLogsCount: auditLogs?.length || 0,
-    isLoading,
-    activeTab,
-    error
-  });
-
   return (
     <AdminLayout title="Security Management" requiredPermission="access:security">
       <DashboardUserHeader 
@@ -137,12 +128,6 @@ const SecurityManagement = () => {
           </Tabs>
         </CardContent>
       </Card>
-
-      {/* Debug information */}
-      <div className="mt-4 text-xs text-gray-400 flex justify-between">
-        <span>User Count: {dashboardUsers?.length || 0}</span>
-        <span>Log Count: {auditLogs?.length || 0}</span>
-      </div>
     </AdminLayout>
   );
 };
