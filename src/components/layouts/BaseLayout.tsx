@@ -2,7 +2,7 @@
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileCheck } from "@/hooks/use-mobile";
 
 interface BaseLayoutProps {
   children: React.ReactNode;
@@ -23,7 +23,7 @@ const BaseLayout: React.FC<BaseLayoutProps> = ({
 }) => {
   // Determine if we have a sidebar to adjust layout
   const hasSidebar = Boolean(sidebar);
-  const isMobile = useIsMobile();
+  const isMobile = useMobileCheck();
   
   // For mobile layouts, add top padding to account for fixed header
   const mobileContentStyle = isMobile && header 

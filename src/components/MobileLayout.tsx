@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileCheck } from "@/hooks/use-mobile";
 import BaseLayout from "./layouts/BaseLayout";
 import MobileHeader from "./layouts/headers/MobileHeader";
 import MobileBottomNav from "./layouts/navigation/MobileBottomNav";
@@ -26,7 +26,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const navigate = useNavigate();
   const { checkAccess } = useRoleAccess();
   const [isAccessChecked, setIsAccessChecked] = useState(false);
-  const isMobile = useIsMobile();
+  const isMobile = useMobileCheck();
 
   useEffect(() => {
     const checkUserAccess = async () => {
