@@ -315,7 +315,7 @@ const AdminIssueDetails = () => {
               setSelectedAssignee={setSelectedAssignee}
             />
             
-            <IssueActivity issue={issue} formatDate={formatDate} />
+            <IssueActivity issue={issue} />
           </div>
         </div>
       </div>
