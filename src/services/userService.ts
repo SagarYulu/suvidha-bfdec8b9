@@ -1,3 +1,4 @@
+
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,6 +30,7 @@ const mapEmployeeToUser = (employee: any): User => {
 // Initialize: Load users from Supabase
 const initializeUsers = async (): Promise<void> => {
   try {
+    // Make sure we're explicitly selecting from employees table only
     const { data: employees, error } = await supabase.from('employees').select('*');
     
     if (error) {
@@ -65,7 +67,7 @@ export const getUsers = async (): Promise<User[]> => {
     // Add more verbose logging
     console.log("Attempting to fetch from employees table...");
     
-    // Force cache refresh by always fetching from Supabase with cache reload
+    // Force cache refresh by always fetching from Supabase employees table with cache reload
     const { data: employees, error } = await supabase
       .from('employees')
       .select('*')
@@ -144,6 +146,7 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
       throw new Error(`Employee with ID ${user.employeeId} already exists.`);
     }
     
+    // Make sure we're explicitly inserting into employees table
     const newEmployee = {
       user_id: user.userId, // Add User ID field
       name: user.name,
