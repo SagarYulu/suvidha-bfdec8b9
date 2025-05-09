@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -10,23 +9,31 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-interface AuditLogsTableProps {
+export interface AuditLogsTableProps {
   auditLogs: any[];
-  isLoading: boolean;
   formatDate: (dateString: string) => string;
+  isLoading: boolean;
 }
 
-const AuditLogsTable: React.FC<AuditLogsTableProps> = ({
-  auditLogs,
-  isLoading,
+const AuditLogsTable: React.FC<AuditLogsTableProps> = ({ 
+  auditLogs, 
   formatDate,
+  isLoading 
 }) => {
   if (isLoading) {
-    return <div className="text-center py-10">Loading...</div>;
+    return (
+      <div className="flex justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
   }
 
-  if (auditLogs.length === 0) {
-    return <div className="text-center py-10">No audit logs found</div>;
+  if (!auditLogs || auditLogs.length === 0) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-gray-500">No audit logs available.</p>
+      </div>
+    );
   }
 
   return (
@@ -34,33 +41,23 @@ const AuditLogsTable: React.FC<AuditLogsTableProps> = ({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
+            <TableHead>Date & Time</TableHead>
             <TableHead>Action</TableHead>
             <TableHead>Entity Type</TableHead>
             <TableHead>Details</TableHead>
+            <TableHead>Performed By</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {auditLogs.map(log => (
+          {auditLogs.map((log) => (
             <TableRow key={log.id}>
-              <TableCell>{formatDate(log.performed_at)}</TableCell>
-              <TableCell>
-                <Badge 
-                  variant={
-                    log.action === 'create' ? 'default' :
-                    log.action === 'delete' ? 'destructive' :
-                    'outline'
-                  }
-                >
-                  {log.action}
-                </Badge>
-              </TableCell>
+              <TableCell className="whitespace-nowrap">{formatDate(log.performed_at || log.created_at)}</TableCell>
+              <TableCell>{log.action}</TableCell>
               <TableCell>{log.entity_type}</TableCell>
-              <TableCell>
-                <pre className="text-xs whitespace-pre-wrap bg-muted p-2 rounded-md max-h-24 overflow-auto">
-                  {JSON.stringify(log.changes, null, 2)}
-                </pre>
+              <TableCell className="max-w-xs truncate">
+                {JSON.stringify(log.changes)}
               </TableCell>
+              <TableCell>{log.performed_by || 'System'}</TableCell>
             </TableRow>
           ))}
         </TableBody>

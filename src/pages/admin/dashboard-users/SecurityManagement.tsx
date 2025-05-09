@@ -29,18 +29,20 @@ const SecurityManagement = () => {
     formatDate,
     refreshData,
     lastRefresh,
+    error,
   } = useSecurityManagement();
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
   };
 
-  // Debug log to see what data we're working with
+  // Debug log to show what data we're working with
   console.log("SecurityManagement rendering with:", {
     dashboardUsersCount: dashboardUsers?.length || 0,
     auditLogsCount: auditLogs?.length || 0,
     isLoading,
-    activeTab
+    activeTab,
+    error
   });
 
   return (
@@ -52,6 +54,14 @@ const SecurityManagement = () => {
         isRefreshing={isRefreshing}
         lastRefresh={lastRefresh}
       />
+
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardContent className="p-0 overflow-hidden">
@@ -118,25 +128,11 @@ const SecurityManagement = () => {
             </TabsContent>
 
             <TabsContent value="logs" className="p-0">
-              {isLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
-                </div>
-              ) : auditLogs?.length === 0 ? (
-                <div className="p-8 text-center">
-                  <AlertCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium">No audit logs found</h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Audit logs will appear here when users perform actions
-                  </p>
-                </div>
-              ) : (
-                <AuditLogsTable 
-                  auditLogs={auditLogs} 
-                  formatDate={formatDate}
-                  isLoading={isLoading}
-                />
-              )}
+              <AuditLogsTable 
+                auditLogs={auditLogs} 
+                formatDate={formatDate}
+                isLoading={isLoading}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>
