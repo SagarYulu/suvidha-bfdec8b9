@@ -296,28 +296,7 @@ export const getAssignedIssues = async (userUuid: string): Promise<Issue[]> => {
     }
     
     // Transform the raw issues into our Issue type with comments
-    const issuesWithComments: Issue[] = [];
-    
-    for (const issue of data) {
-      // Fetch comments for this issue
-      const { data: comments, error: commentsError } = await supabase
-        .from('issue_comments')
-        .select('*')
-        .eq('issue_id', issue.id)
-        .order('created_at', { ascending: true });
-      
-      if (commentsError) {
-        console.error(`Error fetching comments for issue ${issue.id}:`, commentsError);
-        // Continue with empty comments rather than failing the entire request
-      }
-      
-      issuesWithComments.push({
-        ...issue,
-        comments: comments || []
-      });
-    }
-    
-    return issuesWithComments;
+    return await processIssues(data);
   } catch (error) {
     console.error('Error in getAssignedIssues:', error);
     return [];

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
-import { useAuth } from "@/contexts/AuthContext"; // Import the auth context
+import { useAuth } from "@/contexts/AuthContext"; 
 import {
   getIssueById,
   getIssueTypeLabel,
@@ -47,7 +47,7 @@ const AdminIssueDetails = () => {
   const [status, setStatus] = useState<Issue["status"]>("open");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
-  const { authState } = useAuth(); // Use the auth context hook
+  const { authState } = useAuth(); 
   const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
@@ -92,8 +92,8 @@ const AdminIssueDetails = () => {
         
         setIssue(issueData);
         setStatus(issueData.status);
-        if (issueData.assigned_to) {
-          setSelectedAssignee(issueData.assigned_to);
+        if (issueData.assignedTo) {
+          setSelectedAssignee(issueData.assignedTo);
         }
         
         // Fetch employee
@@ -569,11 +569,11 @@ const AdminIssueDetails = () => {
                       Assign Ticket
                     </Button>
                     
-                    {issue.assigned_to && (
+                    {issue.assignedTo && (
                       <div className="mt-4 p-3 bg-blue-50 rounded-md">
                         <p className="text-sm font-medium">Currently assigned to:</p>
                         <p className="text-blue-600">
-                          {dashboardUsers.find(u => u.id === issue.assigned_to)?.name || "Unknown user"}
+                          {dashboardUsers.find(u => u.id === issue.assignedTo)?.name || "Unknown user"}
                         </p>
                       </div>
                     )}
@@ -615,3 +615,4 @@ const AdminIssueDetails = () => {
 };
 
 export default AdminIssueDetails;
+
