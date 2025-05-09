@@ -1,5 +1,5 @@
 
-// This file is now a facade that re-exports from the modularized services
+// This file is a facade that re-exports from the modularized services
 // This maintains backwards compatibility while allowing a cleaner structure
 
 // Re-export types
