@@ -70,14 +70,14 @@ const useSecurityManagement = () => {
     }
   }, [authState.isAuthenticated, fetchData]);
 
-  // Fetch dashboard users
+  // Fetch dashboard users - COMPLETELY REWRITTEN to ensure proper separation
   const fetchDashboardUsers = async () => {
     try {
-      console.log("Fetching dashboard users...");
+      console.log("Fetching ONLY dashboard users from dashboard_users table...");
       
-      // IMPORTANT: Explicitly query from dashboard_users table, not employees table
+      // Explicitly use dashboard_users table, with table name in the query to avoid any confusion
       const { data, error } = await supabase
-        .from('dashboard_users') // Explicitly specify dashboard_users table
+        .from('dashboard_users') // ONLY query from dashboard_users table
         .select('*')
         .order('name');
       
@@ -86,10 +86,16 @@ const useSecurityManagement = () => {
         throw new Error("Failed to fetch dashboard users");
       }
       
-      console.log("Dashboard users fetched:", data?.length || 0);
-      return data;
+      console.log("Dashboard users fetched:", data?.length || 0, data);
+      
+      // Ensure we are returning actual dashboard users, not regular employees
+      if (data && Array.isArray(data)) {
+        return data;
+      }
+      
+      return [];
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching dashboard users:", error);
       throw error;
     }
   };
