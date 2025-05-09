@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +8,7 @@ import {
   getIssueTypeLabel,
   getIssueSubTypeLabel,
   addComment,
+  getEmployeeNameByUuid,
 } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
@@ -14,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { Clock, MessageSquare, Send, User as UserIcon } from "lucide-react";
+import { Clock, MessageSquare, Send, User as UserIcon, UserCheck } from "lucide-react";
 
 const MobileIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +27,7 @@ const MobileIssueDetails = () => {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
+  const [assigneeName, setAssigneeName] = useState<string>("Unassigned");
 
   useEffect(() => {
     const fetchIssue = async () => {
@@ -46,6 +49,16 @@ const MobileIssueDetails = () => {
         setIssue(issueData);
         console.log("Fetched issue data:", issueData);
         console.log("Comments count:", issueData.comments?.length || 0);
+        
+        // Fetch assignee name if assigned
+        if (issueData.assignedTo) {
+          try {
+            const name = await getEmployeeNameByUuid(issueData.assignedTo);
+            setAssigneeName(name);
+          } catch (error) {
+            console.error("Error fetching assignee name:", error);
+          }
+        }
         
         // Fetch commenter names
         const uniqueUserIds = new Set<string>();
@@ -210,6 +223,16 @@ const MobileIssueDetails = () => {
                 return updated;
               });
             }
+            
+            // Check if assignment changed
+            if (refreshedIssue.assignedTo !== issue?.assignedTo) {
+              if (refreshedIssue.assignedTo) {
+                const name = await getEmployeeNameByUuid(refreshedIssue.assignedTo);
+                setAssigneeName(name);
+              } else {
+                setAssigneeName("Unassigned");
+              }
+            }
           }
         } catch (error) {
           console.error("Error polling for updates:", error);
@@ -257,12 +280,20 @@ const MobileIssueDetails = () => {
             {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
           </p>
           
-          <div className="text-sm mb-4">
+          <div className="text-sm mb-2">
             <p className="flex items-center text-gray-500 mb-1">
               <Clock className="h-3 w-3 mr-1" />
               Created on {formatDate(issue.createdAt)}
             </p>
           </div>
+          
+          {/* Show assigned manager if available */}
+          {issue.assignedTo && (
+            <div className="flex items-center text-sm text-blue-600 bg-blue-50 p-2 rounded-md mb-3">
+              <UserCheck className="h-4 w-4 mr-1" />
+              <span>Assigned to {assigneeName}</span>
+            </div>
+          )}
           
           <div className="border-t border-gray-200 pt-3">
             <h3 className="font-medium mb-2">Description:</h3>
