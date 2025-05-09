@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getUsers, createUser, deleteUser } from "@/services/userService";
@@ -81,7 +80,7 @@ const AdminUsers = () => {
     console.log(`Fetching users at ${new Date().toISOString()}...`);
     setIsLoading(true);
     try {
-      // Force a complete refresh from server - explicitly from employees table
+      // Force a complete refresh from server
       const fetchedUsers = await getUsers();
       console.log(`Fetched ${fetchedUsers?.length || 0} users:`, fetchedUsers);
       

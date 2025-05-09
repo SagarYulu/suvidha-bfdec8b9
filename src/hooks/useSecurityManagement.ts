@@ -74,9 +74,6 @@ const useSecurityManagement = () => {
   const fetchDashboardUsers = async () => {
     try {
       console.log("Fetching dashboard users...");
-      
-      // Make sure we're explicitly querying the dashboard_users table only
-      // This ensures we don't accidentally pull data from the employees table
       const { data, error } = await supabase
         .from('dashboard_users')
         .select('*')

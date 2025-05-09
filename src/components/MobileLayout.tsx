@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
-import { useMobileCheck } from "@/hooks/use-mobile";
 import BaseLayout from "./layouts/BaseLayout";
 import MobileHeader from "./layouts/headers/MobileHeader";
 import MobileBottomNav from "./layouts/navigation/MobileBottomNav";
@@ -13,20 +12,17 @@ interface MobileLayoutProps {
   children: React.ReactNode;
   title: string;
   className?: string;
-  hideBackButton?: boolean;
 }
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({ 
   children, 
   title,
-  className,
-  hideBackButton
+  className 
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
   const { checkAccess } = useRoleAccess();
   const [isAccessChecked, setIsAccessChecked] = useState(false);
-  const isMobile = useMobileCheck();
 
   useEffect(() => {
     const checkUserAccess = async () => {
@@ -92,8 +88,8 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   // Show loading state while checking authorization
   if (!authState.isAuthenticated || !isAccessChecked) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[hsl(var(--mobile-background))]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
       </div>
     );
   }
@@ -102,8 +98,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     <MobileHeader
       title={title}
       userName={authState.user?.name}
-      hideBackButton={hideBackButton}
-      onBack={() => navigate(-1)}
     />
   );
 
@@ -115,17 +109,14 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     />
   );
 
-  // Mobile app layout with improved styling
   return (
     <BaseLayout 
       header={header} 
       footer={footer}
-      className={`mobile-container ${className || ""}`}
-      contentClassName="pb-[var(--mobile-footer-height)]"
+      className={className}
+      contentClassName="pb-16" // Add bottom padding for mobile navigation
     >
-      <div className="px-4 pt-2">
-        {children}
-      </div>
+      {children}
     </BaseLayout>
   );
 };

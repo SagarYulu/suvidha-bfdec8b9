@@ -57,7 +57,6 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     }));
   };
 
-  // Make sure we're explicitly inserting into dashboard_users table
   const insertDashboardUsers = async (users: any[]) => {
     // Use RPC to bypass RLS policies for audit log entries
     const { data, error } = await supabase
