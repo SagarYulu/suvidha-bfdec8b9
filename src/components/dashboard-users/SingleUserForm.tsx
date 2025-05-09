@@ -47,7 +47,7 @@ interface SingleUserFormProps {
 }
 
 const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
-  const { user } = useAuth();
+  const { authState } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>('');
@@ -86,7 +86,9 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
     try {
       setIsSubmitting(true);
       
-      // Insert the new dashboard user
+      console.log("Adding dashboard user with values:", values);
+      
+      // Insert the new dashboard user - make sure we're explicitly using dashboard_users table
       const { data, error } = await supabase
         .from('dashboard_users')
         .insert({
@@ -100,7 +102,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
           manager: values.manager,
           role: values.role,
           password: values.password,
-          created_by: user?.id
+          created_by: authState.user?.id
         })
         .select()
         .single();
