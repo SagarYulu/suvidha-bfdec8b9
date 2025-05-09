@@ -15,7 +15,7 @@ const useSecurityManagement = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   
-  // Fetch data
+  // Fetch dashboard users data - ONLY from dashboard_users table
   const fetchData = useCallback(async () => {
     if (!authState.isAuthenticated) {
       return;
@@ -29,7 +29,8 @@ const useSecurityManagement = () => {
     setError(null);
     
     try {      
-      // Load all data in parallel - ONLY query from dashboard_users table
+      console.log("Fetching dashboard users only from dashboard_users table");
+      // Load dashboard users and audit logs in parallel
       const [dashboardUsersData, auditLogsData] = await Promise.all([
         fetchDashboardUsers(),
         fetchAuditLogs()
@@ -60,10 +61,12 @@ const useSecurityManagement = () => {
     }
   }, [authState.isAuthenticated, fetchData]);
 
-  // Fetch dashboard users ONLY - strict typing to ensure we only get dashboard users
+  // Fetch ONLY dashboard users - this is completely separate from regular users
   const fetchDashboardUsers = async (): Promise<DashboardUser[]> => {
     try {
-      // ONLY query the dashboard_users table
+      console.log("Fetching exclusively from dashboard_users table");
+      
+      // ONLY query the dashboard_users table, never query from employees table
       const { data, error } = await supabase
         .from('dashboard_users')
         .select('*')
@@ -72,6 +75,8 @@ const useSecurityManagement = () => {
       if (error) {
         throw new Error(`Failed to fetch dashboard users: ${error.message}`);
       }
+      
+      console.log(`Retrieved ${data?.length || 0} dashboard users from dashboard_users table`);
       
       if (!Array.isArray(data)) {
         return [];
