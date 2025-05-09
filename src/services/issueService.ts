@@ -11,7 +11,9 @@ export {
   getIssueById,
   getIssuesByUserId,
   createIssue,
-  updateIssueStatus
+  updateIssueStatus,
+  assignIssueToUser,
+  getAssignedIssues
 } from "./issues/issueCore";
 
 export {

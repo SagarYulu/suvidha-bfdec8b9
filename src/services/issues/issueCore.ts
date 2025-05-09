@@ -1,4 +1,3 @@
-
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -243,5 +242,84 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
   } catch (error) {
     console.error('Error in updateIssueStatus:', error);
     return undefined;
+  }
+};
+
+export const assignIssueToUser = async (issueId: string, assignedToUuid: string, assignerUuid: string): Promise<Issue | null> => {
+  try {
+    console.log(`Assigning issue ${issueId} to user ${assignedToUuid} by ${assignerUuid}`);
+    
+    // Update the issue with assigned_to value
+    const { data, error } = await supabase
+      .from('issues')
+      .update({ assigned_to: assignedToUuid })
+      .eq('id', issueId)
+      .select('*')
+      .single();
+    
+    if (error) {
+      console.error('Error assigning issue:', error);
+      throw error;
+    }
+    
+    // Add an audit trail entry for the assignment
+    await supabase
+      .from('issue_audit_trail')
+      .insert({
+        issue_id: issueId,
+        employee_uuid: assignerUuid,
+        action: 'assign_ticket',
+        details: {
+          assigned_to: assignedToUuid,
+          assigned_by: assignerUuid
+        }
+      });
+    
+    // Add the comments and fetch the updated issue
+    return await getIssueById(issueId);
+  } catch (error) {
+    console.error('Error in assignIssueToUser:', error);
+    return null;
+  }
+};
+
+export const getAssignedIssues = async (userUuid: string): Promise<Issue[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('assigned_to', userUuid);
+    
+    if (error) {
+      console.error('Error fetching assigned issues:', error);
+      throw error;
+    }
+    
+    // Transform the raw issues into our Issue type with comments
+    const issuesWithComments: Issue[] = [];
+    
+    for (const issue of data) {
+      // Fetch comments for this issue
+      const { data: comments, error: commentsError } = await supabase
+        .from('issue_comments')
+        .select('*')
+        .eq('issue_id', issue.id)
+        .order('created_at', { ascending: true });
+      
+      if (commentsError) {
+        console.error(`Error fetching comments for issue ${issue.id}:`, commentsError);
+        // Continue with empty comments rather than failing the entire request
+      }
+      
+      issuesWithComments.push({
+        ...issue,
+        comments: comments || []
+      });
+    }
+    
+    return issuesWithComments;
+  } catch (error) {
+    console.error('Error in getAssignedIssues:', error);
+    return [];
   }
 };

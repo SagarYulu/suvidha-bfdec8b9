@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -8,9 +9,10 @@ import {
   getIssueSubTypeLabel,
   updateIssueStatus,
   addComment,
+  assignIssueToUser,
 } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
-import { Issue, User } from "@/types";
+import { Issue, User, DashboardUser } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
@@ -32,6 +34,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Clock, Mail, MessageSquare, Phone, Send, User as UserIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +48,30 @@ const AdminIssueDetails = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
   const { authState } = useAuth(); // Use the auth context hook
+  const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+
+  useEffect(() => {
+    const fetchDashboardUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('dashboard_users')
+          .select('*');
+          
+        if (error) {
+          console.error("Error fetching dashboard users:", error);
+          return;
+        }
+        
+        setDashboardUsers(data || []);
+      } catch (error) {
+        console.error("Error in fetchDashboardUsers:", error);
+      }
+    };
+    
+    fetchDashboardUsers();
+  }, []);
 
   useEffect(() => {
     const fetchIssueAndEmployee = async () => {
@@ -65,6 +92,9 @@ const AdminIssueDetails = () => {
         
         setIssue(issueData);
         setStatus(issueData.status);
+        if (issueData.assigned_to) {
+          setSelectedAssignee(issueData.assigned_to);
+        }
         
         // Fetch employee
         try {
@@ -111,6 +141,36 @@ const AdminIssueDetails = () => {
 
     fetchIssueAndEmployee();
   }, [id, navigate]);
+
+  const handleAssignIssue = async () => {
+    if (!selectedAssignee || !id || !authState.user?.id) return;
+    
+    setIsAssigning(true);
+    try {
+      const updated = await assignIssueToUser(
+        id, 
+        selectedAssignee, 
+        authState.user.id
+      );
+      
+      if (updated) {
+        setIssue(updated);
+        toast({
+          title: "Success", 
+          description: "Ticket assigned successfully"
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning issue:", error);
+      toast({
+        title: "Error",
+        description: "Failed to assign ticket",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const handleStatusChange = async (newStatus: Issue["status"]) => {
     if (status === newStatus) return; // Don't update if status hasn't changed
@@ -470,6 +530,56 @@ const AdminIssueDetails = () => {
                   </div>
                 ) : (
                   <p className="text-gray-500">Employee information not available</p>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Assign Ticket</CardTitle>
+                <CardDescription>Assign this ticket to a dashboard user</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboardUsers.length > 0 ? (
+                  <div className="space-y-4">
+                    <Select
+                      value={selectedAssignee}
+                      onValueChange={setSelectedAssignee}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select assignee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dashboardUsers.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name} ({user.role})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    <Button 
+                      onClick={handleAssignIssue}
+                      className="w-full"
+                      disabled={isAssigning || !selectedAssignee}
+                    >
+                      {isAssigning ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      ) : null}
+                      Assign Ticket
+                    </Button>
+                    
+                    {issue.assigned_to && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                        <p className="text-sm font-medium">Currently assigned to:</p>
+                        <p className="text-blue-600">
+                          {dashboardUsers.find(u => u.id === issue.assigned_to)?.name || "Unknown user"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500">No dashboard users available for assignment</p>
                 )}
               </CardContent>
             </Card>

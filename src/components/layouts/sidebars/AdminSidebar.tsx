@@ -12,7 +12,8 @@ import {
   Settings,
   Shield,
   ChevronDown,
-  UserPlus
+  UserPlus,
+  Ticket
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -110,7 +111,8 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
-    dashboardUsers: false
+    dashboardUsers: false,
+    tickets: false
   });
   const { hasPermission, userRole } = useRBAC();
   const location = useLocation();
@@ -130,6 +132,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       setOpenMenus(prev => ({
         ...prev,
         dashboardUsers: true
+      }));
+    }
+    
+    // Check if we're in tickets pages
+    if (location.pathname.includes('/admin/issues') || location.pathname.includes('/admin/assigned-issues')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        tickets: true
       }));
     }
   }, [location]);
@@ -165,9 +175,27 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
         )}
         
-        {/* Tickets (renamed from Issues) - Available to users with manage:issues permission */}
+        {/* Tickets dropdown - Available to users with manage:issues permission */}
         {hasPermission("manage:issues") && (
-          <SidebarLink href="/admin/issues" icon={TicketCheck} label="Tickets" />
+          <DropdownMenu 
+            label="Tickets" 
+            icon={TicketCheck} 
+            isOpen={openMenus.tickets} 
+            toggleOpen={() => toggleMenu('tickets')}
+          >
+            <SidebarLink 
+              href="/admin/issues" 
+              icon={TicketCheck} 
+              label="All Tickets" 
+              isActive={location.pathname === "/admin/issues"}
+            />
+            <SidebarLink 
+              href="/admin/assigned-issues" 
+              icon={Ticket} 
+              label="Assigned To Me" 
+              isActive={location.pathname === "/admin/assigned-issues"}
+            />
+          </DropdownMenu>
         )}
         
         {/* Users - Available to users with manage:users permission */}

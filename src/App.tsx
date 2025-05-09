@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminUsers from "./pages/admin/Users";
 import AdminIssues from "./pages/admin/Issues";
+import AdminAssignedIssues from "./pages/admin/AssignedIssues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminSettings from "./pages/admin/Settings";
@@ -79,6 +80,12 @@ const App = () => {
                 <Route path="/admin/issues" element={
                   <IssuesGuard>
                     <AdminIssues />
+                  </IssuesGuard>
+                } />
+                
+                <Route path="/admin/assigned-issues" element={
+                  <IssuesGuard>
+                    <AdminAssignedIssues />
                   </IssuesGuard>
                 } />
                 
