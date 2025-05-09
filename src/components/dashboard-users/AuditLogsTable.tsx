@@ -9,17 +9,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatDate } from '@/utils/formatUtils';
 
 interface AuditLogsTableProps {
   auditLogs: any[];
   isLoading: boolean;
-  formatDate: (dateString: string) => string;
 }
 
 const AuditLogsTable: React.FC<AuditLogsTableProps> = ({
   auditLogs,
   isLoading,
-  formatDate,
 }) => {
   if (isLoading) {
     return <div className="text-center py-10">Loading...</div>;

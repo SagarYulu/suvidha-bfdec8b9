@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue, User } from "@/types";
 import { getIssueById, addComment } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { formatDate, getStatusBadgeColor } from "@/utils/formatUtils";
 
 export function useMobileIssue(issueId: string | undefined) {
   const { authState } = useAuth();
@@ -182,25 +181,6 @@ export function useMobileIssue(issueId: string | undefined) {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const getStatusBadgeColor = (status: Issue["status"]) => {
-    switch (status) {
-      case "open":
-        return "bg-red-500";
-      case "in_progress":
-        return "bg-yellow-500";
-      case "resolved":
-        return "bg-green-500";
-      case "closed":
-        return "bg-green-700";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy, h:mm a");
   };
 
   return {

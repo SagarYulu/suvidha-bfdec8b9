@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Clock, File, Search, User as UserIcon, Calendar, Building, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
+import { formatShortDate, getStatusBadgeColor } from "@/utils/formatUtils";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -83,26 +82,6 @@ const MobileIssues = () => {
     }
   }, [searchTerm, issues]);
 
-  const getStatusBadgeColor = (status: Issue["status"]) => {
-    switch (status) {
-      case "open":
-        return "bg-red-500";
-      case "in_progress":
-        return "bg-yellow-500";
-      case "resolved":
-        return "bg-green-500";
-      case "closed":
-        return "bg-green-700";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "N/A";
-    return format(new Date(dateString), "MMM dd, yyyy");
-  };
-
   return (
     <MobileLayout title="Home">
       <div className="space-y-4 pb-16">
@@ -150,11 +129,11 @@ const MobileIssues = () => {
               </div>
               <div>
                 <p className="text-gray-500">Date of Joining</p>
-                <p className="font-medium">{employeeDetails.dateOfJoining ? formatDate(employeeDetails.dateOfJoining) : "N/A"}</p>
+                <p className="font-medium">{employeeDetails.dateOfJoining ? formatShortDate(employeeDetails.dateOfJoining) : "N/A"}</p>
               </div>
               <div>
                 <p className="text-gray-500">Date of Birth</p>
-                <p className="font-medium">{employeeDetails.dateOfBirth ? formatDate(employeeDetails.dateOfBirth) : "N/A"}</p>
+                <p className="font-medium">{employeeDetails.dateOfBirth ? formatShortDate(employeeDetails.dateOfBirth) : "N/A"}</p>
               </div>
               <div>
                 <p className="text-gray-500">Blood Group</p>
@@ -225,7 +204,7 @@ const MobileIssues = () => {
                   <div className="flex justify-between text-xs text-gray-500">
                     <span className="flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
-                      {formatDate(issue.createdAt)}
+                      {formatShortDate(issue.createdAt)}
                     </span>
                     <span className="flex items-center">
                       <File className="h-3 w-3 mr-1" />

@@ -1,13 +1,13 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Issue } from "@/types";
+import { formatDate } from "@/utils/formatUtils";
 
 interface IssueActivityProps {
   issue: Issue;
-  formatDate: (date: string) => string;
 }
 
-const IssueActivity = ({ issue, formatDate }: IssueActivityProps) => {
+const IssueActivity = ({ issue }: IssueActivityProps) => {
   return (
     <Card>
       <CardHeader>
