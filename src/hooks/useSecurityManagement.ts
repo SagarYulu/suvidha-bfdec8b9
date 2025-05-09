@@ -15,30 +15,37 @@ const useSecurityManagement = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
   
-  // Fetch dashboard users data - ONLY from dashboard_users table
+  // Debounced fetch to prevent multiple refreshes
   const fetchData = useCallback(async () => {
     if (!authState.isAuthenticated) {
+      console.log("User not authenticated, skipping data fetch");
       return;
     }
 
+    // If already refreshing, don't start another refresh
     if (isRefreshing) {
+      console.log("Already refreshing data, skipping duplicate fetch");
       return;
     }
 
     setIsRefreshing(true);
     setError(null);
     
-    try {      
-      console.log("Fetching dashboard users only from dashboard_users table");
-      // Load dashboard users and audit logs in parallel
-      const [dashboardUsersData, auditLogsData] = await Promise.all([
+    try {
+      console.log("Fetching security management data...");
+      
+      // Load all data in parallel
+      const [usersData, auditLogsData] = await Promise.all([
         fetchDashboardUsers(),
         fetchAuditLogs()
       ]);
       
-      setDashboardUsers(dashboardUsersData || []);
+      // Update state only once with all the data
+      setDashboardUsers(usersData || []);
       setAuditLogs(auditLogsData || []);
       setLastRefresh(new Date());
+      
+      console.log("Security data loaded successfully");
     } catch (error: any) {
       console.error("Error loading security management data:", error);
       setError(error.message || "Failed to load security management data");
@@ -53,38 +60,34 @@ const useSecurityManagement = () => {
     }
   }, [authState.isAuthenticated, isRefreshing]);
 
-  // Initial data load
+  // Initial data load when component mounts
   useEffect(() => {
+    // Only fetch when authenticated and not already loading
     if (authState.isAuthenticated && !isRefreshing) {
+      console.log("Initial data load");
       setIsLoading(true);
       fetchData();
     }
   }, [authState.isAuthenticated, fetchData]);
 
-  // Fetch ONLY dashboard users - this is completely separate from regular users
-  const fetchDashboardUsers = async (): Promise<DashboardUser[]> => {
+  // Fetch dashboard users
+  const fetchDashboardUsers = async () => {
     try {
-      console.log("Fetching exclusively from dashboard_users table");
-      
-      // ONLY query the dashboard_users table, never query from employees table
+      console.log("Fetching dashboard users...");
       const { data, error } = await supabase
         .from('dashboard_users')
         .select('*')
         .order('name');
       
       if (error) {
-        throw new Error(`Failed to fetch dashboard users: ${error.message}`);
+        console.error("Error fetching dashboard users:", error);
+        throw new Error("Failed to fetch dashboard users");
       }
       
-      console.log(`Retrieved ${data?.length || 0} dashboard users from dashboard_users table`);
-      
-      if (!Array.isArray(data)) {
-        return [];
-      }
-      
-      return data as DashboardUser[];
+      console.log("Dashboard users fetched:", data?.length || 0);
+      return data;
     } catch (error) {
-      console.error("Error in fetchDashboardUsers:", error);
+      console.error("Error:", error);
       throw error;
     }
   };
@@ -99,12 +102,13 @@ const useSecurityManagement = () => {
         .limit(50);
       
       if (error) {
-        throw new Error(`Failed to fetch audit logs: ${error.message}`);
+        console.error("Error fetching audit logs:", error);
+        throw new Error("Failed to fetch audit logs");
       }
       
       return data;
     } catch (error) {
-      console.error("Error in fetchAuditLogs:", error);
+      console.error("Error:", error);
       throw error;
     }
   };
@@ -121,12 +125,14 @@ const useSecurityManagement = () => {
     }).format(date);
   };
 
-  // Refresh all data
+  // Refresh all data - with debounce protection
   const refreshData = async () => {
     if (isRefreshing) {
+      console.log("Already refreshing data, skipping duplicate refresh request");
       return;
     }
     
+    console.log("Manual refresh requested");
     setIsLoading(true);
     await fetchData();
     

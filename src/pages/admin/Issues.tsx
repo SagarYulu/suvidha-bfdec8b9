@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext"; 
+import { useAuth } from "@/contexts/AuthContext"; // Import auth context
 import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; 
+import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; // Import from correct path
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,11 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, UserCheck } from "lucide-react";
+import { Search, Eye } from "lucide-react";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
-  const { authState } = useAuth(); 
+  const { authState } = useAuth(); // Add auth context
   const [issues, setIssues] = useState<Issue[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -44,17 +43,9 @@ const AdminIssues = () => {
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
         
-        // Collect all employee UUIDs including assignees
-        const employeeUuids = new Set<string>();
-        fetchedIssues.forEach(issue => {
-          employeeUuids.add(issue.employeeUuid);
-          if (issue.assignedTo) {
-            employeeUuids.add(issue.assignedTo);
-          }
-        });
-        
-        // Use the utility to map employee UUIDs to names
-        const names = await mapEmployeeUuidsToNames(Array.from(employeeUuids));
+        // Use the new utility to map employee UUIDs to names
+        const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid);
+        const names = await mapEmployeeUuidsToNames(employeeUuids);
         
         // Add current admin user to the names list for future comments
         if (authState.user && authState.user.id) {
@@ -86,14 +77,12 @@ const AdminIssues = () => {
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
         const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
-        const assigneeName = (issue.assignedTo && userNames[issue.assignedTo]?.toLowerCase()) || "";
         
         return (
           typeLabel.includes(searchLower) ||
           subTypeLabel.includes(searchLower) ||
           description.includes(searchLower) ||
           userName.includes(searchLower) ||
-          assigneeName.includes(searchLower) ||
           issue.id.includes(searchLower)
         );
       });
@@ -186,8 +175,8 @@ const AdminIssues = () => {
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
-                  <TableHead>Assigned To</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -221,17 +210,8 @@ const AdminIssues = () => {
                         {issue.priority}
                       </span>
                     </TableCell>
-                    <TableCell>
-                      {issue.assignedTo ? (
-                        <div className="flex items-center text-blue-800">
-                          <UserCheck className="h-3 w-3 mr-1 text-blue-600" />
-                          {userNames[issue.assignedTo] || "Unknown"}
-                        </div>
-                      ) : (
-                        <span className="text-gray-500 text-sm">Unassigned</span>
-                      )}
-                    </TableCell>
                     <TableCell>{formatDate(issue.createdAt)}</TableCell>
+                    <TableCell>{formatDate(issue.updatedAt)}</TableCell>
                     <TableCell>
                       <Button 
                         variant="ghost" 

@@ -1,312 +1,247 @@
-import { supabase } from "@/integrations/supabase/client";
-import { Issue } from "@/types";
-import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 
-export async function getIssueById(id: string): Promise<Issue | null> {
+import { Issue } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
+import { getCommentsForIssue } from "./issueCommentService";
+import { logAuditTrail } from "./issueAuditService";
+
+// Initialize service - existing code...
+const initializeService = () => {
+  console.log("Issue core service initialized");
+};
+initializeService();
+
+// Helper function to process issues with their comments - existing code...
+export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
+  // If no issues found, return empty array
+  if (!dbIssues || dbIssues.length === 0) {
+    return [];
+  }
+  
+  // Get all comments for these issues
+  const issueIds = dbIssues.map(issue => issue.id);
+  let commentsByIssueId: Record<string, any[]> = {};
+  
+  if (issueIds.length > 0) {
+    const { data: dbComments, error: commentsError } = await supabase
+      .from('issue_comments')
+      .select('*')
+      .in('issue_id', issueIds)
+      .order('created_at', { ascending: true });
+    
+    if (commentsError) {
+      console.error('Error fetching comments:', commentsError);
+    }
+    
+    // Group comments by issue_id
+    if (dbComments) {
+      dbComments.forEach(comment => {
+        const issueId = comment.issue_id;
+        if (!commentsByIssueId[issueId]) {
+          commentsByIssueId[issueId] = [];
+        }
+        
+        commentsByIssueId[issueId].push({
+          id: comment.id,
+          employeeUuid: comment.employee_uuid,
+          content: comment.content,
+          createdAt: comment.created_at
+        });
+      });
+    }
+  }
+  
+  // Map database issues to app Issue type with comments
+  const issues = dbIssues.map(dbIssue => 
+    mapDbIssueToAppIssue(dbIssue, commentsByIssueId[dbIssue.id] || [])
+  );
+  
+  return issues;
+}
+
+export const getIssueById = async (id: string): Promise<Issue | undefined> => {
   try {
-    const { data: issue, error } = await supabase
+    // Get the issue from the database
+    const { data: dbIssue, error } = await supabase
       .from('issues')
       .select('*')
       .eq('id', id)
       .single();
     
     if (error) {
-      console.error("Error fetching issue:", error);
-      return null;
+      console.error('Error fetching issue by ID:', error);
+      return undefined;
     }
     
-    // Fetch comments for this issue
-    const { data: comments } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .eq('issue_id', id)
-      .order('created_at', { ascending: true });
+    // Get comments for this issue
+    const comments = await getCommentsForIssue(id);
     
-    return mapDbIssueToAppIssue(issue, comments || []);
+    // Map database issue to app Issue type
+    return mapDbIssueToAppIssue(dbIssue, comments);
   } catch (error) {
-    console.error("Error in getIssueById:", error);
-    return null;
+    console.error('Error in getIssueById:', error);
+    return undefined;
   }
-}
+};
 
-export async function getIssuesByUserId(userId: string): Promise<Issue[]> {
+export const getIssuesByUserId = async (employeeUuid: string): Promise<Issue[]> => {
   try {
-    const { data: issues, error } = await supabase
+    // Get user issues from the database
+    const { data: dbIssues, error } = await supabase
       .from('issues')
       .select('*')
-      .eq('employee_uuid', userId)
+      .eq('employee_uuid', employeeUuid)
       .order('created_at', { ascending: false });
     
     if (error) {
-      console.error("Error fetching user issues:", error);
+      console.error('Error fetching user issues:', error);
       return [];
     }
     
-    // For each issue, fetch its comments
-    const issuesWithComments = await Promise.all(
-      issues.map(async (issue) => {
-        const { data: comments } = await supabase
-          .from('issue_comments')
-          .select('*')
-          .eq('issue_id', issue.id)
-          .order('created_at', { ascending: true });
-        
-        return mapDbIssueToAppIssue(issue, comments || []);
-      })
-    );
-    
-    return issuesWithComments;
+    // Process issues with comments and return
+    return await processIssues(dbIssues);
   } catch (error) {
-    console.error("Error in getIssuesByUserId:", error);
+    console.error('Error in getIssuesByUserId:', error);
     return [];
   }
-}
+};
 
-// Process issues function for filtering and sorting issues
-export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
+export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updatedAt' | 'comments'>): Promise<Issue> => {
   try {
-    // Process each issue to include its comments
-    const processedIssues = await Promise.all(
-      dbIssues.map(async (issue) => {
-        const { data: comments } = await supabase
-          .from('issue_comments')
-          .select('*')
-          .eq('issue_id', issue.id)
-          .order('created_at', { ascending: true });
-        
-        return mapDbIssueToAppIssue(issue, comments || []);
-      })
-    );
+    // Generate a UUID for the new issue
+    const newIssueId = generateUUID();
     
-    return processedIssues;
-  } catch (error) {
-    console.error("Error processing issues:", error);
-    return [];
-  }
-}
-
-export async function createIssue(issueData: any): Promise<Issue | null> {
-  try {
-    // Generate a UUID for the issue using the utility function
-    const id = generateUUID();
-    
-    // Using the correct format for Supabase insert - single object
-    const { data, error } = await supabase
+    // Insert issue into the database with the generated ID
+    const { data: dbIssue, error } = await supabase
       .from('issues')
       .insert({
-        id: id,
-        employee_uuid: issueData.employeeUuid,
-        type_id: issueData.typeId,
-        sub_type_id: issueData.subTypeId,
-        description: issueData.description,
-        status: 'open',
-        priority: issueData.priority || 'medium',
+        id: newIssueId,
+        employee_uuid: issue.employeeUuid,
+        type_id: issue.typeId,
+        sub_type_id: issue.subTypeId,
+        description: issue.description,
+        status: issue.status,
+        priority: issue.priority,
+        assigned_to: issue.assignedTo
       })
       .select()
       .single();
     
     if (error) {
-      console.error("Error creating issue:", error);
-      return null;
+      console.error('Error creating issue:', error);
+      throw error;
     }
     
-    return mapDbIssueToAppIssue(data);
-  } catch (error) {
-    console.error("Error in createIssue:", error);
-    return null;
-  }
-}
-
-export async function updateIssueStatus(
-  issueId: string, 
-  newStatus: Issue["status"],
-  adminId?: string
-): Promise<Issue | null> {
-  try {
-    // Get current date
-    const now = new Date().toISOString();
+    // Log audit trail
+    await logAuditTrail(
+      dbIssue.id,
+      issue.employeeUuid,
+      'issue_created',
+      undefined,
+      dbIssue.status,
+      { issue_type: issue.typeId, priority: issue.priority }
+    );
     
-    // Prepare update data
+    // Return the created issue in app Issue format
+    return mapDbIssueToAppIssue(dbIssue, []);
+  } catch (error) {
+    console.error('Error in createIssue:', error);
+    throw error;
+  }
+};
+
+export const updateIssueStatus = async (id: string, status: Issue['status'], userId?: string): Promise<Issue | undefined> => {
+  try {
+    console.log(`Updating issue status. Issue ID: ${id}, New Status: ${status}, Provided UserID: ${userId || 'not provided'}`);
+    
+    if (!id) {
+      console.error('Error: Issue ID is required for status update');
+      return undefined;
+    }
+    
+    // First get the current issue to capture previous status
+    const { data: currentIssue, error: fetchError } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching current issue:', fetchError);
+      return undefined;
+    }
+    
+    const previousStatus = currentIssue.status;
+    const now = new Date().toISOString();
     const updateData: any = {
-      status: newStatus,
-      updated_at: now,
+      status,
+      updated_at: now
     };
     
-    // If status is "closed", set closed_at timestamp
-    if (newStatus === "closed") {
+    // If status is 'closed', update the closed_at timestamp
+    if (status === 'closed') {
       updateData.closed_at = now;
     }
     
-    // Update the issue
-    const { data: updatedIssue, error } = await supabase
+    // Update the issue in the database
+    const { data: dbIssue, error } = await supabase
       .from('issues')
       .update(updateData)
-      .eq('id', issueId)
+      .eq('id', id)
       .select()
       .single();
     
     if (error) {
-      console.error("Error updating issue status:", error);
-      return null;
+      console.error('Error updating issue status:', error);
+      return undefined;
     }
     
-    // If admin ID is provided, add a comment about status change
-    if (adminId) {
-      const statusMap: Record<string, string> = {
-        open: "Open",
-        in_progress: "In Progress",
-        resolved: "Resolved",
-        closed: "Closed"
-      };
+    // Determine the correct user identifier for the audit log
+    let validUserIdentifier: string;
+    
+    // Check if the provided userId needs verification
+    if (!userId || 
+        userId === 'system' || 
+        userId === 'admin-fallback' || 
+        userId === 'security-user-1') {
       
-      try {
-        await supabase
-          .from('issue_comments')
-          .insert([{
-            issue_id: issueId,
-            employee_uuid: adminId,
-            content: `Status changed to: ${statusMap[newStatus] || newStatus}`,
-            system_generated: true,
-            created_at: now
-          }]);
-      } catch (commentError) {
-        console.error("Error adding status comment:", commentError);
+      console.log('Provided user ID needs verification:', userId);
+      
+      // Get current authenticated user directly from session
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      
+      if (session?.user?.id) {
+        validUserIdentifier = session.user.id;
+        console.log('Found authenticated user in session:', validUserIdentifier);
+      } else {
+        console.warn('No authenticated user found in session, using fallback');
+        validUserIdentifier = userId || 'system-fallback';
       }
+    } else {
+      // The provided userId appears valid
+      validUserIdentifier = userId;
     }
     
-    // Fetch comments for this issue to return complete data
-    const { data: comments } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .eq('issue_id', issueId)
-      .order('created_at', { ascending: true });
+    console.log('Final user identifier for audit trail:', validUserIdentifier);
     
-    return mapDbIssueToAppIssue(updatedIssue, comments || []);
-  } catch (error) {
-    console.error("Error in updateIssueStatus:", error);
-    return null;
-  }
-}
-
-// Update the assignIssueToUser function to handle notifications
-export async function assignIssueToUser(
-  issueId: string, 
-  assigneeId: string,
-  adminId?: string
-): Promise<Issue | null> {
-  try {
-    // Get current date
-    const now = new Date().toISOString();
-    
-    // Prepare update data - handle "unassigned" special case
-    const updateData: any = {
-      assigned_to: assigneeId === "unassigned" ? null : assigneeId,
-      updated_at: now,
-    };
-    
-    // Update the issue
-    const { data: updatedIssue, error } = await supabase
-      .from('issues')
-      .update(updateData)
-      .eq('id', issueId)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Error assigning issue:", error);
-      return null;
-    }
-    
-    // Add a system comment about the assignment change
-    if (adminId) {
-      try {
-        const commentContent = assigneeId === "unassigned" 
-          ? "Issue unassigned" 
-          : `Issue assigned to ${assigneeId}`;
-          
-        await supabase
-          .from('issue_comments')
-          .insert([{
-            issue_id: issueId,
-            employee_uuid: adminId,
-            content: commentContent,
-            system_generated: true,
-            created_at: now
-          }]);
-      } catch (commentError) {
-        console.error("Error adding assignment comment:", commentError);
-      }
-    }
-    
-    // Create notification for assignee
-    if (assigneeId !== "unassigned") {
-      try {
-        // Get issue details to include in notification
-        const { data: issue } = await supabase
-          .from('issues')
-          .select('type_id, sub_type_id, id')
-          .eq('id', issueId)
-          .single();
-          
-        // Add notification record
-        await supabase
-          .from('issue_notifications')
-          .insert([{
-            user_id: assigneeId,
-            issue_id: issueId,
-            content: `You've been assigned a new issue: ${issue?.type_id || 'Unknown'} - ${issue?.sub_type_id || 'Unknown'}`,
-            is_read: false,
-            created_at: now
-          }]);
-      } catch (notificationError) {
-        console.error("Error creating assignment notification:", notificationError);
-      }
-    }
-    
-    // Fetch comments for this issue to return complete data
-    const { data: comments } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .eq('issue_id', issueId)
-      .order('created_at', { ascending: true });
-    
-    return mapDbIssueToAppIssue(updatedIssue, comments || []);
-  } catch (error) {
-    console.error("Error in assignIssueToUser:", error);
-    return null;
-  }
-}
-
-// New function to get assigned issues for a specific user
-export async function getAssignedIssuesByUserId(userId: string): Promise<Issue[]> {
-  try {
-    const { data: issues, error } = await supabase
-      .from('issues')
-      .select('*')
-      .eq('assigned_to', userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching assigned issues:", error);
-      return [];
-    }
-    
-    // For each issue, fetch its comments
-    const issuesWithComments = await Promise.all(
-      issues.map(async (issue) => {
-        const { data: comments } = await supabase
-          .from('issue_comments')
-          .select('*')
-          .eq('issue_id', issue.id)
-          .order('created_at', { ascending: true });
-        
-        return mapDbIssueToAppIssue(issue, comments || []);
-      })
+    // Log audit trail for status change with the validated user ID
+    await logAuditTrail(
+      id,
+      validUserIdentifier, 
+      'status_changed',
+      previousStatus,
+      status,
+      { timestamp: now }
     );
     
-    return issuesWithComments;
+    // Get comments for this issue to return complete issue
+    const comments = await getCommentsForIssue(id);
+    
+    // Map database issue to app Issue type and include comments
+    return mapDbIssueToAppIssue(dbIssue, comments);
   } catch (error) {
-    console.error("Error in getAssignedIssuesByUserId:", error);
-    return [];
+    console.error('Error in updateIssueStatus:', error);
+    return undefined;
   }
-}
+};

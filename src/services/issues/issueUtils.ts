@@ -1,163 +1,88 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { v4 as uuidv4 } from 'uuid';
+import { Issue } from "@/types";
 
-export function generateUUID(): string {
-  return uuidv4();
-}
+/**
+ * Issue utility functions - helpers for processing issue data
+ */
 
-export function mapDbIssueToAppIssue(dbIssue: any, comments: any[] = []): any {
+// Function to generate a UUID
+export const generateUUID = (): string => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
+// Function to map database issue to app Issue type
+export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
   return {
     id: dbIssue.id,
     employeeUuid: dbIssue.employee_uuid,
     typeId: dbIssue.type_id,
     subTypeId: dbIssue.sub_type_id,
     description: dbIssue.description,
-    status: dbIssue.status,
-    priority: dbIssue.priority,
+    status: dbIssue.status as Issue["status"],
+    priority: dbIssue.priority as Issue["priority"],
     createdAt: dbIssue.created_at,
     updatedAt: dbIssue.updated_at,
     closedAt: dbIssue.closed_at,
     assignedTo: dbIssue.assigned_to,
-    comments: comments || []
+    comments: comments
   };
-}
+};
 
-export async function getEmployeeNameByUuid(employeeUuid: string): Promise<string> {
+import { getUserById } from "@/services/userService";
+
+// Cache for user names to reduce duplicate API calls
+const userNameCache: Record<string, string> = {};
+
+/**
+ * Gets the employee name from their UUID
+ * Provides caching to reduce API calls
+ */
+export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<string> => {
+  // Return from cache if available
+  if (userNameCache[employeeUuid]) {
+    return userNameCache[employeeUuid];
+  }
+  
+  // Special case for known system IDs
+  if (employeeUuid === "1") {
+    userNameCache[employeeUuid] = "Admin";
+    return "Admin";
+  }
+  
+  // Handle security-user IDs - including when they have numbers after
+  if (employeeUuid.startsWith("security-user")) {
+    userNameCache[employeeUuid] = "Security Team";
+    return "Security Team";
+  }
+  
   try {
-    if (!employeeUuid) {
-      return "Unassigned";
+    const user = await getUserById(employeeUuid);
+    if (user) {
+      // Store in cache for future use
+      userNameCache[employeeUuid] = user.name;
+      return user.name;
     }
-
-    // First try employees table
-    let { data: employee } = await supabase
-      .from('employees')
-      .select('name')
-      .eq('id', employeeUuid)
-      .single();
-
-    if (employee?.name) {
-      return employee.name;
-    }
-
-    // If not found in employees, try dashboard_users
-    const { data: dashboardUser } = await supabase
-      .from('dashboard_users')
-      .select('name')
-      .eq('id', employeeUuid)
-      .single();
-
-    if (dashboardUser?.name) {
-      return dashboardUser.name;
-    }
-
-    // If still not found, return a fallback
-    return "Unknown User";
   } catch (error) {
-    console.error("Error fetching employee name:", error);
-    return "Unknown User";
+    console.error(`Error fetching user name for UUID ${employeeUuid}:`, error);
   }
-}
+  
+  // Fallback if user not found
+  return "Unknown Employee";
+};
 
-export async function mapEmployeeUuidsToNames(employeeUuids: string[]): Promise<Record<string, string>> {
-  if (!employeeUuids || employeeUuids.length === 0) {
-    return {};
-  }
-
-  try {
-    // Get unique user IDs
-    const uniqueUuids = [...new Set(employeeUuids)];
-    
-    // Query employees table
-    const { data: employees } = await supabase
-      .from('employees')
-      .select('id, name')
-      .in('id', uniqueUuids);
-    
-    // Query dashboard_users table for any remaining IDs
-    const foundEmployeeUuids = employees?.map(emp => emp.id) || [];
-    const remainingUuids = uniqueUuids.filter(uuid => !foundEmployeeUuids.includes(uuid));
-    
-    let dashboardUsers = [];
-    if (remainingUuids.length > 0) {
-      const { data: users } = await supabase
-        .from('dashboard_users')
-        .select('id, name')
-        .in('id', remainingUuids);
-      
-      dashboardUsers = users || [];
-    }
-    
-    // Combine results into a single mapping object
-    const nameMap: Record<string, string> = {};
-    
-    if (employees) {
-      employees.forEach(emp => {
-        nameMap[emp.id] = emp.name;
-      });
-    }
-    
-    if (dashboardUsers.length > 0) {
-      dashboardUsers.forEach(user => {
-        nameMap[user.id] = user.name;
-      });
-    }
-    
-    // Add admin/fallback entries used in the app
-    if (uniqueUuids.includes('1')) nameMap['1'] = 'Admin';
-    if (uniqueUuids.includes('admin-fallback')) nameMap['admin-fallback'] = 'Admin';
-    if (uniqueUuids.includes('system')) nameMap['system'] = 'System';
-    if (uniqueUuids.includes('system-fallback')) nameMap['system-fallback'] = 'System';
-    
-    return nameMap;
-  } catch (error) {
-    console.error("Error mapping employee UUIDs to names:", error);
-    return {};
-  }
-}
-
-// Updated function to get both managers from employees table and dashboard users as potential assignees
-export async function getManagersList(): Promise<Array<{ id: string, name: string }>> {
-  try {
-    // First get all dashboard users that can be assignees
-    const { data: dashboardUsers, error: adminError } = await supabase
-      .from('dashboard_users')
-      .select('id, name, role')
-      .order('name');
-      
-    if (adminError) {
-      console.error("Error fetching dashboard users:", adminError);
-    }
-    
-    // Get managers from employees table
-    const { data: managers, error: managerError } = await supabase
-      .from('employees')
-      .select('id, name')
-      .not('manager', 'is', null)
-      .neq('manager', '');
-    
-    if (managerError) {
-      console.error("Error fetching managers:", managerError);
-    }
-    
-    // Combine both lists
-    const assignableUsers = [
-      ...(dashboardUsers || []).map(user => ({ 
-        id: user.id, 
-        name: `${user.name} (${user.role})`
-      })),
-      ...(managers || []).map(manager => ({ 
-        id: manager.id, 
-        name: manager.name
-      }))
-    ];
-    
-    // Sort by name
-    assignableUsers.sort((a, b) => a.name.localeCompare(b.name));
-    
-    return assignableUsers;
-  } catch (error) {
-    console.error("Error getting managers list:", error);
-    return [];
-  }
-}
+/**
+ * Maps employee UUIDs to names in a batch for better performance
+ */
+export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
+  const uniqueIds = [...new Set(employeeUuids)];
+  const result: Record<string, string> = {};
+  
+  await Promise.all(uniqueIds.map(async (uuid) => {
+    result[uuid] = await getEmployeeNameByUuid(uuid);
+  }));
+  
+  return result;
+};

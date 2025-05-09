@@ -1,15 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
-import { useAuth } from "@/contexts/AuthContext"; 
+import { useAuth } from "@/contexts/AuthContext"; // Import the auth context
 import {
   getIssueById,
   getIssueTypeLabel,
   getIssueSubTypeLabel,
   updateIssueStatus,
   addComment,
-  assignIssueToUser,
-  getEmployeeNameByUuid
 } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
@@ -34,8 +32,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Clock, Mail, MessageSquare, Phone, Send, User as UserIcon } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { DashboardUser } from "@/types/dashboardUsers";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,48 +44,7 @@ const AdminIssueDetails = () => {
   const [status, setStatus] = useState<Issue["status"]>("open");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
-  const { authState } = useAuth();
-  
-  // New state for assignment
-  const [assigneeOptions, setAssigneeOptions] = useState<Array<{ id: string, name: string }>>([]);
-  const [selectedAssigneeId, setSelectedAssigneeId] = useState<string>("");
-  const [assigneeName, setAssigneeName] = useState<string>("Unassigned");
-  const [isAssigning, setIsAssigning] = useState(false);
-
-  // Function to fetch dashboard users as assignee options
-  const fetchDashboardUsers = async () => {
-    try {
-      // Fetch dashboard users that have manager roles
-      const { data: dashboardUsers, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        throw error;
-      }
-
-      // Filter users to include only those with manager/admin related roles
-      const managerRoles = ["City Head", "Revenue and Ops Head", "CRM", "Cluster Head", "Super Admin"];
-      
-      const managers = (dashboardUsers || [])
-        .filter(user => managerRoles.includes(user.role))
-        .map(user => ({
-          id: user.id,
-          name: user.name
-        }));
-
-      setAssigneeOptions(managers);
-      
-    } catch (error) {
-      console.error("Error fetching dashboard users:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load assignee options",
-        variant: "destructive",
-      });
-    }
-  };
+  const { authState } = useAuth(); // Use the auth context hook
 
   useEffect(() => {
     const fetchIssueAndEmployee = async () => {
@@ -110,19 +65,6 @@ const AdminIssueDetails = () => {
         
         setIssue(issueData);
         setStatus(issueData.status);
-        
-        // Set selected assignee if it exists
-        if (issueData.assignedTo) {
-          setSelectedAssigneeId(issueData.assignedTo);
-          
-          // Fetch assignee name
-          try {
-            const name = await getEmployeeNameByUuid(issueData.assignedTo);
-            setAssigneeName(name);
-          } catch (error) {
-            console.error("Error fetching assignee name:", error);
-          }
-        }
         
         // Fetch employee
         try {
@@ -155,10 +97,6 @@ const AdminIssueDetails = () => {
         });
         
         setCommenterNames(names);
-        
-        // Fetch dashboard users as potential assignees
-        await fetchDashboardUsers();
-        
       } catch (error) {
         console.error("Error fetching issue details:", error);
         toast({
@@ -206,52 +144,6 @@ const AdminIssueDetails = () => {
       });
     } finally {
       setIsUpdatingStatus(false);
-    }
-  };
-
-  // Updated handler for issue assignment
-  const handleAssigneeChange = async (assigneeId: string) => {
-    if (!id || (issue?.assignedTo === assigneeId)) return;
-    
-    setIsAssigning(true);
-    setSelectedAssigneeId(assigneeId);
-    
-    try {
-      // Get the current admin user UUID from authState
-      const adminUuid = authState.user?.id;
-      
-      const updatedIssue = await assignIssueToUser(id, assigneeId, adminUuid);
-      if (updatedIssue) {
-        setIssue(updatedIssue);
-        
-        // Get assignee name from options
-        if (assigneeId === "unassigned") {
-          setAssigneeName("Unassigned");
-        } else {
-          const assignee = assigneeOptions.find(option => option.id === assigneeId);
-          if (assignee) {
-            setAssigneeName(assignee.name);
-          } else {
-            // If not found in options, fetch directly
-            const name = await getEmployeeNameByUuid(assigneeId);
-            setAssigneeName(name);
-          }
-        }
-        
-        toast({
-          title: "Success",
-          description: "Issue assigned successfully",
-        });
-      }
-    } catch (error) {
-      console.error("Error assigning issue:", error);
-      toast({
-        title: "Error",
-        description: "Failed to assign issue",
-        variant: "destructive",
-      });
-    } finally {
-      setIsAssigning(false);
     }
   };
 
@@ -579,48 +471,6 @@ const AdminIssueDetails = () => {
                 ) : (
                   <p className="text-gray-500">Employee information not available</p>
                 )}
-              </CardContent>
-            </Card>
-            
-            {/* Updated issue assignment card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Issue Assignment</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1">Currently Assigned To:</p>
-                    <p className="font-medium">{assigneeName}</p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-500">Assign Issue To:</p>
-                    <Select
-                      value={selectedAssigneeId}
-                      onValueChange={handleAssigneeChange}
-                      disabled={isAssigning}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select assignee" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {assigneeOptions.map(option => (
-                          <SelectItem key={option.id} value={option.id}>
-                            {option.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    
-                    {isAssigning && (
-                      <div className="flex justify-center mt-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yulu-blue"></div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </CardContent>
             </Card>
             
