@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue } from "@/types";
@@ -44,11 +45,11 @@ export const useAdminIssue = (issueId?: string) => {
         const issueData = await getIssueById(issueId);
         if (issueData) {
           // Update the issue priority on load
-          await updateIssuePriority(issueData);
-          // Fetch the updated issue with the recalculated priority
-          const updatedIssue = await getIssueById(issueId);
-          setIssue(updatedIssue);
-          setStatus(updatedIssue.status);
+          const updatedIssueWithPriority = await updateIssuePriority(issueData);
+          // Use the updated issue with recalculated priority
+          const finalIssue = updatedIssueWithPriority || issueData;
+          setIssue(finalIssue);
+          setStatus(finalIssue.status);
           
           // Fetch employee information
           if (issueData.employeeUuid) {

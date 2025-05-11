@@ -139,45 +139,45 @@ export const determinePriority = (
     return 'low'; // Default value, but shouldn't be displayed in UI
   }
 
+  // 1. Check for specific high priority categories first (regardless of time elapsed)
+  // Health, Insurance, Advance, ESI categories are always high priority
+  const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
+  if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
+    return 'high';
+  }
+
   const now = new Date().toISOString();
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
-  // Critical priority cases
-  // 1. Not resolved/closed within 72 working hours (3 working days) - UPDATED: down from 72 to 48 hours
-  if (workingHoursElapsed > 48 && status !== 'closed') {
+  // 2. Critical priority cases
+  // Not resolved/closed within 72 working hours (3 working days)
+  if (workingHoursElapsed > 72 && status !== 'closed') {
     return 'critical';
   }
   
-  // 2. Facility issues that are still open after 24 hours should be critical
+  // 3. Facility issues that are still open after 24 hours should be critical
   if (typeId.toLowerCase().includes('facility') && workingHoursElapsed > 24) {
     return 'critical';
   }
   
-  // High priority cases
-  // 1. Ticket is "In Progress" but not closed within 12 working hours
+  // 4. High priority cases
+  // Ticket is "In Progress" but not closed within 12 working hours
   if (status === 'in_progress' && hoursSinceLastUpdate > 12) {
     return 'high';
   }
   
-  // 2. Ticket is assigned but agent has not acted within 8 hours
+  // 5. Ticket is assigned but agent has not acted within 8 hours
   if (assignedTo && hoursSinceLastUpdate > 8) {
     return 'high';
   }
   
-  // 3. Specific categories that are always high priority
-  // Health, Insurance, Advance, Medical, or Facility categories
-  const highPriorityTypes = ['health', 'insurance', 'advance', 'medical', 'facility'];
-  if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
-    return 'high';
-  }
-  
-  // Medium: No status change after 4 working hours
+  // 6. Medium: No status change after 4 working hours
   if (hoursSinceLastUpdate > 4) {
     return 'medium';
   }
   
-  // Low: Default for new or recently updated tickets
+  // 7. Low: Default for new or recently updated tickets
   return 'low';
 };
 
