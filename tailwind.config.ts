@@ -68,7 +68,9 @@ export default {
 					yellow: "#FBBF24",
 					lightblue: "#93C5FD",
 					gray: "#6B7280",
-					lightgray: "#E5E7EB"
+					lightgray: "#E5E7EB",
+					cyan: "#22d3ee",
+					"cyan-dark": "#06b6d4"
 				}
 			},
 			borderRadius: {

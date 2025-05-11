@@ -1,15 +1,17 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Label } from "@/components/ui/label";
-import { AlertCircle, TicketCheck } from "lucide-react";
+import { EyeIcon, EyeOffIcon, PhoneIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { login, logout } = useAuth();
@@ -151,74 +153,101 @@ const MobileLogin = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
-      <div className="flex-1 flex flex-col justify-center p-6">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-yulu-blue">Yulu Suvidha Management</h1>
-            <p className="text-gray-600 mt-2">Sign in to manage your tickets</p>
+    <div className="min-h-screen flex flex-col bg-cyan-100">
+      {/* Header/Banner Image */}
+      <div className="flex-1 flex items-center justify-center">
+        <div className="w-full max-w-md px-4">
+          <div 
+            className="w-full h-64 mb-8 bg-cover bg-center rounded-lg relative overflow-hidden"
+            style={{ 
+              backgroundImage: `url('/lovable-uploads/3ede46b1-32ef-4aec-a501-b8c3b488b24c.png')`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            <div className="absolute inset-0 bg-cyan-500 bg-opacity-50"></div>
           </div>
-          
-          {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-md flex items-center text-red-800">
-              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
-              <p className="text-sm">{error}</p>
-            </div>
-          )}
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email" 
-                placeholder="Your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full"
-              />
-            </div>
+
+          {/* Login Form */}
+          <div className="bg-white rounded-t-3xl px-6 pt-6 pb-8 shadow-lg -mt-12 relative z-10">
+            <h1 className="text-2xl font-bold text-center text-cyan-700 mb-6">
+              Yulu Suvidha
+            </h1>
             
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full"
-              />
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-md text-red-800 text-sm">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <PhoneIcon className="h-5 w-5 text-cyan-500" />
+                </div>
+                <Input
+                  type="email"
+                  placeholder="Email ID"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 text-base py-3"
+                />
+              </div>
+
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="pr-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 text-base py-3"
+                />
+                <button 
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3"
+                >
+                  {showPassword ? (
+                    <EyeOffIcon className="h-5 w-5 text-gray-500" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-500" />
+                  )}
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                className={cn(
+                  "w-full py-6 text-lg font-medium rounded-full",
+                  "bg-cyan-500 hover:bg-cyan-600 text-white"
+                )}
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : "Log in"}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-500 mb-2">
+                For employee login, use your employee email and password
+              </p>
+              <div className="flex justify-center space-x-4 mt-4">
+                <a href="/" className="text-cyan-600 hover:underline text-sm">
+                  Back to Home
+                </a>
+                <span className="text-gray-300">|</span>
+                <a href="/admin/login" className="text-cyan-600 hover:underline text-sm">
+                  Admin Login
+                </a>
+              </div>
             </div>
-            
-            <Button 
-              type="submit"
-              className="w-full bg-yulu-blue hover:bg-blue-700"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-          
-          <div className="mt-6 text-center text-sm text-gray-500">
-            <p>For employee login, use your employee email and password</p>
-            <div className="flex items-center justify-center mt-4 text-yulu-blue">
-              <TicketCheck className="h-4 w-4 mr-1" />
-              <span>Raise and track tickets easily</span>
-            </div>
-            <p className="mt-2">
-              <a href="/" className="text-yulu-blue hover:underline">
-                Back to Home
-              </a>
-            </p>
-            <p className="mt-2">
-              <a href="/admin/login" className="text-yulu-blue hover:underline">
-                Go to Admin Dashboard Login
-              </a>
-            </p>
           </div>
         </div>
       </div>

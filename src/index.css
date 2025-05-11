@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -49,6 +50,9 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    
+    --yulu-cyan: 187 92% 69%;
+    --yulu-cyan-dark: 187 92% 59%;
   }
 
   .dark {
@@ -97,5 +101,20 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Mobile specific styles */
+@media (max-width: 768px) {
+  .mobile-input {
+    @apply border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0;
+  }
+  
+  .mobile-button {
+    @apply rounded-full py-3;
+  }
+  
+  .mobile-card {
+    @apply rounded-t-3xl px-6 pt-6 pb-8;
   }
 }

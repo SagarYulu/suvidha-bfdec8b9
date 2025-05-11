@@ -15,7 +15,7 @@ const MobileHeader: React.FC<BaseHeaderProps> = ({
   title, 
   userName, 
   className,
-  bgColor = "bg-yulu-blue",
+  bgColor = "bg-cyan-500",
   textColor = "text-white",
   children
 }) => {
