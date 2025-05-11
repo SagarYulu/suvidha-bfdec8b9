@@ -15,7 +15,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onLogoutClick,
 }) => {
   return (
-    <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full shadow-lg">
+    <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full shadow-lg rounded-t-2xl">
       <div className="flex justify-around">
         <button 
           onClick={onHomeClick}

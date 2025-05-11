@@ -117,4 +117,12 @@
   .mobile-card {
     @apply rounded-t-3xl px-6 pt-6 pb-8;
   }
+  
+  .mobile-header {
+    @apply rounded-b-2xl shadow-md;
+  }
+  
+  .mobile-bottom-nav {
+    @apply rounded-t-2xl shadow-lg;
+  }
 }

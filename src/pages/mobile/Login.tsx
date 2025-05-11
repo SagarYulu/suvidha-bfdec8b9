@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { EyeIcon, EyeOffIcon, PhoneIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, MailIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MobileLogin = () => {
@@ -158,29 +158,29 @@ const MobileLogin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-cyan-100">
-      {/* Header/Banner Image */}
-      <div className="flex-1 flex items-center justify-center">
-        <div className="w-full max-w-md px-4">
-          <div 
-            className="w-full h-64 mb-8 bg-cover bg-center rounded-lg relative overflow-hidden"
-            style={{ 
-              backgroundImage: `url('/lovable-uploads/3ede46b1-32ef-4aec-a501-b8c3b488b24c.png')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center'
-            }}
-          >
-            <div className="absolute inset-0 bg-cyan-500 bg-opacity-50"></div>
-          </div>
+    <div className="min-h-screen bg-cyan-50">
+      {/* Background Image with Overlay */}
+      <div 
+        className="h-[40vh] bg-cover bg-center"
+        style={{ 
+          backgroundImage: `url('/lovable-uploads/194b849c-4161-4c05-be3f-a6f688311efa.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      >
+        <div className="absolute inset-0 bg-cyan-500 bg-opacity-60 h-[40vh]"></div>
+      </div>
 
-          {/* Login Form */}
-          <div className="bg-white rounded-t-3xl px-6 pt-6 pb-8 shadow-lg -mt-12 relative z-10">
-            <h1 className="text-2xl font-bold text-center text-cyan-700 mb-6">
+      {/* Login Form Card */}
+      <div className="relative px-6 -mt-10">
+        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+          <div className="px-6 py-8">
+            <h1 className="text-2xl font-bold text-center text-cyan-700 mb-8">
               Yulu Suvidha
             </h1>
             
             {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-md text-red-800 text-sm">
+              <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-800 text-sm">
                 {error}
               </div>
             )}
@@ -188,7 +188,7 @@ const MobileLogin = () => {
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <PhoneIcon className="h-5 w-5 text-cyan-500" />
+                  <MailIcon className="h-5 w-5 text-cyan-500" />
                 </div>
                 <Input
                   type="email"
@@ -234,11 +234,11 @@ const MobileLogin = () => {
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-gray-500 mb-2">
+            <div className="mt-8 text-center">
+              <p className="text-sm text-gray-500 mb-4">
                 For employee login, use your employee email and password
               </p>
-              <div className="flex justify-center space-x-4 mt-4">
+              <div className="flex justify-center space-x-4 pt-2">
                 <a href="/" className="text-cyan-600 hover:underline text-sm">
                   Back to Home
                 </a>
