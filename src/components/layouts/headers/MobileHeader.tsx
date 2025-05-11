@@ -15,12 +15,12 @@ const MobileHeader: React.FC<BaseHeaderProps> = ({
   title, 
   userName, 
   className,
-  bgColor = "bg-[#00B6CB]",
+  bgColor = "bg-[#00CEDE]",
   textColor = "text-white",
   children
 }) => {
   return (
-    <div className={cn(`${bgColor} ${textColor} p-5 shadow-md rounded-b-[25px]`, className)}>
+    <div className={cn(`${bgColor} ${textColor} p-5 shadow-md`, className)}>
       <h1 className="text-xl font-semibold">{title}</h1>
       {userName && <p className="text-sm opacity-75">Hello, {userName}</p>}
       {children}

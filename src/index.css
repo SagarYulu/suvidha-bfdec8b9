@@ -53,6 +53,10 @@
     
     --yulu-cyan: 187 92% 69%;
     --yulu-cyan-dark: 187 92% 59%;
+    
+    /* Adding custom Yulu colors based on reference */
+    --yulu-teal: 182 100% 44%;
+    --yulu-teal-light: 182 100% 94%;
   }
 
   .dark {
@@ -115,14 +119,28 @@
   }
   
   .mobile-card {
-    @apply rounded-[25px] px-6 pt-6 pb-8 shadow-lg;
+    @apply rounded-3xl px-6 pt-6 pb-8 shadow-lg;
   }
   
   .mobile-header {
-    @apply rounded-b-[25px] shadow-md;
+    @apply shadow-md;
   }
   
   .mobile-bottom-nav {
-    @apply rounded-t-[25px] shadow-lg;
+    @apply shadow-lg;
+  }
+  
+  /* Custom scrollbar for mobile */
+  .mobile-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  .mobile-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .mobile-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
   }
 }
