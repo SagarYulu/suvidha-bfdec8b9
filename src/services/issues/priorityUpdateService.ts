@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -145,7 +146,7 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
     // Initial update
     updateAllIssuePriorities();
     
-    // Set interval for periodic updates
+    // Set interval for periodic updates - using a shorter interval for more timely updates
     const intervalId = setInterval(() => {
       updateAllIssuePriorities();
     }, intervalMinutes * 60 * 1000);

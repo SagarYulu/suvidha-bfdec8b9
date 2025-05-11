@@ -144,8 +144,8 @@ export const determinePriority = (
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
   // Critical priority cases
-  // 1. Not resolved/closed within 72 working hours (3 working days)
-  if (workingHoursElapsed > 72 && status !== 'closed') {
+  // 1. Not resolved/closed within 72 working hours (3 working days) - UPDATED: down from 72 to 48 hours
+  if (workingHoursElapsed > 48 && status !== 'closed') {
     return 'critical';
   }
   

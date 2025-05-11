@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext"; 
@@ -7,7 +6,7 @@ import { getIssues } from "@/services/issues/issueFilters";
 import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
-import { updateAllIssuePriorities } from "@/services/issues/priorityUpdateService";
+import { updateAllIssuePriorities, usePriorityUpdater } from "@/services/issues/priorityUpdateService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +43,9 @@ const AdminIssues = () => {
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
   const [activeTab, setActiveTab] = useState("all-issues");
+  
+  // Use the priority updater hook to periodically update priorities (every 10 minutes)
+  usePriorityUpdater(10);
 
   useEffect(() => {
     const fetchIssues = async () => {
