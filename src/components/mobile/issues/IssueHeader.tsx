@@ -53,7 +53,7 @@ const IssueHeader = ({
       
       <div className="border-t border-gray-200 pt-3">
         <h3 className="font-medium mb-2">Description:</h3>
-        <p className="text-gray-700">{issue.description}</p>
+        <p className="text-gray-700 whitespace-pre-wrap">{issue.description}</p>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import { IssueComment } from "@/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Send } from "lucide-react";
+import { FormEvent } from "react";
 
 interface CommentSectionProps {
   comments: IssueComment[];
@@ -13,7 +14,7 @@ interface CommentSectionProps {
   commenterNames: Record<string, string>;
   formatDate: (date: string) => string;
   currentUserId?: string;
-  disabled?: boolean; // Add disabled prop
+  disabled?: boolean; // Added disabled prop
 }
 
 const CommentSection = ({
@@ -27,6 +28,18 @@ const CommentSection = ({
   currentUserId,
   disabled = false // Default to false
 }: CommentSectionProps) => {
+  // Add a controlled input handler to prevent flash on backspace
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Use the event's value directly to avoid input reversal
+    setNewComment(e.target.value);
+  };
+
+  // Prevent default form submission to avoid page reloads
+  const onSubmitComment = (e: FormEvent) => {
+    e.preventDefault();
+    handleSubmitComment(e);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-4">
       <h3 className="font-semibold flex items-center mb-3">
@@ -89,11 +102,11 @@ const CommentSection = ({
         )}
       </div>
       
-      <form onSubmit={handleSubmitComment} className="flex items-end">
+      <form onSubmit={onSubmitComment} className="flex items-end">
         <div className="flex-grow mr-2">
           <Textarea
             value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Type your message here..."
             className="min-h-[60px] resize-none"
             rows={2}
@@ -103,7 +116,7 @@ const CommentSection = ({
         <Button 
           type="submit" 
           className="bg-yulu-blue hover:bg-blue-700 h-[60px] aspect-square flex items-center justify-center"
-          disabled={disabled || isSubmitting}
+          disabled={disabled || isSubmitting || !newComment.trim()}
         >
           {isSubmitting ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
