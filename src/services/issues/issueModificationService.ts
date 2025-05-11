@@ -180,9 +180,10 @@ export const createIssue = async (issueData: Partial<Issue>): Promise<Issue | nu
       return null;
     }
 
+    // Fix for TypeScript error - Use insert([data]) with array syntax
     const { data, error } = await supabase
       .from('issues')
-      .insert(dbIssueData)
+      .insert([dbIssueData])
       .select()
       .single();
 
