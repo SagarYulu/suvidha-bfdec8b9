@@ -102,10 +102,9 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       
       // Store previous closure timestamps if this is not the first time being closed
       if (currentIssue.previously_closed_at) {
-        updateData.previously_closed_at = [
-          ...(Array.isArray(currentIssue.previously_closed_at) ? currentIssue.previously_closed_at : []),
-          now
-        ];
+        // Type assertion to handle previously_closed_at as any
+        const prevClosedAt = currentIssue.previously_closed_at as string[];
+        updateData.previously_closed_at = [...prevClosedAt, now];
       } else {
         updateData.previously_closed_at = [now];
       }

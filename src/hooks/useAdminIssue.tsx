@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue } from "@/types";
 import { 
@@ -12,7 +13,7 @@ import {
 import { getUserById } from "@/services/userService";
 import { getAvailableAssignees, getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { toast } from "@/hooks/use-toast";
-import { useDialog } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export const useAdminIssue = (issueId?: string) => {
   const { authState } = useAuth();
@@ -31,8 +32,6 @@ export const useAdminIssue = (issueId?: string) => {
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
   const [reopenReason, setReopenReason] = useState<string>("");
   const [isReopeningTicket, setIsReopeningTicket] = useState(false);
-  
-  const { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } = useDialog();
   const [showReopenDialog, setShowReopenDialog] = useState(false);
 
   const currentUserId = authState.user?.id || "";

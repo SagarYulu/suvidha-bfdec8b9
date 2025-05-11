@@ -1,84 +1,72 @@
 
-import { useState } from "react";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { DashboardUser } from "@/types";
-
-interface AssigneeInfo {
-  id: string;
-  name: string;
-  role?: string;
-}
+import { User } from "@/types";
 
 interface TicketAssignmentProps {
-  availableAssignees: AssigneeInfo[];
+  availableAssignees: { value: string; label: string }[];
   currentAssigneeId: string | null;
-  currentAssigneeName: string | null;
+  currentAssigneeName: string;
   selectedAssigneeId: string;
   isAssigning: boolean;
   onAssigneeSelect: (assigneeId: string) => void;
   onAssign: () => void;
 }
 
-const TicketAssignment = ({ 
+const TicketAssignment = ({
   availableAssignees,
   currentAssigneeId,
   currentAssigneeName,
   selectedAssigneeId,
   isAssigning,
   onAssigneeSelect,
-  onAssign
+  onAssign,
 }: TicketAssignmentProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Assign Ticket</CardTitle>
-        <CardDescription>Assign this ticket to a dashboard user</CardDescription>
+        <CardTitle>Ticket Assignment</CardTitle>
       </CardHeader>
       <CardContent>
-        {availableAssignees.length > 0 ? (
-          <div className="space-y-4">
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-medium mb-1">Currently Assigned To:</h3>
+            <p className="text-gray-800">
+              {currentAssigneeName ? currentAssigneeName : "Not assigned"}
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-medium mb-1">Assign To:</h3>
             <Select
               value={selectedAssigneeId}
               onValueChange={onAssigneeSelect}
+              disabled={isAssigning}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select assignee" />
+                <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
               <SelectContent>
-                {availableAssignees.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} {user.role ? `(${user.role})` : ''}
+                {availableAssignees.map((assignee) => (
+                  <SelectItem key={assignee.value} value={assignee.value}>
+                    {assignee.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            
-            <Button 
-              onClick={onAssign}
-              className="w-full"
-              disabled={isAssigning || !selectedAssigneeId}
-            >
-              {isAssigning ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : null}
-              Assign Ticket
-            </Button>
-            
-            {currentAssigneeId && (
-              <div className="mt-4 p-3 bg-blue-50 rounded-md">
-                <p className="text-sm font-medium">Currently assigned to:</p>
-                <p className="text-blue-600">
-                  {currentAssigneeName || "Unknown user"}
-                </p>
-              </div>
-            )}
           </div>
-        ) : (
-          <p className="text-gray-500">No users available for assignment</p>
-        )}
+        </div>
       </CardContent>
+      <CardFooter className="border-t pt-4">
+        <Button
+          onClick={onAssign}
+          disabled={!selectedAssigneeId || isAssigning || selectedAssigneeId === currentAssigneeId}
+          className="w-full"
+        >
+          {isAssigning ? "Assigning..." : "Assign Ticket"}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

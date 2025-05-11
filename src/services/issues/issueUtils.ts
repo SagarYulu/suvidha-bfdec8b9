@@ -1,5 +1,6 @@
 
 import { Issue } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Issue utility functions - helpers for processing issue data
@@ -27,7 +28,10 @@ export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
     updatedAt: dbIssue.updated_at,
     closedAt: dbIssue.closed_at,
     assignedTo: dbIssue.assigned_to,
-    comments: comments
+    comments: comments,
+    lastStatusChangeAt: dbIssue.last_status_change_at,
+    reopenableUntil: dbIssue.reopenable_until,
+    previouslyClosedAt: dbIssue.previously_closed_at
   };
 };
 
@@ -85,4 +89,32 @@ export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<
   }));
   
   return result;
+};
+
+/**
+ * Get available assignees for ticket assignment
+ * Returns a formatted list for dropdown selection
+ */
+export const getAvailableAssignees = async (): Promise<{ value: string; label: string }[]> => {
+  try {
+    // Get users with admin or support roles from the database
+    const { data, error } = await supabase
+      .from('dashboard_users')
+      .select('id, name, role')
+      .in('role', ['Admin', 'Support Agent', 'HR Admin', 'Super Admin']);
+    
+    if (error) {
+      console.error('Error fetching available assignees:', error);
+      return [];
+    }
+    
+    // Map to the format needed for the dropdown
+    return (data || []).map(user => ({
+      value: user.id,
+      label: `${user.name} (${user.role})`
+    }));
+  } catch (error) {
+    console.error('Error in getAvailableAssignees:', error);
+    return [];
+  }
 };
