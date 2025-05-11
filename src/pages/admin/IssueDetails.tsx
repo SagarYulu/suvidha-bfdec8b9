@@ -26,7 +26,9 @@ const AdminIssueDetails = () => {
     status,
     isUpdatingStatus,
     commenterNames,
-    dashboardUsers,
+    availableAssignees,
+    currentAssigneeId,
+    currentAssigneeName,
     isAssigning,
     selectedAssignee,
     setSelectedAssignee,
@@ -77,13 +79,14 @@ const AdminIssueDetails = () => {
           <div className="space-y-6">
             <EmployeeInformation employee={employee} />
             
-            <TicketAssignment
-              issue={issue}
-              dashboardUsers={dashboardUsers}
+            <TicketAssignment 
+              availableAssignees={availableAssignees}
+              currentAssigneeId={currentAssigneeId}
+              currentAssigneeName={currentAssigneeName}
+              selectedAssigneeId={selectedAssignee}
               isAssigning={isAssigning}
-              handleAssignIssue={handleAssignIssue}
-              selectedAssignee={selectedAssignee}
-              setSelectedAssignee={setSelectedAssignee}
+              onAssigneeSelect={setSelectedAssignee}
+              onAssign={handleAssignIssue}
             />
             
             <IssueActivity issue={issue} />

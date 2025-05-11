@@ -13,6 +13,12 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDate, getStatusBadgeColor } from "@/utils/formatUtils";
 
+export interface AssigneeInfo {
+  id: string;
+  name: string;
+  role?: string;
+}
+
 export function useAdminIssue(id: string | undefined) {
   const [issue, setIssue] = useState<Issue | null>(null);
   const [employee, setEmployee] = useState<User | null>(null);
@@ -27,6 +33,19 @@ export function useAdminIssue(id: string | undefined) {
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
 
+  // Transform dashboard users to assignee info format
+  const availableAssignees: AssigneeInfo[] = dashboardUsers.map(user => ({
+    id: user.id,
+    name: user.name,
+    role: user.role
+  }));
+
+  // Get current assignee information
+  const currentAssignee = issue?.assignedTo ? 
+    dashboardUsers.find(u => u.id === issue.assignedTo) : null;
+  
+  const currentAssigneeName = currentAssignee?.name || null;
+  
   useEffect(() => {
     const fetchDashboardUsers = async () => {
       try {
@@ -252,7 +271,9 @@ export function useAdminIssue(id: string | undefined) {
     status,
     isUpdatingStatus,
     commenterNames,
-    dashboardUsers,
+    availableAssignees,
+    currentAssigneeId: issue?.assignedTo || null,
+    currentAssigneeName,
     isAssigning,
     selectedAssignee,
     setSelectedAssignee,
