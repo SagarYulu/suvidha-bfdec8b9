@@ -115,14 +115,14 @@
   }
   
   .mobile-card {
-    @apply rounded-t-3xl px-6 pt-6 pb-8;
+    @apply rounded-[25px] px-6 pt-6 pb-8 shadow-lg;
   }
   
   .mobile-header {
-    @apply rounded-b-2xl shadow-md;
+    @apply rounded-b-[25px] shadow-md;
   }
   
   .mobile-bottom-nav {
-    @apply rounded-t-2xl shadow-lg;
+    @apply rounded-t-[25px] shadow-lg;
   }
 }

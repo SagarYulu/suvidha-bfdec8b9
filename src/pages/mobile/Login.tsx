@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -158,75 +157,74 @@ const MobileLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cyan-50">
-      {/* Background Image with Overlay */}
-      <div 
-        className="h-[40vh] bg-cover bg-center"
-        style={{ 
-          backgroundImage: `url('/lovable-uploads/194b849c-4161-4c05-be3f-a6f688311efa.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center'
-        }}
-      >
-        <div className="absolute inset-0 bg-cyan-500 bg-opacity-60 h-[40vh]"></div>
-      </div>
+    <div className="min-h-screen bg-[#E6F8FA]">
+      {/* Full-width curved cyan background */}
+      <div className="bg-gradient-to-b from-[#00B6CB] to-[#00C7DE] h-[45vh] rounded-b-[40px] w-full"></div>
 
-      {/* Login Form Card */}
-      <div className="relative px-6 -mt-10">
-        <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
-          <div className="px-6 py-8">
-            <h1 className="text-2xl font-bold text-center text-cyan-700 mb-8">
+      {/* Card positioned over the background */}
+      <div className="relative px-6 mx-auto max-w-md -mt-28">
+        <div className="bg-white rounded-[25px] shadow-lg overflow-hidden">
+          <div className="px-8 py-10">
+            <h1 className="text-2xl font-bold text-center text-[#00B6CB] mb-8">
               Yulu Suvidha
             </h1>
             
             {error && (
-              <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-lg text-red-800 text-sm">
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
                 {error}
               </div>
             )}
 
-            <form onSubmit={handleLogin} className="space-y-6">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <MailIcon className="h-5 w-5 text-cyan-500" />
+            <form onSubmit={handleLogin} className="space-y-7">
+              {/* Email input with label */}
+              <div className="space-y-2">
+                <label className="text-gray-400 text-sm font-medium ml-1">Email ID</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <MailIcon className="h-5 w-5 text-[#00B6CB]" />
+                  </div>
+                  <Input
+                    type="email"
+                    placeholder=""
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 focus:border-[#00B6CB] text-base py-2"
+                  />
                 </div>
-                <Input
-                  type="email"
-                  placeholder="Email ID"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 text-base py-3"
-                />
               </div>
 
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="pr-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 text-base py-3"
-                />
-                <button 
-                  type="button"
-                  onClick={togglePasswordVisibility}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3"
-                >
-                  {showPassword ? (
-                    <EyeOffIcon className="h-5 w-5 text-gray-500" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-500" />
-                  )}
-                </button>
+              {/* Password input with label */}
+              <div className="space-y-2">
+                <label className="text-gray-400 text-sm font-medium ml-1">Password</label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder=""
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 focus:border-[#00B6CB] text-base py-2"
+                  />
+                  <button 
+                    type="button"
+                    onClick={togglePasswordVisibility}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5 text-gray-500" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <Button
                 type="submit"
                 className={cn(
-                  "w-full py-6 text-lg font-medium rounded-full",
-                  "bg-cyan-500 hover:bg-cyan-600 text-white"
+                  "w-full py-5 text-lg font-medium rounded-full mt-8",
+                  "bg-[#00B6CB] hover:bg-[#00A3B7] text-white"
                 )}
                 disabled={isLoading}
               >
@@ -235,15 +233,15 @@ const MobileLogin = () => {
             </form>
 
             <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500 mb-4">
+              <p className="text-sm text-gray-500 mb-5">
                 For employee login, use your employee email and password
               </p>
-              <div className="flex justify-center space-x-4 pt-2">
-                <a href="/" className="text-cyan-600 hover:underline text-sm">
+              <div className="flex justify-center space-x-6 pt-2">
+                <a href="/" className="text-[#00B6CB] hover:underline text-sm">
                   Back to Home
                 </a>
                 <span className="text-gray-300">|</span>
-                <a href="/admin/login" className="text-cyan-600 hover:underline text-sm">
+                <a href="/admin/login" className="text-[#00B6CB] hover:underline text-sm">
                   Admin Login
                 </a>
               </div>

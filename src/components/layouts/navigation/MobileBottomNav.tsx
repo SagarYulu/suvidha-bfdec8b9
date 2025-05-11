@@ -15,20 +15,20 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onLogoutClick,
 }) => {
   return (
-    <nav className="bg-white border-t border-gray-200 fixed bottom-0 w-full shadow-lg rounded-t-2xl">
+    <nav className="bg-white border-t border-gray-100 fixed bottom-0 w-full shadow-lg rounded-t-[25px]">
       <div className="flex justify-around">
         <button 
           onClick={onHomeClick}
           className="flex flex-col items-center py-3 flex-1"
         >
-          <Home className="h-5 w-5 text-cyan-600" />
+          <Home className="h-5 w-5 text-[#00B6CB]" />
           <span className="text-xs mt-1 text-gray-600">Home</span>
         </button>
         <button
           onClick={onNewIssueClick}
           className={cn(
             "flex flex-col items-center py-2 px-5 -mt-5",
-            "bg-cyan-500 rounded-full text-white shadow-lg"
+            "bg-[#00B6CB] rounded-full text-white shadow-lg"
           )}
         >
           <FilePlus className="h-6 w-6" />
@@ -38,7 +38,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
           onClick={onLogoutClick}
           className="flex flex-col items-center py-3 flex-1"
         >
-          <LogOut className="h-5 w-5 text-cyan-600" />
+          <LogOut className="h-5 w-5 text-[#00B6CB]" />
           <span className="text-xs mt-1 text-gray-600">Logout</span>
         </button>
       </div>
