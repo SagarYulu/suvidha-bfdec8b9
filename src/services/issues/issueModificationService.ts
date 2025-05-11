@@ -1,3 +1,4 @@
+
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
@@ -101,10 +102,14 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       updateData.reopenable_until = calculateReopenableUntil(now);
       
       // Store previous closure timestamps if this is not the first time being closed
-      if (currentIssue.previously_closed_at) {
-        // Type assertion to handle previously_closed_at as any
-        const prevClosedAt = currentIssue.previously_closed_at as string[];
-        updateData.previously_closed_at = [...prevClosedAt, now];
+      // Check if the property exists first to avoid TypeScript errors
+      if (currentIssue.previously_closed_at !== undefined && currentIssue.previously_closed_at !== null) {
+        // Check if it's an array first
+        if (Array.isArray(currentIssue.previously_closed_at)) {
+          updateData.previously_closed_at = [...currentIssue.previously_closed_at, now];
+        } else {
+          updateData.previously_closed_at = [now];
+        }
       } else {
         updateData.previously_closed_at = [now];
       }
