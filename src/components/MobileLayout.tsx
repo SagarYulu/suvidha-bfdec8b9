@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
@@ -12,12 +11,14 @@ interface MobileLayoutProps {
   children: React.ReactNode;
   title: string;
   className?: string;
+  bgColor?: string; // Added bgColor prop
 }
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({ 
   children, 
   title,
-  className 
+  className,
+  bgColor // Added to component props
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
@@ -98,6 +99,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     <MobileHeader
       title={title}
       userName={authState.user?.name}
+      bgColor={bgColor} // Pass bgColor to MobileHeader
     />
   );
 

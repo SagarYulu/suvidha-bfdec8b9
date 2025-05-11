@@ -13,6 +13,7 @@ interface CommentSectionProps {
   commenterNames: Record<string, string>;
   formatDate: (date: string) => string;
   currentUserId?: string;
+  disabled?: boolean; // Add disabled prop
 }
 
 const CommentSection = ({
@@ -23,7 +24,8 @@ const CommentSection = ({
   isSubmitting,
   commenterNames,
   formatDate,
-  currentUserId
+  currentUserId,
+  disabled = false // Default to false
 }: CommentSectionProps) => {
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-4">
@@ -95,12 +97,13 @@ const CommentSection = ({
             placeholder="Type your message here..."
             className="min-h-[60px] resize-none"
             rows={2}
+            disabled={disabled || isSubmitting}
           />
         </div>
         <Button 
           type="submit" 
           className="bg-yulu-blue hover:bg-blue-700 h-[60px] aspect-square flex items-center justify-center"
-          disabled={isSubmitting}
+          disabled={disabled || isSubmitting}
         >
           {isSubmitting ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
