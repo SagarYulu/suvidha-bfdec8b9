@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Helper function to log audit trail
@@ -126,5 +125,31 @@ export const getAuditTrail = async (issueId?: string, limit = 100) => {
   } catch (error) {
     console.error('Error in getAuditTrail:', error);
     return [];
+  }
+};
+
+// Create a wrapper function with the name that's being imported
+export const createAuditLog = async (
+  issueId: string,
+  employeeUuid: string,
+  action: string,
+  details?: any,
+  description?: string
+) => {
+  try {
+    // Use the existing logAuditTrail function
+    await logAuditTrail(
+      issueId,
+      employeeUuid,
+      action,
+      undefined, // previousStatus
+      undefined, // newStatus
+      details
+    );
+    console.log(`Audit log created: ${description || action} for issue ${issueId}`);
+    return true;
+  } catch (error) {
+    console.error('Error creating audit log:', error);
+    return false;
   }
 };

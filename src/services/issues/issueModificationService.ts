@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
@@ -154,5 +153,46 @@ export const reopenTicket = async (
   } catch (error) {
     console.error('Error reopening ticket:', error);
     throw error;
+  }
+};
+
+/**
+ * Create a new issue
+ */
+export const createIssue = async (issueData: Partial<Issue>): Promise<Issue | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .insert([{
+        ...issueData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: issueData.status || 'open',
+        priority: issueData.priority || 'low'
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating issue:', error);
+      throw error;
+    }
+
+    // Create audit log for issue creation
+    if (data && data.id && issueData.employeeUuid) {
+      await createAuditLog(
+        data.id,
+        issueData.employeeUuid,
+        'create',
+        { initialData: issueData },
+        'Issue created'
+      );
+    }
+    
+    // Return the created issue
+    return data ? await getIssueById(data.id) : null;
+  } catch (error) {
+    console.error('Error in createIssue:', error);
+    return null;
   }
 };
