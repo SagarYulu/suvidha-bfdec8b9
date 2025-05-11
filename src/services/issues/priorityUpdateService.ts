@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { toast } from "@/hooks/use-toast";
+import { useEffect } from "react"; // Add proper React import
 
 /**
  * Updates the priority of a single ticket based on its current state
@@ -106,8 +107,8 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
         typeId: dbIssue.type_id,
         subTypeId: dbIssue.sub_type_id,
         description: dbIssue.description,
-        status: dbIssue.status,
-        priority: dbIssue.priority,
+        status: dbIssue.status as Issue["status"], // Type assertion to fix error
+        priority: dbIssue.priority as Issue["priority"], // Type assertion to fix error
         createdAt: dbIssue.created_at,
         updatedAt: dbIssue.updated_at,
         closedAt: dbIssue.closed_at,
@@ -128,7 +129,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
  * This would typically be called from a component that's always mounted
  */
 export const usePriorityUpdater = (intervalMinutes: number = 15) => {
-  React.useEffect(() => {
+  useEffect(() => {
     // Initial update
     updateAllIssuePriorities();
     
