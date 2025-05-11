@@ -159,18 +159,20 @@ export const useAdminIssue = (issueId?: string) => {
     
     setIsSubmittingComment(true);
     try {
-      // Fix 1: Create a comment object with the right structure
+      // Create a comment object with the right structure
       const commentData = {
         employeeUuid: currentUserId,
         content: newComment
       };
       
-      // Fix 2: Pass the correct number of arguments to addComment
-      const updatedIssue = await addComment(issueId, commentData);
+      // Pass the correct arguments to addComment
+      await addComment(issueId, commentData);
+      
+      // Fetch the updated issue with the new comment
+      const updatedIssue = await getIssueById(issueId);
       
       if (updatedIssue) {
-        // Fix 3: Set the returned issue to state, not the comment
-        setIssue(updatedIssue);
+        setIssue(updatedIssue); // Now we're setting an Issue object to issue state
         setNewComment("");
         toast({
           title: "Success",
