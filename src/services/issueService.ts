@@ -13,7 +13,8 @@ export {
   createIssue,
   updateIssueStatus,
   assignIssueToUser,
-  getAssignedIssues
+  getAssignedIssues,
+  reopenTicket
 } from "./issues/issueCore";
 
 export {

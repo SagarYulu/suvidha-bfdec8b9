@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminIssue } from "@/hooks/useAdminIssue";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
+import { isTicketReopenable } from "@/utils/workingTimeUtils";
 
 // Import the components
 import IssueHeader from "@/components/admin/issues/IssueHeader";
@@ -35,6 +36,7 @@ const AdminIssueDetails = () => {
     handleAssignIssue,
     handleStatusChange,
     handleAddComment,
+    handleReopenTicket,
     formatDate,
     currentUserId,
   } = useAdminIssue(id);
@@ -46,6 +48,11 @@ const AdminIssueDetails = () => {
   if (!issue) {
     return <IssueError />;
   }
+  
+  // Determine if the ticket can be reopened
+  const isReopenable = (issue.status === 'closed' || issue.status === 'resolved') && 
+                      issue.closedAt && 
+                      isTicketReopenable(issue.closedAt);
 
   return (
     <AdminLayout title="Issue Details">
@@ -62,6 +69,8 @@ const AdminIssueDetails = () => {
               formatDate={formatDate}
               getIssueTypeLabel={getIssueTypeLabel}
               getIssueSubTypeLabel={getIssueSubTypeLabel}
+              handleReopenTicket={handleReopenTicket}
+              isReopenable={isReopenable}
             />
 
             <CommentSection

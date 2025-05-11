@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext"; 
 import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
+import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; 
+import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
 import { updateAllIssuePriorities } from "@/services/issues/priorityUpdateService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -25,19 +26,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, RefreshCw } from "lucide-react";
+import { Search, Eye, RefreshCw, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
   const { authState } = useAuth();
   const [issues, setIssues] = useState<Issue[]>([]);
+  const [assignedToMeIssues, setAssignedToMeIssues] = useState<Issue[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
+  const [filteredAssignedIssues, setFilteredAssignedIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Issue["status"] | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingAssigned, setIsLoadingAssigned] = useState(true);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
+  const [activeTab, setActiveTab] = useState("all-issues");
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -64,7 +70,23 @@ const AdminIssues = () => {
       }
     };
 
+    const fetchAssignedIssues = async () => {
+      if (!authState.user || !authState.user.id) return;
+      
+      setIsLoadingAssigned(true);
+      try {
+        const fetchedAssignedIssues = await getAssignedIssues(authState.user.id);
+        setAssignedToMeIssues(fetchedAssignedIssues);
+        setFilteredAssignedIssues(fetchedAssignedIssues);
+      } catch (error) {
+        console.error("Error fetching assigned tickets:", error);
+      } finally {
+        setIsLoadingAssigned(false);
+      }
+    };
+
     fetchIssues();
+    fetchAssignedIssues();
   }, [authState.user]);
 
   useEffect(() => {
@@ -93,7 +115,33 @@ const AdminIssues = () => {
     }
     
     setFilteredIssues(filtered);
-  }, [issues, searchTerm, statusFilter, userNames]);
+    
+    // Also filter assigned issues the same way
+    let filteredAssigned = [...assignedToMeIssues];
+    if (statusFilter !== "all") {
+      filteredAssigned = filteredAssigned.filter(issue => issue.status === statusFilter);
+    }
+    
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredAssigned = filteredAssigned.filter(issue => {
+        const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
+        const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
+        const description = issue.description.toLowerCase();
+        const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
+        
+        return (
+          typeLabel.includes(searchLower) ||
+          subTypeLabel.includes(searchLower) ||
+          description.includes(searchLower) ||
+          userName.includes(searchLower) ||
+          issue.id.includes(searchLower)
+        );
+      });
+    }
+    
+    setFilteredAssignedIssues(filteredAssigned);
+  }, [issues, assignedToMeIssues, searchTerm, statusFilter, userNames]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -118,7 +166,12 @@ const AdminIssues = () => {
     }
   };
   
-  const getPriorityBadgeClass = (priority: string) => {
+  const getPriorityBadgeClass = (priority: string, status: string) => {
+    // Don't show priority for closed/resolved tickets
+    if (status === "closed" || status === "resolved") {
+      return "bg-gray-100 text-gray-800 opacity-50";
+    }
+    
     switch (priority) {
       case "low":
         return "bg-green-100 text-green-800";
@@ -144,6 +197,13 @@ const AdminIssues = () => {
       // Refresh issues list to show updated priorities
       const refreshedIssues = await getIssues();
       setIssues(refreshedIssues);
+      
+      // Also refresh assigned issues if needed
+      if (authState.user && authState.user.id) {
+        const refreshedAssignedIssues = await getAssignedIssues(authState.user.id);
+        setAssignedToMeIssues(refreshedAssignedIssues);
+      }
+      
       toast({
         title: "Success",
         description: "Ticket priorities have been updated",
@@ -159,6 +219,105 @@ const AdminIssues = () => {
       setIsUpdatingPriorities(false);
     }
   };
+  
+  const isReopenable = (issue: Issue) => {
+    if (issue.status !== "closed" && issue.status !== "resolved") return false;
+    if (!issue.reopenableUntil) return false;
+    
+    const now = new Date();
+    const reopenableUntil = new Date(issue.reopenableUntil);
+    return now < reopenableUntil;
+  };
+  
+  const RenderIssueTable = ({ issues, isLoading }: { issues: Issue[], isLoading: boolean }) => (
+    <>
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+        </div>
+      ) : (
+        <div className="border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>ID</TableHead>
+                <TableHead>Employee</TableHead>
+                <TableHead>Ticket Type</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {issues.map((issue) => (
+                <TableRow key={issue.id}>
+                  <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
+                  <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div>{getIssueTypeLabel(issue.typeId)}</div>
+                      <div className="text-xs text-gray-500">
+                        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">
+                    {issue.description}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(issue.status)}`}>
+                      {issue.status.replace('_', ' ')}
+                    </span>
+                    {isReopenable(issue) && (
+                      <div className="mt-1 text-xs text-blue-600 flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        Reopenable
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {(issue.status === "closed" || issue.status === "resolved") ? (
+                      <span className="text-xs text-gray-500 italic">N/A</span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority, issue.status)}`}>
+                        {issue.priority}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>{formatDate(issue.createdAt)}</TableCell>
+                  <TableCell>{formatDate(issue.updatedAt)}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleViewIssue(issue.id)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              
+              {issues.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-6">
+                    {searchTerm || statusFilter !== "all"
+                      ? "No tickets matching filters"
+                      : "No tickets found"
+                    }
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <AdminLayout title="Tickets Management" requiredPermission="manage:issues">
@@ -207,86 +366,34 @@ const AdminIssues = () => {
           
           <div>
             <span className="text-sm text-gray-500">
-              Showing {filteredIssues.length} of {issues.length} tickets
+              {activeTab === "all-issues" 
+                ? `Showing ${filteredIssues.length} of ${issues.length} tickets`
+                : `Showing ${filteredAssignedIssues.length} of ${assignedToMeIssues.length} assigned tickets`}
             </span>
           </div>
         </div>
         
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
-          </div>
-        ) : (
-          <div className="border rounded-lg overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Ticket Type</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredIssues.map((issue) => (
-                  <TableRow key={issue.id}>
-                    <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
-                    <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{getIssueTypeLabel(issue.typeId)}</div>
-                        <div className="text-xs text-gray-500">
-                          {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {issue.description}
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(issue.status)}`}>
-                        {issue.status.replace('_', ' ')}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority)}`}>
-                        {issue.priority}
-                      </span>
-                    </TableCell>
-                    <TableCell>{formatDate(issue.createdAt)}</TableCell>
-                    <TableCell>{formatDate(issue.updatedAt)}</TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-8 w-8 p-0"
-                        onClick={() => handleViewIssue(issue.id)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {filteredIssues.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-6">
-                      {searchTerm || statusFilter !== "all"
-                        ? "No tickets matching filters"
-                        : "No tickets found"
-                      }
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+        <Tabs 
+          defaultValue="all-issues" 
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList>
+            <TabsTrigger value="all-issues">All Issues</TabsTrigger>
+            <TabsTrigger value="assigned-issues">
+              Assigned to Me {assignedToMeIssues.length > 0 && `(${assignedToMeIssues.length})`}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all-issues" className="mt-4">
+            <RenderIssueTable issues={filteredIssues} isLoading={isLoading} />
+          </TabsContent>
+          
+          <TabsContent value="assigned-issues" className="mt-4">
+            <RenderIssueTable issues={filteredAssignedIssues} isLoading={isLoadingAssigned} />
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );

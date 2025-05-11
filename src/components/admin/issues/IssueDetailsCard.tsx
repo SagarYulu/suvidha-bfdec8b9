@@ -1,8 +1,11 @@
+
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
 import { Issue } from "@/types";
+import { Button } from "@/components/ui/button";
+import { differenceInHours, parseISO } from "date-fns";
 
 interface IssueDetailsCardProps {
   issue: Issue;
@@ -12,6 +15,8 @@ interface IssueDetailsCardProps {
   formatDate: (date: string) => string;
   getIssueTypeLabel: (typeId: string) => string;
   getIssueSubTypeLabel: (typeId: string, subTypeId: string) => string;
+  handleReopenTicket?: () => void;
+  isReopenable?: boolean;
 }
 
 const IssueDetailsCard = ({ 
@@ -21,7 +26,9 @@ const IssueDetailsCard = ({
   isUpdatingStatus, 
   formatDate, 
   getIssueTypeLabel, 
-  getIssueSubTypeLabel 
+  getIssueSubTypeLabel,
+  handleReopenTicket,
+  isReopenable
 }: IssueDetailsCardProps) => {
   // Get priority badge variant based on priority level
   const getPriorityBadgeVariant = (priority: string) => {
@@ -38,6 +45,9 @@ const IssueDetailsCard = ({
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
   };
+  
+  // Determine if the issue is closed or resolved
+  const isClosedOrResolved = status === "closed" || status === "resolved";
   
   return (
     <Card>
@@ -58,6 +68,12 @@ const IssueDetailsCard = ({
                 Closed: {formatDate(issue.closedAt)}
               </div>
             )}
+            {issue.reopenableUntil && isReopenable && (
+              <div className="flex items-center text-sm text-red-500">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Reopenable until: {formatDate(issue.reopenableUntil)}
+              </div>
+            )}
           </div>
         </div>
       </CardHeader>
@@ -66,17 +82,21 @@ const IssueDetailsCard = ({
         <p className="text-gray-700">{issue.description}</p>
       </CardContent>
       <CardFooter className="border-t pt-4">
-        <div className="flex justify-between w-full">
+        <div className="flex justify-between w-full items-center">
           <div className="flex items-center">
             <span className="font-medium mr-2">Priority:</span>
-            <Badge 
-              variant="outline" 
-              className={`capitalize ${getPriorityBadgeVariant(issue.priority)}`}
-            >
-              {issue.priority}
-            </Badge>
+            {!isClosedOrResolved ? (
+              <Badge 
+                variant="outline" 
+                className={`capitalize ${getPriorityBadgeVariant(issue.priority)}`}
+              >
+                {issue.priority}
+              </Badge>
+            ) : (
+              <span className="text-gray-500 italic">Not applicable</span>
+            )}
           </div>
-          <div>
+          <div className="flex gap-2 items-center">
             <span className="font-medium mr-2">Status:</span>
             <Select
               value={status}
@@ -93,6 +113,16 @@ const IssueDetailsCard = ({
                 <SelectItem value="closed">Closed</SelectItem>
               </SelectContent>
             </Select>
+            {isClosedOrResolved && isReopenable && handleReopenTicket && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleReopenTicket}
+                className="ml-2"
+              >
+                Reopen Ticket
+              </Button>
+            )}
           </div>
         </div>
       </CardFooter>

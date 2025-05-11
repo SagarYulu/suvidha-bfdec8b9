@@ -1,10 +1,9 @@
-
 import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 import { logAuditTrail } from "./issueAuditService";
 import { getIssueById } from "./issueFetchService";
-import { determinePriority } from "@/utils/workingTimeUtils";
+import { determinePriority, calculateReopenableUntil } from "@/utils/workingTimeUtils";
 
 /**
  * Creates a new issue
@@ -91,16 +90,35 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
     const now = new Date().toISOString();
     const updateData: any = {
       status,
-      updated_at: now
+      updated_at: now,
+      last_status_change_at: now
     };
     
-    // If status is 'closed', update the closed_at timestamp
-    if (status === 'closed') {
+    // If status is 'closed' or 'resolved', update the closed_at timestamp
+    // and calculate the reopenable_until timestamp
+    if (status === 'closed' || status === 'resolved') {
       updateData.closed_at = now;
+      updateData.reopenable_until = calculateReopenableUntil(now);
+      
+      // Store previous closure timestamps if this is not the first time being closed
+      if (currentIssue.previously_closed_at) {
+        updateData.previously_closed_at = [
+          ...(Array.isArray(currentIssue.previously_closed_at) ? currentIssue.previously_closed_at : []),
+          now
+        ];
+      } else {
+        updateData.previously_closed_at = [now];
+      }
     }
     
-    // Calculate the new priority when status changes
-    // Get the full issue to pass to determinePriority
+    // If reopening a ticket (changing from closed/resolved to open)
+    if ((previousStatus === 'closed' || previousStatus === 'resolved') && 
+        (status === 'open' || status === 'in_progress')) {
+      updateData.closed_at = null;
+      updateData.reopenable_until = null;
+    }
+    
+    // Calculate the new priority when status changes, only for active tickets
     const fullIssue: Issue = mapDbIssueToAppIssue(currentIssue, []);
     fullIssue.status = status; // Update with the new status
     
@@ -157,6 +175,15 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
     
     console.log('Final user identifier for audit trail:', validUserIdentifier);
     
+    // Add additional audit details for reopening
+    const auditDetails: any = { timestamp: now, priority: newPriority };
+    
+    if ((previousStatus === 'closed' || previousStatus === 'resolved') && 
+        (status === 'open' || status === 'in_progress')) {
+      auditDetails.reopened = true;
+      auditDetails.previously_closed_at = currentIssue.closed_at;
+    }
+    
     // Log audit trail for status change with the validated user ID
     await logAuditTrail(
       id,
@@ -164,13 +191,67 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       'status_changed',
       previousStatus,
       status,
-      { timestamp: now, priority: newPriority }
+      auditDetails
     );
     
     // Get the updated issue with comments
     return await getIssueById(id);
   } catch (error) {
     console.error('Error in updateIssueStatus:', error);
+    return undefined;
+  }
+};
+
+/**
+ * Reopens a closed or resolved ticket
+ */
+export const reopenTicket = async (id: string, reopenReason: string, userId: string): Promise<Issue | undefined> => {
+  try {
+    // Get the current issue to check if it can be reopened
+    const issue = await getIssueById(id);
+    
+    if (!issue) {
+      console.error('Issue not found');
+      return undefined;
+    }
+    
+    // Check if the ticket is closed or resolved
+    if (issue.status !== 'closed' && issue.status !== 'resolved') {
+      console.error('Only closed or resolved tickets can be reopened');
+      return undefined;
+    }
+    
+    // Check if the ticket is still within the reopenable time window
+    const now = new Date();
+    const reopenableUntil = issue.reopenableUntil ? new Date(issue.reopenableUntil) : null;
+    
+    if (!reopenableUntil || now > reopenableUntil) {
+      console.error('Ticket reopening window has expired');
+      return undefined;
+    }
+    
+    // Reopen the ticket by setting status to open
+    const reopenedIssue = await updateIssueStatus(id, 'open', userId);
+    
+    if (reopenedIssue) {
+      // Add a comment indicating the ticket was reopened
+      const { data, error } = await supabase
+        .from('issue_comments')
+        .insert({
+          issue_id: id,
+          employee_uuid: userId,
+          content: `Ticket reopened. Reason: ${reopenReason}`
+        })
+        .select();
+        
+      if (error) {
+        console.error('Error adding reopen comment:', error);
+      }
+    }
+    
+    return reopenedIssue;
+  } catch (error) {
+    console.error('Error reopening ticket:', error);
     return undefined;
   }
 };

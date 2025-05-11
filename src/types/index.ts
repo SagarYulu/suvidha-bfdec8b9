@@ -31,6 +31,9 @@ export interface Issue {
   closedAt?: string;
   assignedTo?: string;
   comments: IssueComment[];
+  lastStatusChangeAt?: string; // New field to track when status last changed
+  reopenableUntil?: string; // New field to track until when ticket can be reopened
+  previouslyClosedAt?: string[]; // Track history of closures for reopened tickets
 }
 
 export interface IssueComment {

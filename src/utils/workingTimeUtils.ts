@@ -1,5 +1,4 @@
-
-import { differenceInMinutes, parseISO, isSunday, format } from 'date-fns';
+import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
   date: string; // Format: 'YYYY-MM-DD'
@@ -134,6 +133,11 @@ export const determinePriority = (
   typeId: string,
   assignedTo?: string | null
 ): 'low' | 'medium' | 'high' | 'critical' => {
+  // For resolved or closed tickets, priority is not applicable
+  if (status === 'resolved' || status === 'closed') {
+    return 'low'; // Default value, but shouldn't be displayed in UI
+  }
+
   const now = new Date().toISOString();
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
@@ -209,4 +213,27 @@ export const getNotificationRecipients = (
   }
   
   return recipients;
+};
+
+/**
+ * Check if a ticket is reopenable based on when it was closed
+ * Tickets can only be reopened within 72 hours of being closed/resolved
+ */
+export const isTicketReopenable = (closedAt?: string): boolean => {
+  if (!closedAt) return false;
+  
+  const now = new Date();
+  const closedDate = parseISO(closedAt);
+  const hoursSinceClosed = differenceInHours(now, closedDate);
+  
+  return hoursSinceClosed <= 72; // Can be reopened within 72 hours
+};
+
+/**
+ * Calculate when a ticket's reopening window expires
+ */
+export const calculateReopenableUntil = (closedAt: string): string => {
+  const closedDate = parseISO(closedAt);
+  const reopenableUntil = addHours(closedDate, 72);
+  return reopenableUntil.toISOString();
 };
