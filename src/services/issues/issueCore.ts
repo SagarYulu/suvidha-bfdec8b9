@@ -11,5 +11,8 @@ initializeService();
 // Re-export the functions from the modularized services
 export { processIssues } from "./issueProcessingService";
 export { getIssueById, getIssuesByUserId, getAssignedIssues } from "./issueFetchService";
-export { createIssue, updateIssueStatus, assignIssueToUser, reopenTicket } from "./issueModificationService";
+export { createIssue } from "./issueCreationService";
+export { updateIssueStatus } from "./issueStatusService";
+export { assignIssueToUser } from "./issueAssignmentService";
+export { reopenTicket } from "./issueReopeningService";
 export { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";
