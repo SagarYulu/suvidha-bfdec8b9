@@ -2,6 +2,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Issue } from "@/types";
 import { Clock } from "lucide-react";
+import MobileIssueStatus from "./MobileIssueStatus";
 
 interface IssueHeaderProps {
   issue: Issue;
@@ -9,6 +10,8 @@ interface IssueHeaderProps {
   getIssueTypeLabel: (typeId: string) => string;
   getIssueSubTypeLabel: (typeId: string, subTypeId: string) => string;
   getStatusBadgeColor: (status: Issue["status"]) => string;
+  isReopenable: boolean;
+  handleReopenTicket: () => void;
 }
 
 const IssueHeader = ({ 
@@ -16,17 +19,18 @@ const IssueHeader = ({
   formatDate, 
   getIssueTypeLabel, 
   getIssueSubTypeLabel,
-  getStatusBadgeColor
+  getStatusBadgeColor,
+  isReopenable,
+  handleReopenTicket
 }: IssueHeaderProps) => {
+  const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
+  
   return (
     <div className="bg-white rounded-lg shadow-md p-4 mb-4">
       <div className="flex justify-between items-start mb-3">
         <h2 className="font-semibold text-lg">
           {getIssueTypeLabel(issue.typeId)}
         </h2>
-        <Badge className={getStatusBadgeColor(issue.status)}>
-          {issue.status.replace("_", " ")}
-        </Badge>
       </div>
       
       <p className="text-sm text-gray-600 mb-3">
@@ -39,6 +43,13 @@ const IssueHeader = ({
           Created on {formatDate(issue.createdAt)}
         </p>
       </div>
+      
+      <MobileIssueStatus 
+        issue={issue}
+        formatDate={formatDate}
+        isReopenable={isReopenable}
+        handleReopenTicket={handleReopenTicket}
+      />
       
       <div className="border-t border-gray-200 pt-3">
         <h3 className="font-medium mb-2">Description:</h3>

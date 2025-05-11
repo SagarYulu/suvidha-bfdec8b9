@@ -7,6 +7,7 @@ import IssueHeader from "@/components/mobile/issues/IssueHeader";
 import CommentSection from "@/components/mobile/issues/CommentSection";
 import IssueLoading from "@/components/mobile/issues/IssueLoading";
 import IssueError from "@/components/mobile/issues/IssueError";
+import ClosedIssueCommentNotice from "@/components/mobile/issues/ClosedIssueCommentNotice";
 
 const MobileIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,9 @@ const MobileIssueDetails = () => {
     getStatusBadgeColor,
     formatDate,
     currentUserId,
+    isReopenable,
+    handleReopenTicket,
+    ReopenDialog
   } = useMobileIssue(id);
 
   if (isLoading) {
@@ -32,8 +36,14 @@ const MobileIssueDetails = () => {
     return <IssueError errorMessage={errorMessage} />;
   }
 
+  const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
+  const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-[#00CEDE]";
+
   return (
-    <MobileLayout title="Issue Details">
+    <MobileLayout 
+      title="Issue Details"
+      bgColor={bgColor}
+    >
       <div className="pb-16">
         <IssueHeader
           issue={issue}
@@ -41,19 +51,41 @@ const MobileIssueDetails = () => {
           getIssueTypeLabel={getIssueTypeLabel}
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
+          isReopenable={isReopenable || false}
+          handleReopenTicket={handleReopenTicket}
         />
-
-        <CommentSection
-          comments={issue.comments}
-          newComment={newComment}
-          setNewComment={setNewComment}
-          handleSubmitComment={handleSubmitComment}
-          isSubmitting={isSubmitting}
-          commenterNames={commenterNames}
-          formatDate={formatDate}
-          currentUserId={currentUserId}
-        />
+        
+        {isClosedOrResolved ? (
+          <>
+            <ClosedIssueCommentNotice />
+            <CommentSection
+              comments={issue.comments}
+              newComment=""
+              setNewComment={() => {}}
+              handleSubmitComment={() => {}}
+              isSubmitting={false}
+              commenterNames={commenterNames}
+              formatDate={formatDate}
+              currentUserId={currentUserId}
+              disabled={true}
+            />
+          </>
+        ) : (
+          <CommentSection
+            comments={issue.comments}
+            newComment={newComment}
+            setNewComment={setNewComment}
+            handleSubmitComment={handleSubmitComment}
+            isSubmitting={isSubmitting}
+            commenterNames={commenterNames}
+            formatDate={formatDate}
+            currentUserId={currentUserId}
+          />
+        )}
       </div>
+      
+      {/* Render the reopen dialog */}
+      <ReopenDialog />
     </MobileLayout>
   );
 };

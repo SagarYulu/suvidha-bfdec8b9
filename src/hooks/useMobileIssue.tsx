@@ -1,10 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Issue, User } from "@/types";
+import { Issue } from "@/types";
 import { getIssueById, addComment } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, getStatusBadgeColor } from "@/utils/formatUtils";
+import { isTicketReopenable } from "@/utils/workingTimeUtils";
+import { useIssueReopenMobile } from "@/hooks/issues/useIssueReopenMobile";
 
 export function useMobileIssue(issueId: string | undefined) {
   const { authState } = useAuth();
@@ -14,6 +17,20 @@ export function useMobileIssue(issueId: string | undefined) {
   const [newComment, setNewComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [commenterNames, setCommenterNames] = useState<Record<string, string>>({});
+  
+  const currentUserId = authState.user?.id || "";
+  
+  // Add reopen ticket functionality
+  const {
+    handleReopenTicket,
+    ReopenDialog
+  } = useIssueReopenMobile(issueId, currentUserId, setIssue);
+  
+  // Check if ticket is reopenable
+  const isReopenable = issue && 
+    (issue.status === 'closed' || issue.status === 'resolved') && 
+    issue.closedAt && 
+    isTicketReopenable(issue.closedAt);
 
   useEffect(() => {
     const fetchIssue = async () => {
@@ -194,6 +211,9 @@ export function useMobileIssue(issueId: string | undefined) {
     handleSubmitComment,
     getStatusBadgeColor,
     formatDate,
-    currentUserId: authState.user?.id,
+    currentUserId,
+    isReopenable,
+    handleReopenTicket,
+    ReopenDialog
   };
 }
