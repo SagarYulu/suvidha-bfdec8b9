@@ -102,11 +102,12 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       updateData.reopenable_until = calculateReopenableUntil(now);
       
       // Store previous closure timestamps if this is not the first time being closed
-      // Check if the property exists first to avoid TypeScript errors
-      if (currentIssue.previously_closed_at !== undefined && currentIssue.previously_closed_at !== null) {
-        // Check if it's an array first
-        if (Array.isArray(currentIssue.previously_closed_at)) {
-          updateData.previously_closed_at = [...currentIssue.previously_closed_at, now];
+      // Use type casting to handle the previously_closed_at property safely
+      const prevClosedTimes = (currentIssue as any).previously_closed_at;
+      
+      if (prevClosedTimes !== undefined && prevClosedTimes !== null) {
+        if (Array.isArray(prevClosedTimes)) {
+          updateData.previously_closed_at = [...prevClosedTimes, now];
         } else {
           updateData.previously_closed_at = [now];
         }
