@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue } from "@/types";
@@ -13,6 +12,7 @@ import { getUserById } from "@/services/userService";
 import { getAvailableAssignees, getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { updateIssuePriority } from "@/services/issues/priorityUpdateService";
 
 export const useAdminIssue = (issueId?: string) => {
   const { authState } = useAuth();
@@ -43,8 +43,12 @@ export const useAdminIssue = (issueId?: string) => {
       try {
         const issueData = await getIssueById(issueId);
         if (issueData) {
-          setIssue(issueData);
-          setStatus(issueData.status);
+          // Update the issue priority on load
+          await updateIssuePriority(issueData);
+          // Fetch the updated issue with the recalculated priority
+          const updatedIssue = await getIssueById(issueId);
+          setIssue(updatedIssue);
+          setStatus(updatedIssue.status);
           
           // Fetch employee information
           if (issueData.employeeUuid) {

@@ -14,7 +14,9 @@ export {
   updateIssueStatus,
   assignIssueToUser,
   getAssignedIssues,
-  reopenTicket
+  reopenTicket,
+  updateIssuePriority,
+  updateAllIssuePriorities
 } from "./issues/issueCore";
 
 export {

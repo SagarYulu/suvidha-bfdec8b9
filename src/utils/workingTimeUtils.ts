@@ -1,3 +1,4 @@
+
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -142,8 +143,14 @@ export const determinePriority = (
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
-  // Critical: Not resolved/closed within 72 working hours (3 working days)
+  // Critical priority cases
+  // 1. Not resolved/closed within 72 working hours (3 working days)
   if (workingHoursElapsed > 72 && status !== 'closed') {
+    return 'critical';
+  }
+  
+  // 2. Facility issues that are still open after 24 hours should be critical
+  if (typeId.toLowerCase().includes('facility') && workingHoursElapsed > 24) {
     return 'critical';
   }
   
@@ -159,8 +166,8 @@ export const determinePriority = (
   }
   
   // 3. Specific categories that are always high priority
-  // Health, Insurance, or Advance categories
-  const highPriorityTypes = ['health', 'insurance', 'advance', 'medical'];
+  // Health, Insurance, Advance, Medical, or Facility categories
+  const highPriorityTypes = ['health', 'insurance', 'advance', 'medical', 'facility'];
   if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
     return 'high';
   }

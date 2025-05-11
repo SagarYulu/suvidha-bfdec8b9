@@ -12,3 +12,4 @@ initializeService();
 export { processIssues } from "./issueProcessingService";
 export { getIssueById, getIssuesByUserId, getAssignedIssues } from "./issueFetchService";
 export { createIssue, updateIssueStatus, assignIssueToUser, reopenTicket } from "./issueModificationService";
+export { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";

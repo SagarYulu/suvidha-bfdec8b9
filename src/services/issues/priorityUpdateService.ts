@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -8,7 +7,7 @@ import { useEffect } from "react"; // Add proper React import
 /**
  * Updates the priority of a single ticket based on its current state
  */
-export const updateIssuePriority = async (issue: Issue): Promise<void> => {
+export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> => {
   try {
     // Determine the new priority based on working time calculations
     const newPriority = determinePriority(
@@ -24,17 +23,19 @@ export const updateIssuePriority = async (issue: Issue): Promise<void> => {
       console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${newPriority}`);
       
       // Update the issue in the database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('issues')
         .update({ 
           priority: newPriority,
           updated_at: new Date().toISOString()
         })
-        .eq('id', issue.id);
+        .eq('id', issue.id)
+        .select()
+        .single();
       
       if (error) {
         console.error('Error updating issue priority:', error);
-        return;
+        return null;
       }
       
       // Check if notifications should be sent
@@ -50,9 +51,20 @@ export const updateIssuePriority = async (issue: Issue): Promise<void> => {
           );
         }
       }
+      
+      // Return the updated issue with the new priority
+      const updatedIssue: Issue = {
+        ...issue,
+        priority: newPriority
+      };
+      
+      return updatedIssue;
     }
+    
+    return issue;
   } catch (error) {
     console.error('Error in updateIssuePriority:', error);
+    return null;
   }
 };
 
