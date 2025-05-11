@@ -107,6 +107,7 @@ export const useAdminIssue = (issueId?: string) => {
     
     setIsUpdatingStatus(true);
     try {
+      // Remove last_status_change_at from the expected data
       const updatedIssue = await updateIssueStatus(issueId, newStatus, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
