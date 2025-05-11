@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue } from "@/types";
@@ -22,8 +21,8 @@ export function useMobileIssue(issueId: string | undefined) {
   
   // Add reopen ticket functionality
   const {
-    handleReopenTicket,
-    ReopenDialog
+    isReopeningTicket,
+    processReopenTicket
   } = useIssueReopenMobile(issueId, currentUserId, setIssue);
   
   // Check if ticket is reopenable
@@ -213,7 +212,6 @@ export function useMobileIssue(issueId: string | undefined) {
     formatDate,
     currentUserId,
     isReopenable,
-    handleReopenTicket,
-    ReopenDialog
+    processReopenTicket
   };
 }

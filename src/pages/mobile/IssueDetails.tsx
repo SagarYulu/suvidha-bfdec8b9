@@ -24,8 +24,7 @@ const MobileIssueDetails = () => {
     formatDate,
     currentUserId,
     isReopenable,
-    handleReopenTicket,
-    ReopenDialog
+    processReopenTicket
   } = useMobileIssue(id);
 
   if (isLoading) {
@@ -52,12 +51,15 @@ const MobileIssueDetails = () => {
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           isReopenable={isReopenable || false}
-          handleReopenTicket={handleReopenTicket}
+          handleReopenTicket={() => {}}
         />
         
         {isClosedOrResolved ? (
           <>
-            <ClosedIssueCommentNotice />
+            <ClosedIssueCommentNotice 
+              isReopenable={isReopenable || false}
+              onReopen={processReopenTicket}
+            />
             <CommentSection
               comments={issue.comments}
               newComment=""
@@ -83,9 +85,6 @@ const MobileIssueDetails = () => {
           />
         )}
       </div>
-      
-      {/* Render the reopen dialog */}
-      <ReopenDialog />
     </MobileLayout>
   );
 };
