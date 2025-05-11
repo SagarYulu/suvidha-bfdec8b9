@@ -57,6 +57,9 @@
     /* Adding custom Yulu colors based on reference */
     --yulu-teal: 182 100% 44%;
     --yulu-teal-light: 182 100% 94%;
+    
+    /* Mobile app background color */
+    --mobile-app-bg: 0 0% 96%;
   }
 
   .dark {
@@ -104,7 +107,7 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-[#F5F5F5] text-foreground;
   }
 }
 

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,11 +7,10 @@ import { getIssuesByUserId } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Clock, File, Search, User as UserIcon, Calendar, Building, CreditCard } from "lucide-react";
+import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { formatShortDate, getStatusBadgeColor } from "@/utils/formatUtils";
+import { formatShortDate } from "@/utils/formatUtils";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -87,59 +87,61 @@ const MobileIssues = () => {
       <div className="space-y-4 pb-16">
         {/* Employee Details Card */}
         {employeeDetails && (
-          <Card className="p-4 bg-white shadow-sm border border-gray-200">
+          <div className="bg-white rounded-lg p-4">
             <div className="flex items-center gap-3 mb-3">
               <div className="bg-blue-100 p-2 rounded-full">
                 <UserIcon className="h-5 w-5 text-blue-500" />
               </div>
               <h2 className="text-lg font-medium">Employee Details</h2>
             </div>
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div>
-                <p className="text-gray-500">Name</p>
-                <p className="font-medium">{employeeDetails.name}</p>
+                <p className="text-gray-500 text-sm">Name</p>
+                <p>{employeeDetails.name}</p>
               </div>
               <div>
-                <p className="text-gray-500">Employee ID</p>
-                <p className="font-medium">{employeeDetails.employeeId}</p>
+                <p className="text-gray-500 text-sm">Employee ID</p>
+                <p>{employeeDetails.employeeId}</p>
               </div>
               <div>
-                <p className="text-gray-500">Email</p>
-                <p className="font-medium truncate">{employeeDetails.email}</p>
+                <p className="text-gray-500 text-sm">Email</p>
+                <p className="truncate">{employeeDetails.email}</p>
               </div>
               <div>
-                <p className="text-gray-500">Phone</p>
-                <p className="font-medium">{employeeDetails.phone || "N/A"}</p>
+                <p className="text-gray-500 text-sm">Phone</p>
+                <p>{employeeDetails.phone || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">City</p>
-                <p className="font-medium">{employeeDetails.city || "N/A"}</p>
+                <p className="text-gray-500 text-sm">City</p>
+                <p>{employeeDetails.city || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Cluster</p>
-                <p className="font-medium">{employeeDetails.cluster || "N/A"}</p>
+                <p className="text-gray-500 text-sm">Cluster</p>
+                <p>{employeeDetails.cluster || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Role</p>
-                <p className="font-medium">{employeeDetails.role || "N/A"}</p>
+                <p className="text-gray-500 text-sm">Role</p>
+                <p>{employeeDetails.role || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Reporting Manager</p>
-                <p className="font-medium">{employeeDetails.manager || "N/A"}</p>
+                <p className="text-gray-500 text-sm">Reporting Manager</p>
+                <p>{employeeDetails.manager || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Date of Joining</p>
-                <p className="font-medium">{employeeDetails.dateOfJoining ? formatShortDate(employeeDetails.dateOfJoining) : "N/A"}</p>
+                <p className="text-gray-500 text-sm">Date of Joining</p>
+                <p>{employeeDetails.dateOfJoining ? formatShortDate(employeeDetails.dateOfJoining) : "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Date of Birth</p>
-                <p className="font-medium">{employeeDetails.dateOfBirth ? formatShortDate(employeeDetails.dateOfBirth) : "N/A"}</p>
+                <p className="text-gray-500 text-sm">Date of Birth</p>
+                <p>{employeeDetails.dateOfBirth ? formatShortDate(employeeDetails.dateOfBirth) : "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500">Blood Group</p>
-                <p className="font-medium">{employeeDetails.bloodGroup || "N/A"}</p>
+                <p className="text-gray-500 text-sm">Blood Group</p>
+                <p>{employeeDetails.bloodGroup || "N/A"}</p>
               </div>
             </div>
+            
             {/* Financial Details in a separate section */}
             {(employeeDetails.accountNumber || employeeDetails.ifscCode) && (
               <div className="mt-4 pt-4 border-t border-gray-200">
@@ -147,39 +149,41 @@ const MobileIssues = () => {
                   <CreditCard className="h-4 w-4 mr-1" />
                   Financial Details
                 </h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
                   <div>
-                    <p className="text-gray-500">Account Number</p>
-                    <p className="font-medium">{employeeDetails.accountNumber || "N/A"}</p>
+                    <p className="text-gray-500 text-sm">Account Number</p>
+                    <p>{employeeDetails.accountNumber || "N/A"}</p>
                   </div>
                   <div>
-                    <p className="text-gray-500">IFSC Code</p>
-                    <p className="font-medium">{employeeDetails.ifscCode || "N/A"}</p>
+                    <p className="text-gray-500 text-sm">IFSC Code</p>
+                    <p>{employeeDetails.ifscCode || "N/A"}</p>
                   </div>
                 </div>
               </div>
             )}
-          </Card>
+          </div>
         )}
 
         {/* Tickets Section */}
         <div>
           <h2 className="text-lg font-medium mb-3">My Tickets</h2>
           
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search tickets..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="relative mb-4 bg-white rounded-lg">
+            <div className="flex items-center px-3">
+              <Search className="h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search tickets..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-none shadow-none focus-visible:ring-0 rounded-lg"
+              />
+            </div>
           </div>
 
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00CEDE]"></div>
             </div>
           ) : filteredIssues.length > 0 ? (
             <div className="space-y-3">
@@ -187,17 +191,19 @@ const MobileIssues = () => {
                 <div
                   key={issue.id}
                   onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                  className="bg-white rounded-lg shadow-md p-4 active:bg-gray-50"
+                  className="bg-white rounded-lg p-4 active:bg-gray-50"
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-semibold">
+                    <h3 className="font-medium">
                       {getIssueTypeLabel(issue.typeId)}
                     </h3>
-                    <Badge className={getStatusBadgeColor(issue.status)}>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
+                                     issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
+                                     "bg-green-500 text-white"}`}>
                       {issue.status.replace("_", " ")}
-                    </Badge>
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-gray-600 mb-1">
                     {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
                   </p>
                   <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
@@ -207,7 +213,6 @@ const MobileIssues = () => {
                       {formatShortDate(issue.createdAt)}
                     </span>
                     <span className="flex items-center">
-                      <File className="h-3 w-3 mr-1" />
                       {issue.comments.length} comments
                     </span>
                   </div>
@@ -215,16 +220,15 @@ const MobileIssues = () => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8">
-              <File className="h-12 w-12 mx-auto text-gray-400" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">No tickets found</h3>
+            <div className="text-center py-8 bg-white rounded-lg p-4">
+              <h3 className="mt-2 text-lg font-medium">No tickets found</h3>
               <p className="mt-1 text-sm text-gray-500">
                 {searchTerm ? "No tickets match your search" : "You haven't raised any tickets yet"}
               </p>
               <div className="mt-6">
                 <button
                   onClick={() => navigate("/mobile/issues/new")}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yulu-blue hover:bg-blue-700 focus:outline-none"
+                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-[#00CEDE] hover:bg-[#00B8C8]"
                 >
                   Raise a new ticket
                 </button>
