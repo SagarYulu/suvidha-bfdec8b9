@@ -57,6 +57,10 @@
     /* Adding custom Yulu colors based on reference */
     --yulu-teal: 182 100% 44%;
     --yulu-teal-light: 182 100% 94%;
+    
+    /* The exact blue color from the reference image */
+    --yulu-app-blue: 183 100% 44%;
+    --yulu-app-bg: 183 50% 85%;
   }
 
   .dark {
@@ -115,7 +119,7 @@
   }
   
   .mobile-button {
-    @apply rounded-full py-3;
+    @apply rounded-md py-3;
   }
   
   .mobile-card {
@@ -142,5 +146,14 @@
   
   .mobile-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-gray-300 rounded-full;
+  }
+  
+  /* Yulu app specific styling */
+  .yulu-app-input {
+    @apply border-b border-t-0 border-x-0 rounded-none focus:ring-0 py-2 bg-transparent;
+  }
+  
+  .yulu-app-button {
+    @apply rounded-md bg-[#00CEDE] hover:bg-[#00BECC] text-white;
   }
 }
