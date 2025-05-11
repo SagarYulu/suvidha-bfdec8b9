@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue, generateUUID } from "./issueUtils";
 import { logAuditTrail } from "./issueAuditService";
 import { getIssueById } from "./issueFetchService";
+import { determinePriority } from "@/utils/workingTimeUtils";
 
 /**
  * Creates a new issue
@@ -12,6 +13,16 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
   try {
     // Generate a UUID for the new issue
     const newIssueId = generateUUID();
+    
+    // Set the priority based on the dynamic priority system
+    const now = new Date().toISOString();
+    const initialPriority = determinePriority(
+      now, 
+      now, 
+      issue.status, 
+      issue.typeId, 
+      issue.assignedTo
+    );
     
     // Insert issue into the database with the generated ID
     const { data: dbIssue, error } = await supabase
@@ -23,7 +34,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
         sub_type_id: issue.subTypeId,
         description: issue.description,
         status: issue.status,
-        priority: issue.priority,
+        priority: initialPriority,
         assigned_to: issue.assignedTo
       })
       .select()
@@ -41,7 +52,7 @@ export const createIssue = async (issue: Omit<Issue, 'id' | 'createdAt' | 'updat
       'issue_created',
       undefined,
       dbIssue.status,
-      { issue_type: issue.typeId, priority: issue.priority }
+      { issue_type: issue.typeId, priority: initialPriority }
     );
     
     // Return the created issue in app Issue format
@@ -87,6 +98,22 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
     if (status === 'closed') {
       updateData.closed_at = now;
     }
+    
+    // Calculate the new priority when status changes
+    // Get the full issue to pass to determinePriority
+    const fullIssue: Issue = mapDbIssueToAppIssue(currentIssue, []);
+    fullIssue.status = status; // Update with the new status
+    
+    const newPriority = determinePriority(
+      fullIssue.createdAt,
+      now,
+      status,
+      fullIssue.typeId,
+      fullIssue.assignedTo
+    );
+    
+    // Add priority to update data
+    updateData.priority = newPriority;
     
     // Update the issue in the database
     const { data: dbIssue, error } = await supabase
@@ -137,7 +164,7 @@ export const updateIssueStatus = async (id: string, status: Issue['status'], use
       'status_changed',
       previousStatus,
       status,
-      { timestamp: now }
+      { timestamp: now, priority: newPriority }
     );
     
     // Get the updated issue with comments
@@ -155,10 +182,31 @@ export const assignIssueToUser = async (issueId: string, assignedToUuid: string,
   try {
     console.log(`Assigning issue ${issueId} to user ${assignedToUuid} by ${assignerUuid}`);
     
-    // Update the issue with assigned_to value
+    // Get current issue data
+    const currentIssue = await getIssueById(issueId);
+    if (!currentIssue) {
+      console.error('Issue not found');
+      return null;
+    }
+    
+    // Calculate new priority based on assignment
+    const now = new Date().toISOString();
+    const newPriority = determinePriority(
+      currentIssue.createdAt,
+      now,
+      currentIssue.status,
+      currentIssue.typeId,
+      assignedToUuid // Include the new assignee
+    );
+    
+    // Update the issue with assigned_to value and new priority
     const { data, error } = await supabase
       .from('issues')
-      .update({ assigned_to: assignedToUuid })
+      .update({ 
+        assigned_to: assignedToUuid,
+        priority: newPriority,
+        updated_at: now
+      })
       .eq('id', issueId)
       .select('*')
       .single();
@@ -177,7 +225,8 @@ export const assignIssueToUser = async (issueId: string, assignedToUuid: string,
         action: 'assign_ticket',
         details: {
           assigned_to: assignedToUuid,
-          assigned_by: assignerUuid
+          assigned_by: assignerUuid,
+          new_priority: newPriority
         }
       });
     

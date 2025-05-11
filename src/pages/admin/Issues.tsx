@@ -1,10 +1,12 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext"; // Import auth context
+import { useAuth } from "@/contexts/AuthContext"; 
 import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; // Import from correct path
+import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils"; 
+import { updateAllIssuePriorities } from "@/services/issues/priorityUpdateService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,17 +25,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye } from "lucide-react";
+import { Search, Eye, RefreshCw } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 const AdminIssues = () => {
   const navigate = useNavigate();
-  const { authState } = useAuth(); // Add auth context
+  const { authState } = useAuth();
   const [issues, setIssues] = useState<Issue[]>([]);
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<Issue["status"] | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
+  const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -43,7 +47,7 @@ const AdminIssues = () => {
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
         
-        // Use the new utility to map employee UUIDs to names
+        // Use the utility to map employee UUIDs to names
         const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid);
         const names = await mapEmployeeUuidsToNames(employeeUuids);
         
@@ -108,7 +112,22 @@ const AdminIssues = () => {
       case "resolved":
         return "bg-green-100 text-green-800";
       case "closed":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+  
+  const getPriorityBadgeClass = (priority: string) => {
+    switch (priority) {
+      case "low":
         return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "critical":
+        return "bg-red-100 text-red-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -116,6 +135,29 @@ const AdminIssues = () => {
 
   const handleViewIssue = (issueId: string) => {
     navigate(`/admin/issues/${issueId}`);
+  };
+  
+  const handleUpdatePriorities = async () => {
+    setIsUpdatingPriorities(true);
+    try {
+      await updateAllIssuePriorities();
+      // Refresh issues list to show updated priorities
+      const refreshedIssues = await getIssues();
+      setIssues(refreshedIssues);
+      toast({
+        title: "Success",
+        description: "Ticket priorities have been updated",
+      });
+    } catch (error) {
+      console.error("Error updating priorities:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket priorities",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPriorities(false);
+    }
   };
 
   return (
@@ -151,6 +193,16 @@ const AdminIssues = () => {
                 </SelectContent>
               </Select>
             </div>
+            
+            <Button 
+              variant="outline"
+              onClick={handleUpdatePriorities}
+              disabled={isUpdatingPriorities}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isUpdatingPriorities ? 'animate-spin' : ''}`} />
+              Update Priorities
+            </Button>
           </div>
           
           <div>
@@ -183,7 +235,7 @@ const AdminIssues = () => {
               <TableBody>
                 {filteredIssues.map((issue) => (
                   <TableRow key={issue.id}>
-                    <TableCell>{issue.id}</TableCell>
+                    <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
                     <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
                     <TableCell>
                       <div>
@@ -202,11 +254,7 @@ const AdminIssues = () => {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        issue.priority === "high" ? "bg-red-100 text-red-800" :
-                        issue.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-green-100 text-green-800"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority)}`}>
                         {issue.priority}
                       </span>
                     </TableCell>

@@ -83,6 +83,22 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     }
   };
 
+  // Get priority badge class based on priority level
+  const getPriorityBadgeClass = (priority: string) => {
+    switch (priority) {
+      case "low":
+        return "bg-green-100 text-green-800";
+      case "medium":
+        return "bg-yellow-100 text-yellow-800";
+      case "high":
+        return "bg-orange-100 text-orange-800";
+      case "critical":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   if (isLoading) return null;
 
   return (
@@ -127,17 +143,14 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         issue.status === "open" ? "bg-red-100 text-red-800" :
                         issue.status === "in_progress" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-green-100 text-green-800"
+                        issue.status === "resolved" ? "bg-green-100 text-green-800" :
+                        "bg-gray-100 text-gray-800"
                       }`}>
                         {issue.status.replace('_', ' ')}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        issue.priority === "high" ? "bg-red-100 text-red-800" :
-                        issue.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-green-100 text-green-800"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority)}`}>
                         {issue.priority}
                       </span>
                     </TableCell>

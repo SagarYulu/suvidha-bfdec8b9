@@ -8,6 +8,7 @@ interface BaseHeaderProps {
   className?: string;
   bgColor?: string;
   textColor?: string;
+  priority?: "low" | "medium" | "high" | "critical";
   children?: React.ReactNode;
 }
 
@@ -15,12 +16,35 @@ const MobileHeader: React.FC<BaseHeaderProps> = ({
   title, 
   userName, 
   className,
-  bgColor = "bg-[#00CEDE]",
+  bgColor,
   textColor = "text-white",
+  priority,
   children
 }) => {
+  // Determine background color based on priority if provided
+  let headerBgColor = bgColor || "bg-[#00CEDE]";
+  
+  if (priority) {
+    switch (priority) {
+      case "low":
+        headerBgColor = "bg-green-500";
+        break;
+      case "medium":
+        headerBgColor = "bg-yellow-500";
+        break;
+      case "high":
+        headerBgColor = "bg-orange-500";
+        break;
+      case "critical":
+        headerBgColor = "bg-red-600";
+        break;
+      default:
+        headerBgColor = "bg-[#00CEDE]";
+    }
+  }
+
   return (
-    <div className={cn(`${bgColor} ${textColor} p-4`, className)}>
+    <div className={cn(`${headerBgColor} ${textColor} p-4`, className)}>
       <h1 className="text-xl font-medium">{title}</h1>
       {userName && <p className="text-sm">Hello, {userName}</p>}
       {children}
