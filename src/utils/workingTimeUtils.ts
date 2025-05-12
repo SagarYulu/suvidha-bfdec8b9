@@ -151,8 +151,8 @@ export const determinePriority = (
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
   // 2. Critical priority cases
-  // Not resolved/closed within 72 working hours (3 working days)
-  if (workingHoursElapsed > 72 && status !== 'closed') {
+  // Not resolved/closed within 72 working hours (3 working days) - now properly applies to both open and in_progress
+  if (workingHoursElapsed > 72 && (status === 'open' || status === 'in_progress')) {
     return 'critical';
   }
   
@@ -162,7 +162,7 @@ export const determinePriority = (
   }
   
   // 4. High priority cases
-  // Ticket is "In Progress" but not closed within 12 working hours
+  // Ticket is "In Progress" but no update within 12 working hours
   if (status === 'in_progress' && hoursSinceLastUpdate > 12) {
     return 'high';
   }
