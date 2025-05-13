@@ -35,6 +35,7 @@ import {
   SecurityGuard,
   CreateDashboardUserGuard
 } from "./components/guards/PermissionGuards";
+import TicketAccessGuard from "./components/guards/TicketAccessGuard";
 
 // Create a new QueryClient instance with more relaxed defaults
 const queryClient = new QueryClient({
@@ -79,13 +80,17 @@ const App = () => {
                 
                 <Route path="/admin/issues" element={
                   <IssuesGuard>
-                    <AdminIssues />
+                    <TicketAccessGuard onlyForAssigned={false}>
+                      <AdminIssues />
+                    </TicketAccessGuard>
                   </IssuesGuard>
                 } />
                 
                 <Route path="/admin/assigned-issues" element={
                   <IssuesGuard>
-                    <AdminAssignedIssues />
+                    <TicketAccessGuard onlyForAssigned={true}>
+                      <AdminAssignedIssues />
+                    </TicketAccessGuard>
                   </IssuesGuard>
                 } />
                 

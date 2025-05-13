@@ -116,7 +116,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   });
   const { hasPermission, userRole } = useRBAC();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { logout, authState } = useAuth();
 
   const toggleMenu = (menuName: string) => {
     setOpenMenus(prev => ({
@@ -124,6 +124,12 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       [menuName]: !prev[menuName]
     }));
   };
+
+  // Check if user is HR Admin
+  const isHrAdmin = authState.role === 'HR Admin';
+
+  // Check if user is Super Admin
+  const isSuperAdmin = authState.role === 'Super Admin' || authState.role === 'admin';
 
   // Determine active link based on current location
   useEffect(() => {
@@ -161,6 +167,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   console.log("Has analytics permission:", hasPermission("manage:analytics"));
   console.log("Has security permission:", hasPermission("access:security"));
 
+  const showAllTickets = isHrAdmin || isSuperAdmin;
+
   return (
     <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
       <div className="py-6 px-6 border-b">
@@ -183,12 +191,17 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             isOpen={openMenus.tickets} 
             toggleOpen={() => toggleMenu('tickets')}
           >
-            <SidebarLink 
-              href="/admin/issues" 
-              icon={TicketCheck} 
-              label="All Tickets" 
-              isActive={location.pathname === "/admin/issues"}
-            />
+            {/* All Tickets - Only visible to HR Admin and Super Admin */}
+            {showAllTickets && (
+              <SidebarLink 
+                href="/admin/issues" 
+                icon={TicketCheck} 
+                label="All Tickets" 
+                isActive={location.pathname === "/admin/issues"}
+              />
+            )}
+            
+            {/* Assigned To Me - Available to all users with manage:issues */}
             <SidebarLink 
               href="/admin/assigned-issues" 
               icon={Ticket} 
