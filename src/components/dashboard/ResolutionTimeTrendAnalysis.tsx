@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { format, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -389,6 +390,12 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
   const filterZeroVolumePeriods = (data: TrendDataPoint[]) => {
     return data.filter(point => point.volume !== 0);
   };
+
+  // Log data for debugging
+  useEffect(() => {
+    console.log("Current active tab data:", getActiveData());
+    console.log("Current date range:", dateRange);
+  }, [activeTab, dateRange, dailyData, weeklyData, monthlyData, quarterlyData]);
   
   return (
     <Card className="col-span-full">
@@ -479,54 +486,60 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                       <CardTitle>Resolution Time Trend</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[400px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart
-                          data={getActiveData()}
-                          margin={{
-                            top: 5,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                          }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip 
-                            formatter={customTooltipFormatter}
-                            labelFormatter={(label) => `Period: ${label}`}
-                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
-                          />
-                          <Legend />
-                          
-                          {/* Primary dataset line - modified to handle zero values */}
-                          <Line
-                            type="monotone"
-                            dataKey="time"
-                            name="Resolution Time"
-                            stroke={primaryColor}
-                            strokeWidth={2}
-                            activeDot={{ r: 8 }}
-                            connectNulls={true}
-                            dot={(props) => renderCustomDot(props)}
-                          />
-                          
-                          {/* Comparison dataset line - modified to handle zero values */}
-                          {comparisonMode && (
+                      {getActiveData().length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          No data available for the selected date range
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart
+                            data={getActiveData()}
+                            margin={{
+                              top: 5,
+                              right: 30,
+                              left: 20,
+                              bottom: 5,
+                            }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip 
+                              formatter={customTooltipFormatter}
+                              labelFormatter={(label) => `Period: ${label}`}
+                              contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+                            />
+                            <Legend />
+                            
+                            {/* Primary dataset line */}
                             <Line
                               type="monotone"
                               dataKey="time"
-                              name="Comparison Resolution Time"
-                              stroke={comparisonColor}
-                              strokeDasharray="5 5"
+                              name="Resolution Time"
+                              stroke={primaryColor}
                               strokeWidth={2}
                               activeDot={{ r: 8 }}
                               connectNulls={true}
-                              dot={(props) => renderCustomDot(props, true)}
+                              dot={(props) => renderCustomDot(props)}
                             />
-                          )}
-                        </LineChart>
-                      </ResponsiveContainer>
+                            
+                            {/* Comparison dataset line */}
+                            {comparisonMode && (
+                              <Line
+                                type="monotone"
+                                dataKey="time"
+                                name="Comparison Resolution Time"
+                                stroke={comparisonColor}
+                                strokeDasharray="5 5"
+                                strokeWidth={2}
+                                activeDot={{ r: 8 }}
+                                connectNulls={true}
+                                dot={(props) => renderCustomDot(props, true)}
+                              />
+                            )}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      )}
                     </CardContent>
                   </Card>
                   
@@ -536,44 +549,50 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                       <CardTitle>Ticket Volume</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={getActiveData()}
-                          margin={{
-                            top: 5,
-                            right: 30,
-                            left: 20,
-                            bottom: 5,
-                          }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip 
-                            formatter={(value: number, name: string, props: any) => {
-                              const datasetType = props.payload.datasetType;
-                              const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
-                              if (value === 0) {
-                                return [`No tickets (${label})`, 'Ticket Volume'];
-                              }
-                              return [`${value} tickets (${label})`, 'Ticket Volume'];
+                      {getActiveData().length === 0 ? (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          No data available for the selected date range
+                        </div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={getActiveData()}
+                            margin={{
+                              top: 5,
+                              right: 30,
+                              left: 20,
+                              bottom: 5,
                             }}
-                          />
-                          <Legend />
-                          <Bar
-                            dataKey="volume"
-                            name="Ticket Volume"
-                            fill={primaryColor}
                           >
-                            {getActiveData().map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.datasetType === 'comparison' ? comparisonColor : primaryColor}
-                              />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="name" />
+                            <YAxis />
+                            <Tooltip 
+                              formatter={(value: number, name: string, props: any) => {
+                                const datasetType = props.payload.datasetType;
+                                const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
+                                if (value === 0) {
+                                  return [`No tickets (${label})`, 'Ticket Volume'];
+                                }
+                                return [`${value} tickets (${label})`, 'Ticket Volume'];
+                              }}
+                            />
+                            <Legend />
+                            <Bar
+                              dataKey="volume"
+                              name="Ticket Volume"
+                              fill={primaryColor}
+                            >
+                              {getActiveData().map((entry, index) => (
+                                <Cell 
+                                  key={`cell-${index}`} 
+                                  fill={entry.datasetType === 'comparison' ? comparisonColor : primaryColor}
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
                     </CardContent>
                   </Card>
                   
@@ -605,7 +624,13 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {comparisonMode ? (
+                          {getActiveData().length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={comparisonMode ? 6 : 4} className="text-center py-8">
+                                No data available for the selected date range
+                              </TableCell>
+                            </TableRow>
+                          ) : comparisonMode ? (
                             // Comparison mode table with side-by-side data
                             getComparisonTableData().map((item, index) => (
                               <TableRow key={`${item.name}-${index}`}>

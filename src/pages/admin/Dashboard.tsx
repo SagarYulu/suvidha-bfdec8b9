@@ -52,13 +52,17 @@ const DashboardContent = () => {
     return analytics?.resolutionTimeHistory || [];
   }, [analytics]);
 
-  // Log the current filters for debugging
+  // Log the current filters and date ranges for debugging
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
     console.log("Dashboard current date range:", dateRange ? 
       `From: ${dateRange.from?.toLocaleDateString()} To: ${dateRange.to?.toLocaleDateString()}` : 
       "None");
-  }, [filters, dateRange]);
+    
+    if (resolutionTimeData) {
+      console.log("Resolution time data received:", resolutionTimeData);
+    }
+  }, [filters, dateRange, resolutionTimeData]);
 
   return (
     <AdminLayout title="Dashboard">
@@ -88,21 +92,19 @@ const DashboardContent = () => {
           />
           
           {/* Resolution Time Trend Analysis with Date Range Comparison */}
-          {resolutionTimeData && (
-            <ResolutionTimeTrendAnalysis
-              dailyData={resolutionTimeData.primaryData?.daily || []}
-              weeklyData={resolutionTimeData.primaryData?.weekly || []}
-              monthlyData={resolutionTimeData.primaryData?.monthly || []}
-              quarterlyData={resolutionTimeData.primaryData?.quarterly || []}
-              isLoading={isLoading}
-              dateRange={dateRange}
-              comparisonDateRange={comparisonDateRange}
-              comparisonMode={comparisonMode}
-              onDateRangeChange={setDateRange}
-              onComparisonDateRangeChange={setComparisonDateRange}
-              onToggleComparisonMode={toggleComparisonMode}
-            />
-          )}
+          <ResolutionTimeTrendAnalysis
+            dailyData={resolutionTimeData?.primaryData?.daily || []}
+            weeklyData={resolutionTimeData?.primaryData?.weekly || []}
+            monthlyData={resolutionTimeData?.primaryData?.monthly || []}
+            quarterlyData={resolutionTimeData?.primaryData?.quarterly || []}
+            isLoading={isLoading}
+            dateRange={dateRange}
+            comparisonDateRange={comparisonDateRange}
+            comparisonMode={comparisonMode}
+            onDateRangeChange={setDateRange}
+            onComparisonDateRangeChange={setComparisonDateRange}
+            onToggleComparisonMode={toggleComparisonMode}
+          />
 
           {/* Recent Tickets Table - Pass formatted consistent issues */}
           <RecentTicketsTable 
