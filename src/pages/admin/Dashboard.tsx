@@ -7,6 +7,7 @@ import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
 import ChartSection from "@/components/dashboard/ChartSection";
 import RecentTicketsTable from "@/components/dashboard/RecentTicketsTable";
 import DashboardLoader from "@/components/dashboard/DashboardLoader";
+import ResolutionTimeTrendAnalysis from "@/components/dashboard/ResolutionTimeTrendAnalysis";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
 
@@ -30,7 +31,8 @@ const DashboardContent = () => {
     handleFilterChange,
     typePieData,
     cityBarData,
-    filters
+    filters,
+    resolutionTimeData
   } = useDashboardData();
 
   // Format issues consistently with the other pages
@@ -75,6 +77,17 @@ const DashboardContent = () => {
             resolutionTimeHistory={resolutionTimeHistory}
             isLoading={isLoading}
           />
+          
+          {/* Resolution Time Trend Analysis - NEW COMPONENT */}
+          {resolutionTimeData && (
+            <ResolutionTimeTrendAnalysis
+              dailyData={resolutionTimeData.daily}
+              weeklyData={resolutionTimeData.weekly}
+              monthlyData={resolutionTimeData.monthly}
+              quarterlyData={resolutionTimeData.quarterly}
+              isLoading={isLoading}
+            />
+          )}
 
           {/* Recent Tickets Table - Pass formatted consistent issues */}
           <RecentTicketsTable 

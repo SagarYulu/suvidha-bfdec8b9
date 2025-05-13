@@ -33,7 +33,8 @@ export {
 } from "./issues/issueCommentService";
 
 export { 
-  getAnalytics 
+  getAnalytics,
+  getResolutionTimeTrends
 } from "./issues/issueAnalyticsService";
 
 export {

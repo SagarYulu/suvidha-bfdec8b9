@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
 import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
+import { getResolutionTimeTrends } from "@/services/issues/issueAnalyticsService";
 import { Issue } from "@/types";
 import { toast } from "sonner";
 
@@ -49,6 +50,22 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
+  // Query for resolution time trends data
+  const {
+    data: resolutionTimeData,
+    isLoading: isResolutionTimeLoading,
+    refetch: refetchResolutionTimeTrends,
+    error: resolutionTimeError
+  } = useQuery({
+    queryKey: ['resolutionTimeTrends', filters],
+    queryFn: async () => {
+      console.log("Fetching resolution time trends with filters:", filters);
+      return getResolutionTimeTrends(filters);
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+    refetchOnWindowFocus: false, // Prevent unwanted refetches
+  });
+  
   // Query for users data with proper caching
   const { 
     data: users = [], 
@@ -65,14 +82,18 @@ export const useDashboardData = () => {
     const fetchData = async () => {
       console.log("Filter changed, refetching data with:", filters);
       try {
-        await Promise.all([refetchIssues(), refetchAnalytics()]);
+        await Promise.all([
+          refetchIssues(), 
+          refetchAnalytics(),
+          refetchResolutionTimeTrends()
+        ]);
       } catch (error) {
         console.error("Error refetching data:", error);
       }
     };
     
     fetchData();
-  }, [filters, refetchIssues, refetchAnalytics]);
+  }, [filters, refetchIssues, refetchAnalytics, refetchResolutionTimeTrends]);
 
   // Display errors if they occur
   useEffect(() => {
@@ -85,7 +106,12 @@ export const useDashboardData = () => {
       console.error("Error fetching analytics:", analyticsError);
       toast.error("Failed to load analytics data");
     }
-  }, [issuesError, analyticsError]);
+    
+    if (resolutionTimeError) {
+      console.error("Error fetching resolution time trends:", resolutionTimeError);
+      toast.error("Failed to load resolution time trends");
+    }
+  }, [issuesError, analyticsError, resolutionTimeError]);
   
   // Memoize these calculations to prevent recalculations on re-renders
   const recentIssues = useMemo(() => {
@@ -158,7 +184,7 @@ export const useDashboardData = () => {
     });
   }, []);
 
-  const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;
+  const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading || isResolutionTimeLoading;
 
   return {
     analytics,
@@ -169,6 +195,7 @@ export const useDashboardData = () => {
     handleFilterChange,
     typePieData,
     cityBarData,
-    issues
+    issues,
+    resolutionTimeData
   };
 };

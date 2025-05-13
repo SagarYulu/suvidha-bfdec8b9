@@ -18,3 +18,9 @@ export {
 export { 
   parseEmployeeCSV 
 } from './csvParserUtils';
+
+export {
+  exportToCSV,
+  formatResolutionTimeDataForExport,
+  exportResolutionTimeTrendToCSV
+} from './csvExportUtils';

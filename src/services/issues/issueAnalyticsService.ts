@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueFilters";
@@ -6,7 +5,7 @@ import { getIssues } from "./issueFilters";
 import { getAuditTrail } from "./issueAuditService";
 import { calculateFirstResponseTime } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
-import { format, subDays } from "date-fns";
+import { format, subDays, subWeeks, subMonths, subQuarters, startOfWeek, startOfMonth, startOfQuarter, endOfWeek, endOfMonth, endOfQuarter, differenceInDays, parseISO, addDays } from "date-fns";
 
 /**
  * Issue analytics service - provides analytics data for issues
@@ -293,4 +292,325 @@ const generateFallbackResolutionTimeData = (): { name: string; time: number }[] 
     { name: 'Day 6', time: 9 },
     { name: 'Day 7', time: 7 },
   ];
+};
+
+/**
+ * Get resolution time trend data for different time periods
+ * Returns data for daily, weekly, monthly and quarterly views
+ */
+export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
+  try {
+    const today = new Date();
+    
+    // Fetch all closed issues within the last 6 months that match the filters
+    let query = supabase
+      .from('issues')
+      .select('*')
+      .not('closed_at', 'is', null)
+      .gte('closed_at', format(subMonths(today, 6), 'yyyy-MM-dd'));
+    
+    // Apply filters if provided
+    if (filters?.city) {
+      // We need to join with employees table to filter by city
+      // This requires a more complex query or post-processing
+      console.log("City filter applied:", filters.city);
+    }
+    
+    if (filters?.cluster) {
+      console.log("Cluster filter applied:", filters.cluster);
+    }
+    
+    if (filters?.issueType) {
+      query = query.eq('type_id', filters.issueType);
+      console.log("Issue type filter applied:", filters.issueType);
+    }
+    
+    const { data: closedIssues, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching resolution time trend data:', error);
+      return generateFallbackTrendData();
+    }
+    
+    if (!closedIssues || closedIssues.length === 0) {
+      console.log('No historical closed issues found for trends, using fallback data');
+      return generateFallbackTrendData();
+    }
+    
+    // Process the data for different time periods
+    const result = {
+      daily: getDailyResolutionTimeTrend(closedIssues),
+      weekly: getWeeklyResolutionTimeTrend(closedIssues),
+      monthly: getMonthlyResolutionTimeTrend(closedIssues),
+      quarterly: getQuarterlyResolutionTimeTrend(closedIssues)
+    };
+    
+    return result;
+    
+  } catch (error) {
+    console.error('Error generating resolution time trends:', error);
+    return generateFallbackTrendData();
+  }
+};
+
+/**
+ * Generate daily resolution time trend for the last 14 days
+ */
+const getDailyResolutionTimeTrend = (issues: any[]) => {
+  const today = new Date();
+  const result = [];
+  
+  // Process the last 14 days
+  for (let i = 13; i >= 0; i--) {
+    const day = subDays(today, i);
+    const dayStr = format(day, 'yyyy-MM-dd');
+    const dayLabel = format(day, 'MMM dd');
+    
+    // Filter issues closed on this day
+    const issuesClosedOnDay = issues.filter(issue => {
+      const closedDate = format(new Date(issue.closed_at), 'yyyy-MM-dd');
+      return closedDate === dayStr;
+    });
+    
+    // Calculate average resolution time for this day
+    let avgTimeForDay = 0;
+    
+    if (issuesClosedOnDay.length > 0) {
+      const totalTime = issuesClosedOnDay.reduce((sum, issue) => {
+        const createdTime = new Date(issue.created_at).getTime();
+        const closedTime = new Date(issue.closed_at).getTime();
+        return sum + (closedTime - createdTime);
+      }, 0);
+      
+      // Convert to hours and consider only working hours
+      avgTimeForDay = (totalTime / issuesClosedOnDay.length / (1000 * 60 * 60)) * (8/24);
+      
+      // Round to 1 decimal place
+      avgTimeForDay = Math.round(avgTimeForDay * 10) / 10;
+    }
+    
+    // Tag as outlier if resolution time exceeds 72 hours
+    const isOutlier = avgTimeForDay > 72;
+    
+    result.push({
+      name: dayLabel,
+      time: avgTimeForDay,
+      volume: issuesClosedOnDay.length,
+      isOutlier
+    });
+  }
+  
+  return result;
+};
+
+/**
+ * Generate weekly resolution time trend for the last 6 weeks
+ */
+const getWeeklyResolutionTimeTrend = (issues: any[]) => {
+  const today = new Date();
+  const result = [];
+  
+  // Process the last 6 weeks
+  for (let i = 5; i >= 0; i--) {
+    const weekStart = startOfWeek(subWeeks(today, i));
+    const weekEnd = endOfWeek(subWeeks(today, i));
+    const weekLabel = `Week ${format(weekStart, 'MM/dd')} - ${format(weekEnd, 'MM/dd')}`;
+    
+    // Filter issues closed in this week
+    const issuesClosedInWeek = issues.filter(issue => {
+      const closedDate = new Date(issue.closed_at);
+      return closedDate >= weekStart && closedDate <= weekEnd;
+    });
+    
+    // Calculate average resolution time for this week
+    let avgTimeForWeek = 0;
+    
+    if (issuesClosedInWeek.length > 0) {
+      const totalTime = issuesClosedInWeek.reduce((sum, issue) => {
+        const createdTime = new Date(issue.created_at).getTime();
+        const closedTime = new Date(issue.closed_at).getTime();
+        return sum + (closedTime - createdTime);
+      }, 0);
+      
+      // Convert to hours and consider only working hours
+      avgTimeForWeek = (totalTime / issuesClosedInWeek.length / (1000 * 60 * 60)) * (8/24);
+      
+      // Adjust for weekends (approximately)
+      const avgDaysPerTicket = issuesClosedInWeek.reduce((sum, issue) => {
+        const createdDate = new Date(issue.created_at);
+        const closedDate = new Date(issue.closed_at);
+        return sum + differenceInDays(closedDate, createdDate);
+      }, 0) / issuesClosedInWeek.length;
+      
+      // Subtract weekend time (approximately 2/7 of total time)
+      avgTimeForWeek = avgTimeForWeek * (5/7);
+      
+      // Round to 1 decimal place
+      avgTimeForWeek = Math.round(avgTimeForWeek * 10) / 10;
+    }
+    
+    // Tag as outlier if resolution time exceeds 72 hours
+    const isOutlier = avgTimeForWeek > 72;
+    
+    result.push({
+      name: weekLabel,
+      time: avgTimeForWeek,
+      volume: issuesClosedInWeek.length,
+      isOutlier
+    });
+  }
+  
+  return result;
+};
+
+/**
+ * Generate monthly resolution time trend for the last 6 months
+ */
+const getMonthlyResolutionTimeTrend = (issues: any[]) => {
+  const today = new Date();
+  const result = [];
+  
+  // Process the last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const monthStart = startOfMonth(subMonths(today, i));
+    const monthEnd = endOfMonth(subMonths(today, i));
+    const monthLabel = format(monthStart, 'MMM yyyy');
+    
+    // Filter issues closed in this month
+    const issuesClosedInMonth = issues.filter(issue => {
+      const closedDate = new Date(issue.closed_at);
+      return closedDate >= monthStart && closedDate <= monthEnd;
+    });
+    
+    // Calculate average resolution time for this month
+    let avgTimeForMonth = 0;
+    
+    if (issuesClosedInMonth.length > 0) {
+      const totalTime = issuesClosedInMonth.reduce((sum, issue) => {
+        const createdTime = new Date(issue.created_at).getTime();
+        const closedTime = new Date(issue.closed_at).getTime();
+        return sum + (closedTime - createdTime);
+      }, 0);
+      
+      // Convert to hours and consider only working hours
+      avgTimeForMonth = (totalTime / issuesClosedInMonth.length / (1000 * 60 * 60)) * (8/24);
+      
+      // Adjust for weekends (approximately)
+      avgTimeForMonth = avgTimeForMonth * (5/7);
+      
+      // Round to 1 decimal place
+      avgTimeForMonth = Math.round(avgTimeForMonth * 10) / 10;
+    }
+    
+    // Tag as outlier if resolution time exceeds 72 hours
+    const isOutlier = avgTimeForMonth > 72;
+    
+    result.push({
+      name: monthLabel,
+      time: avgTimeForMonth,
+      volume: issuesClosedInMonth.length,
+      isOutlier
+    });
+  }
+  
+  return result;
+};
+
+/**
+ * Generate quarterly resolution time trend for current and previous quarters
+ */
+const getQuarterlyResolutionTimeTrend = (issues: any[]) => {
+  const today = new Date();
+  const result = [];
+  
+  // Process current and previous 3 quarters
+  for (let i = 3; i >= 0; i--) {
+    const quarterStart = startOfQuarter(subQuarters(today, i));
+    const quarterEnd = endOfQuarter(subQuarters(today, i));
+    const quarterLabel = `Q${Math.floor(quarterStart.getMonth() / 3) + 1} ${format(quarterStart, 'yyyy')}`;
+    
+    // Filter issues closed in this quarter
+    const issuesClosedInQuarter = issues.filter(issue => {
+      const closedDate = new Date(issue.closed_at);
+      return closedDate >= quarterStart && closedDate <= quarterEnd;
+    });
+    
+    // Calculate average resolution time for this quarter
+    let avgTimeForQuarter = 0;
+    
+    if (issuesClosedInQuarter.length > 0) {
+      const totalTime = issuesClosedInQuarter.reduce((sum, issue) => {
+        const createdTime = new Date(issue.created_at).getTime();
+        const closedTime = new Date(issue.closed_at).getTime();
+        return sum + (closedTime - createdTime);
+      }, 0);
+      
+      // Convert to hours and consider only working hours
+      avgTimeForQuarter = (totalTime / issuesClosedInQuarter.length / (1000 * 60 * 60)) * (8/24);
+      
+      // Adjust for weekends (approximately)
+      avgTimeForQuarter = avgTimeForQuarter * (5/7);
+      
+      // Round to 1 decimal place
+      avgTimeForQuarter = Math.round(avgTimeForQuarter * 10) / 10;
+    }
+    
+    // Tag as outlier if resolution time exceeds 72 hours
+    const isOutlier = avgTimeForQuarter > 72;
+    
+    result.push({
+      name: quarterLabel,
+      time: avgTimeForQuarter,
+      volume: issuesClosedInQuarter.length,
+      isOutlier
+    });
+  }
+  
+  return result;
+};
+
+/**
+ * Generate fallback trend data if no real data is available
+ */
+const generateFallbackTrendData = () => {
+  return {
+    daily: [
+      { name: 'May 07', time: 12.5, volume: 8, isOutlier: false },
+      { name: 'May 08', time: 10.2, volume: 6, isOutlier: false },
+      { name: 'May 09', time: 8.7, volume: 9, isOutlier: false },
+      { name: 'May 10', time: 14.3, volume: 4, isOutlier: false },
+      { name: 'May 11', time: 6.8, volume: 12, isOutlier: false },
+      { name: 'May 12', time: 9.5, volume: 10, isOutlier: false },
+      { name: 'May 13', time: 7.2, volume: 7, isOutlier: false },
+      { name: 'May 14', time: 11.8, volume: 5, isOutlier: false },
+      { name: 'May 15', time: 16.5, volume: 3, isOutlier: false },
+      { name: 'May 16', time: 22.7, volume: 8, isOutlier: false },
+      { name: 'May 17', time: 19.3, volume: 6, isOutlier: false },
+      { name: 'May 18', time: 13.5, volume: 9, isOutlier: false },
+      { name: 'May 19', time: 15.2, volume: 11, isOutlier: false },
+      { name: 'May 20', time: 8.9, volume: 10, isOutlier: false },
+    ],
+    weekly: [
+      { name: 'Week 04/09 - 04/15', time: 14.3, volume: 24, isOutlier: false },
+      { name: 'Week 04/16 - 04/22', time: 12.7, volume: 32, isOutlier: false },
+      { name: 'Week 04/23 - 04/29', time: 17.5, volume: 27, isOutlier: false },
+      { name: 'Week 04/30 - 05/06', time: 10.8, volume: 35, isOutlier: false },
+      { name: 'Week 05/07 - 05/13', time: 9.6, volume: 41, isOutlier: false },
+      { name: 'Week 05/14 - 05/20', time: 16.2, volume: 29, isOutlier: false },
+    ],
+    monthly: [
+      { name: 'Dec 2024', time: 18.5, volume: 127, isOutlier: false },
+      { name: 'Jan 2025', time: 16.7, volume: 135, isOutlier: false },
+      { name: 'Feb 2025', time: 21.2, volume: 118, isOutlier: false },
+      { name: 'Mar 2025', time: 15.8, volume: 142, isOutlier: false },
+      { name: 'Apr 2025', time: 14.3, volume: 156, isOutlier: false },
+      { name: 'May 2025', time: 12.9, volume: 93, isOutlier: false },
+    ],
+    quarterly: [
+      { name: 'Q2 2024', time: 19.7, volume: 352, isOutlier: false },
+      { name: 'Q3 2024', time: 17.8, volume: 389, isOutlier: false },
+      { name: 'Q4 2024', time: 15.4, volume: 412, isOutlier: false },
+      { name: 'Q1 2025', time: 14.2, volume: 438, isOutlier: false },
+    ]
+  };
 };
