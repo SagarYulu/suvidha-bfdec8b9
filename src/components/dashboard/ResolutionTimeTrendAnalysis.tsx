@@ -76,6 +76,7 @@ const comparisonPresets = [
   }}
 ];
 
+// Enhanced DateRangePicker component for smooth range selection
 const DateRangePicker = ({ 
   dateRange, 
   onDateRangeChange,
@@ -85,9 +86,43 @@ const DateRangePicker = ({
   onDateRangeChange: (range: DateRange | null) => void;
   label: string;
 }) => {
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [currentDateRange, setCurrentDateRange] = useState<DateRange | null>(dateRange);
+
+  // Handle date selection internally before applying
+  const handleDateSelect = (range: DateRange | null) => {
+    setCurrentDateRange(range);
+    
+    // Don't close the popover after selecting just the start date
+    if (range && range.from && !range.to) {
+      return;
+    }
+    
+    // Only when both dates are selected or selection is cleared, apply the changes
+    if (!range || (range.from && range.to)) {
+      onDateRangeChange(range);
+      // Close the calendar only after both dates are selected
+      setIsCalendarOpen(false);
+    }
+  };
+
+  // Apply the selected custom range
+  const applyCustomRange = () => {
+    if (currentDateRange) {
+      onDateRangeChange(currentDateRange);
+    }
+    setIsCalendarOpen(false);
+  };
+
+  // Cancel and close without applying changes
+  const cancelSelection = () => {
+    setCurrentDateRange(dateRange);
+    setIsCalendarOpen(false);
+  };
+
   return (
     <div className="grid gap-2">
-      <Popover>
+      <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"
@@ -116,28 +151,60 @@ const DateRangePicker = ({
           <CalendarComponent
             initialFocus
             mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange as any}
-            onSelect={(range) => onDateRangeChange(range as DateRange | null)}
+            defaultMonth={currentDateRange?.from || new Date()}
+            selected={currentDateRange as any}
+            onSelect={handleDateSelect}
             numberOfMonths={2}
-            className={cn("p-3 pointer-events-auto")}
+            className="p-3"
           />
           <div className="border-t border-border p-3 grid gap-2">
-            {predefinedRanges.map((range, idx) => (
+            <div className="flex justify-between gap-2">
               <Button
-                key={idx}
                 variant="outline"
                 size="sm"
-                onClick={() => onDateRangeChange(range.getRange())}
+                onClick={cancelSelection}
+                className="flex-1"
               >
-                {range.name}
+                Cancel
               </Button>
-            ))}
+              <Button
+                variant="default"
+                size="sm"
+                onClick={applyCustomRange}
+                className="flex-1"
+                disabled={!currentDateRange || !currentDateRange.from}
+              >
+                Apply Range
+              </Button>
+            </div>
+            
+            <div className="pt-2 border-t border-border mt-2">
+              <p className="text-sm font-medium mb-2">Quick Select</p>
+              {predefinedRanges.map((range, idx) => (
+                <Button
+                  key={idx}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newRange = range.getRange();
+                    setCurrentDateRange(newRange);
+                    onDateRangeChange(newRange);
+                    setIsCalendarOpen(false);
+                  }}
+                  className="w-full mb-1 justify-start"
+                >
+                  {range.name}
+                </Button>
+              ))}
+            </div>
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => onDateRangeChange(null)}
-              className="text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                onDateRangeChange(null);
+                setIsCalendarOpen(false);
+              }}
+              className="text-destructive hover:bg-destructive/10 w-full justify-start"
             >
               Clear Range
             </Button>
