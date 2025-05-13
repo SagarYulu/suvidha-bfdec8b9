@@ -48,12 +48,79 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       
       if (error) {
         console.error('Error updating issue priority:', error);
-        toast({
-          title: "Error",
-          description: `Failed to update priority for ticket ${issue.id}`,
-          variant: "destructive",
+        // More detailed error logging for debugging
+        console.error('Failed update for issue:', {
+          id: issue.id,
+          currentPriority: issue.priority,
+          newPriority: newPriority,
+          error: error.message
         });
-        return null;
+        
+        // Try a workaround for the constraint error - fetch current DB state first
+        const { data: currentData, error: fetchError } = await supabase
+          .from('issues')
+          .select('priority')
+          .eq('id', issue.id)
+          .single();
+        
+        if (fetchError) {
+          console.error('Failed to fetch current issue data:', fetchError);
+          toast({
+            title: "Error",
+            description: `Failed to update priority for ticket ${issue.id}`,
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        // Make sure the priority value is one of the allowed values
+        const safeNewPriority = ['low', 'medium', 'high', 'critical'].includes(newPriority) 
+          ? newPriority 
+          : 'high'; // Fallback to high if we have an invalid value
+        
+        // Try update again with the safe priority value
+        const { error: retryError } = await supabase
+          .from('issues')
+          .update({
+            priority: safeNewPriority,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', issue.id);
+        
+        if (retryError) {
+          console.error('Error on retry updating issue priority:', retryError);
+          toast({
+            title: "Error",
+            description: `Failed to update priority for ticket ${issue.id}`,
+            variant: "destructive",
+          });
+          return null;
+        } else {
+          console.log(`Successfully updated priority on retry: ${safeNewPriority}`);
+          
+          // Check if notifications should be sent
+          if (shouldSendNotification(issue.priority, safeNewPriority)) {
+            const recipients = getNotificationRecipients(safeNewPriority, issue.assignedTo);
+            
+            // Create notifications for each recipient
+            for (const recipient of recipients) {
+              await createIssueNotification(
+                issue.id,
+                recipient,
+                `Ticket priority escalated to ${safeNewPriority.toUpperCase()}`
+              );
+            }
+          }
+          
+          // Return the updated issue with the new priority
+          const updatedIssue: Issue = {
+            ...issue,
+            priority: safeNewPriority,
+            updatedAt: new Date().toISOString()
+          };
+          
+          return updatedIssue;
+        }
       }
       
       // Check if notifications should be sent
@@ -137,6 +204,12 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     
     console.log(`Found ${issues.length} active issues to check for priority updates`);
     
+    // Add a small delay to ensure DB consistency
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
     // Process each issue
     for (const dbIssue of issues) {
       // Convert to app Issue format
@@ -156,14 +229,39 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
       };
       
       // Update the priority
-      await updateIssuePriority(issue);
+      try {
+        const result = await updateIssuePriority(issue);
+        if (result && result.priority !== issue.priority) {
+          successCount++;
+        }
+      } catch (err) {
+        console.error(`Error updating priority for issue ${issue.id}:`, err);
+        errorCount++;
+      }
+      
+      // Add a small delay between updates to avoid overwhelming the database
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    console.log("Completed updateAllIssuePriorities()");
-    toast({
-      title: "Success",
-      description: "Ticket priorities have been updated",
-    });
+    console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${errorCount} errors`);
+    
+    if (errorCount > 0) {
+      toast({
+        title: "Partial Success",
+        description: `Updated ${successCount} tickets, but encountered ${errorCount} errors`,
+        variant: "default",
+      });
+    } else if (successCount > 0) {
+      toast({
+        title: "Success",
+        description: `Ticket priorities have been updated (${successCount} changed)`,
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: "All tickets are already at the correct priority",
+      });
+    }
   } catch (error) {
     console.error('Error in updateAllIssuePriorities:', error);
     toast({

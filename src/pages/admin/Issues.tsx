@@ -53,8 +53,17 @@ const AdminIssues = () => {
       try {
         // Force a priority update before fetching issues to ensure we have the latest priorities
         console.log("Issues page loaded - running priority update");
+        
+        // Add a slight delay to ensure components are fully mounted
+        await new Promise(resolve => setTimeout(resolve, 1000)); 
+        
+        // Run priority update first
         await updateAllIssuePriorities();
         
+        // Add another small delay to ensure DB consistency
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Now fetch the updated issues
         const fetchedIssues = await getIssues();
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
@@ -100,7 +109,7 @@ const AdminIssues = () => {
     const timeoutId = setTimeout(() => {
       fetchIssues();
       fetchAssignedIssues();
-    }, 500);
+    }, 1000); // Increased delay to 1 second
     
     return () => clearTimeout(timeoutId);
   }, [authState.user]);
@@ -217,6 +226,8 @@ const AdminIssues = () => {
       await updateAllIssuePriorities();
       
       // Refresh issues list to show updated priorities
+      // Add a small delay to ensure DB consistency  
+      await new Promise(resolve => setTimeout(resolve, 500));
       const refreshedIssues = await getIssues();
       setIssues(refreshedIssues);
       
