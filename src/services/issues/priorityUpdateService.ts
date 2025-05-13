@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { useEffect } from "react";
 
 /**
@@ -113,6 +113,7 @@ const createIssueNotification = async (
  */
 export const updateAllIssuePriorities = async (): Promise<void> => {
   try {
+    console.log("Starting updateAllIssuePriorities()");
     // Fetch all active issues (not closed or resolved)
     const { data: issues, error } = await supabase
       .from('issues')
@@ -147,6 +148,8 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
       // Update the priority
       await updateIssuePriority(issue);
     }
+    
+    console.log("Completed updateAllIssuePriorities()");
   } catch (error) {
     console.error('Error in updateAllIssuePriorities:', error);
   }
@@ -160,7 +163,11 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
   useEffect(() => {
     // Initial update
     console.log('Initializing priority updater');
-    updateAllIssuePriorities();
+    
+    // Use setTimeout to delay the initial update slightly to ensure components are mounted
+    const initialTimeoutId = setTimeout(() => {
+      updateAllIssuePriorities();
+    }, 1000);
     
     // Set interval for periodic updates
     const intervalId = setInterval(() => {
@@ -169,6 +176,9 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
     }, intervalMinutes * 60 * 1000);
     
     // Clean up on unmount
-    return () => clearInterval(intervalId);
+    return () => {
+      clearTimeout(initialTimeoutId);
+      clearInterval(intervalId);
+    };
   }, [intervalMinutes]);
 };

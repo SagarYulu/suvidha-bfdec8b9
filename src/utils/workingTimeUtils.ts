@@ -139,13 +139,6 @@ export const determinePriority = (
     return 'low'; // Default value, but shouldn't be displayed in UI
   }
 
-  // 1. Check for specific high priority categories first (regardless of time elapsed)
-  // Health, Insurance, Advance, ESI categories are always high priority
-  const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
-  if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
-    return 'high';
-  }
-
   // Get current time for comparisons
   const now = new Date().toISOString();
   
@@ -153,12 +146,18 @@ export const determinePriority = (
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
-  // Log for debugging
-  console.log(`Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}`);
+  console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}`);
+
+  // 1. Check for specific high priority categories first (regardless of time elapsed)
+  // Health, Insurance, Advance, ESI categories are always high priority
+  const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
+  if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
+    return 'high';
+  }
   
   // 2. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
   if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
-    console.log(`Critical priority assigned: ${workingHoursElapsed} hours elapsed`);
+    console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
     return 'critical';
   }
   
