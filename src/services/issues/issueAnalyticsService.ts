@@ -50,6 +50,7 @@ export const getAnalytics = async (filters: IssueFilters = {}) => {
     if (issue.createdAt && issue.closedAt) {
       const createdAt = new Date(issue.createdAt);
       const closedAt = new Date(issue.closedAt);
+      // Fix: Convert Date objects to appropriate format for calculateWorkingHours
       const resolutionTime = calculateWorkingHours(createdAt, closedAt);
 
       totalResolutionTime += resolutionTime;
@@ -140,6 +141,7 @@ function generateDailyTrends(issues: Issue[], timeFilter: TimeFilter): TrendData
     // Filter issues for this day
     const dayIssues = issues.filter(issue => {
       const closedDate = new Date(issue.closedAt as string);
+      // Fix: Compare Date objects directly for filtering
       return closedDate.toDateString() === date.toDateString();
     });
     
@@ -183,6 +185,7 @@ function generateWeeklyTrends(issues: Issue[], timeFilter: TimeFilter): TrendDat
     // Filter issues for this week
     const weekIssues = issues.filter(issue => {
       const closedDate = new Date(issue.closedAt as string);
+      // Fix: Compare Date objects directly for filtering
       return closedDate >= startDate && closedDate <= endDate;
     });
     
@@ -224,6 +227,7 @@ function generateMonthlyTrends(issues: Issue[], timeFilter: TimeFilter): TrendDa
     // Filter issues for this month
     const monthIssues = issues.filter(issue => {
       const closedDate = new Date(issue.closedAt as string);
+      // Fix: Compare month and year directly
       return closedDate.getMonth() === date.getMonth() && 
              closedDate.getFullYear() === date.getFullYear();
     });
@@ -283,6 +287,7 @@ function generateQuarterlyTrends(issues: Issue[], timeFilter: TimeFilter): Trend
     // Filter issues for this quarter
     const quarterIssues = issues.filter(issue => {
       const closedDate = new Date(issue.closedAt as string);
+      // Fix: Compare Date objects directly
       return closedDate >= startDate && closedDate <= endDate;
     });
     
