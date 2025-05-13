@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -386,35 +385,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
     );
   };
   
-  // Custom line renderer that skips zero volume periods
-  const CustomizedLine = (props: any) => {
-    const { points, ...restProps } = props;
-    
-    // Filter out points with volume = 0
-    const validPoints = points.filter((point: any) => 
-      point.payload && point.payload.volume !== 0
-    );
-    
-    // Create line segments between valid points
-    const lineSegments = [];
-    
-    for (let i = 0; i < validPoints.length - 1; i++) {
-      const startPoint = validPoints[i];
-      const endPoint = validPoints[i + 1];
-      
-      lineSegments.push(
-        <line
-          key={`line-segment-${i}`}
-          x1={startPoint.x}
-          y1={startPoint.y}
-          x2={endPoint.x}
-          y2={endPoint.y}
-          {...restProps}
-        />
-      );
-    }
-    
-    return <g>{lineSegments}</g>;
+  // Filter function to exclude zero volume periods for charting
+  const filterZeroVolumePeriods = (data: TrendDataPoint[]) => {
+    return data.filter(point => point.volume !== 0);
   };
   
   return (
@@ -536,7 +509,6 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             activeDot={{ r: 8 }}
                             connectNulls={true}
                             dot={(props) => renderCustomDot(props)}
-                            shape={<CustomizedLine />}
                           />
                           
                           {/* Comparison dataset line - modified to handle zero values */}
@@ -551,7 +523,6 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               activeDot={{ r: 8 }}
                               connectNulls={true}
                               dot={(props) => renderCustomDot(props, true)}
-                              shape={<CustomizedLine />}
                             />
                           )}
                         </LineChart>
