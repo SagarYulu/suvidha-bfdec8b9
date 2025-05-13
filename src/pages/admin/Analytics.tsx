@@ -22,7 +22,7 @@ const AdminAnalytics = () => {
       setIsLoading(true);
       try {
         console.log("Fetching analytics data...");
-        const analyticsData = await getAnalytics();
+        const analyticsData = await getAnalytics({});  // Pass empty filter object
         console.log("Analytics data received:", analyticsData);
         setAnalytics(analyticsData);
       } catch (error) {

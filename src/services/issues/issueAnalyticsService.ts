@@ -1,3 +1,4 @@
+
 import { IssueFilters } from "./issueFilters";
 import { getIssues } from "./issueFilters";
 import { Issue } from "@/types";
@@ -22,19 +23,21 @@ interface TrendDataPoint {
   date?: Date; // Add date for filtering
 }
 
-export const getAnalytics = async (filters: IssueFilters) => {
+export const getAnalytics = async (filters: IssueFilters = {}) => {
   console.log("Getting analytics with filters:", filters);
 
   const allIssues = await getIssues(filters);
 
   const typeCounts = allIssues.reduce((acc: { [key: string]: number }, issue: Issue) => {
-    const type = issue.issueType || 'Unknown';
+    const type = issue.typeId || 'Unknown';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
 
   const cityCounts = allIssues.reduce((acc: { [key: string]: number }, issue: Issue) => {
-    const city = issue.city || 'Unknown';
+    // Use the employee city information if available
+    // This might need adjustment based on your data model
+    const city = 'Unknown'; // Placeholder for now
     acc[city] = (acc[city] || 0) + 1;
     return acc;
   }, {});
@@ -67,8 +70,18 @@ export const getAnalytics = async (filters: IssueFilters) => {
     typeCounts: typeCounts,
     cityCounts: cityCounts,
     resolutionTimeHistory: resolutionTimeHistory,
+    resolutionRate: calculateResolutionRate(allIssues),
+    avgResolutionTime: Math.round(averageResolutionTime),
+    avgFirstResponseTime: 2.3, // Mock data for now
   };
 };
+
+// Calculate resolution rate
+function calculateResolutionRate(issues: Issue[]): number {
+  if (issues.length === 0) return 0;
+  const closedIssues = issues.filter(issue => issue.status === 'closed').length;
+  return (closedIssues / issues.length) * 100;
+}
 
 // Mock function to generate resolution time history data
 function generateResolutionTimeHistory() {
@@ -83,8 +96,8 @@ function generateResolutionTimeHistory() {
     const resolutionTime = Math.floor(Math.random() * (72 - 24 + 1)) + 24;
 
     history.push({
-      date: date.toISOString().split('T')[0],
-      resolutionTime: resolutionTime,
+      name: date.toISOString().split('T')[0],
+      time: resolutionTime,
     });
   }
 
@@ -148,7 +161,8 @@ function generateDailyTrends(issues: Issue[], timeFilter: TimeFilter): TrendData
       name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       time: Number(avgTime.toFixed(2)),
       volume: dayIssues.length || Math.floor(Math.random() * 10 + 1),
-      isOutlier: avgTime > 72
+      isOutlier: avgTime > 72,
+      date: date
     });
   }
   
@@ -190,7 +204,8 @@ function generateWeeklyTrends(issues: Issue[], timeFilter: TimeFilter): TrendDat
       name: `Week ${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       time: Number(avgTime.toFixed(2)),
       volume: weekIssues.length || Math.floor(Math.random() * 25 + 5),
-      isOutlier: avgTime > 72
+      isOutlier: avgTime > 72,
+      date: endDate
     });
   }
   
@@ -231,7 +246,8 @@ function generateMonthlyTrends(issues: Issue[], timeFilter: TimeFilter): TrendDa
       name: date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
       time: Number(avgTime.toFixed(2)),
       volume: monthIssues.length || Math.floor(Math.random() * 50 + 20),
-      isOutlier: avgTime > 72
+      isOutlier: avgTime > 72,
+      date: date
     });
   }
   
@@ -288,7 +304,8 @@ function generateQuarterlyTrends(issues: Issue[], timeFilter: TimeFilter): Trend
       name: `Q${quarter} ${year}`,
       time: Number(avgTime.toFixed(2)),
       volume: quarterIssues.length || Math.floor(Math.random() * 120 + 60),
-      isOutlier: avgTime > 72
+      isOutlier: avgTime > 72,
+      date: endDate
     });
   }
   
