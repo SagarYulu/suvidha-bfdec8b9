@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -189,7 +190,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
         status: dbIssue.status as Issue["status"],
         priority: dbIssue.priority as Issue["priority"],
         createdAt: dbIssue.created_at,
-        updatedAt: dbIssue.updated_at,
+        updatedAt: dbIssue.updated_at || dbIssue.created_at, // Use created_at if updated_at is null
         closedAt: dbIssue.closed_at,
         assignedTo: dbIssue.assigned_to,
         comments: [] // Comments not needed for priority calculation

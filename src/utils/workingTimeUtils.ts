@@ -1,3 +1,4 @@
+
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -157,13 +158,13 @@ export const determinePriority = (
   
   // Calculate working hours elapsed since creation and since last update
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
-  const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
+  const hoursSinceLastUpdate = calculateWorkingHours(updatedAt || createdAt, now);
   
-  console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}, Hours since last update: ${hoursSinceLastUpdate}`);
+  console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}, Hours since last update: ${hoursSinceLastUpdate}, Created: ${createdAt}, Updated: ${updatedAt || 'same as created'}`);
 
   try {
     // 1. Critical priority - Unattended for 72 or more working hours
-    if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
+    if (workingHoursElapsed >= 72) {
       console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
       return 'critical';
     }
@@ -181,13 +182,13 @@ export const determinePriority = (
     }
     
     // 4. High priority - Unattended for 48 or more working hours
-    if (workingHoursElapsed >= 48 && (status === 'open' || status === 'in_progress')) {
+    if (workingHoursElapsed >= 48) {
       console.log(`[Priority] High priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
       return 'high';
     }
     
     // 5. Medium priority - Unattended for 24 or more working hours
-    if (workingHoursElapsed >= 24 && (status === 'open' || status === 'in_progress')) {
+    if (workingHoursElapsed >= 24) {
       console.log(`[Priority] Medium priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
       return 'medium';
     }
