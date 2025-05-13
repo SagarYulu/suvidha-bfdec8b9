@@ -22,6 +22,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     }
     
     // Determine the new priority based on working time calculations
+    // This will now apply the 72-hour critical rule
     const newPriority = determinePriority(
       issue.createdAt,
       issue.updatedAt,
@@ -44,6 +45,9 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     }
     
     console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
+    
+    // Check if this is an escalation to critical due to the 72-hour rule
+    const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
     
     try {
       // Update the issue in the database with retries for constraint violations
@@ -73,12 +77,17 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
           if (shouldSendNotification(issue.priority, priorityToUse)) {
             const recipients = getNotificationRecipients(priorityToUse, issue.assignedTo);
             
+            // For 72-hour critical escalation, add additional notification content
+            const notificationContent = isCriticalEscalation 
+              ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 72+ working hours`
+              : `Ticket priority escalated to ${priorityToUse.toUpperCase()}`;
+            
             // Create notifications for each recipient
             for (const recipient of recipients) {
               await createIssueNotification(
                 issue.id,
                 recipient,
-                `Ticket priority escalated to ${priorityToUse.toUpperCase()}`
+                notificationContent
               );
             }
           }
