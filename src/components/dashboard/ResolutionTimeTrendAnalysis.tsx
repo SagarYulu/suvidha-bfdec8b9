@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +13,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addDays, subDays, subWeeks, subMonths, subQuarters, isSameDay, isAfter, isBefore, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker"; // Import DateRange type from react-day-picker
 
 // Define the data structure
 interface TrendDataPoint {
@@ -24,14 +24,11 @@ interface TrendDataPoint {
   date?: Date; // Add date for filtering
 }
 
-interface DateRange {
-  from: Date | undefined;
-  to: Date | undefined;
-}
+// Remove our custom DateRange interface since we're now importing it
 
 interface TimeFilter {
   type: 'all' | 'custom' | 'week' | 'month' | 'quarter';
-  dateRange: DateRange;
+  dateRange: DateRange; // Use the imported DateRange type
   selectedWeeks: string[];
   selectedMonths: string[];
   selectedQuarters: string[];
@@ -248,10 +245,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                     <div className="border rounded-md p-3">
                       <CalendarComponent
                         mode="range"
-                        selected={{
-                          from: date.from,
-                          to: date.to
-                        }}
+                        selected={date}
                         onSelect={(range) => setDate(range || { from: undefined, to: undefined })}
                         initialFocus
                         className={cn("p-3 pointer-events-auto")}
