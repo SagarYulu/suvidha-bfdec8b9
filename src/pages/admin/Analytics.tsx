@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issueService";
@@ -105,7 +106,7 @@ const AdminAnalytics = () => {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg">Total Issues</CardTitle>
@@ -135,6 +136,16 @@ const AdminAnalytics = () => {
               <CardContent>
                 <div className="text-3xl font-bold">{analytics?.avgResolutionTime || '0'} hrs</div>
                 <p className="text-xs text-muted-foreground mt-1">Average time to close issues</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">First Response Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{analytics?.avgFirstResponseTime || '0'} hrs</div>
+                <p className="text-xs text-muted-foreground mt-1">Average time to first response</p>
               </CardContent>
             </Card>
             

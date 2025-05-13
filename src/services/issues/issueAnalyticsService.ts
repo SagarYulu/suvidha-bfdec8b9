@@ -4,6 +4,7 @@ import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueFilters";
 import { getIssues } from "./issueFilters";
 import { getAuditTrail } from "./issueAuditService";
+import { calculateFirstResponseTime } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 
 /**
@@ -30,6 +31,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
         openIssues: 0,
         resolutionRate: 0,
         avgResolutionTime: '0',
+        avgFirstResponseTime: '0',
         cityCounts: {},
         clusterCounts: {},
         managerCounts: {},
@@ -56,6 +58,59 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       }, 0);
       
       avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
+    }
+    
+    // Calculate First Response Time (FRT)
+    // Fetch the audit trail to determine when each ticket received its first response
+    let avgFirstResponseTime = 0;
+    
+    try {
+      // Fetch all audit trail entries for comments and status changes (first responses)
+      const { data: auditData, error: auditError } = await supabase
+        .from('issue_audit_trail')
+        .select('*')
+        .in('action', ['comment_added', 'status_changed']);
+      
+      if (auditError) {
+        console.error("Error fetching audit data for FRT:", auditError);
+      } else if (auditData && auditData.length > 0) {
+        // Group audit entries by issue ID
+        const issueAudits: Record<string, any[]> = {};
+        auditData.forEach(audit => {
+          if (!issueAudits[audit.issue_id]) {
+            issueAudits[audit.issue_id] = [];
+          }
+          issueAudits[audit.issue_id].push(audit);
+        });
+        
+        // Calculate FRT for each issue with audit data
+        let totalFRT = 0;
+        let issuesWithFRT = 0;
+        
+        issues.forEach(issue => {
+          if (issueAudits[issue.id]) {
+            // Sort audits by creation time
+            const sortedAudits = issueAudits[issue.id].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+            
+            // First audit entry after ticket creation is the first response
+            const firstResponseAudit = sortedAudits[0];
+            
+            if (firstResponseAudit) {
+              const frt = calculateFirstResponseTime(issue.createdAt, firstResponseAudit.created_at);
+              totalFRT += frt;
+              issuesWithFRT++;
+            }
+          }
+        });
+        
+        if (issuesWithFRT > 0) {
+          avgFirstResponseTime = totalFRT / issuesWithFRT;
+        }
+      }
+    } catch (frtError) {
+      console.error("Error calculating FRT:", frtError);
     }
     
     // Fetch employee data directly from the employees table
@@ -110,7 +165,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       totalIssues, 
       cityCounts, 
       clusterCounts, 
-      typeCounts 
+      typeCounts,
+      avgFirstResponseTime: avgFirstResponseTime.toFixed(2)
     });
     
     // Get audit trail data for advanced analytics if needed
@@ -122,6 +178,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       openIssues,
       resolutionRate: totalIssues > 0 ? (resolvedIssues / totalIssues) * 100 : 0,
       avgResolutionTime: avgResolutionTime.toFixed(2),
+      avgFirstResponseTime: avgFirstResponseTime.toFixed(2),
       cityCounts,
       clusterCounts,
       managerCounts,
@@ -137,6 +194,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       openIssues: 0,
       resolutionRate: 0,
       avgResolutionTime: '0',
+      avgFirstResponseTime: '0',
       cityCounts: {},
       clusterCounts: {},
       managerCounts: {},

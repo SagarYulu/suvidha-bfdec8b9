@@ -44,55 +44,62 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
     
     try {
-      // Update the issue in the database
-      const { error } = await supabase
-        .from('issues')
-        .update({ 
-          priority: validPriority,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', issue.id);
+      // Update the issue in the database with retries for constraint violations
+      let retryCount = 0;
+      let updateSuccess = false;
+      let error = null;
       
-      if (error) {
-        console.error(`Error updating priority for issue ${issue.id}:`, error);
+      // Try up to 3 times with different priorities if constraint violation occurs
+      const fallbackPriorities = ['high', 'medium', 'low'];
+      
+      while (!updateSuccess && retryCount < fallbackPriorities.length) {
+        const priorityToUse = retryCount === 0 ? validPriority : fallbackPriorities[retryCount - 1];
         
-        // If we get a constraint violation, it means the priority value isn't accepted by the database
-        if (error.code === '23514' && error.message.includes('issues_priority_check')) {
-          // Try to find out what priorities are allowed in the database by checking the constraints
-          console.error(`Failed update for issue:`, {
-            id: issue.id,
-            currentPriority: issue.priority,
-            newPriority: validPriority,
-            error: error.message
-          });
+        const { error: updateError } = await supabase
+          .from('issues')
+          .update({ 
+            priority: priorityToUse,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', issue.id);
+        
+        if (!updateError) {
+          updateSuccess = true;
+          console.log(`Successfully updated priority to ${priorityToUse} after ${retryCount} retries`);
           
-          // Try using the original priority value if update fails
-          return issue;
+          // Check if notifications should be sent
+          if (shouldSendNotification(issue.priority, priorityToUse)) {
+            const recipients = getNotificationRecipients(priorityToUse, issue.assignedTo);
+            
+            // Create notifications for each recipient
+            for (const recipient of recipients) {
+              await createIssueNotification(
+                issue.id,
+                recipient,
+                `Ticket priority escalated to ${priorityToUse.toUpperCase()}`
+              );
+            }
+          }
+          
+          // Return the updated issue with the new priority
+          return {
+            ...issue,
+            priority: priorityToUse,
+            updatedAt: new Date().toISOString()
+          };
+        } else {
+          error = updateError;
+          console.warn(`Failed to update priority to ${priorityToUse}, trying fallback. Error:`, updateError.message);
+          retryCount++;
         }
-        
+      }
+      
+      // If all retries failed
+      if (!updateSuccess) {
+        console.error(`All priority update attempts failed for issue ${issue.id}:`, error);
         return issue;
       }
       
-      // Check if notifications should be sent
-      if (shouldSendNotification(issue.priority, validPriority)) {
-        const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
-        
-        // Create notifications for each recipient
-        for (const recipient of recipients) {
-          await createIssueNotification(
-            issue.id,
-            recipient,
-            `Ticket priority escalated to ${validPriority.toUpperCase()}`
-          );
-        }
-      }
-      
-      // Return the updated issue with the new priority
-      return {
-        ...issue,
-        priority: validPriority,
-        updatedAt: new Date().toISOString()
-      };
     } catch (innerError) {
       console.error(`Unexpected error updating issue ${issue.id}:`, innerError);
       return issue;
@@ -164,7 +171,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     console.log(`Found ${issues.length} active issues to check for priority updates`);
     
     // Add a small delay to ensure DB consistency
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     let successCount = 0;
     let failedIssues = [];
@@ -200,7 +207,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
       }
       
       // Add a small delay between updates to avoid overwhelming the database
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${failedIssues.length} errors`);
@@ -208,10 +215,10 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     // Show toast based on results
     if (failedIssues.length > 0) {
       toast({
-        title: failedIssues.length === 1 ? "Error" : "Partial Success",
-        description: failedIssues.length === 1
-          ? `Failed to update priority for ticket ${failedIssues[0]}`
-          : `Updated ${successCount} tickets, but encountered ${failedIssues.length} errors`,
+        title: failedIssues.length === issues.length ? "Error" : "Partial Success",
+        description: failedIssues.length === issues.length
+          ? `Failed to update ticket priorities`
+          : `Updated ${successCount} tickets, encountered ${failedIssues.length} errors`,
         variant: "destructive",
       });
     } else if (successCount > 0) {
@@ -247,7 +254,7 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
     // Use setTimeout to delay the initial update to ensure components are mounted
     const initialTimeoutId = setTimeout(() => {
       updateAllIssuePriorities();
-    }, 5000); // Increased delay to 5 seconds
+    }, 7000); // Increased delay to 7 seconds
     
     // Set interval for periodic updates
     const intervalId = setInterval(() => {

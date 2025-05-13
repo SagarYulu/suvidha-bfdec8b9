@@ -1,4 +1,3 @@
-
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -125,8 +124,21 @@ export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string):
 };
 
 /**
+ * Calculate First Response Time in working hours
+ * This is the time from ticket creation to first response/update
+ */
+export const calculateFirstResponseTime = (createdAt: string, firstResponseAt: string | null): number => {
+  // If there's no response yet, return 0
+  if (!firstResponseAt) return 0;
+  
+  // Calculate working hours between ticket creation and first response
+  return calculateWorkingHours(createdAt, firstResponseAt);
+};
+
+/**
  * Determine ticket priority based on working hours elapsed and ticket properties
- * Always returns a valid priority value that matches database constraints
+ * Updated priority calculation based on time unattended:
+ * 24h -> medium, 48h -> high, 72h -> critical
  */
 export const determinePriority = (
   createdAt: string,
@@ -150,9 +162,8 @@ export const determinePriority = (
   console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}, Hours since last update: ${hoursSinceLastUpdate}`);
 
   try {
-    // 1. Critical priority cases - Ticket is open/in_progress for more than 48 working hours
-    // Reduced from 72 to 48 to ensure tickets escalate faster
-    if (workingHoursElapsed >= 48 && (status === 'open' || status === 'in_progress')) {
+    // 1. Critical priority - Unattended for 72 or more working hours
+    if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
       console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
       return 'critical';
     }
@@ -169,24 +180,25 @@ export const determinePriority = (
       return 'critical';
     }
     
-    // 4. High priority cases
-    // Ticket is "In Progress" but no update within 12 working hours
+    // 4. High priority - Unattended for 48 or more working hours
+    if (workingHoursElapsed >= 48 && (status === 'open' || status === 'in_progress')) {
+      console.log(`[Priority] High priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
+      return 'high';
+    }
+    
+    // 5. Medium priority - Unattended for 24 or more working hours
+    if (workingHoursElapsed >= 24 && (status === 'open' || status === 'in_progress')) {
+      console.log(`[Priority] Medium priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
+      return 'medium';
+    }
+    
+    // 6. Ticket is "In Progress" but no update within 12 working hours
     if (status === 'in_progress' && hoursSinceLastUpdate > 12) {
-      return 'high';
+      return 'medium';
     }
     
-    // 5. Ticket is assigned but agent has not acted within 8 hours
+    // 7. Ticket is assigned but agent has not acted within 8 hours
     if (assignedTo && hoursSinceLastUpdate > 8) {
-      return 'high';
-    }
-    
-    // 6. Open tickets after 24 hours should be high priority
-    if (status === 'open' && workingHoursElapsed >= 24) {
-      return 'high';
-    }
-    
-    // 7. Medium: No status change after 4 working hours or ticket open for more than 8 hours
-    if (hoursSinceLastUpdate > 4 || workingHoursElapsed > 8) {
       return 'medium';
     }
     
