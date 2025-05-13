@@ -5,7 +5,6 @@ import { getAnalytics } from "@/services/issues/issueAnalyticsService";
 import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
 import { getResolutionTimeTrends } from "@/services/issues/issueAnalyticsService";
-import { Issue } from "@/types";
 import { toast } from "sonner";
 
 // Date range type for filtering
@@ -75,9 +74,16 @@ export const useDashboardData = () => {
     queryKey: ['resolutionTimeTrends', filters, dateRange, comparisonDateRange, comparisonMode],
     queryFn: async () => {
       console.log("Fetching resolution time trends with filters:", filters);
-      console.log("Date range:", dateRange);
-      console.log("Comparison date range:", comparisonMode ? comparisonDateRange : "Not active");
+      console.log("Date range:", dateRange ? 
+        `From: ${dateRange.from?.toISOString().split('T')[0]} To: ${dateRange.to?.toISOString().split('T')[0]}` : 
+        "Not active");
+      console.log("Comparison date range:", comparisonMode ? 
+        (comparisonDateRange ? 
+          `From: ${comparisonDateRange.from?.toISOString().split('T')[0]} To: ${comparisonDateRange.to?.toISOString().split('T')[0]}` : 
+          "Not set") : 
+        "Not active");
       
+      // Pass proper date ranges to the service
       return getResolutionTimeTrends(
         filters,
         dateRange || undefined,
@@ -99,10 +105,10 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
-  // Force immediate refetch when filters change
+  // Force immediate refetch when filters or date ranges change
   useEffect(() => {
     const fetchData = async () => {
-      console.log("Filter or date range changed, refetching data with:", filters);
+      console.log("Filter or date range changed, refetching data");
       try {
         await Promise.all([
           refetchIssues(), 
@@ -208,13 +214,17 @@ export const useDashboardData = () => {
 
   // Handler for date range changes
   const handleDateRangeChange = useCallback((range: DateRange | null) => {
-    console.log("Primary date range changed to:", range);
+    console.log("Primary date range changed to:", range ? 
+      `From: ${range.from?.toLocaleDateString()} To: ${range.to?.toLocaleDateString()}` : 
+      "None");
     setDateRange(range);
   }, []);
 
   // Handler for comparison date range changes
   const handleComparisonDateRangeChange = useCallback((range: DateRange | null) => {
-    console.log("Comparison date range changed to:", range);
+    console.log("Comparison date range changed to:", range ? 
+      `From: ${range.from?.toLocaleDateString()} To: ${range.to?.toLocaleDateString()}` : 
+      "None");
     setComparisonDateRange(range);
   }, []);
 
@@ -244,4 +254,3 @@ export const useDashboardData = () => {
     toggleComparisonMode
   };
 };
-

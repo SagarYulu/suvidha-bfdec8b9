@@ -155,7 +155,7 @@ const DateRangePicker = ({
             selected={currentDateRange as any}
             onSelect={handleDateSelect}
             numberOfMonths={2}
-            className="p-3"
+            className={cn("p-3 pointer-events-auto")}
           />
           <div className="border-t border-border p-3 grid gap-2">
             <div className="flex justify-between gap-2">
@@ -335,8 +335,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
   const customTooltipFormatter = (value: number, name: string, props: any) => {
     const datasetType = props.payload.datasetType;
     const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
+    const volume = props.payload.volume;
     
-    if (value === 0 && props.payload.volume === 0) {
+    if (volume === 0) {
       return [`No resolutions (${label})`, 'Resolution Time'];
     }
     
@@ -353,9 +354,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
       return null;
     }
     
-    // If no resolutions (time=0, volume=0), render a different marker or skip
-    if (payload.time === 0 && payload.volume === 0) {
-      return null; // Don't show dots for days with no resolutions
+    // If no resolutions (volume=0), don't render a dot
+    if (payload.volume === 0) {
+      return null; // Don't show dots for periods with no resolutions
     }
     
     // Highlight outliers where resolution time exceeds 72 hours
@@ -383,6 +384,37 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
         fill="#FFF"
       />
     );
+  };
+  
+  // Custom line renderer that skips zero volume periods
+  const CustomizedLine = (props: any) => {
+    const { points, ...restProps } = props;
+    
+    // Filter out points with volume = 0
+    const validPoints = points.filter((point: any) => 
+      point.payload && point.payload.volume !== 0
+    );
+    
+    // Create line segments between valid points
+    const lineSegments = [];
+    
+    for (let i = 0; i < validPoints.length - 1; i++) {
+      const startPoint = validPoints[i];
+      const endPoint = validPoints[i + 1];
+      
+      lineSegments.push(
+        <line
+          key={`line-segment-${i}`}
+          x1={startPoint.x}
+          y1={startPoint.y}
+          x2={endPoint.x}
+          y2={endPoint.y}
+          {...restProps}
+        />
+      );
+    }
+    
+    return <g>{lineSegments}</g>;
   };
   
   return (
@@ -487,7 +519,11 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip formatter={customTooltipFormatter} />
+                          <Tooltip 
+                            formatter={customTooltipFormatter}
+                            labelFormatter={(label) => `Period: ${label}`}
+                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
+                          />
                           <Legend />
                           
                           {/* Primary dataset line - modified to handle zero values */}
@@ -498,8 +534,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             stroke={primaryColor}
                             strokeWidth={2}
                             activeDot={{ r: 8 }}
-                            connectNulls={false}
+                            connectNulls={true}
                             dot={(props) => renderCustomDot(props)}
+                            shape={<CustomizedLine />}
                           />
                           
                           {/* Comparison dataset line - modified to handle zero values */}
@@ -512,8 +549,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               strokeDasharray="5 5"
                               strokeWidth={2}
                               activeDot={{ r: 8 }}
-                              connectNulls={false}
+                              connectNulls={true}
                               dot={(props) => renderCustomDot(props, true)}
+                              shape={<CustomizedLine />}
                             />
                           )}
                         </LineChart>
@@ -602,19 +640,19 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               <TableRow key={`${item.name}-${index}`}>
                                 <TableCell className="font-medium">{item.name}</TableCell>
                                 <TableCell>
-                                  {item.primary?.time > 0 
-                                    ? `${item.primary?.time.toFixed(2)} hours` 
-                                    : (item.primary?.volume === 0 ? 'No resolutions' : '-')}
+                                  {item.primary?.volume ? 
+                                    (item.primary.time > 0 ? `${item.primary.time.toFixed(2)} hours` : '0 hours') : 
+                                    'No resolutions'}
                                 </TableCell>
                                 <TableCell>{item.primary?.volume || 0}</TableCell>
                                 <TableCell>
-                                  {item.comparison?.time > 0 
-                                    ? `${item.comparison?.time.toFixed(2)} hours`
-                                    : (item.comparison?.volume === 0 ? 'No resolutions' : '-')}
+                                  {item.comparison?.volume ? 
+                                    (item.comparison.time > 0 ? `${item.comparison.time.toFixed(2)} hours` : '0 hours') : 
+                                    'No resolutions'}
                                 </TableCell>
                                 <TableCell>{item.comparison?.volume || 0}</TableCell>
                                 <TableCell>
-                                  {item.percentageChange !== undefined && item.primary?.time > 0 && item.comparison?.time > 0 ? (
+                                  {item.percentageChange !== undefined && item.primary?.volume && item.comparison?.volume ? (
                                     <div className="flex items-center">
                                       <span className={cn(
                                         item.percentageChange > 0 ? "text-red-500" : 
@@ -643,12 +681,12 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                                 <TableCell className="font-medium">{item.name}</TableCell>
                                 <TableCell>{item.volume || 0}</TableCell>
                                 <TableCell>
-                                  {item.time > 0 
-                                    ? `${item.time.toFixed(2)} hours` 
-                                    : (item.volume === 0 ? 'No resolutions' : '0 hours')}
+                                  {item.volume ? 
+                                    (item.time > 0 ? `${item.time.toFixed(2)} hours` : '0 hours') : 
+                                    'No resolutions'}
                                 </TableCell>
                                 <TableCell>
-                                  {item.volume === 0 ? (
+                                  {!item.volume ? (
                                     <Badge variant="outline" className="bg-gray-100 text-gray-800">No Data</Badge>
                                   ) : item.time > 72 ? (
                                     <Badge variant="destructive">Outlier</Badge>

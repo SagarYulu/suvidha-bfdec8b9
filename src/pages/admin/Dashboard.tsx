@@ -55,7 +55,10 @@ const DashboardContent = () => {
   // Log the current filters for debugging
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
-  }, [filters]);
+    console.log("Dashboard current date range:", dateRange ? 
+      `From: ${dateRange.from?.toLocaleDateString()} To: ${dateRange.to?.toLocaleDateString()}` : 
+      "None");
+  }, [filters, dateRange]);
 
   return (
     <AdminLayout title="Dashboard">
