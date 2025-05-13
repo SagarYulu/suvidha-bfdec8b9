@@ -52,14 +52,40 @@ export const formatTime = (dateString: string | undefined | null): string => {
 export const getStatusBadgeColor = (status: string): string => {
   switch (status) {
     case "open":
-      return "bg-red-500";
+      return "bg-red-100 text-red-800";
     case "in_progress":
-      return "bg-yellow-500";
+      return "bg-yellow-100 text-yellow-800";
     case "resolved":
-      return "bg-green-500";
+      return "bg-green-100 text-green-800";
     case "closed":
-      return "bg-green-700";
+      return "bg-gray-100 text-gray-800";
     default:
-      return "bg-gray-500";
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
+/**
+ * Get priority badge styling based on priority level and issue status
+ * @param priority Issue priority
+ * @param status Issue status
+ * @returns Tailwind CSS class for the badge
+ */
+export const getPriorityBadgeClass = (priority: string, status: string): string => {
+  // Don't emphasize priority for closed/resolved tickets
+  if (status === "closed" || status === "resolved") {
+    return "bg-gray-100 text-gray-800 opacity-50";
+  }
+  
+  switch (priority) {
+    case "low":
+      return "bg-green-100 text-green-800";
+    case "medium":
+      return "bg-yellow-100 text-yellow-800";
+    case "high":
+      return "bg-orange-100 text-orange-800";
+    case "critical":
+      return "bg-red-100 text-red-800 animate-pulse";
+    default:
+      return "bg-gray-100 text-gray-800";
   }
 };

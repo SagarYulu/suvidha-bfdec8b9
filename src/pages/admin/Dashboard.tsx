@@ -8,6 +8,7 @@ import ChartSection from "@/components/dashboard/ChartSection";
 import RecentTicketsTable from "@/components/dashboard/RecentTicketsTable";
 import DashboardLoader from "@/components/dashboard/DashboardLoader";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -29,8 +30,14 @@ const DashboardContent = () => {
     handleFilterChange,
     typePieData,
     cityBarData,
-    filters // Get current filters to pass to FilterBar
+    filters
   } = useDashboardData();
+
+  // Format issues consistently with the other pages
+  const formattedRecentIssues = React.useMemo(() => {
+    if (!recentIssues) return [];
+    return formatConsistentIssueData(recentIssues);
+  }, [recentIssues]);
 
   // Log the current filters for debugging
   React.useEffect(() => {
@@ -63,9 +70,9 @@ const DashboardContent = () => {
             isLoading={isLoading}
           />
 
-          {/* Recent Tickets Table */}
+          {/* Recent Tickets Table - Pass formatted consistent issues */}
           <RecentTicketsTable 
-            recentIssues={recentIssues}
+            recentIssues={formattedRecentIssues}
             isLoading={isLoading}
           />
         </div>

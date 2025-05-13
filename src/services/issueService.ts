@@ -40,3 +40,9 @@ export {
   getEmployeeNameByUuid,
   mapEmployeeUuidsToNames
 } from "./issues/issueUtils";
+
+// Export the formatting utilities
+export {
+  formatConsistentIssueData,
+  processIssues
+} from "./issues/issueProcessingService";
