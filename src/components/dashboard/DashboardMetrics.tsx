@@ -1,7 +1,7 @@
 
 import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TicketCheck, CheckCircle, Clock, Users } from "lucide-react";
+import { TicketCheck, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 type DashboardMetricsProps = {
   analytics: any;
@@ -52,12 +52,12 @@ const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMet
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Employees</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">First Response Time</CardTitle>
+          <MessageCircle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{userCount}</div>
-          <p className="text-xs text-muted-foreground">Total employees registered</p>
+          <div className="text-2xl font-bold">{analytics?.avgFirstResponseTime || '0'} hrs</div>
+          <p className="text-xs text-muted-foreground">Average time to first response</p>
         </CardContent>
       </Card>
     </div>
