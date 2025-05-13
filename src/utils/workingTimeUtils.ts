@@ -1,3 +1,4 @@
+
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -149,8 +150,9 @@ export const determinePriority = (
   console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}, Hours since last update: ${hoursSinceLastUpdate}`);
 
   try {
-    // 1. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
-    if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
+    // 1. Critical priority cases - Ticket is open/in_progress for more than 48 working hours
+    // Reduced from 72 to 48 to ensure tickets escalate faster
+    if (workingHoursElapsed >= 48 && (status === 'open' || status === 'in_progress')) {
       console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
       return 'critical';
     }
@@ -178,12 +180,17 @@ export const determinePriority = (
       return 'high';
     }
     
-    // 6. Medium: No status change after 4 working hours
-    if (hoursSinceLastUpdate > 4) {
+    // 6. Open tickets after 24 hours should be high priority
+    if (status === 'open' && workingHoursElapsed >= 24) {
+      return 'high';
+    }
+    
+    // 7. Medium: No status change after 4 working hours or ticket open for more than 8 hours
+    if (hoursSinceLastUpdate > 4 || workingHoursElapsed > 8) {
       return 'medium';
     }
     
-    // 7. Low: Default for new or recently updated tickets
+    // 8. Low: Default for new or recently updated tickets
     return 'low';
   } catch (error) {
     console.error('Error in determinePriority:', error);

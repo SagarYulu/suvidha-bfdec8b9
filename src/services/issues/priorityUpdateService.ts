@@ -30,10 +30,9 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       issue.assignedTo
     );
     
-    // Ensure the priority is one of the allowed values
-    const validPriority = (['low', 'medium', 'high', 'critical'].includes(newPriority) 
-      ? newPriority 
-      : 'high'); // Use high as fallback
+    // Ensure the priority is one of the allowed values - IMPORTANT: match database constraints
+    const validPriorities = ['low', 'medium', 'high', 'critical'];
+    const validPriority = validPriorities.includes(newPriority) ? newPriority : 'high';
     
     console.log(`Calculated priority for issue ${issue.id}: ${validPriority} (current: ${issue.priority})`);
     
@@ -56,6 +55,21 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       
       if (error) {
         console.error(`Error updating priority for issue ${issue.id}:`, error);
+        
+        // If we get a constraint violation, it means the priority value isn't accepted by the database
+        if (error.code === '23514' && error.message.includes('issues_priority_check')) {
+          // Try to find out what priorities are allowed in the database by checking the constraints
+          console.error(`Failed update for issue:`, {
+            id: issue.id,
+            currentPriority: issue.priority,
+            newPriority: validPriority,
+            error: error.message
+          });
+          
+          // Try using the original priority value if update fails
+          return issue;
+        }
+        
         return issue;
       }
       
@@ -150,7 +164,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     console.log(`Found ${issues.length} active issues to check for priority updates`);
     
     // Add a small delay to ensure DB consistency
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
     let successCount = 0;
     let failedIssues = [];
@@ -186,7 +200,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
       }
       
       // Add a small delay between updates to avoid overwhelming the database
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
     
     console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${failedIssues.length} errors`);
@@ -230,10 +244,10 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
     // Initial update with a delay to ensure component is fully mounted
     console.log('Initializing priority updater');
     
-    // Use setTimeout to delay the initial update slightly to ensure components are mounted
+    // Use setTimeout to delay the initial update to ensure components are mounted
     const initialTimeoutId = setTimeout(() => {
       updateAllIssuePriorities();
-    }, 3000); // Increased delay to 3 seconds
+    }, 5000); // Increased delay to 5 seconds
     
     // Set interval for periodic updates
     const intervalId = setInterval(() => {

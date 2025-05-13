@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Eye, RefreshCw, Clock } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminIssues = () => {
@@ -51,20 +51,30 @@ const AdminIssues = () => {
     const fetchIssues = async () => {
       setIsLoading(true);
       try {
+        // Ensure we have a significant delay before any operations to allow components to mount fully
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
         // Force a priority update before fetching issues to ensure we have the latest priorities
         console.log("Issues page loaded - running priority update");
         
-        // Add a slight delay to ensure components are fully mounted
-        await new Promise(resolve => setTimeout(resolve, 1000)); 
+        // Run priority update first with a longer timeout
+        try {
+          await updateAllIssuePriorities();
+        } catch (updateError) {
+          console.error("Error in priority update:", updateError);
+          toast({
+            title: "Warning",
+            description: "There was an issue updating ticket priorities. Some tickets may not show the correct priority.",
+            variant: "destructive",
+          });
+        }
         
-        // Run priority update first
-        await updateAllIssuePriorities();
-        
-        // Add another small delay to ensure DB consistency
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Add another delay to ensure DB consistency
+        await new Promise(resolve => setTimeout(resolve, 2000));
         
         // Now fetch the updated issues
         const fetchedIssues = await getIssues();
+        console.log("Fetched issues after priority update:", fetchedIssues.length);
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
         
@@ -105,11 +115,11 @@ const AdminIssues = () => {
       }
     };
 
-    // Slight delay to ensure components are mounted
+    // Significant delay to ensure components are fully mounted
     const timeoutId = setTimeout(() => {
       fetchIssues();
       fetchAssignedIssues();
-    }, 1000); // Increased delay to 1 second
+    }, 3000); 
     
     return () => clearTimeout(timeoutId);
   }, [authState.user]);
@@ -227,7 +237,7 @@ const AdminIssues = () => {
       
       // Refresh issues list to show updated priorities
       // Add a small delay to ensure DB consistency  
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       const refreshedIssues = await getIssues();
       setIssues(refreshedIssues);
       
