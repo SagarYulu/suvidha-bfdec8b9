@@ -32,9 +32,9 @@ export const exportToCSV = <T extends Record<string, any>>(
  * Format resolution time data for CSV export
  */
 export const formatResolutionTimeDataForExport = (
-  data: Array<{ name: string, time: number }>,
+  data: Array<{ name: string, time: number, volume?: number }>,
   period: string
-): Array<{ Period: string, 'Average Resolution Time (hours)': number, 'Ticket Volume'?: number }> => {
+): Array<{ Period: string, 'Average Resolution Time (hours)': number, 'Ticket Volume': number }> => {
   return data.map(item => ({
     'Period': item.name,
     'Average Resolution Time (hours)': parseFloat(item.time.toFixed(2)),

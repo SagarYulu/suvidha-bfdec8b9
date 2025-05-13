@@ -8,7 +8,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, ChartLine } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { exportResolutionTimeTrendToCSV } from "@/utils/csvHelpers";
+import { exportResolutionTimeTrendToCSV } from "@/utils/csvExportUtils";
 
 // Define the data structure
 interface TrendDataPoint {
@@ -209,7 +209,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                                 {item.time > 72 ? (
                                   <Badge variant="destructive">Outlier</Badge>
                                 ) : item.time > 48 ? (
-                                  <Badge variant="warning" className="bg-yellow-500">Warning</Badge>
+                                  <Badge variant="outline" className="bg-yellow-500 text-yellow-950">Warning</Badge>
                                 ) : (
                                   <Badge variant="outline" className="bg-green-100">Normal</Badge>
                                 )}
