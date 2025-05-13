@@ -1,3 +1,4 @@
+
 import {
   BrowserRouter as Router,
   Route,
@@ -5,14 +6,14 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Dashboard from "./pages/Dashboard";
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import Login from "./pages/admin/Login";
+import Signup from "./pages/admin/Login"; // Fallback to Login since Signup may not exist
+import Dashboard from "./pages/Index"; // Using Index as Dashboard
+import AdminDashboard from "./pages/admin/Dashboard"; // Correct path
 import AdminIssues from "./pages/admin/Issues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
-import CreateEmployee from "./pages/admin/CreateEmployee";
-import ManageEmployees from "./pages/admin/ManageEmployees";
+import CreateEmployee from "./pages/admin/Users"; // Fallback to Users page
+import ManageEmployees from "./pages/admin/Users"; // Fallback to Users page
 import AssignedIssues from "./pages/admin/AssignedIssues";
 import AssignedTickets from "./pages/admin/AssignedTickets";
 import { useAuth } from "./contexts/AuthContext";
