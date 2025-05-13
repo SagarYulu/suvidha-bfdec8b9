@@ -1,12 +1,13 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { processIssues } from "./issueCore";
 
-// Define filter types with optional properties
+// Define filter types
 export type IssueFilters = {
-  city?: string | null;
-  cluster?: string | null;
-  issueType?: string | null;
+  city: string | null;
+  cluster: string | null;
+  issueType: string | null;
 };
 
 /**

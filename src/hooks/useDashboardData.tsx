@@ -1,3 +1,4 @@
+
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
@@ -6,12 +7,14 @@ import { getUsers } from "@/services/userService";
 import { getResolutionTimeTrends } from "@/services/issues/issueAnalyticsService";
 import { Issue } from "@/types";
 import { toast } from "sonner";
-import { DateRange } from "react-day-picker"; // Import DateRange type from react-day-picker
 
 // Define the time filter interface
 interface TimeFilter {
   type: 'all' | 'custom' | 'week' | 'month' | 'quarter';
-  dateRange: DateRange; // Use the imported DateRange type
+  dateRange: {
+    from: Date | undefined;
+    to: Date | undefined;
+  };
   selectedWeeks: string[];
   selectedMonths: string[];
   selectedQuarters: string[];
