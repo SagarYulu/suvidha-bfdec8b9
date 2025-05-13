@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -31,8 +30,10 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     );
     
     // Ensure the priority is one of the allowed values - IMPORTANT: match database constraints
-    const validPriorities = ['low', 'medium', 'high', 'critical'];
-    const validPriority = validPriorities.includes(newPriority) ? newPriority : 'high';
+    const validPriorities: Issue["priority"][] = ['low', 'medium', 'high', 'critical'];
+    const validPriority = validPriorities.includes(newPriority as Issue["priority"]) 
+      ? newPriority as Issue["priority"] 
+      : 'high';
     
     console.log(`Calculated priority for issue ${issue.id}: ${validPriority} (current: ${issue.priority})`);
     
@@ -50,7 +51,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       let error = null;
       
       // Try up to 3 times with different priorities if constraint violation occurs
-      const fallbackPriorities = ['high', 'medium', 'low'];
+      const fallbackPriorities: Issue["priority"][] = ['high', 'medium', 'low'];
       
       while (!updateSuccess && retryCount < fallbackPriorities.length) {
         const priorityToUse = retryCount === 0 ? validPriority : fallbackPriorities[retryCount - 1];
