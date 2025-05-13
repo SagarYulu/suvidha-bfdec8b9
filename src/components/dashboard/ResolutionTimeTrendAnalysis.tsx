@@ -331,6 +331,60 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
   const primaryColor = '#1E40AF'; // Blue
   const comparisonColor = '#10B981'; // Green
   
+  // Custom tooltip formatter to handle zero values
+  const customTooltipFormatter = (value: number, name: string, props: any) => {
+    const datasetType = props.payload.datasetType;
+    const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
+    
+    if (value === 0 && props.payload.volume === 0) {
+      return [`No resolutions (${label})`, 'Resolution Time'];
+    }
+    
+    return [`${value.toFixed(2)} hours (${label})`, 'Resolution Time'];
+  };
+  
+  // Custom dot render function to handle zero values
+  const renderCustomDot = (props: any, isComparison = false) => {
+    const { cx, cy, payload } = props;
+    
+    // Skip this dot if it belongs to the other dataset type
+    if ((isComparison && (!payload.datasetType || payload.datasetType === 'primary')) || 
+        (!isComparison && payload.datasetType === 'comparison')) {
+      return null;
+    }
+    
+    // If no resolutions (time=0, volume=0), render a different marker or skip
+    if (payload.time === 0 && payload.volume === 0) {
+      return null; // Don't show dots for days with no resolutions
+    }
+    
+    // Highlight outliers where resolution time exceeds 72 hours
+    if (payload.time > 72) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={6}
+          stroke="red"
+          strokeWidth={3}
+          fill="#FFF"
+        />
+      );
+    }
+    
+    // Normal dot
+    return (
+      <circle
+        cx={cx}
+        cy={cy}
+        r={4}
+        stroke={isComparison ? comparisonColor : primaryColor}
+        strokeWidth={1}
+        fill="#FFF"
+      />
+    );
+  };
+  
   return (
     <Card className="col-span-full">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -433,16 +487,10 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" />
                           <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                          <Tooltip 
-                            formatter={(value: number, name: string, props: any) => {
-                              const datasetType = props.payload.datasetType;
-                              const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
-                              return [`${value.toFixed(2)} hours (${label})`, 'Resolution Time'];
-                            }}
-                          />
+                          <Tooltip formatter={customTooltipFormatter} />
                           <Legend />
                           
-                          {/* Primary dataset line */}
+                          {/* Primary dataset line - modified to handle zero values */}
                           <Line
                             type="monotone"
                             dataKey="time"
@@ -450,41 +498,11 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             stroke={primaryColor}
                             strokeWidth={2}
                             activeDot={{ r: 8 }}
-                            dot={(props) => {
-                              const { cx, cy, payload } = props;
-                              const isComparisonData = payload.datasetType === 'comparison';
-                              
-                              // Skip comparison data points for this line
-                              if (isComparisonData) return null;
-                              
-                              // Highlight outliers where resolution time exceeds 72 hours
-                              if (payload.time > 72) {
-                                return (
-                                  <circle
-                                    cx={cx}
-                                    cy={cy}
-                                    r={6}
-                                    stroke="red"
-                                    strokeWidth={3}
-                                    fill="#FFF"
-                                  />
-                                );
-                              }
-                              
-                              return (
-                                <circle
-                                  cx={cx}
-                                  cy={cy}
-                                  r={4}
-                                  stroke={primaryColor}
-                                  strokeWidth={1}
-                                  fill="#FFF"
-                                />
-                              );
-                            }}
+                            connectNulls={false}
+                            dot={(props) => renderCustomDot(props)}
                           />
                           
-                          {/* Comparison dataset line (only render if comparison mode is active) */}
+                          {/* Comparison dataset line - modified to handle zero values */}
                           {comparisonMode && (
                             <Line
                               type="monotone"
@@ -494,38 +512,8 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               strokeDasharray="5 5"
                               strokeWidth={2}
                               activeDot={{ r: 8 }}
-                              dot={(props) => {
-                                const { cx, cy, payload } = props;
-                                const isPrimaryData = !payload.datasetType || payload.datasetType === 'primary';
-                                
-                                // Skip primary data points for this line
-                                if (isPrimaryData) return null;
-                                
-                                // Highlight outliers where resolution time exceeds 72 hours
-                                if (payload.time > 72) {
-                                  return (
-                                    <circle
-                                      cx={cx}
-                                      cy={cy}
-                                      r={6}
-                                      stroke="red"
-                                      strokeWidth={3}
-                                      fill="#FFF"
-                                    />
-                                  );
-                                }
-                                
-                                return (
-                                  <circle
-                                    cx={cx}
-                                    cy={cy}
-                                    r={4}
-                                    stroke={comparisonColor}
-                                    strokeWidth={1}
-                                    fill="#FFF"
-                                  />
-                                );
-                              }}
+                              connectNulls={false}
+                              dot={(props) => renderCustomDot(props, true)}
                             />
                           )}
                         </LineChart>
@@ -556,6 +544,9 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             formatter={(value: number, name: string, props: any) => {
                               const datasetType = props.payload.datasetType;
                               const label = datasetType === 'comparison' ? 'Comparison' : 'Primary';
+                              if (value === 0) {
+                                return [`No tickets (${label})`, 'Ticket Volume'];
+                              }
                               return [`${value} tickets (${label})`, 'Ticket Volume'];
                             }}
                           />
@@ -610,12 +601,20 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             getComparisonTableData().map((item, index) => (
                               <TableRow key={`${item.name}-${index}`}>
                                 <TableCell className="font-medium">{item.name}</TableCell>
-                                <TableCell>{item.primary?.time.toFixed(2) || '-'} hours</TableCell>
+                                <TableCell>
+                                  {item.primary?.time > 0 
+                                    ? `${item.primary?.time.toFixed(2)} hours` 
+                                    : (item.primary?.volume === 0 ? 'No resolutions' : '-')}
+                                </TableCell>
                                 <TableCell>{item.primary?.volume || 0}</TableCell>
-                                <TableCell>{item.comparison?.time.toFixed(2) || '-'} hours</TableCell>
+                                <TableCell>
+                                  {item.comparison?.time > 0 
+                                    ? `${item.comparison?.time.toFixed(2)} hours`
+                                    : (item.comparison?.volume === 0 ? 'No resolutions' : '-')}
+                                </TableCell>
                                 <TableCell>{item.comparison?.volume || 0}</TableCell>
                                 <TableCell>
-                                  {item.percentageChange !== undefined ? (
+                                  {item.percentageChange !== undefined && item.primary?.time > 0 && item.comparison?.time > 0 ? (
                                     <div className="flex items-center">
                                       <span className={cn(
                                         item.percentageChange > 0 ? "text-red-500" : 
@@ -643,9 +642,15 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               <TableRow key={`${item.name}-${index}`}>
                                 <TableCell className="font-medium">{item.name}</TableCell>
                                 <TableCell>{item.volume || 0}</TableCell>
-                                <TableCell>{item.time.toFixed(2)} hours</TableCell>
                                 <TableCell>
-                                  {item.time > 72 ? (
+                                  {item.time > 0 
+                                    ? `${item.time.toFixed(2)} hours` 
+                                    : (item.volume === 0 ? 'No resolutions' : '0 hours')}
+                                </TableCell>
+                                <TableCell>
+                                  {item.volume === 0 ? (
+                                    <Badge variant="outline" className="bg-gray-100 text-gray-800">No Data</Badge>
+                                  ) : item.time > 72 ? (
                                     <Badge variant="destructive">Outlier</Badge>
                                   ) : item.time > 48 ? (
                                     <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Warning</Badge>

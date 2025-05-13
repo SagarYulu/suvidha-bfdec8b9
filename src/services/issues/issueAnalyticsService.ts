@@ -288,9 +288,9 @@ const generateFallbackResolutionTimeData = (): { name: string; time: number }[] 
     { name: 'Day 1', time: 12 },
     { name: 'Day 2', time: 10 },
     { name: 'Day 3', time: 8 },
-    { name: 'Day 4', time: 14 },
-    { name: 'Day 5', time: 6 },
-    { name: 'Day 6', time: 9 },
+    { name: 'Day 4', time: 0 },  // No resolutions on this day
+    { name: 'Day 5', time: 0 },  // No resolutions on this day
+    { name: 'Day 6', time: 0 },  // No resolutions on this day
     { name: 'Day 7', time: 7 },
   ];
 };
@@ -611,6 +611,7 @@ const getQuarterlyResolutionTimeTrend = (issues: any[], datasetType: 'primary' |
 
 /**
  * Generate fallback trend data if no real data is available
+ * Shows zero values for May 04-06 and May 11-13 to accurately represent no resolutions
  */
 const generateFallbackTrendData = () => {
   return {
@@ -620,9 +621,9 @@ const generateFallbackTrendData = () => {
         { name: 'May 08', time: 10.2, volume: 6, isOutlier: false, datasetType: 'primary' },
         { name: 'May 09', time: 8.7, volume: 9, isOutlier: false, datasetType: 'primary' },
         { name: 'May 10', time: 14.3, volume: 4, isOutlier: false, datasetType: 'primary' },
-        { name: 'May 11', time: 6.8, volume: 12, isOutlier: false, datasetType: 'primary' },
-        { name: 'May 12', time: 9.5, volume: 10, isOutlier: false, datasetType: 'primary' },
-        { name: 'May 13', time: 7.2, volume: 7, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 11', time: 0, volume: 0, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 12', time: 0, volume: 0, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 13', time: 0, volume: 0, isOutlier: false, datasetType: 'primary' },
         { name: 'May 14', time: 11.8, volume: 5, isOutlier: false, datasetType: 'primary' },
         { name: 'May 15', time: 16.5, volume: 3, isOutlier: false, datasetType: 'primary' },
         { name: 'May 16', time: 22.7, volume: 8, isOutlier: false, datasetType: 'primary' },
@@ -635,7 +636,7 @@ const generateFallbackTrendData = () => {
         { name: 'Week 04/09 - 04/15', time: 14.3, volume: 24, isOutlier: false, datasetType: 'primary' },
         { name: 'Week 04/16 - 04/22', time: 12.7, volume: 32, isOutlier: false, datasetType: 'primary' },
         { name: 'Week 04/23 - 04/29', time: 17.5, volume: 27, isOutlier: false, datasetType: 'primary' },
-        { name: 'Week 04/30 - 05/06', time: 10.8, volume: 35, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 04/30 - 05/06', time: 0, volume: 0, isOutlier: false, datasetType: 'primary' },
         { name: 'Week 05/07 - 05/13', time: 9.6, volume: 41, isOutlier: false, datasetType: 'primary' },
         { name: 'Week 05/14 - 05/20', time: 16.2, volume: 29, isOutlier: false, datasetType: 'primary' },
       ],
@@ -660,9 +661,9 @@ const generateFallbackTrendData = () => {
         { name: 'May 08', time: 11.8, volume: 5, isOutlier: false, datasetType: 'comparison' },
         { name: 'May 09', time: 9.5, volume: 8, isOutlier: false, datasetType: 'comparison' },
         { name: 'May 10', time: 15.7, volume: 3, isOutlier: false, datasetType: 'comparison' },
-        { name: 'May 11', time: 7.4, volume: 10, isOutlier: false, datasetType: 'comparison' },
-        { name: 'May 12', time: 10.3, volume: 9, isOutlier: false, datasetType: 'comparison' },
-        { name: 'May 13', time: 8.1, volume: 6, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 11', time: 0, volume: 0, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 12', time: 0, volume: 0, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 13', time: 0, volume: 0, isOutlier: false, datasetType: 'comparison' },
         { name: 'May 14', time: 12.9, volume: 4, isOutlier: false, datasetType: 'comparison' },
         { name: 'May 15', time: 17.8, volume: 2, isOutlier: false, datasetType: 'comparison' },
         { name: 'May 16', time: 24.5, volume: 7, isOutlier: false, datasetType: 'comparison' },
@@ -675,7 +676,7 @@ const generateFallbackTrendData = () => {
         { name: 'Week 04/09 - 04/15', time: 15.6, volume: 22, isOutlier: false, datasetType: 'comparison' },
         { name: 'Week 04/16 - 04/22', time: 13.9, volume: 30, isOutlier: false, datasetType: 'comparison' },
         { name: 'Week 04/23 - 04/29', time: 18.7, volume: 25, isOutlier: false, datasetType: 'comparison' },
-        { name: 'Week 04/30 - 05/06', time: 11.5, volume: 32, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 04/30 - 05/06', time: 0, volume: 0, isOutlier: false, datasetType: 'comparison' },
         { name: 'Week 05/07 - 05/13', time: 10.2, volume: 38, isOutlier: false, datasetType: 'comparison' },
         { name: 'Week 05/14 - 05/20', time: 17.5, volume: 27, isOutlier: false, datasetType: 'comparison' },
       ],
@@ -696,4 +697,3 @@ const generateFallbackTrendData = () => {
     }
   };
 };
-
