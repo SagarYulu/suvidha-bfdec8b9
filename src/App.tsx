@@ -1,62 +1,140 @@
 
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-  Navigate,
-} from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import Login from "./pages/admin/Login";
-import Signup from "./pages/admin/Login"; // Fallback to Login since Signup may not exist
-import Dashboard from "./pages/Index"; // Using Index as Dashboard
-import AdminDashboard from "./pages/admin/Dashboard"; // Correct path
+import { RBACProvider } from "./contexts/RBACContext";
+
+// Import all pages
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/Dashboard";
+import AdminUsers from "./pages/admin/Users";
 import AdminIssues from "./pages/admin/Issues";
+import AdminAssignedIssues from "./pages/admin/AssignedIssues";
 import AdminIssueDetails from "./pages/admin/IssueDetails";
-import CreateEmployee from "./pages/admin/Users"; // Fallback to Users page
-import ManageEmployees from "./pages/admin/Users"; // Fallback to Users page
-import AssignedIssues from "./pages/admin/AssignedIssues";
-import AssignedTickets from "./pages/admin/AssignedTickets";
-import { useAuth } from "./contexts/AuthContext";
-import { useEffect } from "react";
+import AdminAnalytics from "./pages/admin/Analytics";
+import AdminSettings from "./pages/admin/Settings";
+import AdminLogin from "./pages/admin/Login";
+import AdminAccessControl from "./pages/admin/AccessControl";
+import MobileLogin from "./pages/mobile/Login";
+import MobileIssues from "./pages/mobile/Issues";
+import MobileNewIssue from "./pages/mobile/NewIssue";
+import MobileIssueDetails from "./pages/mobile/IssueDetails";
+import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 
-function App() {
+// Import guards
+import {
+  DashboardGuard,
+  UserManagementGuard,
+  IssuesGuard,
+  AnalyticsGuard,
+  SettingsGuard,
+  SecurityGuard,
+  CreateDashboardUserGuard
+} from "./components/guards/PermissionGuards";
+
+// Create a new QueryClient instance with more relaxed defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
+
+const App = () => {
+  console.log("App rendering - setting up providers");
+  
   return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RBACProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                
+                {/* Admin Routes */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                
+                {/* Protected Admin Routes with Guards */}
+                <Route path="/admin/dashboard" element={
+                  <DashboardGuard redirectTo="/admin/login">
+                    <AdminDashboard />
+                  </DashboardGuard>
+                } />
+                
+                <Route path="/admin/users" element={
+                  <UserManagementGuard>
+                    <AdminUsers />
+                  </UserManagementGuard>
+                } />
+                
+                <Route path="/admin/issues" element={
+                  <IssuesGuard>
+                    <AdminIssues />
+                  </IssuesGuard>
+                } />
+                
+                <Route path="/admin/assigned-issues" element={
+                  <IssuesGuard>
+                    <AdminAssignedIssues />
+                  </IssuesGuard>
+                } />
+                
+                <Route path="/admin/issues/:id" element={
+                  <IssuesGuard>
+                    <AdminIssueDetails />
+                  </IssuesGuard>
+                } />
+                
+                <Route path="/admin/analytics" element={
+                  <AnalyticsGuard>
+                    <AdminAnalytics />
+                  </AnalyticsGuard>
+                } />
+                
+                <Route path="/admin/settings" element={
+                  <SettingsGuard>
+                    <AdminSettings />
+                  </SettingsGuard>
+                } />
+                
+                <Route path="/admin/access-control" element={
+                  <SecurityGuard>
+                    <AdminAccessControl />
+                  </SecurityGuard>
+                } />
+                
+                {/* Dashboard Users Routes */}
+                <Route path="/admin/dashboard-users/add" element={
+                  <CreateDashboardUserGuard>
+                    <AddDashboardUser />
+                  </CreateDashboardUserGuard>
+                } />
+                
+                {/* Mobile Routes */}
+                <Route path="/mobile/login" element={<MobileLogin />} />
+                <Route path="/mobile/issues" element={<MobileIssues />} />
+                <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
+                <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
+                
+                {/* Fallback route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </RBACProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
-}
-
-function AppContent() {
-  const { authState } = useAuth();
-
-  useEffect(() => {
-    // Log the authentication state on component mount or when it changes
-    console.log("Authentication State:", authState);
-  }, [authState]);
-
-  return (
-    <Routes>
-      <Route path="/login" element={!authState.isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-      <Route path="/signup" element={!authState.isAuthenticated ? <Signup /> : <Navigate to="/dashboard" />} />
-      <Route path="/dashboard" element={authState.isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-
-      {/* Admin Routes - accessible only to admins */}
-      <Route path="/admin" element={authState.isAuthenticated && authState.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} />
-      <Route path="/admin/issues" element={authState.isAuthenticated && authState.role === 'admin' ? <AdminIssues /> : <Navigate to="/login" />} />
-      <Route path="/admin/issues/:issueId" element={authState.isAuthenticated && authState.role === 'admin' ? <AdminIssueDetails /> : <Navigate to="/login" />} />
-      <Route path="/admin/create-employee" element={authState.isAuthenticated && authState.role === 'admin' ? <CreateEmployee /> : <Navigate to="/login" />} />
-      <Route path="/admin/manage-employees" element={authState.isAuthenticated && authState.role === 'admin' ? <ManageEmployees /> : <Navigate to="/login" />} />
-      <Route path="/admin/assigned-issues" element={authState.isAuthenticated && authState.role === 'admin' ? <AssignedIssues /> : <Navigate to="/login" />} />
-      
-      <Route path="/admin/assigned-tickets" element={<AssignedTickets />} />
-
-      {/* Default Route - redirects to dashboard if authenticated, otherwise to login */}
-      <Route path="/" element={authState.isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
-    </Routes>
-  );
-}
+};
 
 export default App;
