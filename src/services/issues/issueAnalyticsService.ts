@@ -7,18 +7,6 @@ import { calculateFirstResponseTime } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { format, subDays, subWeeks, subMonths, subQuarters, startOfWeek, startOfMonth, startOfQuarter, endOfWeek, endOfMonth, endOfQuarter, differenceInDays, parseISO, addDays } from "date-fns";
 
-// Define the time filter interface
-interface TimeFilter {
-  type: 'all' | 'custom' | 'week' | 'month' | 'quarter';
-  dateRange: {
-    from: Date | undefined;
-    to: Date | undefined;
-  };
-  selectedWeeks: string[];
-  selectedMonths: string[];
-  selectedQuarters: string[];
-}
-
 /**
  * Issue analytics service - provides analytics data for issues
  * 
@@ -308,70 +296,28 @@ const generateFallbackResolutionTimeData = (): { name: string; time: number }[] 
 
 /**
  * Get resolution time trend data for different time periods
- * Enhanced to support time filtering
  * Returns data for daily, weekly, monthly and quarterly views
  */
-export const getResolutionTimeTrends = async (
-  filters?: IssueFilters, 
-  timeFilter?: TimeFilter
-) => {
+export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
   try {
     const today = new Date();
-    let timeRangeStart;
     
-    // Apply time filter if provided
-    if (timeFilter && timeFilter.type !== 'all') {
-      switch(timeFilter.type) {
-        case 'custom':
-          if (timeFilter.dateRange.from) {
-            timeRangeStart = format(timeFilter.dateRange.from, 'yyyy-MM-dd');
-          } else {
-            timeRangeStart = format(subMonths(today, 6), 'yyyy-MM-dd');
-          }
-          break;
-        case 'week':
-          // For week selection, get data for the past 6 months by default
-          timeRangeStart = format(subMonths(today, 6), 'yyyy-MM-dd');
-          break;
-        case 'month':
-          // For month selection, get data for the past 12 months
-          timeRangeStart = format(subMonths(today, 12), 'yyyy-MM-dd');
-          break;
-        case 'quarter':
-          // For quarter selection, get data for the past 2 years
-          timeRangeStart = format(subMonths(today, 24), 'yyyy-MM-dd');
-          break;
-        default:
-          timeRangeStart = format(subMonths(today, 6), 'yyyy-MM-dd');
-      }
-    } else {
-      // Default: fetch data for the past 6 months
-      timeRangeStart = format(subMonths(today, 6), 'yyyy-MM-dd');
-    }
-    
-    // Fetch all closed issues within the specified time range that match the filters
+    // Fetch all closed issues within the last 6 months that match the filters
     let query = supabase
       .from('issues')
       .select('*')
       .not('closed_at', 'is', null)
-      .gte('closed_at', timeRangeStart);
+      .gte('closed_at', format(subMonths(today, 6), 'yyyy-MM-dd'));
     
-    // Apply date range filter if provided
-    if (timeFilter?.type === 'custom' && timeFilter.dateRange.to) {
-      const endDate = addDays(timeFilter.dateRange.to, 1); // Include the end date
-      query = query.lt('closed_at', format(endDate, 'yyyy-MM-dd'));
-    }
-    
-    // Apply issue filters if provided
+    // Apply filters if provided
     if (filters?.city) {
       // We need to join with employees table to filter by city
+      // This requires a more complex query or post-processing
       console.log("City filter applied:", filters.city);
-      // This would require a post-processing step since we can't directly filter by city here
     }
     
     if (filters?.cluster) {
       console.log("Cluster filter applied:", filters.cluster);
-      // This would require a post-processing step since we can't directly filter by cluster here
     }
     
     if (filters?.issueType) {
@@ -391,49 +337,15 @@ export const getResolutionTimeTrends = async (
       return generateFallbackTrendData();
     }
     
-    console.log(`Retrieved ${closedIssues.length} closed issues for resolution time trend analysis`);
-    
-    // Process the raw data
-    let dailyData = getDailyResolutionTimeTrend(closedIssues);
-    let weeklyData = getWeeklyResolutionTimeTrend(closedIssues);
-    let monthlyData = getMonthlyResolutionTimeTrend(closedIssues);
-    let quarterlyData = getQuarterlyResolutionTimeTrend(closedIssues);
-    
-    // Apply additional time filters if needed
-    if (timeFilter && timeFilter.type !== 'all' && timeFilter.type !== 'custom') {
-      if (timeFilter.type === 'week' && timeFilter.selectedWeeks.length > 0) {
-        // Filter weekly data by selected weeks
-        weeklyData = weeklyData.filter(item => {
-          // Extract week number from weekly data format ("Week MM/DD - MM/DD")
-          const weekNum = parseInt(item.name.split(' ')[1]);
-          return timeFilter.selectedWeeks.some(week => {
-            const selectedWeekNum = parseInt(week.split(' ')[1]);
-            return weekNum === selectedWeekNum;
-          });
-        });
-      }
-      
-      if (timeFilter.type === 'month' && timeFilter.selectedMonths.length > 0) {
-        // Filter monthly data by selected months
-        monthlyData = monthlyData.filter(item => 
-          timeFilter.selectedMonths.includes(item.name)
-        );
-      }
-      
-      if (timeFilter.type === 'quarter' && timeFilter.selectedQuarters.length > 0) {
-        // Filter quarterly data by selected quarters
-        quarterlyData = quarterlyData.filter(item => 
-          timeFilter.selectedQuarters.includes(item.name)
-        );
-      }
-    }
-    
-    return {
-      daily: dailyData,
-      weekly: weeklyData,
-      monthly: monthlyData,
-      quarterly: quarterlyData
+    // Process the data for different time periods
+    const result = {
+      daily: getDailyResolutionTimeTrend(closedIssues),
+      weekly: getWeeklyResolutionTimeTrend(closedIssues),
+      monthly: getMonthlyResolutionTimeTrend(closedIssues),
+      quarterly: getQuarterlyResolutionTimeTrend(closedIssues)
     };
+    
+    return result;
     
   } catch (error) {
     console.error('Error generating resolution time trends:', error);
@@ -484,8 +396,7 @@ const getDailyResolutionTimeTrend = (issues: any[]) => {
       name: dayLabel,
       time: avgTimeForDay,
       volume: issuesClosedOnDay.length,
-      isOutlier,
-      date: day // Add actual date for filtering
+      isOutlier
     });
   }
   
@@ -545,8 +456,7 @@ const getWeeklyResolutionTimeTrend = (issues: any[]) => {
       name: weekLabel,
       time: avgTimeForWeek,
       volume: issuesClosedInWeek.length,
-      isOutlier,
-      date: weekStart // Add actual date for filtering
+      isOutlier
     });
   }
   
@@ -599,8 +509,7 @@ const getMonthlyResolutionTimeTrend = (issues: any[]) => {
       name: monthLabel,
       time: avgTimeForMonth,
       volume: issuesClosedInMonth.length,
-      isOutlier,
-      date: monthStart // Add actual date for filtering
+      isOutlier
     });
   }
   
@@ -653,8 +562,7 @@ const getQuarterlyResolutionTimeTrend = (issues: any[]) => {
       name: quarterLabel,
       time: avgTimeForQuarter,
       volume: issuesClosedInQuarter.length,
-      isOutlier,
-      date: quarterStart // Add actual date for filtering
+      isOutlier
     });
   }
   
