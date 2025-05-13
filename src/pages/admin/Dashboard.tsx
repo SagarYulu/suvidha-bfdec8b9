@@ -29,6 +29,7 @@ const DashboardContent = () => {
     isLoading,
     userCount,
     handleFilterChange,
+    handleTimeFilterChange,
     typePieData,
     cityBarData,
     filters,
@@ -78,7 +79,7 @@ const DashboardContent = () => {
             isLoading={isLoading}
           />
           
-          {/* Resolution Time Trend Analysis - NEW COMPONENT */}
+          {/* Resolution Time Trend Analysis - with time filter support */}
           {resolutionTimeData && (
             <ResolutionTimeTrendAnalysis
               dailyData={resolutionTimeData.daily}
@@ -86,6 +87,7 @@ const DashboardContent = () => {
               monthlyData={resolutionTimeData.monthly}
               quarterlyData={resolutionTimeData.quarterly}
               isLoading={isLoading}
+              onFilterChange={handleTimeFilterChange}
             />
           )}
 

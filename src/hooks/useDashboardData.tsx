@@ -8,12 +8,33 @@ import { getResolutionTimeTrends } from "@/services/issues/issueAnalyticsService
 import { Issue } from "@/types";
 import { toast } from "sonner";
 
+// Define the time filter interface
+interface TimeFilter {
+  type: 'all' | 'custom' | 'week' | 'month' | 'quarter';
+  dateRange: {
+    from: Date | undefined;
+    to: Date | undefined;
+  };
+  selectedWeeks: string[];
+  selectedMonths: string[];
+  selectedQuarters: string[];
+}
+
 export const useDashboardData = () => {
   // Initialize with null values for all filter fields
   const [filters, setFilters] = useState<IssueFilters>({
     city: null,
     cluster: null,
     issueType: null
+  });
+  
+  // Time filter for resolution time trends
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>({
+    type: 'all',
+    dateRange: { from: undefined, to: undefined },
+    selectedWeeks: [],
+    selectedMonths: [],
+    selectedQuarters: []
   });
   
   // Query for issues data with proper caching
@@ -50,17 +71,18 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
-  // Query for resolution time trends data
+  // Query for resolution time trends data with both issue filters and time filters
   const {
     data: resolutionTimeData,
     isLoading: isResolutionTimeLoading,
     refetch: refetchResolutionTimeTrends,
     error: resolutionTimeError
   } = useQuery({
-    queryKey: ['resolutionTimeTrends', filters],
+    queryKey: ['resolutionTimeTrends', filters, timeFilter],
     queryFn: async () => {
       console.log("Fetching resolution time trends with filters:", filters);
-      return getResolutionTimeTrends(filters);
+      console.log("And time filters:", timeFilter);
+      return getResolutionTimeTrends(filters, timeFilter);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     refetchOnWindowFocus: false, // Prevent unwanted refetches
@@ -93,7 +115,7 @@ export const useDashboardData = () => {
     };
     
     fetchData();
-  }, [filters, refetchIssues, refetchAnalytics, refetchResolutionTimeTrends]);
+  }, [filters, timeFilter, refetchIssues, refetchAnalytics, refetchResolutionTimeTrends]);
 
   // Display errors if they occur
   useEffect(() => {
@@ -152,6 +174,12 @@ export const useDashboardData = () => {
     return data;
   }, [analytics]);
   
+  // Handle time filter changes for resolution time trends
+  const handleTimeFilterChange = useCallback((newTimeFilter: TimeFilter) => {
+    console.log("Time filter change requested:", newTimeFilter);
+    setTimeFilter(newTimeFilter);
+  }, []);
+  
   // Improved filter change handler with consistent state management
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
     console.log("Filter change requested:", newFilters);
@@ -192,7 +220,9 @@ export const useDashboardData = () => {
     isLoading,
     userCount,
     filters,
+    timeFilter,
     handleFilterChange,
+    handleTimeFilterChange,
     typePieData,
     cityBarData,
     issues,
