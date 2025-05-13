@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { toast } from "@/hooks/use-toast";
-import { useEffect } from "react"; // Add proper React import
+import { useEffect } from "react";
 
 /**
  * Updates the priority of a single ticket based on its current state
@@ -22,6 +22,12 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     // If priority has changed, update the issue
     if (newPriority !== issue.priority) {
       console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${newPriority}`);
+      
+      // Make sure we're only updating with valid priority values
+      if (!['low', 'medium', 'high', 'critical'].includes(newPriority)) {
+        console.error(`Invalid priority value: ${newPriority}`);
+        return issue;
+      }
       
       // Update the issue in the database
       const { data, error } = await supabase
@@ -120,8 +126,8 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
         typeId: dbIssue.type_id,
         subTypeId: dbIssue.sub_type_id,
         description: dbIssue.description,
-        status: dbIssue.status as Issue["status"], // Type assertion to fix error
-        priority: dbIssue.priority as Issue["priority"], // Type assertion to fix error
+        status: dbIssue.status as Issue["status"],
+        priority: dbIssue.priority as Issue["priority"],
         createdAt: dbIssue.created_at,
         updatedAt: dbIssue.updated_at,
         closedAt: dbIssue.closed_at,
