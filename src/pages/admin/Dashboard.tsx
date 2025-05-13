@@ -32,7 +32,13 @@ const DashboardContent = () => {
     typePieData,
     cityBarData,
     filters,
-    resolutionTimeData
+    resolutionTimeData,
+    dateRange,
+    setDateRange,
+    comparisonDateRange,
+    setComparisonDateRange,
+    comparisonMode,
+    toggleComparisonMode
   } = useDashboardData();
 
   // Format issues consistently with the other pages
@@ -78,14 +84,20 @@ const DashboardContent = () => {
             isLoading={isLoading}
           />
           
-          {/* Resolution Time Trend Analysis - NEW COMPONENT */}
+          {/* Resolution Time Trend Analysis with Date Range Comparison */}
           {resolutionTimeData && (
             <ResolutionTimeTrendAnalysis
-              dailyData={resolutionTimeData.daily}
-              weeklyData={resolutionTimeData.weekly}
-              monthlyData={resolutionTimeData.monthly}
-              quarterlyData={resolutionTimeData.quarterly}
+              dailyData={resolutionTimeData.primaryData?.daily || []}
+              weeklyData={resolutionTimeData.primaryData?.weekly || []}
+              monthlyData={resolutionTimeData.primaryData?.monthly || []}
+              quarterlyData={resolutionTimeData.primaryData?.quarterly || []}
               isLoading={isLoading}
+              dateRange={dateRange}
+              comparisonDateRange={comparisonDateRange}
+              comparisonMode={comparisonMode}
+              onDateRangeChange={setDateRange}
+              onComparisonDateRangeChange={setComparisonDateRange}
+              onToggleComparisonMode={toggleComparisonMode}
             />
           )}
 

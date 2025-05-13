@@ -8,6 +8,12 @@ import { getResolutionTimeTrends } from "@/services/issues/issueAnalyticsService
 import { Issue } from "@/types";
 import { toast } from "sonner";
 
+// Date range type for filtering
+export interface DateRange {
+  from?: Date;
+  to?: Date;
+}
+
 export const useDashboardData = () => {
   // Initialize with null values for all filter fields
   const [filters, setFilters] = useState<IssueFilters>({
@@ -15,6 +21,15 @@ export const useDashboardData = () => {
     cluster: null,
     issueType: null
   });
+  
+  // Date range state for primary data
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
+  
+  // Date range state for comparison data
+  const [comparisonDateRange, setComparisonDateRange] = useState<DateRange | null>(null);
+  
+  // State to track if comparison mode is active
+  const [comparisonMode, setComparisonMode] = useState<boolean>(false);
   
   // Query for issues data with proper caching
   const { 
@@ -50,17 +65,24 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
-  // Query for resolution time trends data
+  // Query for resolution time trends data with date range support
   const {
     data: resolutionTimeData,
     isLoading: isResolutionTimeLoading,
     refetch: refetchResolutionTimeTrends,
     error: resolutionTimeError
   } = useQuery({
-    queryKey: ['resolutionTimeTrends', filters],
+    queryKey: ['resolutionTimeTrends', filters, dateRange, comparisonDateRange, comparisonMode],
     queryFn: async () => {
       console.log("Fetching resolution time trends with filters:", filters);
-      return getResolutionTimeTrends(filters);
+      console.log("Date range:", dateRange);
+      console.log("Comparison date range:", comparisonMode ? comparisonDateRange : "Not active");
+      
+      return getResolutionTimeTrends(
+        filters,
+        dateRange || undefined,
+        comparisonMode ? comparisonDateRange || undefined : undefined
+      );
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     refetchOnWindowFocus: false, // Prevent unwanted refetches
@@ -80,7 +102,7 @@ export const useDashboardData = () => {
   // Force immediate refetch when filters change
   useEffect(() => {
     const fetchData = async () => {
-      console.log("Filter changed, refetching data with:", filters);
+      console.log("Filter or date range changed, refetching data with:", filters);
       try {
         await Promise.all([
           refetchIssues(), 
@@ -93,7 +115,7 @@ export const useDashboardData = () => {
     };
     
     fetchData();
-  }, [filters, refetchIssues, refetchAnalytics, refetchResolutionTimeTrends]);
+  }, [filters, dateRange, comparisonDateRange, comparisonMode, refetchIssues, refetchAnalytics, refetchResolutionTimeTrends]);
 
   // Display errors if they occur
   useEffect(() => {
@@ -184,6 +206,23 @@ export const useDashboardData = () => {
     });
   }, []);
 
+  // Handler for date range changes
+  const handleDateRangeChange = useCallback((range: DateRange | null) => {
+    console.log("Primary date range changed to:", range);
+    setDateRange(range);
+  }, []);
+
+  // Handler for comparison date range changes
+  const handleComparisonDateRangeChange = useCallback((range: DateRange | null) => {
+    console.log("Comparison date range changed to:", range);
+    setComparisonDateRange(range);
+  }, []);
+
+  // Toggle comparison mode
+  const toggleComparisonMode = useCallback(() => {
+    setComparisonMode(prev => !prev);
+  }, []);
+
   const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading || isResolutionTimeLoading;
 
   return {
@@ -196,6 +235,13 @@ export const useDashboardData = () => {
     typePieData,
     cityBarData,
     issues,
-    resolutionTimeData
+    resolutionTimeData,
+    dateRange,
+    setDateRange: handleDateRangeChange,
+    comparisonDateRange,
+    setComparisonDateRange: handleComparisonDateRangeChange,
+    comparisonMode,
+    toggleComparisonMode
   };
 };
+

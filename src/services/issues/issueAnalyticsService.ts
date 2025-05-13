@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueFilters";
@@ -298,7 +299,7 @@ const generateFallbackResolutionTimeData = (): { name: string; time: number }[] 
  * Get resolution time trend data for different time periods
  * Returns data for daily, weekly, monthly and quarterly views
  */
-export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
+export const getResolutionTimeTrends = async (filters?: IssueFilters, dateRange?: {from?: Date, to?: Date}, comparisonRange?: {from?: Date, to?: Date}) => {
   try {
     const today = new Date();
     
@@ -306,8 +307,16 @@ export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
     let query = supabase
       .from('issues')
       .select('*')
-      .not('closed_at', 'is', null)
-      .gte('closed_at', format(subMonths(today, 6), 'yyyy-MM-dd'));
+      .not('closed_at', 'is', null);
+      
+    // Apply date filter if provided, otherwise use last 6 months
+    if (dateRange?.from && dateRange?.to) {
+      query = query
+        .gte('closed_at', format(dateRange.from, 'yyyy-MM-dd'))
+        .lte('closed_at', format(dateRange.to, 'yyyy-MM-dd'));
+    } else {
+      query = query.gte('closed_at', format(subMonths(today, 6), 'yyyy-MM-dd'));
+    }
     
     // Apply filters if provided
     if (filters?.city) {
@@ -345,7 +354,34 @@ export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
       quarterly: getQuarterlyResolutionTimeTrend(closedIssues)
     };
     
-    return result;
+    // If comparison range is provided, fetch and process comparison data
+    let comparisonData = null;
+    if (comparisonRange?.from && comparisonRange?.to) {
+      let comparisonQuery = supabase
+        .from('issues')
+        .select('*')
+        .not('closed_at', 'is', null)
+        .gte('closed_at', format(comparisonRange.from, 'yyyy-MM-dd'))
+        .lte('closed_at', format(comparisonRange.to, 'yyyy-MM-dd'));
+      
+      // Apply the same filters
+      if (filters?.issueType) {
+        comparisonQuery = comparisonQuery.eq('type_id', filters.issueType);
+      }
+      
+      const { data: comparisonIssues, error: comparisonError } = await comparisonQuery;
+      
+      if (!comparisonError && comparisonIssues && comparisonIssues.length > 0) {
+        comparisonData = {
+          daily: getDailyResolutionTimeTrend(comparisonIssues, 'comparison'),
+          weekly: getWeeklyResolutionTimeTrend(comparisonIssues, 'comparison'),
+          monthly: getMonthlyResolutionTimeTrend(comparisonIssues, 'comparison'),
+          quarterly: getQuarterlyResolutionTimeTrend(comparisonIssues, 'comparison')
+        };
+      }
+    }
+    
+    return { primaryData: result, comparisonData };
     
   } catch (error) {
     console.error('Error generating resolution time trends:', error);
@@ -356,7 +392,7 @@ export const getResolutionTimeTrends = async (filters?: IssueFilters) => {
 /**
  * Generate daily resolution time trend for the last 14 days
  */
-const getDailyResolutionTimeTrend = (issues: any[]) => {
+const getDailyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'comparison' = 'primary') => {
   const today = new Date();
   const result = [];
   
@@ -396,7 +432,8 @@ const getDailyResolutionTimeTrend = (issues: any[]) => {
       name: dayLabel,
       time: avgTimeForDay,
       volume: issuesClosedOnDay.length,
-      isOutlier
+      isOutlier,
+      datasetType
     });
   }
   
@@ -406,7 +443,7 @@ const getDailyResolutionTimeTrend = (issues: any[]) => {
 /**
  * Generate weekly resolution time trend for the last 6 weeks
  */
-const getWeeklyResolutionTimeTrend = (issues: any[]) => {
+const getWeeklyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'comparison' = 'primary') => {
   const today = new Date();
   const result = [];
   
@@ -456,7 +493,8 @@ const getWeeklyResolutionTimeTrend = (issues: any[]) => {
       name: weekLabel,
       time: avgTimeForWeek,
       volume: issuesClosedInWeek.length,
-      isOutlier
+      isOutlier,
+      datasetType
     });
   }
   
@@ -466,7 +504,7 @@ const getWeeklyResolutionTimeTrend = (issues: any[]) => {
 /**
  * Generate monthly resolution time trend for the last 6 months
  */
-const getMonthlyResolutionTimeTrend = (issues: any[]) => {
+const getMonthlyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'comparison' = 'primary') => {
   const today = new Date();
   const result = [];
   
@@ -509,7 +547,8 @@ const getMonthlyResolutionTimeTrend = (issues: any[]) => {
       name: monthLabel,
       time: avgTimeForMonth,
       volume: issuesClosedInMonth.length,
-      isOutlier
+      isOutlier,
+      datasetType
     });
   }
   
@@ -519,7 +558,7 @@ const getMonthlyResolutionTimeTrend = (issues: any[]) => {
 /**
  * Generate quarterly resolution time trend for current and previous quarters
  */
-const getQuarterlyResolutionTimeTrend = (issues: any[]) => {
+const getQuarterlyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'comparison' = 'primary') => {
   const today = new Date();
   const result = [];
   
@@ -562,7 +601,8 @@ const getQuarterlyResolutionTimeTrend = (issues: any[]) => {
       name: quarterLabel,
       time: avgTimeForQuarter,
       volume: issuesClosedInQuarter.length,
-      isOutlier
+      isOutlier,
+      datasetType
     });
   }
   
@@ -574,43 +614,86 @@ const getQuarterlyResolutionTimeTrend = (issues: any[]) => {
  */
 const generateFallbackTrendData = () => {
   return {
-    daily: [
-      { name: 'May 07', time: 12.5, volume: 8, isOutlier: false },
-      { name: 'May 08', time: 10.2, volume: 6, isOutlier: false },
-      { name: 'May 09', time: 8.7, volume: 9, isOutlier: false },
-      { name: 'May 10', time: 14.3, volume: 4, isOutlier: false },
-      { name: 'May 11', time: 6.8, volume: 12, isOutlier: false },
-      { name: 'May 12', time: 9.5, volume: 10, isOutlier: false },
-      { name: 'May 13', time: 7.2, volume: 7, isOutlier: false },
-      { name: 'May 14', time: 11.8, volume: 5, isOutlier: false },
-      { name: 'May 15', time: 16.5, volume: 3, isOutlier: false },
-      { name: 'May 16', time: 22.7, volume: 8, isOutlier: false },
-      { name: 'May 17', time: 19.3, volume: 6, isOutlier: false },
-      { name: 'May 18', time: 13.5, volume: 9, isOutlier: false },
-      { name: 'May 19', time: 15.2, volume: 11, isOutlier: false },
-      { name: 'May 20', time: 8.9, volume: 10, isOutlier: false },
-    ],
-    weekly: [
-      { name: 'Week 04/09 - 04/15', time: 14.3, volume: 24, isOutlier: false },
-      { name: 'Week 04/16 - 04/22', time: 12.7, volume: 32, isOutlier: false },
-      { name: 'Week 04/23 - 04/29', time: 17.5, volume: 27, isOutlier: false },
-      { name: 'Week 04/30 - 05/06', time: 10.8, volume: 35, isOutlier: false },
-      { name: 'Week 05/07 - 05/13', time: 9.6, volume: 41, isOutlier: false },
-      { name: 'Week 05/14 - 05/20', time: 16.2, volume: 29, isOutlier: false },
-    ],
-    monthly: [
-      { name: 'Dec 2024', time: 18.5, volume: 127, isOutlier: false },
-      { name: 'Jan 2025', time: 16.7, volume: 135, isOutlier: false },
-      { name: 'Feb 2025', time: 21.2, volume: 118, isOutlier: false },
-      { name: 'Mar 2025', time: 15.8, volume: 142, isOutlier: false },
-      { name: 'Apr 2025', time: 14.3, volume: 156, isOutlier: false },
-      { name: 'May 2025', time: 12.9, volume: 93, isOutlier: false },
-    ],
-    quarterly: [
-      { name: 'Q2 2024', time: 19.7, volume: 352, isOutlier: false },
-      { name: 'Q3 2024', time: 17.8, volume: 389, isOutlier: false },
-      { name: 'Q4 2024', time: 15.4, volume: 412, isOutlier: false },
-      { name: 'Q1 2025', time: 14.2, volume: 438, isOutlier: false },
-    ]
+    primaryData: {
+      daily: [
+        { name: 'May 07', time: 12.5, volume: 8, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 08', time: 10.2, volume: 6, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 09', time: 8.7, volume: 9, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 10', time: 14.3, volume: 4, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 11', time: 6.8, volume: 12, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 12', time: 9.5, volume: 10, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 13', time: 7.2, volume: 7, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 14', time: 11.8, volume: 5, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 15', time: 16.5, volume: 3, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 16', time: 22.7, volume: 8, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 17', time: 19.3, volume: 6, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 18', time: 13.5, volume: 9, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 19', time: 15.2, volume: 11, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 20', time: 8.9, volume: 10, isOutlier: false, datasetType: 'primary' },
+      ],
+      weekly: [
+        { name: 'Week 04/09 - 04/15', time: 14.3, volume: 24, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 04/16 - 04/22', time: 12.7, volume: 32, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 04/23 - 04/29', time: 17.5, volume: 27, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 04/30 - 05/06', time: 10.8, volume: 35, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 05/07 - 05/13', time: 9.6, volume: 41, isOutlier: false, datasetType: 'primary' },
+        { name: 'Week 05/14 - 05/20', time: 16.2, volume: 29, isOutlier: false, datasetType: 'primary' },
+      ],
+      monthly: [
+        { name: 'Dec 2024', time: 18.5, volume: 127, isOutlier: false, datasetType: 'primary' },
+        { name: 'Jan 2025', time: 16.7, volume: 135, isOutlier: false, datasetType: 'primary' },
+        { name: 'Feb 2025', time: 21.2, volume: 118, isOutlier: false, datasetType: 'primary' },
+        { name: 'Mar 2025', time: 15.8, volume: 142, isOutlier: false, datasetType: 'primary' },
+        { name: 'Apr 2025', time: 14.3, volume: 156, isOutlier: false, datasetType: 'primary' },
+        { name: 'May 2025', time: 12.9, volume: 93, isOutlier: false, datasetType: 'primary' },
+      ],
+      quarterly: [
+        { name: 'Q2 2024', time: 19.7, volume: 352, isOutlier: false, datasetType: 'primary' },
+        { name: 'Q3 2024', time: 17.8, volume: 389, isOutlier: false, datasetType: 'primary' },
+        { name: 'Q4 2024', time: 15.4, volume: 412, isOutlier: false, datasetType: 'primary' },
+        { name: 'Q1 2025', time: 14.2, volume: 438, isOutlier: false, datasetType: 'primary' },
+      ]
+    },
+    comparisonData: {
+      daily: [
+        { name: 'May 07', time: 14.2, volume: 7, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 08', time: 11.8, volume: 5, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 09', time: 9.5, volume: 8, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 10', time: 15.7, volume: 3, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 11', time: 7.4, volume: 10, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 12', time: 10.3, volume: 9, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 13', time: 8.1, volume: 6, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 14', time: 12.9, volume: 4, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 15', time: 17.8, volume: 2, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 16', time: 24.5, volume: 7, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 17', time: 20.8, volume: 5, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 18', time: 14.7, volume: 8, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 19', time: 16.4, volume: 10, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 20', time: 9.7, volume: 9, isOutlier: false, datasetType: 'comparison' },
+      ],
+      weekly: [
+        { name: 'Week 04/09 - 04/15', time: 15.6, volume: 22, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 04/16 - 04/22', time: 13.9, volume: 30, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 04/23 - 04/29', time: 18.7, volume: 25, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 04/30 - 05/06', time: 11.5, volume: 32, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 05/07 - 05/13', time: 10.2, volume: 38, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Week 05/14 - 05/20', time: 17.5, volume: 27, isOutlier: false, datasetType: 'comparison' },
+      ],
+      monthly: [
+        { name: 'Dec 2024', time: 19.8, volume: 120, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Jan 2025', time: 17.9, volume: 130, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Feb 2025', time: 22.5, volume: 110, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Mar 2025', time: 16.9, volume: 135, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Apr 2025', time: 15.5, volume: 145, isOutlier: false, datasetType: 'comparison' },
+        { name: 'May 2025', time: 13.7, volume: 90, isOutlier: false, datasetType: 'comparison' },
+      ],
+      quarterly: [
+        { name: 'Q2 2024', time: 21.2, volume: 340, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Q3 2024', time: 19.1, volume: 375, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Q4 2024', time: 16.7, volume: 400, isOutlier: false, datasetType: 'comparison' },
+        { name: 'Q1 2025', time: 15.3, volume: 425, isOutlier: false, datasetType: 'comparison' },
+      ]
+    }
   };
 };
+
