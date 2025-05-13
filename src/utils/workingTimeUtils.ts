@@ -125,6 +125,7 @@ export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string):
 
 /**
  * Determine ticket priority based on working hours elapsed and ticket properties
+ * Always returns a valid priority value that matches database constraints
  */
 export const determinePriority = (
   createdAt: string,
@@ -145,44 +146,50 @@ export const determinePriority = (
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
-  console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}`);
+  console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}, Hours since last update: ${hoursSinceLastUpdate}`);
 
-  // 1. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
-  if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
-    console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
-    return 'critical';
+  try {
+    // 1. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
+    if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
+      console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
+      return 'critical';
+    }
+    
+    // 2. Check for specific high priority categories
+    // Health, Insurance, Advance, ESI categories are always high priority
+    const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
+    if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
+      return 'high';
+    }
+    
+    // 3. Facility issues that are still open after 24 hours should be critical
+    if (typeId.toLowerCase().includes('facility') && workingHoursElapsed > 24) {
+      return 'critical';
+    }
+    
+    // 4. High priority cases
+    // Ticket is "In Progress" but no update within 12 working hours
+    if (status === 'in_progress' && hoursSinceLastUpdate > 12) {
+      return 'high';
+    }
+    
+    // 5. Ticket is assigned but agent has not acted within 8 hours
+    if (assignedTo && hoursSinceLastUpdate > 8) {
+      return 'high';
+    }
+    
+    // 6. Medium: No status change after 4 working hours
+    if (hoursSinceLastUpdate > 4) {
+      return 'medium';
+    }
+    
+    // 7. Low: Default for new or recently updated tickets
+    return 'low';
+  } catch (error) {
+    console.error('Error in determinePriority:', error);
+    // If any error occurs, return a safe default value
+    return 'low';
   }
-  
-  // 2. Check for specific high priority categories
-  // Health, Insurance, Advance, ESI categories are always high priority
-  const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
-  if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
-    return 'high';
-  }
-  
-  // 3. Facility issues that are still open after 24 hours should be critical
-  if (typeId.toLowerCase().includes('facility') && workingHoursElapsed > 24) {
-    return 'critical';
-  }
-  
-  // 4. High priority cases
-  // Ticket is "In Progress" but no update within 12 working hours
-  if (status === 'in_progress' && hoursSinceLastUpdate > 12) {
-    return 'high';
-  }
-  
-  // 5. Ticket is assigned but agent has not acted within 8 hours
-  if (assignedTo && hoursSinceLastUpdate > 8) {
-    return 'high';
-  }
-  
-  // 6. Medium: No status change after 4 working hours
-  if (hoursSinceLastUpdate > 4) {
-    return 'medium';
-  }
-  
-  // 7. Low: Default for new or recently updated tickets
-  return 'low';
 };
 
 /**

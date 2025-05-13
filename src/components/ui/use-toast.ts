@@ -1,5 +1,6 @@
 
-import { useToast as useShadcnToast, toast as shadcnToast } from "@/hooks/use-toast";
+// Import directly from the correct source
+import { useToast, toast } from "@/hooks/use-toast";
 
-export const useToast = useShadcnToast;
-export const toast = shadcnToast;
+// Re-export for backwards compatibility
+export { useToast, toast };

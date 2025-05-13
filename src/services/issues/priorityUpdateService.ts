@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 
 /**
@@ -15,6 +15,12 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       return issue;
     }
     
+    // Validate that the issue ID exists
+    if (!issue.id) {
+      console.error('Cannot update priority: Missing issue ID');
+      return issue;
+    }
+    
     // Determine the new priority based on working time calculations
     const newPriority = determinePriority(
       issue.createdAt,
@@ -24,138 +30,62 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       issue.assignedTo
     );
     
-    console.log(`Calculated priority for issue ${issue.id}: ${newPriority} (current: ${issue.priority})`);
+    // Ensure the priority is one of the allowed values
+    const validPriority = (['low', 'medium', 'high', 'critical'].includes(newPriority) 
+      ? newPriority 
+      : 'high'); // Use high as fallback
     
-    // If priority has changed, update the issue
-    if (newPriority !== issue.priority) {
-      console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${newPriority}`);
+    console.log(`Calculated priority for issue ${issue.id}: ${validPriority} (current: ${issue.priority})`);
+    
+    // If priority hasn't changed, return the original issue
+    if (validPriority === issue.priority) {
+      return issue;
+    }
+    
+    console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
+    
+    try {
+      // Update the issue in the database
+      const { error } = await supabase
+        .from('issues')
+        .update({ 
+          priority: validPriority,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', issue.id);
       
-      // Make sure we're only updating with valid priority values that match the database constraint
-      if (!['low', 'medium', 'high', 'critical'].includes(newPriority)) {
-        console.error(`Invalid priority value: ${newPriority}`);
+      if (error) {
+        console.error(`Error updating priority for issue ${issue.id}:`, error);
         return issue;
       }
       
-      // Update the issue in the database
-      const { data, error } = await supabase
-        .from('issues')
-        .update({ 
-          priority: newPriority,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', issue.id)
-        .select();
-      
-      if (error) {
-        console.error('Error updating issue priority:', error);
-        // More detailed error logging for debugging
-        console.error('Failed update for issue:', {
-          id: issue.id,
-          currentPriority: issue.priority,
-          newPriority: newPriority,
-          error: error.message
-        });
-        
-        // Try a workaround for the constraint error - fetch current DB state first
-        const { data: currentData, error: fetchError } = await supabase
-          .from('issues')
-          .select('priority')
-          .eq('id', issue.id)
-          .single();
-        
-        if (fetchError) {
-          console.error('Failed to fetch current issue data:', fetchError);
-          toast({
-            title: "Error",
-            description: `Failed to update priority for ticket ${issue.id}`,
-            variant: "destructive",
-          });
-          return null;
-        }
-        
-        // Make sure the priority value is one of the allowed values
-        const safeNewPriority = ['low', 'medium', 'high', 'critical'].includes(newPriority) 
-          ? newPriority 
-          : 'high'; // Fallback to high if we have an invalid value
-        
-        // Try update again with the safe priority value
-        const { error: retryError } = await supabase
-          .from('issues')
-          .update({
-            priority: safeNewPriority,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', issue.id);
-        
-        if (retryError) {
-          console.error('Error on retry updating issue priority:', retryError);
-          toast({
-            title: "Error",
-            description: `Failed to update priority for ticket ${issue.id}`,
-            variant: "destructive",
-          });
-          return null;
-        } else {
-          console.log(`Successfully updated priority on retry: ${safeNewPriority}`);
-          
-          // Check if notifications should be sent
-          if (shouldSendNotification(issue.priority, safeNewPriority)) {
-            const recipients = getNotificationRecipients(safeNewPriority, issue.assignedTo);
-            
-            // Create notifications for each recipient
-            for (const recipient of recipients) {
-              await createIssueNotification(
-                issue.id,
-                recipient,
-                `Ticket priority escalated to ${safeNewPriority.toUpperCase()}`
-              );
-            }
-          }
-          
-          // Return the updated issue with the new priority
-          const updatedIssue: Issue = {
-            ...issue,
-            priority: safeNewPriority,
-            updatedAt: new Date().toISOString()
-          };
-          
-          return updatedIssue;
-        }
-      }
-      
       // Check if notifications should be sent
-      if (shouldSendNotification(issue.priority, newPriority)) {
-        const recipients = getNotificationRecipients(newPriority, issue.assignedTo);
+      if (shouldSendNotification(issue.priority, validPriority)) {
+        const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
         
         // Create notifications for each recipient
         for (const recipient of recipients) {
           await createIssueNotification(
             issue.id,
             recipient,
-            `Ticket priority escalated to ${newPriority.toUpperCase()}`
+            `Ticket priority escalated to ${validPriority.toUpperCase()}`
           );
         }
       }
       
       // Return the updated issue with the new priority
-      const updatedIssue: Issue = {
+      return {
         ...issue,
-        priority: newPriority,
+        priority: validPriority,
         updatedAt: new Date().toISOString()
       };
-      
-      return updatedIssue;
+    } catch (innerError) {
+      console.error(`Unexpected error updating issue ${issue.id}:`, innerError);
+      return issue;
     }
-    
-    return issue;
   } catch (error) {
     console.error('Error in updateIssuePriority:', error);
-    toast({
-      title: "Error",
-      description: `An error occurred during priority update`,
-      variant: "destructive",
-    });
-    return null;
+    return issue;
   }
 };
 
@@ -191,6 +121,7 @@ const createIssueNotification = async (
 export const updateAllIssuePriorities = async (): Promise<void> => {
   try {
     console.log("Starting updateAllIssuePriorities()");
+    
     // Fetch all active issues (not closed or resolved)
     const { data: issues, error } = await supabase
       .from('issues')
@@ -199,6 +130,20 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     
     if (error) {
       console.error('Error fetching issues for priority update:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch tickets for priority update",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!issues || issues.length === 0) {
+      console.log('No active issues found to update priorities');
+      toast({
+        title: "Success",
+        description: "All tickets are already at the correct priority",
+      });
       return;
     }
     
@@ -208,7 +153,7 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     let successCount = 0;
-    let errorCount = 0;
+    let failedIssues = [];
     
     // Process each issue
     for (const dbIssue of issues) {
@@ -233,23 +178,27 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
         const result = await updateIssuePriority(issue);
         if (result && result.priority !== issue.priority) {
           successCount++;
+          console.log(`Successfully updated priority for issue ${issue.id} to ${result.priority}`);
         }
       } catch (err) {
         console.error(`Error updating priority for issue ${issue.id}:`, err);
-        errorCount++;
+        failedIssues.push(issue.id);
       }
       
       // Add a small delay between updates to avoid overwhelming the database
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
     
-    console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${errorCount} errors`);
+    console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${failedIssues.length} errors`);
     
-    if (errorCount > 0) {
+    // Show toast based on results
+    if (failedIssues.length > 0) {
       toast({
-        title: "Partial Success",
-        description: `Updated ${successCount} tickets, but encountered ${errorCount} errors`,
-        variant: "default",
+        title: failedIssues.length === 1 ? "Error" : "Partial Success",
+        description: failedIssues.length === 1
+          ? `Failed to update priority for ticket ${failedIssues[0]}`
+          : `Updated ${successCount} tickets, but encountered ${failedIssues.length} errors`,
+        variant: "destructive",
       });
     } else if (successCount > 0) {
       toast({
@@ -284,7 +233,7 @@ export const usePriorityUpdater = (intervalMinutes: number = 15) => {
     // Use setTimeout to delay the initial update slightly to ensure components are mounted
     const initialTimeoutId = setTimeout(() => {
       updateAllIssuePriorities();
-    }, 2000); // Increased delay to 2 seconds
+    }, 3000); // Increased delay to 3 seconds
     
     // Set interval for periodic updates
     const intervalId = setInterval(() => {
