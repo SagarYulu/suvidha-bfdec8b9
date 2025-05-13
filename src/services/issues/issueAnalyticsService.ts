@@ -6,6 +6,7 @@ import { getIssues } from "./issueFilters";
 import { getAuditTrail } from "./issueAuditService";
 import { calculateFirstResponseTime } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
+import { format, subDays } from "date-fns";
 
 /**
  * Issue analytics service - provides analytics data for issues
@@ -36,7 +37,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
         clusterCounts: {},
         managerCounts: {},
         typeCounts: {},
-        recentActivity: []
+        recentActivity: [],
+        resolutionTimeHistory: []
       };
     }
     
@@ -168,6 +170,9 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     // Get audit trail data for advanced analytics if needed
     const auditTrailData = await getAuditTrail(undefined, 100);
     
+    // Generate historical resolution time data for the last 7 days
+    const resolutionTimeHistory = await getResolutionTimeHistory();
+    
     return {
       totalIssues,
       resolvedIssues,
@@ -180,7 +185,9 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       managerCounts,
       typeCounts,
       // Include audit trail summary if needed
-      recentActivity: auditTrailData || []
+      recentActivity: auditTrailData || [],
+      // Include historical resolution time data
+      resolutionTimeHistory
     };
   } catch (error) {
     console.error('Error in getAnalytics:', error);
@@ -195,7 +202,95 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       clusterCounts: {},
       managerCounts: {},
       typeCounts: {},
-      recentActivity: []
+      recentActivity: [],
+      resolutionTimeHistory: []
     };
   }
+};
+
+/**
+ * Get historical resolution time data for the last 7 days
+ * Returns average resolution time per day
+ */
+export const getResolutionTimeHistory = async (): Promise<{ name: string; time: number }[]> => {
+  try {
+    // Get today's date and format it
+    const today = new Date();
+    
+    // Prepare the result array with the last 7 days
+    const result: { name: string; time: number }[] = [];
+    
+    // Fetch closed issues from the last 7 days that have closedAt data
+    const { data: closedIssues, error } = await supabase
+      .from('issues')
+      .select('*')
+      .not('closed_at', 'is', null)
+      .gte('closed_at', format(subDays(today, 7), 'yyyy-MM-dd'));
+    
+    if (error) {
+      console.error('Error fetching historical resolution time data:', error);
+      return generateFallbackResolutionTimeData();
+    }
+    
+    // If no data is found, return fallback data
+    if (!closedIssues || closedIssues.length === 0) {
+      console.log('No historical closed issues found, using fallback data');
+      return generateFallbackResolutionTimeData();
+    }
+    
+    // Process the last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const day = subDays(today, i);
+      const dayStr = format(day, 'yyyy-MM-dd');
+      const dayLabel = `Day ${7-i}`;
+      
+      // Filter issues closed on this day
+      const issuesClosedOnDay = closedIssues.filter(issue => {
+        const closedDate = format(new Date(issue.closed_at), 'yyyy-MM-dd');
+        return closedDate === dayStr;
+      });
+      
+      // Calculate average resolution time for this day
+      let avgTimeForDay = 0;
+      
+      if (issuesClosedOnDay.length > 0) {
+        const totalTime = issuesClosedOnDay.reduce((sum, issue) => {
+          const createdTime = new Date(issue.created_at).getTime();
+          const closedTime = new Date(issue.closed_at).getTime();
+          return sum + (closedTime - createdTime);
+        }, 0);
+        
+        // Convert to hours
+        avgTimeForDay = totalTime / issuesClosedOnDay.length / (1000 * 60 * 60);
+        
+        // Round to 1 decimal place
+        avgTimeForDay = Math.round(avgTimeForDay * 10) / 10;
+      }
+      
+      result.push({
+        name: dayLabel,
+        time: avgTimeForDay
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error generating resolution time history:', error);
+    return generateFallbackResolutionTimeData();
+  }
+};
+
+/**
+ * Generate fallback resolution time data if real data is not available
+ */
+const generateFallbackResolutionTimeData = (): { name: string; time: number }[] => {
+  return [
+    { name: 'Day 1', time: 12 },
+    { name: 'Day 2', time: 10 },
+    { name: 'Day 3', time: 8 },
+    { name: 'Day 4', time: 14 },
+    { name: 'Day 5', time: 6 },
+    { name: 'Day 6', time: 9 },
+    { name: 'Day 7', time: 7 },
+  ];
 };

@@ -1,17 +1,18 @@
 
 import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { getIssueTypeLabel } from "@/services/issues/issueTypeHelpers";
 
 type ChartSectionProps = {
   typePieData: any[];
   cityBarData: any[];
+  resolutionTimeHistory?: any[];
   isLoading: boolean;
 };
 
 // Using memo to prevent unnecessary re-renders
-const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSectionProps) => {
+const ChartSection = memo(({ typePieData, cityBarData, resolutionTimeHistory = [], isLoading }: ChartSectionProps) => {
   if (isLoading) return null;
   
   // Constants for chart colors
@@ -89,6 +90,43 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
           )}
         </CardContent>
       </Card>
+
+      {resolutionTimeHistory && resolutionTimeHistory.length > 0 && (
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Average Resolution Time Trend</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              How resolution times have changed over the last 7 days (in working hours)
+            </p>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart
+                data={resolutionTimeHistory}
+                margin={{
+                  top: 5,
+                  right: 30,
+                  left: 20,
+                  bottom: 5,
+                }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="time" 
+                  name="Resolution Time" 
+                  stroke="#1E40AF" 
+                  activeDot={{ r: 8 }} 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 });

@@ -39,6 +39,11 @@ const DashboardContent = () => {
     return formatConsistentIssueData(recentIssues);
   }, [recentIssues]);
 
+  // Get resolution time history data from analytics
+  const resolutionTimeHistory = React.useMemo(() => {
+    return analytics?.resolutionTimeHistory || [];
+  }, [analytics]);
+
   // Log the current filters for debugging
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
@@ -67,6 +72,7 @@ const DashboardContent = () => {
           <ChartSection 
             typePieData={typePieData}
             cityBarData={cityBarData}
+            resolutionTimeHistory={resolutionTimeHistory}
             isLoading={isLoading}
           />
 

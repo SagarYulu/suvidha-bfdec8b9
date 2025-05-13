@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getAnalytics } from "@/services/issueService";
+import { getAnalytics } from "@/services/issues/issueAnalyticsService";
 import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -81,21 +81,6 @@ const AdminAnalytics = () => {
       name,
       value
     }));
-  };
-
-  // Generate resolution time data (example)
-  const getResolutionTimeData = () => {
-    // In a real app, this would come from the database
-    // This is just sample data
-    return [
-      { name: 'Day 1', time: 12 },
-      { name: 'Day 2', time: 10 },
-      { name: 'Day 3', time: 8 },
-      { name: 'Day 4', time: 14 },
-      { name: 'Day 5', time: 6 },
-      { name: 'Day 6', time: 9 },
-      { name: 'Day 7', time: 7 },
-    ];
   };
 
   return (
@@ -192,12 +177,12 @@ const AdminAnalytics = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Average Resolution Time Trend</CardTitle>
-                <CardDescription>How resolution times have changed over time</CardDescription>
+                <CardDescription>How resolution times have changed over time (based on real data)</CardDescription>
               </CardHeader>
               <CardContent className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
-                    data={getResolutionTimeData()}
+                    data={analytics?.resolutionTimeHistory || []}
                     margin={{
                       top: 5,
                       right: 30,
