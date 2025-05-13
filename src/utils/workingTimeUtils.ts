@@ -137,7 +137,7 @@ export const calculateFirstResponseTime = (createdAt: string, firstResponseAt: s
 
 /**
  * Determine ticket priority based on working hours elapsed and ticket properties
- * PRIMARY RULE: Any ticket not marked as closed/resolved within 72 working hours 
+ * Updated rule: Any ticket not marked as closed/resolved within 16 working hours 
  * from creation MUST be critical, regardless of status changes
  */
 export const determinePriority = (
@@ -162,10 +162,10 @@ export const determinePriority = (
     
     console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed.toFixed(2)}, Hours since last update: ${hoursSinceLastUpdate.toFixed(2)}, Created: ${createdAt}, Updated: ${updatedAt || 'same as created'}, Current date: ${now}`);
 
-    // ABSOLUTE RULE: Any ticket not closed/resolved within 72 working hours must be critical
+    // UPDATED RULE: Any ticket not closed/resolved within 16 working hours must be critical
     // This is the primary rule that must be checked first, regardless of other conditions
-    if (workingHoursElapsed >= 72) {
-      console.log(`[Priority] CRITICAL PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 72hr SLA)`);
+    if (workingHoursElapsed >= 16) {
+      console.log(`[Priority] CRITICAL PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 16hr SLA)`);
       return 'critical';
     }
     
