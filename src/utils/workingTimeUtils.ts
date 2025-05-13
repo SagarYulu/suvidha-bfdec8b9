@@ -1,5 +1,4 @@
-
-import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
+import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours, setHours, setMinutes, isAfter, isBefore, isEqual } from 'date-fns';
 
 interface PublicHoliday {
   date: string; // Format: 'YYYY-MM-DD'
@@ -30,6 +29,48 @@ export const isPublicHoliday = (date: Date): boolean => {
  */
 export const isWorkingDay = (date: Date): boolean => {
   return !isSunday(date) && !isPublicHoliday(date);
+};
+
+/**
+ * Determines if a given time is within working hours (9 AM to 5 PM)
+ */
+export const isWithinWorkingHours = (date: Date): boolean => {
+  const hours = date.getHours();
+  return hours >= 9 && hours < 17;
+};
+
+/**
+ * Gets the next working day start time (9 AM)
+ */
+export const getNextWorkingDayStart = (date: Date): Date => {
+  const nextDay = new Date(date);
+  nextDay.setDate(nextDay.getDate() + 1);
+  nextDay.setHours(9, 0, 0, 0);
+  
+  // Keep incrementing until we find a working day
+  while (!isWorkingDay(nextDay)) {
+    nextDay.setDate(nextDay.getDate() + 1);
+  }
+  
+  return nextDay;
+};
+
+/**
+ * Gets the working day end time (5 PM)
+ */
+export const getWorkingDayEnd = (date: Date): Date => {
+  const endOfDay = new Date(date);
+  endOfDay.setHours(17, 0, 0, 0);
+  return endOfDay;
+};
+
+/**
+ * Gets the working day start time (9 AM)
+ */
+export const getWorkingDayStart = (date: Date): Date => {
+  const startOfDay = new Date(date);
+  startOfDay.setHours(9, 0, 0, 0);
+  return startOfDay;
 };
 
 /**
@@ -127,13 +168,49 @@ export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string):
 /**
  * Calculate First Response Time in working hours
  * This is the time from ticket creation to first response/update
+ * Implements the enhanced business logic for FRT calculation
  */
 export const calculateFirstResponseTime = (createdAt: string, firstResponseAt: string | null): number => {
   // If there's no response yet, return 0
   if (!firstResponseAt) return 0;
   
-  // Calculate working hours between ticket creation and first response
-  return calculateWorkingHours(createdAt, firstResponseAt);
+  try {
+    const createdDate = parseISO(createdAt);
+    const responseDate = parseISO(firstResponseAt);
+    
+    // If ticket was created outside working hours, adjust start time to next working day at 9 AM
+    let effectiveStartTime = createdDate;
+    
+    // Check if ticket was created outside working hours (before 9 AM or after 5 PM)
+    const isAfterWorkHours = isAfter(createdDate, getWorkingDayEnd(createdDate));
+    const isBeforeWorkHours = isBefore(createdDate, getWorkingDayStart(createdDate));
+    
+    // Check if ticket was created on a non-working day (Sunday or holiday)
+    const isOnNonWorkingDay = !isWorkingDay(createdDate);
+    
+    if (isAfterWorkHours || isBeforeWorkHours || isOnNonWorkingDay) {
+      console.log(`Ticket created outside working hours (${format(createdDate, 'yyyy-MM-dd HH:mm')})`);
+      // Set start time to next working day at 9 AM
+      if (isAfterWorkHours) {
+        // If after 5 PM, start from 9 AM next working day
+        effectiveStartTime = getNextWorkingDayStart(createdDate);
+      } else if (isOnNonWorkingDay) {
+        // If on weekend or holiday, start from 9 AM next working day
+        effectiveStartTime = getNextWorkingDayStart(createdDate);
+      } else if (isBeforeWorkHours) {
+        // If before 9 AM on a working day, start from 9 AM same day
+        effectiveStartTime = getWorkingDayStart(createdDate);
+      }
+      
+      console.log(`Adjusted start time to ${format(effectiveStartTime, 'yyyy-MM-dd HH:mm')}`);
+    }
+    
+    // Calculate working hours between effective start time and response time
+    return calculateWorkingHours(effectiveStartTime.toISOString(), firstResponseAt);
+  } catch (error) {
+    console.error('Error calculating first response time:', error);
+    return 0;
+  }
 };
 
 /**

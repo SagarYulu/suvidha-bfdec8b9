@@ -60,8 +60,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
     }
     
-    // Calculate First Response Time (FRT)
-    // Fetch the audit trail to determine when each ticket received its first response
+    // Calculate First Response Time (FRT) with improved working-hours logic
     let avgFirstResponseTime = 0;
     
     try {
@@ -74,6 +73,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       if (auditError) {
         console.error("Error fetching audit data for FRT:", auditError);
       } else if (auditData && auditData.length > 0) {
+        console.log(`Retrieved ${auditData.length} audit entries for FRT calculation`);
+        
         // Group audit entries by issue ID
         const issueAudits: Record<string, any[]> = {};
         auditData.forEach(audit => {
@@ -99,14 +100,20 @@ export const getAnalytics = async (filters?: IssueFilters) => {
             
             if (firstResponseAudit) {
               const frt = calculateFirstResponseTime(issue.createdAt, firstResponseAudit.created_at);
-              totalFRT += frt;
-              issuesWithFRT++;
+              console.log(`Issue ${issue.id} - FRT: ${frt.toFixed(2)} working hours`);
+              if (frt > 0) {
+                totalFRT += frt;
+                issuesWithFRT++;
+              }
             }
           }
         });
         
         if (issuesWithFRT > 0) {
           avgFirstResponseTime = totalFRT / issuesWithFRT;
+          console.log(`Calculated average FRT: ${avgFirstResponseTime.toFixed(2)} working hours across ${issuesWithFRT} issues`);
+        } else {
+          console.log("No valid FRT data found for any issues");
         }
       }
     } catch (frtError) {
@@ -122,8 +129,6 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       console.error('Error fetching employees for analytics:', employeesError);
     }
     
-    console.log(`Retrieved ${employees?.length || 0} employees for analytics processing`);
-    
     // City-wise issues
     const cityCounts: Record<string, number> = {};
     // Cluster-wise issues
@@ -135,8 +140,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     // Process each issue and map it to the correct employee data
     for (const issue of issues) {
-      // Find the employee who created this issue - match by the ID stored in issue.employeeUuid
-      // NOTE: issue.employeeUuid maps to employee.id (UUID)
+      // Find the employee who created this issue
       const employee = employees?.find(emp => emp.id === issue.employeeUuid);
       
       if (employee) {
@@ -160,14 +164,6 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       // Real issue type data
       typeCounts[issue.typeId] = (typeCounts[issue.typeId] || 0) + 1;
     }
-    
-    console.log("Generated analytics:", { 
-      totalIssues, 
-      cityCounts, 
-      clusterCounts, 
-      typeCounts,
-      avgFirstResponseTime: avgFirstResponseTime.toFixed(2)
-    });
     
     // Get audit trail data for advanced analytics if needed
     const auditTrailData = await getAuditTrail(undefined, 100);

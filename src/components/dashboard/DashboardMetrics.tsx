@@ -57,7 +57,7 @@ const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMet
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{analytics?.avgFirstResponseTime || '0'} hrs</div>
-          <p className="text-xs text-muted-foreground">Average time to first response</p>
+          <p className="text-xs text-muted-foreground">Average working hours to first response</p>
         </CardContent>
       </Card>
     </div>
