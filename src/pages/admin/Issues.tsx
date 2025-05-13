@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext"; 
@@ -52,7 +51,8 @@ const AdminIssues = () => {
     const fetchIssues = async () => {
       setIsLoading(true);
       try {
-        // Update all priorities first before fetching issues
+        // Force a priority update before fetching issues to ensure we have the latest priorities
+        console.log("Issues page loaded - running priority update");
         await updateAllIssuePriorities();
         
         const fetchedIssues = await getIssues();
@@ -71,6 +71,11 @@ const AdminIssues = () => {
         setUserNames(names);
       } catch (error) {
         console.error("Error fetching tickets:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch tickets",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
@@ -91,8 +96,13 @@ const AdminIssues = () => {
       }
     };
 
-    fetchIssues();
-    fetchAssignedIssues();
+    // Slight delay to ensure components are mounted
+    const timeoutId = setTimeout(() => {
+      fetchIssues();
+      fetchAssignedIssues();
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, [authState.user]);
 
   useEffect(() => {
@@ -199,7 +209,13 @@ const AdminIssues = () => {
   const handleUpdatePriorities = async () => {
     setIsUpdatingPriorities(true);
     try {
+      toast({
+        title: "Processing",
+        description: "Updating ticket priorities...",
+      });
+      
       await updateAllIssuePriorities();
+      
       // Refresh issues list to show updated priorities
       const refreshedIssues = await getIssues();
       setIssues(refreshedIssues);

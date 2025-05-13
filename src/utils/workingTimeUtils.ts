@@ -1,4 +1,3 @@
-
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -148,17 +147,17 @@ export const determinePriority = (
   
   console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}`);
 
-  // 1. Check for specific high priority categories first (regardless of time elapsed)
+  // 1. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
+  if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
+    console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
+    return 'critical';
+  }
+  
+  // 2. Check for specific high priority categories
   // Health, Insurance, Advance, ESI categories are always high priority
   const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
   if (typeId && highPriorityTypes.some(type => typeId.toLowerCase().includes(type))) {
     return 'high';
-  }
-  
-  // 2. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
-  if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
-    console.log(`[Priority] Critical priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
-    return 'critical';
   }
   
   // 3. Facility issues that are still open after 24 hours should be critical

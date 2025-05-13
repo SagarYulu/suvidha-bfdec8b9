@@ -30,7 +30,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     if (newPriority !== issue.priority) {
       console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${newPriority}`);
       
-      // Make sure we're only updating with valid priority values
+      // Make sure we're only updating with valid priority values that match the database constraint
       if (!['low', 'medium', 'high', 'critical'].includes(newPriority)) {
         console.error(`Invalid priority value: ${newPriority}`);
         return issue;
@@ -44,11 +44,15 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
           updated_at: new Date().toISOString()
         })
         .eq('id', issue.id)
-        .select()
-        .single();
+        .select();
       
       if (error) {
         console.error('Error updating issue priority:', error);
+        toast({
+          title: "Error",
+          description: `Failed to update priority for ticket ${issue.id}`,
+          variant: "destructive",
+        });
         return null;
       }
       
@@ -69,7 +73,8 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       // Return the updated issue with the new priority
       const updatedIssue: Issue = {
         ...issue,
-        priority: newPriority
+        priority: newPriority,
+        updatedAt: new Date().toISOString()
       };
       
       return updatedIssue;
@@ -78,6 +83,11 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     return issue;
   } catch (error) {
     console.error('Error in updateIssuePriority:', error);
+    toast({
+      title: "Error",
+      description: `An error occurred during priority update`,
+      variant: "destructive",
+    });
     return null;
   }
 };
@@ -150,8 +160,17 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
     }
     
     console.log("Completed updateAllIssuePriorities()");
+    toast({
+      title: "Success",
+      description: "Ticket priorities have been updated",
+    });
   } catch (error) {
     console.error('Error in updateAllIssuePriorities:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update ticket priorities",
+      variant: "destructive",
+    });
   }
 };
 
@@ -161,13 +180,13 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
  */
 export const usePriorityUpdater = (intervalMinutes: number = 15) => {
   useEffect(() => {
-    // Initial update
+    // Initial update with a delay to ensure component is fully mounted
     console.log('Initializing priority updater');
     
     // Use setTimeout to delay the initial update slightly to ensure components are mounted
     const initialTimeoutId = setTimeout(() => {
       updateAllIssuePriorities();
-    }, 1000);
+    }, 2000); // Increased delay to 2 seconds
     
     // Set interval for periodic updates
     const intervalId = setInterval(() => {
