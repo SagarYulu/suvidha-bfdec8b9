@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -21,7 +22,10 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     }
     
     // Determine the new priority based on working time calculations
-    // Critical 16-hour rule is applied for ANY ticket not closed/resolved
+    // New priority rules applied for ANY ticket not closed/resolved:
+    // - 16+ hours: Medium
+    // - 24+ hours: High
+    // - 40+ hours: Critical
     const newPriority = determinePriority(
       issue.createdAt,
       issue.updatedAt,
@@ -30,7 +34,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       issue.assignedTo
     );
     
-    // Ensure the priority is one of the allowed values - Now including 'critical'
+    // Ensure the priority is one of the allowed values
     const validPriorities: Issue["priority"][] = ['low', 'medium', 'high', 'critical'];
     const validPriority = validPriorities.includes(newPriority as Issue["priority"]) 
       ? newPriority as Issue["priority"] 
@@ -45,7 +49,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     
     console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
     
-    // Check if this is an escalation to critical due to the 16-hour rule
+    // Check if this is an escalation to critical due to the 40-hour rule
     const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
     
     // Update the issue in the database
@@ -74,10 +78,16 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     if (shouldSendNotification(issue.priority, validPriority)) {
       const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
       
-      // For 16-hour critical escalation, add additional notification content
-      const notificationContent = isCriticalEscalation 
-        ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 16+ working hours`
-        : `Ticket priority escalated to ${validPriority.toUpperCase()}`;
+      // Custom notification content based on priority level
+      let notificationContent = `Ticket priority escalated to ${validPriority.toUpperCase()}`;
+      
+      if (isCriticalEscalation) {
+        notificationContent = `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 40+ working hours`;
+      } else if (validPriority === 'high') {
+        notificationContent = `Important: Ticket priority escalated to HIGH - Unresolved for 24+ working hours`;
+      } else if (validPriority === 'medium') {
+        notificationContent = `Notice: Ticket priority escalated to MEDIUM - Unresolved for 16+ working hours`;
+      }
       
       // Create notifications for each recipient
       for (const recipient of recipients) {
