@@ -44,13 +44,16 @@ const AdminIssues = () => {
   const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
   const [activeTab, setActiveTab] = useState("all-issues");
   
-  // Use the priority updater hook to periodically update priorities (every 10 minutes)
-  usePriorityUpdater(10);
+  // Use the priority updater hook to update priorities every 5 minutes
+  usePriorityUpdater(5);
 
   useEffect(() => {
     const fetchIssues = async () => {
       setIsLoading(true);
       try {
+        // Update all priorities first before fetching issues
+        await updateAllIssuePriorities();
+        
         const fetchedIssues = await getIssues();
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);

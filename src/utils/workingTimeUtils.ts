@@ -146,13 +146,19 @@ export const determinePriority = (
     return 'high';
   }
 
+  // Get current time for comparisons
   const now = new Date().toISOString();
+  
+  // Calculate working hours elapsed since creation and since last update
   const workingHoursElapsed = calculateWorkingHours(createdAt, now);
   const hoursSinceLastUpdate = calculateWorkingHours(updatedAt, now);
   
-  // 2. Critical priority cases
-  // Not resolved/closed within 72 working hours (3 working days)
-  if (workingHoursElapsed > 72 && (status === 'open' || status === 'in_progress')) {
+  // Log for debugging
+  console.log(`Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed}`);
+  
+  // 2. Critical priority cases - Ticket is open/in_progress for more than 72 working hours
+  if (workingHoursElapsed >= 72 && (status === 'open' || status === 'in_progress')) {
+    console.log(`Critical priority assigned: ${workingHoursElapsed} hours elapsed`);
     return 'critical';
   }
   

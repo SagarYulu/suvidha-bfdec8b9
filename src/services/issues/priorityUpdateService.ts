@@ -10,6 +10,11 @@ import { useEffect } from "react";
  */
 export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> => {
   try {
+    // Skip closed or resolved issues
+    if (issue.status === 'closed' || issue.status === 'resolved') {
+      return issue;
+    }
+    
     // Determine the new priority based on working time calculations
     const newPriority = determinePriority(
       issue.createdAt,
@@ -18,6 +23,8 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       issue.typeId,
       issue.assignedTo
     );
+    
+    console.log(`Calculated priority for issue ${issue.id}: ${newPriority} (current: ${issue.priority})`);
     
     // If priority has changed, update the issue
     if (newPriority !== issue.priority) {
@@ -106,16 +113,18 @@ const createIssueNotification = async (
  */
 export const updateAllIssuePriorities = async (): Promise<void> => {
   try {
-    // Fetch all active issues (not closed)
+    // Fetch all active issues (not closed or resolved)
     const { data: issues, error } = await supabase
       .from('issues')
       .select('*')
-      .not('status', 'eq', 'closed');
+      .in('status', ['open', 'in_progress']);
     
     if (error) {
       console.error('Error fetching issues for priority update:', error);
       return;
     }
+    
+    console.log(`Found ${issues.length} active issues to check for priority updates`);
     
     // Process each issue
     for (const dbIssue of issues) {
@@ -150,10 +159,12 @@ export const updateAllIssuePriorities = async (): Promise<void> => {
 export const usePriorityUpdater = (intervalMinutes: number = 15) => {
   useEffect(() => {
     // Initial update
+    console.log('Initializing priority updater');
     updateAllIssuePriorities();
     
-    // Set interval for periodic updates - using a shorter interval for more timely updates
+    // Set interval for periodic updates
     const intervalId = setInterval(() => {
+      console.log('Running scheduled priority update');
       updateAllIssuePriorities();
     }, intervalMinutes * 60 * 1000);
     
