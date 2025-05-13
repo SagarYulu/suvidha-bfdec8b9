@@ -22,7 +22,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     }
     
     // Determine the new priority based on working time calculations
-    // This applies the 72-hour critical rule for any ticket not closed/resolved
+    // Critical 72-hour rule is applied for ANY ticket not closed/resolved
     const newPriority = determinePriority(
       issue.createdAt,
       issue.updatedAt,

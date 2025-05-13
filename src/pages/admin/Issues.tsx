@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, RefreshCw, Clock } from "lucide-react";
+import { Search, Eye, RefreshCw, Clock, AlertCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -44,8 +44,8 @@ const AdminIssues = () => {
   const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
   const [activeTab, setActiveTab] = useState("all-issues");
   
-  // Use the priority updater hook to update priorities every 5 minutes
-  usePriorityUpdater(5);
+  // Use the priority updater hook to update priorities more frequently - every 3 minutes
+  usePriorityUpdater(3);
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -215,7 +215,7 @@ const AdminIssues = () => {
       case "high":
         return "bg-orange-100 text-orange-800";
       case "critical":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 animate-pulse";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -230,9 +230,10 @@ const AdminIssues = () => {
     try {
       toast({
         title: "Processing",
-        description: "Updating ticket priorities...",
+        description: "Force updating all ticket priorities based on SLAs...",
       });
       
+      // Run priority update with a stronger toast notification
       await updateAllIssuePriorities();
       
       // Refresh issues list to show updated priorities
@@ -246,11 +247,6 @@ const AdminIssues = () => {
         const refreshedAssignedIssues = await getAssignedIssues(authState.user.id);
         setAssignedToMeIssues(refreshedAssignedIssues);
       }
-      
-      toast({
-        title: "Success",
-        description: "Ticket priorities have been updated",
-      });
     } catch (error) {
       console.error("Error updating priorities:", error);
       toast({
@@ -272,95 +268,127 @@ const AdminIssues = () => {
     return now < reopenableUntil;
   };
   
-  const RenderIssueTable = ({ issues, isLoading }: { issues: Issue[], isLoading: boolean }) => (
-    <>
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Ticket Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Updated</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {issues.map((issue) => (
-                <TableRow key={issue.id}>
-                  <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
-                  <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div>{getIssueTypeLabel(issue.typeId)}</div>
-                      <div className="text-xs text-gray-500">
-                        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {issue.description}
-                  </TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(issue.status)}`}>
-                      {issue.status.replace('_', ' ')}
-                    </span>
-                    {isReopenable(issue) && (
-                      <div className="mt-1 text-xs text-blue-600 flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Reopenable
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {(issue.status === "closed" || issue.status === "resolved") ? (
-                      <span className="text-xs text-gray-500 italic">N/A</span>
-                    ) : (
-                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority, issue.status)}`}>
-                        {issue.priority}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>{formatDate(issue.createdAt)}</TableCell>
-                  <TableCell>{formatDate(issue.updatedAt)}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 w-8 p-0"
-                      onClick={() => handleViewIssue(issue.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              
-              {issues.length === 0 && (
+  const RenderIssueTable = ({ issues, isLoading }: { issues: Issue[], isLoading: boolean }) => {
+    // Check if there are any critical issues in the current view
+    const hasCriticalIssues = issues.some(issue => 
+      issue.priority === 'critical' && issue.status !== 'closed' && issue.status !== 'resolved');
+    
+    return (
+      <>
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            {hasCriticalIssues && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                  <div>
+                    <p className="font-medium text-red-800">Critical SLA Breach Detected</p>
+                    <p className="text-sm text-red-600">There are tickets that have exceeded the 72-hour resolution SLA.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-6">
-                    {searchTerm || statusFilter !== "all"
-                      ? "No tickets matching filters"
-                      : "No tickets found"
-                    }
-                  </TableCell>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Ticket Type</TableHead>
+                  <TableHead>Description</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-    </>
-  );
+              </TableHeader>
+              <TableBody>
+                {issues.map((issue) => {
+                  // Calculate if issue has breached SLA
+                  const isBreachedSLA = issue.priority === 'critical' && 
+                    issue.status !== 'closed' && 
+                    issue.status !== 'resolved';
+                  
+                  return (
+                    <TableRow 
+                      key={issue.id}
+                      className={isBreachedSLA ? "bg-red-50" : undefined}
+                    >
+                      <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
+                      <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{getIssueTypeLabel(issue.typeId)}</div>
+                          <div className="text-xs text-gray-500">
+                            {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {issue.description}
+                      </TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadgeClass(issue.status)}`}>
+                          {issue.status.replace('_', ' ')}
+                        </span>
+                        {isReopenable(issue) && (
+                          <div className="mt-1 text-xs text-blue-600 flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Reopenable
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(issue.status === "closed" || issue.status === "resolved") ? (
+                          <span className="text-xs text-gray-500 italic">N/A</span>
+                        ) : (
+                          <span className={`px-2 py-1 rounded-full text-xs ${getPriorityBadgeClass(issue.priority, issue.status)}`}>
+                            {issue.priority === 'critical' ? "CRITICAL" : issue.priority}
+                            {isBreachedSLA && (
+                              <span className="block text-xs text-red-600 font-medium mt-1">
+                                SLA Breach
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{formatDate(issue.createdAt)}</TableCell>
+                      <TableCell>{formatDate(issue.updatedAt)}</TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 w-8 p-0"
+                          onClick={() => handleViewIssue(issue.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+                
+                {issues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-6">
+                      {searchTerm || statusFilter !== "all"
+                        ? "No tickets matching filters"
+                        : "No tickets found"
+                      }
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <AdminLayout title="Tickets Management" requiredPermission="manage:issues">
@@ -397,13 +425,13 @@ const AdminIssues = () => {
             </div>
             
             <Button 
-              variant="outline"
+              variant="destructive"
               onClick={handleUpdatePriorities}
               disabled={isUpdatingPriorities}
               className="flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${isUpdatingPriorities ? 'animate-spin' : ''}`} />
-              Update Priorities
+              Force Priority Update
             </Button>
           </div>
           
