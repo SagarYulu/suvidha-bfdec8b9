@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -31,7 +30,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
       issue.assignedTo
     );
     
-    // Ensure the priority is one of the allowed values - IMPORTANT: match database constraints
+    // Ensure the priority is one of the allowed values - Now including 'critical'
     const validPriorities: Issue["priority"][] = ['low', 'medium', 'high', 'critical'];
     const validPriority = validPriorities.includes(newPriority as Issue["priority"]) 
       ? newPriority as Issue["priority"] 
@@ -49,72 +48,53 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     // Check if this is an escalation to critical due to the 72-hour rule
     const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
     
-    try {
-      // Update the issue in the database with retries for constraint violations
-      let retryCount = 0;
-      let updateSuccess = false;
-      let error = null;
-      
-      // Try up to 3 times with different priorities if constraint violation occurs
-      const fallbackPriorities: Issue["priority"][] = ['high', 'medium', 'low'];
-      
-      while (!updateSuccess && retryCount < fallbackPriorities.length) {
-        const priorityToUse = retryCount === 0 ? validPriority : fallbackPriorities[retryCount - 1];
-        
-        const { error: updateError } = await supabase
-          .from('issues')
-          .update({ 
-            priority: priorityToUse,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', issue.id);
-        
-        if (!updateError) {
-          updateSuccess = true;
-          console.log(`Successfully updated priority to ${priorityToUse} after ${retryCount} retries`);
-          
-          // Check if notifications should be sent
-          if (shouldSendNotification(issue.priority, priorityToUse)) {
-            const recipients = getNotificationRecipients(priorityToUse, issue.assignedTo);
-            
-            // For 72-hour critical escalation, add additional notification content
-            const notificationContent = isCriticalEscalation 
-              ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 72+ working hours`
-              : `Ticket priority escalated to ${priorityToUse.toUpperCase()}`;
-            
-            // Create notifications for each recipient
-            for (const recipient of recipients) {
-              await createIssueNotification(
-                issue.id,
-                recipient,
-                notificationContent
-              );
-            }
-          }
-          
-          // Return the updated issue with the new priority
-          return {
-            ...issue,
-            priority: priorityToUse,
-            updatedAt: new Date().toISOString()
-          };
-        } else {
-          error = updateError;
-          console.warn(`Failed to update priority to ${priorityToUse}, trying fallback. Error:`, updateError.message);
-          retryCount++;
-        }
+    // Update the issue in the database
+    const { data, error } = await supabase
+      .from('issues')
+      .update({ 
+        priority: validPriority,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', issue.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error(`Error updating priority for issue ${issue.id}:`, error);
+      // If we hit a constraint error, log it but don't fail
+      if (error.code === '23514') {
+        console.warn(`Priority "${validPriority}" not allowed by constraint. This should not happen as the database has been updated.`);
       }
-      
-      // If all retries failed
-      if (!updateSuccess) {
-        console.error(`All priority update attempts failed for issue ${issue.id}:`, error);
-        return issue;
-      }
-      
-    } catch (innerError) {
-      console.error(`Unexpected error updating issue ${issue.id}:`, innerError);
       return issue;
     }
+    
+    console.log(`Successfully updated priority for issue ${issue.id} to ${validPriority}`);
+    
+    // Check if notifications should be sent
+    if (shouldSendNotification(issue.priority, validPriority)) {
+      const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
+      
+      // For 72-hour critical escalation, add additional notification content
+      const notificationContent = isCriticalEscalation 
+        ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 72+ working hours`
+        : `Ticket priority escalated to ${validPriority.toUpperCase()}`;
+      
+      // Create notifications for each recipient
+      for (const recipient of recipients) {
+        await createIssueNotification(
+          issue.id,
+          recipient,
+          notificationContent
+        );
+      }
+    }
+    
+    // Return the updated issue with the new priority
+    return {
+      ...issue,
+      priority: validPriority,
+      updatedAt: new Date().toISOString()
+    };
   } catch (error) {
     console.error('Error in updateIssuePriority:', error);
     return issue;

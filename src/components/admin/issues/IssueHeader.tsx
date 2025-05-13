@@ -1,7 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { Issue } from "@/types";
 import { useNavigate } from "react-router-dom";
 
@@ -26,6 +26,11 @@ const IssueHeader = ({ issue }: IssueHeaderProps) => {
         return "bg-gray-500";
     }
   };
+  
+  // Check if issue has breached SLA (is critical priority and not closed/resolved)
+  const isBreachedSLA = issue.priority === 'critical' && 
+    issue.status !== 'closed' && 
+    issue.status !== 'resolved';
 
   return (
     <div className="flex items-center mb-8">
@@ -41,6 +46,13 @@ const IssueHeader = ({ issue }: IssueHeaderProps) => {
       <Badge className={getStatusBadgeColor(issue.status)}>
         {issue.status.replace("_", " ")}
       </Badge>
+      
+      {isBreachedSLA && (
+        <Badge className="bg-red-600 ml-2 animate-pulse">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          CRITICAL SLA BREACH
+        </Badge>
+      )}
     </div>
   );
 };

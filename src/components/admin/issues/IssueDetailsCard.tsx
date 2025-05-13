@@ -2,7 +2,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Clock } from "lucide-react";
+import { Clock, AlertCircle } from "lucide-react";
 import { Issue } from "@/types";
 
 interface IssueDetailsCardProps {
@@ -34,7 +34,7 @@ const IssueDetailsCard = ({
       case "high":
         return "bg-orange-100 text-orange-800 border-orange-200";
       case "critical":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-red-100 text-red-800 border-red-200 animate-pulse";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -43,8 +43,17 @@ const IssueDetailsCard = ({
   // Determine if the issue is closed or resolved
   const isClosedOrResolved = status === "closed" || status === "resolved";
   
+  // Check if issue has breached SLA (is critical)
+  const isBreachedSLA = issue.priority === 'critical' && !isClosedOrResolved;
+  
   return (
-    <Card>
+    <Card className={isBreachedSLA ? "border-red-300 bg-red-50" : undefined}>
+      {isBreachedSLA && (
+        <div className="bg-red-100 px-4 py-2 border-b border-red-200 flex items-center">
+          <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+          <span className="text-red-800 font-medium">SLA Breach: This ticket has exceeded the 72-hour resolution window</span>
+        </div>
+      )}
       <CardHeader>
         <div className="flex justify-between">
           <div>
@@ -78,7 +87,12 @@ const IssueDetailsCard = ({
                 variant="outline" 
                 className={`capitalize ${getPriorityBadgeVariant(issue.priority)}`}
               >
-                {issue.priority}
+                {issue.priority === 'critical' ? (
+                  <span className="font-bold">CRITICAL</span>
+                ) : issue.priority}
+                {isBreachedSLA && (
+                  <span className="ml-2 text-xs bg-red-200 px-1 rounded">SLA BREACH</span>
+                )}
               </Badge>
             ) : (
               <span className="text-gray-500 italic">Not applicable</span>
