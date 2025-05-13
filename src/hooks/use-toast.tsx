@@ -1,11 +1,21 @@
 
 import React from 'react';
-// Re-export from the ui component
-export { useToast, toast } from "@/components/ui/use-toast";
+import { 
+  useToast as useToastOriginal, 
+  toast 
+} from "@/components/ui/use-toast";
+
+// Re-export the original hooks
+export { toast } from "@/components/ui/use-toast";
+
+// Re-export the useToast hook
+export function useToast() {
+  return useToastOriginal();
+}
 
 // Add a custom toast function for priority updates
 export const priorityUpdateToast = (status: 'success' | 'error' | 'info', message: string, details?: string) => {
-  const { toast } = useToast();
+  const { toast } = useToastOriginal();
   
   toast({
     title: status === 'success' ? 'Priority Update' : 
