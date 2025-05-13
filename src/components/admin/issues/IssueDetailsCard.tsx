@@ -51,7 +51,7 @@ const IssueDetailsCard = ({
       {isBreachedSLA && (
         <div className="bg-red-100 px-4 py-2 border-b border-red-200 flex items-center">
           <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-          <span className="text-red-800 font-medium">SLA Breach: This ticket has exceeded the 72-hour resolution window</span>
+          <span className="text-red-800 font-medium">SLA Breach: This ticket has exceeded the 40-hour working time resolution window</span>
         </div>
       )}
       <CardHeader>

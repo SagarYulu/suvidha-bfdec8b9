@@ -287,7 +287,7 @@ const AdminIssues = () => {
                   <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
                   <div>
                     <p className="font-medium text-red-800">Critical SLA Breach Detected</p>
-                    <p className="text-sm text-red-600">There are tickets that have exceeded the 72-hour resolution SLA.</p>
+                    <p className="text-sm text-red-600">There are tickets that have exceeded the 40-hour working time resolution SLA.</p>
                   </div>
                 </div>
               </div>

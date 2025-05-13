@@ -50,7 +50,7 @@ const IssueHeader = ({ issue }: IssueHeaderProps) => {
       {isBreachedSLA && (
         <Badge className="bg-red-600 ml-2 animate-pulse">
           <AlertTriangle className="h-3 w-3 mr-1" />
-          CRITICAL SLA BREACH
+          CRITICAL SLA BREACH (40+ hours)
         </Badge>
       )}
     </div>

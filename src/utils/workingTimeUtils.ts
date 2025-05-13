@@ -1,3 +1,4 @@
+
 import { differenceInMinutes, parseISO, isSunday, format, differenceInHours, addHours } from 'date-fns';
 
 interface PublicHoliday {
@@ -137,8 +138,10 @@ export const calculateFirstResponseTime = (createdAt: string, firstResponseAt: s
 
 /**
  * Determine ticket priority based on working hours elapsed and ticket properties
- * Updated rule: Any ticket not marked as closed/resolved within 16 working hours 
- * from creation MUST be critical, regardless of status changes
+ * Updated rules:
+ * - Medium: Any ticket not closed/resolved within 16 working hours
+ * - High: Any ticket not closed/resolved within 24 working hours
+ * - Critical: Any ticket not closed/resolved within 40 working hours
  */
 export const determinePriority = (
   createdAt: string,
@@ -162,11 +165,23 @@ export const determinePriority = (
     
     console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed.toFixed(2)}, Hours since last update: ${hoursSinceLastUpdate.toFixed(2)}, Created: ${createdAt}, Updated: ${updatedAt || 'same as created'}, Current date: ${now}`);
 
-    // UPDATED RULE: Any ticket not closed/resolved within 16 working hours must be critical
-    // This is the primary rule that must be checked first, regardless of other conditions
-    if (workingHoursElapsed >= 16) {
-      console.log(`[Priority] CRITICAL PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 16hr SLA)`);
+    // UPDATED RULES based on new requirements:
+    // Critical: Any ticket not closed/resolved within 40 working hours
+    if (workingHoursElapsed >= 40) {
+      console.log(`[Priority] CRITICAL PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 40hr SLA)`);
       return 'critical';
+    }
+    
+    // High: Any ticket not closed/resolved within 24 working hours
+    if (workingHoursElapsed >= 24) {
+      console.log(`[Priority] HIGH PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 24hr SLA)`);
+      return 'high';
+    }
+    
+    // Medium: Any ticket not closed/resolved within 16 working hours
+    if (workingHoursElapsed >= 16) {
+      console.log(`[Priority] MEDIUM PRIORITY ENFORCED: ${workingHoursElapsed.toFixed(2)} working hours elapsed since creation (exceeds 16hr SLA)`);
+      return 'medium';
     }
     
     // Check for specific high priority categories
@@ -179,18 +194,6 @@ export const determinePriority = (
     // Facility issues that are still open after 24 hours should be critical
     if (typeId.toLowerCase().includes('facility') && workingHoursElapsed > 24) {
       return 'critical';
-    }
-    
-    // High priority - Unattended for 48 or more working hours
-    if (workingHoursElapsed >= 48) {
-      console.log(`[Priority] High priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
-      return 'high';
-    }
-    
-    // Medium priority - Unattended for 24 or more working hours
-    if (workingHoursElapsed >= 24) {
-      console.log(`[Priority] Medium priority assigned: ${workingHoursElapsed} hours elapsed, status: ${status}`);
-      return 'medium';
     }
     
     // Ticket is "In Progress" but no update within 12 working hours

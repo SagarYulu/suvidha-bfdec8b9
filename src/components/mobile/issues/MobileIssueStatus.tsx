@@ -45,7 +45,12 @@ const MobileIssueStatus = ({
       case "high":
         return <Badge className="bg-orange-100 text-orange-800 border-orange-200">High Priority</Badge>;
       case "critical":
-        return <Badge className="bg-red-100 text-red-800 border-red-200">Critical Priority</Badge>;
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Critical Priority
+          </Badge>
+        );
       default:
         return null;
     }

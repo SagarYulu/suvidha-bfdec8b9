@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
@@ -21,7 +22,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     }
     
     // Determine the new priority based on working time calculations
-    // Critical 16-hour rule is applied for ANY ticket not closed/resolved
+    // Using the updated rules: Medium (16h), High (24h), Critical (40h)
     const newPriority = determinePriority(
       issue.createdAt,
       issue.updatedAt,
@@ -45,7 +46,7 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     
     console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
     
-    // Check if this is an escalation to critical due to the 16-hour rule
+    // Check if this is an escalation to critical due to the 40-hour rule
     const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
     
     // Update the issue in the database
@@ -74,9 +75,9 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     if (shouldSendNotification(issue.priority, validPriority)) {
       const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
       
-      // For 16-hour critical escalation, add additional notification content
+      // For 40-hour critical escalation, add additional notification content
       const notificationContent = isCriticalEscalation 
-        ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 16+ working hours`
+        ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 40+ working hours`
         : `Ticket priority escalated to ${validPriority.toUpperCase()}`;
       
       // Create notifications for each recipient
