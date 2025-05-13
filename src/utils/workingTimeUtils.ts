@@ -160,7 +160,7 @@ export const determinePriority = (
     const workingHoursElapsed = calculateWorkingHours(createdAt, now);
     const hoursSinceLastUpdate = calculateWorkingHours(updatedAt || createdAt, now);
     
-    console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed.toFixed(2)}, Hours since last update: ${hoursSinceLastUpdate.toFixed(2)}, Created: ${createdAt}, Updated: ${updatedAt || 'same as created'}`);
+    console.log(`[Priority] Issue status: ${status}, Working hours elapsed: ${workingHoursElapsed.toFixed(2)}, Hours since last update: ${hoursSinceLastUpdate.toFixed(2)}, Created: ${createdAt}, Updated: ${updatedAt || 'same as created'}, Current date: ${now}`);
 
     // ABSOLUTE RULE: Any ticket not closed/resolved within 72 working hours must be critical
     // This is the primary rule that must be checked first, regardless of other conditions

@@ -99,14 +99,14 @@ const IssueDetailsCard = ({
             )}
           </div>
           <div className="flex gap-2 items-center">
-            <span className="font-medium mr-2">Status:</span>
+            <span className="font-medium mr-2">Change Status:</span>
             <Select
               value={status}
               onValueChange={handleStatusChange}
               disabled={isUpdatingStatus}
             >
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder="Change Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="open">Open</SelectItem>
