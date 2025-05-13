@@ -213,6 +213,53 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
     }
   };
   
+  // Calculate percentage change between two values
+  const calculatePercentageChange = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
+  
+  // Group data by name for side-by-side comparison in table
+  const getComparisonTableData = () => {
+    const data = getActiveData();
+    const result: {
+      name: string;
+      primary?: { time: number; volume?: number };
+      comparison?: { time: number; volume?: number };
+      percentageChange?: number;
+    }[] = [];
+    
+    // Create a map of all unique period names
+    const allNames = new Set<string>();
+    data.forEach(item => allNames.add(item.name));
+    
+    // For each name, find matching primary and comparison data
+    Array.from(allNames).forEach(name => {
+      const primaryItem = data.find(item => 
+        item.name === name && (item.datasetType === 'primary' || !item.datasetType)
+      );
+      
+      const comparisonItem = data.find(item => 
+        item.name === name && item.datasetType === 'comparison'
+      );
+      
+      let percentageChange: number | undefined;
+      
+      if (primaryItem && comparisonItem) {
+        percentageChange = calculatePercentageChange(primaryItem.time, comparisonItem.time);
+      }
+      
+      result.push({
+        name,
+        primary: primaryItem ? { time: primaryItem.time, volume: primaryItem.volume } : undefined,
+        comparison: comparisonItem ? { time: comparisonItem.time, volume: comparisonItem.volume } : undefined,
+        percentageChange
+      });
+    });
+    
+    return result;
+  };
+  
   // Chart colors
   const primaryColor = '#1E40AF'; // Blue
   const comparisonColor = '#10B981'; // Green
@@ -463,75 +510,85 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                     </CardContent>
                   </Card>
                   
-                  {/* Tabular Data View */}
+                  {/* Enhanced Comparison Table View */}
                   <Card>
                     <CardHeader>
-                      <CardTitle>Resolution Time Details</CardTitle>
+                      <CardTitle>Resolution Time Comparison Details</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Period</TableHead>
-                            <TableHead>Dataset</TableHead>
-                            <TableHead>Ticket Volume</TableHead>
-                            <TableHead>Avg. Resolution Time</TableHead>
-                            <TableHead>Status</TableHead>
-                            {comparisonMode && <TableHead>Difference</TableHead>}
+                            {comparisonMode ? (
+                              <>
+                                <TableHead>Primary Resolution Time</TableHead>
+                                <TableHead>Primary Ticket Volume</TableHead>
+                                <TableHead>Comparison Resolution Time</TableHead>
+                                <TableHead>Comparison Ticket Volume</TableHead>
+                                <TableHead>Change (%)</TableHead>
+                              </>
+                            ) : (
+                              <>
+                                <TableHead>Ticket Volume</TableHead>
+                                <TableHead>Avg. Resolution Time</TableHead>
+                                <TableHead>Status</TableHead>
+                              </>
+                            )}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getActiveData().map((item, index) => {
-                            // Find matching comparison item with the same name
-                            const matchingItem = comparisonMode && 
-                              getActiveData().find(i => 
-                                i.name === item.name && 
-                                i.datasetType !== item.datasetType
-                              );
-                            
-                            const timeDifference = matchingItem 
-                              ? parseFloat((item.time - matchingItem.time).toFixed(2))
-                              : 0;
-                            
-                            return (
-                              <TableRow key={`${item.name}-${item.datasetType || 'primary'}`}>
+                          {comparisonMode ? (
+                            // Comparison mode table with side-by-side data
+                            getComparisonTableData().map((item, index) => (
+                              <TableRow key={`${item.name}-${index}`}>
                                 <TableCell className="font-medium">{item.name}</TableCell>
+                                <TableCell>{item.primary?.time.toFixed(2) || '-'} hours</TableCell>
+                                <TableCell>{item.primary?.volume || 0}</TableCell>
+                                <TableCell>{item.comparison?.time.toFixed(2) || '-'} hours</TableCell>
+                                <TableCell>{item.comparison?.volume || 0}</TableCell>
                                 <TableCell>
-                                  {item.datasetType === 'comparison' ? (
-                                    <Badge variant="outline" className="bg-green-100">Comparison</Badge>
+                                  {item.percentageChange !== undefined ? (
+                                    <div className="flex items-center">
+                                      <span className={cn(
+                                        item.percentageChange > 0 ? "text-red-500" : 
+                                        item.percentageChange < 0 ? "text-green-500" : 
+                                        "text-gray-500"
+                                      )}>
+                                        {item.percentageChange > 0 ? '+' : ''}
+                                        {item.percentageChange.toFixed(1)}%
+                                      </span>
+                                      {item.percentageChange > 0 ? (
+                                        <ChevronUp className="h-4 w-4 ml-1 text-red-500" />
+                                      ) : item.percentageChange < 0 ? (
+                                        <ChevronDown className="h-4 w-4 ml-1 text-green-500" />
+                                      ) : null}
+                                    </div>
                                   ) : (
-                                    <Badge variant="outline" className="bg-blue-100">Primary</Badge>
+                                    <span className="text-gray-500">N/A</span>
                                   )}
                                 </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            // Regular table for single dataset
+                            getActiveData().map((item, index) => (
+                              <TableRow key={`${item.name}-${index}`}>
+                                <TableCell className="font-medium">{item.name}</TableCell>
                                 <TableCell>{item.volume || 0}</TableCell>
                                 <TableCell>{item.time.toFixed(2)} hours</TableCell>
                                 <TableCell>
                                   {item.time > 72 ? (
                                     <Badge variant="destructive">Outlier</Badge>
                                   ) : item.time > 48 ? (
-                                    <Badge variant="outline" className="bg-yellow-500 text-yellow-950">Warning</Badge>
+                                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Warning</Badge>
                                   ) : (
                                     <Badge variant="outline" className="bg-green-100">Normal</Badge>
                                   )}
                                 </TableCell>
-                                {comparisonMode && matchingItem && (
-                                  <TableCell>
-                                    {timeDifference > 0 ? (
-                                      <span className="text-red-500 flex items-center">
-                                        +{timeDifference.toFixed(2)} <ChevronUp className="h-4 w-4 ml-1" />
-                                      </span>
-                                    ) : timeDifference < 0 ? (
-                                      <span className="text-green-500 flex items-center">
-                                        {timeDifference.toFixed(2)} <ChevronDown className="h-4 w-4 ml-1" />
-                                      </span>
-                                    ) : (
-                                      <span className="text-gray-500">No change</span>
-                                    )}
-                                  </TableCell>
-                                )}
                               </TableRow>
-                            );
-                          })}
+                            ))
+                          )}
                         </TableBody>
                       </Table>
                     </CardContent>
