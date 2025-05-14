@@ -18,26 +18,23 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
   permission,
   redirectTo = '/'
 }) => {
-  const { checkAccess, isAuthenticated } = useRoleAccess();
+  const { hasPermission, isAuthenticated } = useRoleAccess();
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
 
   useEffect(() => {
     // Only check access once authentication state is known and stable
     if (isAuthenticated !== undefined) {
-      console.log(`RoleBasedGuard: Checking access for permission: ${permission}`);
-      // Use redirectToast = false to prevent automatic redirects
-      // We'll handle redirects in this component
-      const access = checkAccess(permission, { 
-        redirectTo: false, // Critical: Don't trigger navigation in checkAccess
-        showToast: true 
-      });
+      console.log(`RoleBasedGuard: Checking permission: ${permission}`);
+      
+      // Directly use the hasPermission function from useRoleAccess
+      const access = hasPermission(permission);
       
       console.log(`RoleBasedGuard: Access result for ${permission}: ${access}`);
       setHasAccess(access);
       setAccessChecked(true);
     }
-  }, [isAuthenticated, permission, checkAccess]);
+  }, [isAuthenticated, permission, hasPermission]);
 
   // Show loading indicator while checking access
   if (!accessChecked) {

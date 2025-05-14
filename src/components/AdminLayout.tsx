@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "@/hooks/use-toast"; 
-import { useRoleAccess } from '@/hooks/useRoleAccess';
 
 import BaseLayout from './layouts/BaseLayout';
 import AdminHeader from './layouts/headers/AdminHeader';
@@ -26,9 +25,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
-  
-  // Important: We're not calling checkAccess here anymore
-  // That check is now exclusively handled by the RoleBasedGuard component
   
   useEffect(() => {
     // Simple login check (no permission check)
