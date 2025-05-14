@@ -20,6 +20,7 @@ import {
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 interface SentimentFilterBarProps {
   onFilterChange: (filters: {
@@ -35,10 +36,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   const [city, setCity] = useState<string | undefined>(undefined);
   const [cluster, setCluster] = useState<string | undefined>(undefined);
   const [role, setRole] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
     to: undefined,
   });
@@ -91,8 +89,8 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
 
   const handleApplyFilters = () => {
     onFilterChange({
-      startDate: dateRange.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-      endDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+      endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       city: city,
       cluster: cluster,
       role: role
@@ -103,10 +101,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     setCity(undefined);
     setCluster(undefined);
     setRole(undefined);
-    setDateRange({
-      from: undefined,
-      to: undefined,
-    });
+    setDateRange(undefined);
     
     onFilterChange({});
   };
@@ -123,11 +118,11 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
                 variant={"outline"}
                 className={cn(
                   "w-full justify-start text-left font-normal",
-                  !dateRange.from && "text-muted-foreground"
+                  !dateRange?.from && "text-muted-foreground"
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange.from ? (
+                {dateRange?.from ? (
                   dateRange.to ? (
                     <>
                       {format(dateRange.from, "LLL dd, y")} -{" "}

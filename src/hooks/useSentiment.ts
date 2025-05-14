@@ -118,13 +118,20 @@ export const useSentiment = () => {
     setIsSubmitting(true);
     
     try {
+      // Extract user metadata from the authentication state
+      const userData = {
+        city: authState.user.city as string | undefined,
+        cluster: authState.user.cluster as string | undefined,
+        role: authState.user.role as string | undefined
+      };
+      
       const sentimentData: SentimentRating = {
         employee_id: authState.user.id,
         rating,
         feedback: feedback.trim() || undefined,
-        city: authState.user.city || undefined,
-        cluster: authState.user.cluster || undefined,
-        role: authState.user.role || undefined,
+        city: userData.city,
+        cluster: userData.cluster,
+        role: userData.role,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         sentiment_score: analysisResult?.sentiment_score || undefined,
         sentiment_label: analysisResult?.sentiment_label || undefined
