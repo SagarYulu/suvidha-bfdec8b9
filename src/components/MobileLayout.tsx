@@ -1,7 +1,7 @@
 
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 import BaseLayout from "./layouts/BaseLayout";
@@ -25,8 +25,16 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const navigate = useNavigate();
   const { checkAccess } = useRoleAccess();
   const [isAccessChecked, setIsAccessChecked] = useState(false);
+  const accessCheckPerformed = useRef(false);
 
   useEffect(() => {
+    // Skip if we've already performed the check in this component instance
+    if (accessCheckPerformed.current) {
+      return;
+    }
+    
+    accessCheckPerformed.current = true;
+    
     const checkUserAccess = async () => {
       console.log("Checking user access in MobileLayout");
       
