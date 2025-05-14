@@ -118,11 +118,13 @@ export const useSentiment = () => {
     setIsSubmitting(true);
     
     try {
-      // Extract user metadata from the authentication state
+      // Get user metadata, with safe access to optional properties
+      // The User interface may not have these properties explicitly defined,
+      // so we use optional chaining and type assertions
       const userData = {
-        city: authState.user.city as string | undefined,
-        cluster: authState.user.cluster as string | undefined,
-        role: authState.user.role as string | undefined
+        city: (authState.user as any).city as string | undefined,
+        cluster: (authState.user as any).cluster as string | undefined,
+        role: (authState.user as any).role as string | undefined
       };
       
       const sentimentData: SentimentRating = {
