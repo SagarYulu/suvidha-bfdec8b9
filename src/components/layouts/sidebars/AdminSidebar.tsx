@@ -13,7 +13,8 @@ import {
   Shield,
   ChevronDown,
   UserPlus,
-  Ticket
+  Ticket,
+  Smile
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -112,7 +113,8 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
     dashboardUsers: false,
-    tickets: false
+    tickets: false,
+    analytics: false
   });
   const { hasPermission, userRole } = useRBAC();
   const location = useLocation();
@@ -146,6 +148,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       setOpenMenus(prev => ({
         ...prev,
         tickets: true
+      }));
+    }
+    
+    // Check if we're in analytics pages
+    if (location.pathname.includes('/admin/analytics') || location.pathname.includes('/admin/sentiment')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        analytics: true
       }));
     }
   }, [location]);
@@ -216,9 +226,27 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <SidebarLink href="/admin/users" icon={Users} label="Users" />
         )}
         
-        {/* Analytics - Available to users with manage:analytics permission */}
+        {/* Analytics dropdown - Available to users with manage:analytics permission */}
         {hasPermission("manage:analytics") && (
-          <SidebarLink href="/admin/analytics" icon={BarChart3} label="Analytics" />
+          <DropdownMenu 
+            label="Analytics" 
+            icon={BarChart3} 
+            isOpen={openMenus.analytics} 
+            toggleOpen={() => toggleMenu('analytics')}
+          >
+            <SidebarLink 
+              href="/admin/analytics" 
+              icon={BarChart3} 
+              label="Issue Analytics" 
+              isActive={location.pathname === "/admin/analytics"}
+            />
+            <SidebarLink 
+              href="/admin/sentiment" 
+              icon={Smile} 
+              label="Sentiment Analysis" 
+              isActive={location.pathname === "/admin/sentiment"}
+            />
+          </DropdownMenu>
         )}
         
         {/* Dashboard Users dropdown - Available to users with create:dashboardUser permission */}
