@@ -8,11 +8,11 @@ import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issue
 import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
 import { Card } from "@/components/ui/card";
-import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Clock, Search, User as UserIcon, CreditCard, Smile } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import MobileSentiment from "./Sentiment";
-import { useNavigate as useRouterNavigate } from 'react-router-dom';
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -91,11 +91,24 @@ const MobileIssues = () => {
         {/* Employee Details Card */}
         {employeeDetails && (
           <div className="bg-white rounded-lg p-4">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-blue-100 p-2 rounded-full">
-                <UserIcon className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <UserIcon className="h-5 w-5 text-blue-500" />
+                </div>
+                <h2 className="text-lg font-medium">Employee Details</h2>
               </div>
-              <h2 className="text-lg font-medium">Employee Details</h2>
+              
+              {/* Add Feedback button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex items-center gap-2" 
+                onClick={() => setSentimentDialogOpen(true)}
+              >
+                <Smile className="h-4 w-4" />
+                Feedback
+              </Button>
             </div>
             
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">

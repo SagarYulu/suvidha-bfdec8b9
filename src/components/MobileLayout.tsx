@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
@@ -121,7 +120,6 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     <MobileBottomNav
       onHomeClick={() => navigate("/mobile/issues")}
       onNewIssueClick={() => navigate("/mobile/issues/new")}
-      onSentimentClick={() => navigate("/mobile/sentiment")}
       onLogoutClick={handleLogout}
     />
   );
