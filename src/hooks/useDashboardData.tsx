@@ -96,7 +96,7 @@ export const useDashboardData = () => {
         comparisonMode ? comparisonDateRange || undefined : undefined
       );
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+    staleTime: 0, // Don't cache this data as it's highly dependent on filters and date ranges
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
@@ -146,6 +146,13 @@ export const useDashboardData = () => {
       toast.error("Failed to load resolution time trends");
     }
   }, [issuesError, analyticsError, resolutionTimeError]);
+  
+  // Verify resolution time data whenever it changes
+  useEffect(() => {
+    if (resolutionTimeData) {
+      console.log("Resolution time data received:", JSON.stringify(resolutionTimeData, null, 2));
+    }
+  }, [resolutionTimeData]);
   
   // Memoize these calculations to prevent recalculations on re-renders
   const recentIssues = useMemo(() => {

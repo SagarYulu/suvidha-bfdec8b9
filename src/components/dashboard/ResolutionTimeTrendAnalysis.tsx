@@ -232,13 +232,22 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
   
   // Helper to get the current dataset based on active tab
   const getActiveData = () => {
+    let data;
     switch (activeTab) {
-      case 'daily': return dailyData;
-      case 'weekly': return weeklyData;
-      case 'monthly': return monthlyData;
-      case 'quarterly': return quarterlyData;
-      default: return dailyData;
+      case 'daily': data = dailyData; break;
+      case 'weekly': data = weeklyData; break;
+      case 'monthly': data = monthlyData; break;
+      case 'quarterly': data = quarterlyData; break;
+      default: data = dailyData;
     }
+    
+    // Make sure we have a valid array
+    if (!data || !Array.isArray(data)) {
+      console.warn(`No ${activeTab} data available, using empty array`);
+      return [];
+    }
+    
+    return data;
   };
   
   // Helper to format tab labels
@@ -382,14 +391,24 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
     );
   };
   
-  // Filter function to exclude zero volume periods for charting
-  const filterZeroVolumePeriods = (data: TrendDataPoint[]) => {
-    return data.filter(point => point.volume !== 0);
+  // Filter out zero volume periods for chart display
+  const getChartReadyData = () => {
+    // First make sure we have data
+    const rawData = getActiveData();
+    if (!rawData || rawData.length === 0) return [];
+    
+    // Return data with proper formatting
+    return rawData.map(point => ({
+      ...point,
+      // Ensure values are numbers (or 0 if undefined)
+      time: typeof point.time === 'number' ? point.time : 0,
+      volume: typeof point.volume === 'number' ? point.volume : 0
+    }));
   };
 
   // Log data for debugging
   useEffect(() => {
-    console.log("Current active tab data:", getActiveData());
+    console.log(`Current ${activeTab} data:`, getActiveData());
     console.log("Current date range:", dateRange);
   }, [activeTab, dateRange, dailyData, weeklyData, monthlyData, quarterlyData]);
   
@@ -482,14 +501,14 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                       <CardTitle>Resolution Time Trend</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[400px]">
-                      {getActiveData().length === 0 ? (
+                      {getChartReadyData().length === 0 ? (
                         <div className="h-full flex items-center justify-center text-muted-foreground">
                           No data available for the selected date range
                         </div>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart
-                            data={getActiveData()}
+                            data={getChartReadyData()}
                             margin={{
                               top: 5,
                               right: 30,
@@ -545,14 +564,14 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                       <CardTitle>Ticket Volume</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[300px]">
-                      {getActiveData().length === 0 ? (
+                      {getChartReadyData().length === 0 ? (
                         <div className="h-full flex items-center justify-center text-muted-foreground">
                           No data available for the selected date range
                         </div>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart
-                            data={getActiveData()}
+                            data={getChartReadyData()}
                             margin={{
                               top: 5,
                               right: 30,
@@ -579,7 +598,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               name="Ticket Volume"
                               fill={primaryColor}
                             >
-                              {getActiveData().map((entry, index) => (
+                              {getChartReadyData().map((entry, index) => (
                                 <Cell 
                                   key={`cell-${index}`} 
                                   fill={entry.datasetType === 'comparison' ? comparisonColor : primaryColor}
@@ -620,7 +639,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {getActiveData().length === 0 ? (
+                          {getChartReadyData().length === 0 ? (
                             <TableRow>
                               <TableCell colSpan={comparisonMode ? 6 : 4} className="text-center py-8">
                                 No data available for the selected date range
@@ -668,7 +687,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                             ))
                           ) : (
                             // Regular table for single dataset
-                            getActiveData().map((item, index) => (
+                            getChartReadyData().map((item, index) => (
                               <TableRow key={`${item.name}-${index}`}>
                                 <TableCell className="font-medium">{item.name}</TableCell>
                                 <TableCell>{item.volume || 0}</TableCell>
