@@ -37,6 +37,7 @@ export type SentimentAlert = {
 export type SentimentAnalysisResult = {
   sentiment_score: number | null;
   sentiment_label: string | null;
+  rating?: number;
   suggested_tags: string[];
   flag_urgent?: boolean;
   flag_abusive?: boolean;
@@ -56,6 +57,7 @@ export const analyzeSentiment = async (feedback: string): Promise<SentimentAnaly
     return {
       sentiment_score: null,
       sentiment_label: null,
+      rating: 3,
       suggested_tags: []
     };
   }

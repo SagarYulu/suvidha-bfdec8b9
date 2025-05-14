@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -37,19 +36,28 @@ const MobileSentimentForm: React.FC = () => {
   // Emoji based on rating
   const getEmoji = (currentRating: number) => {
     if (currentRating === 1) return "😡";
-    if (currentRating === 2) return "😔";
+    if (currentRating === 2) return "🙁";
     if (currentRating === 3) return "😐";
     if (currentRating === 4) return "🙂";
-    return "😃";
+    return "😊";
   };
 
   // Mood text based on rating
   const getMoodText = (currentRating: number) => {
-    if (currentRating === 1) return "Very Unhappy";
-    if (currentRating === 2) return "Unhappy";
+    if (currentRating === 1) return "Angry";
+    if (currentRating === 2) return "Frustrated";
     if (currentRating === 3) return "Neutral";
     if (currentRating === 4) return "Happy";
-    return "Very Happy";
+    return "Motivated";
+  };
+
+  // Emotion description based on rating
+  const getEmotionDescription = (currentRating: number) => {
+    if (currentRating === 1) return "Angry, disrespected, anxious";
+    if (currentRating === 2) return "Frustrated, unsatisfied, unacknowledged";
+    if (currentRating === 3) return "Indifferent, routine, no specific highs/lows";
+    if (currentRating === 4) return "Happy, content, comfortable";
+    return "Excited, satisfied, motivated";
   };
 
   return (
@@ -59,13 +67,34 @@ const MobileSentimentForm: React.FC = () => {
         <p className="text-gray-500 text-sm">Your feedback helps improve our workplace</p>
       </div>
 
-      {/* Mood Selector with Emoji */}
+      {/* Emoji Selection */}
       <div className="flex flex-col items-center gap-2">
         <div className="text-6xl mb-2">{getEmoji(rating)}</div>
         <p className="text-lg font-medium">{getMoodText(rating)}</p>
+        <p className="text-sm text-gray-500 text-center">{getEmotionDescription(rating)}</p>
+      </div>
+      
+      {/* Emoji Selector */}
+      <div className="grid grid-cols-5 gap-3 mt-2">
+        {[5, 4, 3, 2, 1].map((value) => (
+          <button
+            key={value}
+            className={cn(
+              "flex flex-col items-center p-2 rounded-lg transition-all",
+              rating === value ? "bg-blue-100 border-2 border-blue-300" : "hover:bg-gray-100"
+            )}
+            onClick={() => handleRatingChange(value)}
+          >
+            <span className="text-2xl">{getEmoji(value)}</span>
+            <span className="text-xs mt-1">{getMoodText(value)}</span>
+          </button>
+        ))}
+      </div>
+      
+      {/* Hidden slider but keeping it for accessibility */}
+      <div className="hidden">
         <Slider
-          className="mt-2 w-full max-w-xs"
-          defaultValue={[rating]}
+          value={[rating]}
           min={1}
           max={5}
           step={1}
