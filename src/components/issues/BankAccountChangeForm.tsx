@@ -194,6 +194,9 @@ Reason: ${data.reason}`;
         <p className="text-sm text-muted-foreground">
           Max file size: 5MB. Accepted formats: images, PDF, Word documents
         </p>
+        <p className="text-sm text-amber-600 font-medium">
+          Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code.
+        </p>
       </div>
 
       <Button
