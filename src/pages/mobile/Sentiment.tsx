@@ -15,7 +15,7 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
   if (!isOpen && !onClose) {
     return (
       <MobileLayout 
-        title="Employee Sentiment" 
+        title="Feedback Matters" 
         bgColor="#00CEDE"
       >
         <MobileSentimentForm />
@@ -36,7 +36,7 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
               <X className="h-5 w-5" />
             </button>
           )}
-          <h2 className="text-xl font-semibold text-center text-white">Employee Sentiment</h2>
+          <h2 className="text-xl font-semibold text-center text-white">Feedback Matters</h2>
           <MobileSentimentForm />
         </div>
       </DialogContent>

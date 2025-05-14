@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+
+import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useSentiment } from '@/hooks/useSentiment';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 const MobileSentimentForm: React.FC = () => {
   const {
@@ -21,6 +23,9 @@ const MobileSentimentForm: React.FC = () => {
     handleAnalyzeFeedback,
     handleSubmit
   } = useSentiment();
+  
+  // Animation state for heading
+  const [animateHeading, setAnimateHeading] = useState(true);
 
   // Auto-analyze feedback when the user stops typing
   useEffect(() => {
@@ -32,6 +37,29 @@ const MobileSentimentForm: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, [feedback]);
+  
+  // Animate heading on load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimateHeading(false);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // For custom submit with error handling
+  const submitWithErrorHandling = async () => {
+    try {
+      await handleSubmit();
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Unable to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Emoji based on rating
   const getEmoji = (currentRating: number) => {
@@ -63,15 +91,20 @@ const MobileSentimentForm: React.FC = () => {
   return (
     <div className="p-4 flex flex-col gap-6">
       <div className="text-center">
-        <h2 className="text-xl font-semibold mb-2">How are you feeling today?</h2>
-        <p className="text-gray-500 text-sm">Your feedback helps improve our workplace</p>
+        <h2 className={cn(
+          "text-xl font-semibold mb-2 text-white",
+          animateHeading && "animate-pulse"
+        )}>
+          How are you feeling today?
+        </h2>
+        <p className="text-white text-sm opacity-75">Your feedback helps improve our workplace</p>
       </div>
 
       {/* Emoji Selection */}
       <div className="flex flex-col items-center gap-2">
         <div className="text-6xl mb-2">{getEmoji(rating)}</div>
-        <p className="text-lg font-medium">{getMoodText(rating)}</p>
-        <p className="text-sm text-gray-500 text-center">{getEmotionDescription(rating)}</p>
+        <p className="text-lg font-medium text-white">{getMoodText(rating)}</p>
+        <p className="text-sm text-white opacity-75 text-center">{getEmotionDescription(rating)}</p>
       </div>
       
       {/* Emoji Selector */}
@@ -81,12 +114,14 @@ const MobileSentimentForm: React.FC = () => {
             key={value}
             className={cn(
               "flex flex-col items-center p-2 rounded-lg transition-all",
-              rating === value ? "bg-blue-100 border-2 border-blue-300" : "hover:bg-gray-100"
+              rating === value 
+                ? "bg-white bg-opacity-30 border-2 border-white" 
+                : "hover:bg-white hover:bg-opacity-10"
             )}
             onClick={() => handleRatingChange(value)}
           >
             <span className="text-2xl">{getEmoji(value)}</span>
-            <span className="text-xs mt-1">{getMoodText(value)}</span>
+            <span className="text-xs mt-1 text-white">{getMoodText(value)}</span>
           </button>
         ))}
       </div>
@@ -104,7 +139,7 @@ const MobileSentimentForm: React.FC = () => {
       
       {/* Feedback Input */}
       <div>
-        <label className="block text-sm font-medium mb-2">
+        <label className="block text-sm font-medium mb-2 text-white">
           Tell us more about your experience (optional)
         </label>
         <div className="relative">
@@ -112,7 +147,7 @@ const MobileSentimentForm: React.FC = () => {
             placeholder="Share your thoughts, concerns, or suggestions..."
             value={feedback}
             onChange={(e) => handleFeedbackChange(e.target.value)}
-            className="min-h-[120px] resize-none"
+            className="min-h-[120px] resize-none bg-white bg-opacity-90 border-none"
             disabled={isSubmitting}
           />
           {isAnalyzing && (
@@ -123,7 +158,7 @@ const MobileSentimentForm: React.FC = () => {
         </div>
         
         {/* Word count */}
-        <div className="text-right text-xs text-gray-500 mt-1">
+        <div className="text-right text-xs text-white opacity-75 mt-1">
           {feedback.length} characters
         </div>
       </div>
@@ -131,10 +166,10 @@ const MobileSentimentForm: React.FC = () => {
       {/* Tags Selection */}
       {tags.length > 0 && (
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="block text-sm font-medium mb-2 text-white">
             What areas does your feedback relate to?
             {suggestedTags.length > 0 && (
-              <span className="text-xs text-blue-500 ml-2">
+              <span className="text-xs text-blue-200 ml-2">
                 (Suggested tags are highlighted)
               </span>
             )}
@@ -144,9 +179,12 @@ const MobileSentimentForm: React.FC = () => {
               <Button
                 key={tag.id}
                 size="sm"
-                variant={selectedTags.includes(tag.name) ? "default" : "outline"}
+                variant={selectedTags.includes(tag.name) ? "secondary" : "outline"}
                 className={cn(
-                  "rounded-full text-xs",
+                  "rounded-full text-xs bg-opacity-90",
+                  selectedTags.includes(tag.name) 
+                    ? "bg-white text-[#00CEDE]" 
+                    : "bg-transparent text-white border-white",
                   suggestedTags.includes(tag.name) && !selectedTags.includes(tag.name) && "border-blue-300"
                 )}
                 onClick={() => handleTagToggle(tag.name)}
@@ -161,8 +199,8 @@ const MobileSentimentForm: React.FC = () => {
       
       {/* Submit Button */}
       <Button 
-        className="w-full bg-blue-600 hover:bg-blue-700"
-        onClick={handleSubmit}
+        className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6"
+        onClick={submitWithErrorHandling}
         disabled={isSubmitting}
       >
         {isSubmitting ? (

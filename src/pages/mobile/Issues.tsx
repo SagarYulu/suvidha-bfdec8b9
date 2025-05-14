@@ -9,10 +9,11 @@ import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Search, User as UserIcon, CreditCard, Smile } from "lucide-react";
+import { Clock, Search, User as UserIcon, CreditCard, Smile, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import MobileSentiment from "./Sentiment";
+import { useEffect as useEffectOnce } from "react";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -23,6 +24,7 @@ const MobileIssues = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
   const [isSentimentDialogOpen, setSentimentDialogOpen] = useState(false);
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
 
   useEffect(() => {
     const fetchEmployeeDetails = async () => {
@@ -85,12 +87,32 @@ const MobileIssues = () => {
     }
   }, [searchTerm, issues]);
 
+  // Show feedback prompt after a delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowFeedbackPrompt(true);
+    }, 2000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Hide feedback prompt after some time
+  useEffect(() => {
+    if (showFeedbackPrompt) {
+      const timer = setTimeout(() => {
+        setShowFeedbackPrompt(false);
+      }, 10000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showFeedbackPrompt]);
+
   return (
     <MobileLayout title="Home">
       <div className="space-y-4 pb-16">
         {/* Employee Details Card */}
         {employeeDetails && (
-          <div className="bg-white rounded-lg p-4">
+          <div className="bg-white rounded-lg p-4 relative">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 p-2 rounded-full">
@@ -99,17 +121,26 @@ const MobileIssues = () => {
                 <h2 className="text-lg font-medium">Employee Details</h2>
               </div>
               
-              {/* Add Feedback button */}
+              {/* Enhanced Feedback button */}
               <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-2" 
                 onClick={() => setSentimentDialogOpen(true)}
+                className="bg-[#F97316] hover:bg-orange-600 text-white flex items-center gap-2 relative animate-pulse"
               >
-                <Smile className="h-4 w-4" />
-                Feedback
+                <MessageSquare className="h-4 w-4" />
+                How are you feeling today?
               </Button>
             </div>
+            
+            {/* Feedback prompt banner that appears and disappears */}
+            {showFeedbackPrompt && (
+              <div className="absolute -top-12 right-0 bg-[#F97316] text-white p-2 rounded-t-lg shadow-lg animate-bounce">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Smile className="h-4 w-4" />
+                  Share your feedback!
+                  <div className="absolute h-3 w-3 bg-[#F97316] rotate-45 -bottom-1.5 right-10"></div>
+                </div>
+              </div>
+            )}
             
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div>

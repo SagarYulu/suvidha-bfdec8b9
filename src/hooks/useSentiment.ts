@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -82,7 +81,7 @@ export const useSentiment = () => {
   };
 
   const handleAnalyzeFeedback = async () => {
-    if (!feedback.trim()) return;
+    if (!feedback.trim() || feedback.trim().length < 10) return;
     
     setIsAnalyzing(true);
     
@@ -101,7 +100,10 @@ export const useSentiment = () => {
         });
         
         // Auto-select suggested tags
-        setSelectedTags(result.suggested_tags);
+        setSelectedTags(prev => {
+          // Keep existing selections and add new ones without duplication
+          return [...new Set([...prev, ...result.suggested_tags])];
+        });
       }
       
       // If AI provides a rating suggestion, adjust rating
@@ -128,11 +130,7 @@ export const useSentiment = () => {
       }
     } catch (error) {
       console.error("Error analyzing feedback:", error);
-      toast({
-        title: "Analysis Failed",
-        description: "Unable to analyze feedback. Please try again later.",
-        variant: "destructive"
-      });
+      // Don't show the toast for analysis failure as it's not critical
     } finally {
       setIsAnalyzing(false);
     }
@@ -185,7 +183,7 @@ export const useSentiment = () => {
       const userData = {
         city: (authState.user as any).city as string | undefined,
         cluster: (authState.user as any).cluster as string | undefined,
-        role: (authState.user as any).role as string | undefined
+        role: authState.role as string | undefined
       };
       
       const sentimentData: SentimentRating = {
@@ -199,6 +197,8 @@ export const useSentiment = () => {
         sentiment_score: sentiment_score,
         sentiment_label: sentiment_label
       };
+      
+      console.log("Submitting sentiment data:", sentimentData);
       
       const { success, error } = await submitSentiment(sentimentData);
       
@@ -216,7 +216,7 @@ export const useSentiment = () => {
         setSuggestedTags([]);
         setAnalysisResult(null);
       } else {
-        throw new Error(error);
+        throw new Error(error || "Failed to submit feedback");
       }
     } catch (error) {
       console.error("Error submitting sentiment:", error);
@@ -225,6 +225,7 @@ export const useSentiment = () => {
         description: "Unable to submit your feedback. Please try again.",
         variant: "destructive"
       });
+      throw error; // Rethrow for external handling
     } finally {
       setIsSubmitting(false);
     }

@@ -46,33 +46,60 @@ export type SentimentAnalysisResult = {
 // Function to analyze sentiment using OpenAI
 export const analyzeSentiment = async (feedback: string): Promise<SentimentAnalysisResult> => {
   try {
+    console.log("Analyzing sentiment for feedback:", feedback);
     const { data, error } = await supabase.functions.invoke('analyze-sentiment', {
       body: { feedback }
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw new Error(error.message);
+    }
+    
+    console.log("Sentiment analysis result:", data);
     return data;
   } catch (error) {
     console.error("Sentiment analysis error:", error);
+    // Return sensible defaults instead of failing completely
     return {
       sentiment_score: null,
       sentiment_label: null,
-      rating: 3,
+      rating: undefined,
       suggested_tags: []
     };
   }
 };
 
-// Function to submit sentiment
+// Function to submit sentiment with better error handling
 export const submitSentiment = async (sentimentData: SentimentRating): Promise<{ success: boolean, error?: string }> => {
   try {
-    const { error } = await supabase.from('employee_sentiment').insert(sentimentData);
+    console.log("Submitting sentiment data:", sentimentData);
     
-    if (error) throw error;
+    // Make sure we have the required fields
+    if (!sentimentData.employee_id) {
+      return { success: false, error: "Missing employee ID" };
+    }
+    
+    // Convert tags array to PostgreSQL compatible format if needed
+    const formattedData = {
+      ...sentimentData
+    };
+    
+    const { error, data } = await supabase
+      .from('employee_sentiment')
+      .insert(formattedData)
+      .select();
+    
+    if (error) {
+      console.error("Supabase error:", error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log("Sentiment submission successful:", data);
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error submitting sentiment:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Unknown error occurred" };
   }
 };
 
