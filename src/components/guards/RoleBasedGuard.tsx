@@ -25,8 +25,10 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
   useEffect(() => {
     // Only check access once authentication state is known
     if (isAuthenticated !== undefined) {
+      // Use redirectToast = false to prevent automatic redirects
+      // We'll handle redirects in this component
       const access = checkAccess(permission, { 
-        redirectTo, 
+        redirectTo: false, // Don't automatically redirect
         showToast: true 
       });
       setHasAccess(access);
@@ -45,6 +47,7 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
 
   // If no access, redirect
   if (!hasAccess) {
+    console.log(`Access denied for ${permission}, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 

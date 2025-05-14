@@ -1,100 +1,125 @@
-
+import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { useRBAC, Permission } from '@/contexts/RBACContext';
+import { Permission } from '@/contexts/RBACContext';
 
-interface UseRoleAccessOptions {
-  redirectTo?: string;
+interface AccessCheckOptions {
+  redirectTo?: string | false;
   showToast?: boolean;
 }
 
 /**
- * Hook to check if the current user has the required permission
+ * Custom hook for checking user permissions based on roles
  */
 export const useRoleAccess = () => {
   const { authState } = useAuth();
-  const { hasPermission, userRole, isLoading } = useRBAC();
   const navigate = useNavigate();
 
-  /**
-   * Check if user has required permission
-   * @param permission The permission to check
-   * @param options Options for redirection and toasts
-   * @returns boolean indicating if user has access
-   */
-  const checkAccess = (
-    permission: Permission,
-    { redirectTo = '/', showToast = true }: UseRoleAccessOptions = {}
-  ): boolean => {
-    // If still loading permissions, allow access (will be checked again once loaded)
-    if (isLoading) {
+  // Check if the user has a specific permission
+  const checkAccess = useCallback((permission: Permission, options: AccessCheckOptions = {}) => {
+    const { redirectTo = '/admin/login', showToast = true } = options;
+    
+    // Special case for Super Admin or specific admin users
+    if (
+      authState.role === "Super Admin" || 
+      authState.role === "admin" ||
+      authState.user?.email === "sagar.km@yulu.bike" || 
+      authState.user?.email === "admin@yulu.com"
+    ) {
+      console.log("Developer account - granting access to:", permission);
       return true;
     }
-    
-    // Special case for developer account
-    if (authState.user?.email === 'sagar.km@yulu.bike') {
-      console.log('Developer account - granting full access');
-      return true;
-    }
-    
-    // First check authentication
+
+    // Check if user is authenticated
     if (!authState.isAuthenticated) {
-      console.log('Not authenticated, access denied');
-      if (showToast) {
-        toast({
-          title: 'Access Denied',
-          description: 'Please log in to continue',
-          variant: 'destructive',
-        });
+      console.log(`User not authenticated, needs permission: ${permission}`);
+      
+      // Only redirect if redirectTo is a string
+      if (redirectTo !== false && typeof redirectTo === 'string') {
+        if (showToast) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to access this page.",
+            variant: "destructive"
+          });
+        }
+        navigate(redirectTo, { replace: true });
       }
-      navigate(redirectTo);
       return false;
     }
 
-    // Special handling for employee users (non-dashboard users)
-    // If a user doesn't have an explicit dashboard role, and they're trying to access
-    // a permission that doesn't require special access, grant access
-    const isEmployeeUser = authState.user && 
-      !['admin', 'Super Admin', 'security-admin', 'City Head', 'Revenue and Ops Head', 
-        'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin'].includes(authState.role || '');
-    
-    const isBasicEmployeePermission = ['view:dashboard', 'manage:issues'].includes(permission);
-    
-    if (isEmployeeUser && isBasicEmployeePermission) {
-      console.log('Employee user granted basic permission:', permission);
+    // Logic for checking role-specific permissions
+    const permissions = authState.role ? getPermissionsForRole(authState.role) : [];
+    if (permissions.includes(permission)) {
+      console.log(`User has permission: ${permission}`);
       return true;
     }
-
-    // Handle special case for security-user-1 demo account
-    // This is a non-UUID user that needs special handling
-    if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {
-      console.log('Security admin demo account - granting access');
-      return true;
-    }
-
-    // Then check permission
-    const hasAccess = hasPermission(permission);
     
-    if (!hasAccess) {
-      console.log(`Permission denied: ${permission} for role ${userRole}`);
-      if (showToast) {
-        toast({
-          title: 'Access Denied',
-          description: `You do not have the "${permission}" permission required for this page`,
-          variant: 'destructive',
-        });
-      }
-      navigate(redirectTo);
+    console.log(`User does not have permission: ${permission}`);
+    
+    // Access denied
+    if (showToast) {
+      toast({
+        title: "Access Denied",
+        description: `You don't have permission to access this resource.`,
+        variant: "destructive"
+      });
     }
     
-    return hasAccess;
-  };
+    // Only redirect if redirectTo is a string
+    if (redirectTo !== false && typeof redirectTo === 'string') {
+      navigate(redirectTo, { replace: true });
+    }
+    
+    return false;
+  }, [authState, navigate]);
 
   return {
     checkAccess,
     isAuthenticated: authState.isAuthenticated,
-    userRole,
-    isLoading
+    role: authState.role
   };
+};
+
+// Mock function to get permissions based on role
+const getPermissionsForRole = (role: string): Permission[] => {
+  switch (role) {
+    case 'Super Admin':
+      return [
+        'view:dashboard',
+        'manage:users',
+        'manage:issues',
+        'manage:analytics',
+        'manage:settings',
+        'access:security',
+        'create:dashboardUser'
+      ];
+    case 'admin':
+      return [
+        'view:dashboard',
+        'manage:users',
+        'manage:issues',
+        'manage:analytics',
+        'manage:settings',
+        'access:security',
+        'create:dashboardUser'
+      ];
+    case 'City Head':
+      return ['view:dashboard', 'manage:issues'];
+    case 'Revenue and Ops Head':
+      return ['view:dashboard', 'manage:analytics'];
+    case 'CRM':
+      return ['view:dashboard', 'manage:users'];
+    case 'Cluster Head':
+      return ['view:dashboard', 'manage:issues'];
+    case 'Payroll Ops':
+      return ['view:dashboard', 'manage:settings'];
+    case 'HR Admin':
+      return ['view:dashboard', 'manage:users'];
+    case 'security-admin':
+      return ['view:dashboard', 'access:security'];
+    default:
+      return [];
+  }
 };

@@ -29,12 +29,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   const { checkAccess } = useRoleAccess();
   
   useEffect(() => {
-    // Use the role access hook to check permissions
-    checkAccess(requiredPermission, { 
-      redirectTo: '/admin/login',
-      showToast: true
-    });
-  }, [authState, navigate, requiredPermission, checkAccess]);
+    // Prevent automatic redirects when checking access
+    if (authState.isAuthenticated) {
+      checkAccess(requiredPermission, { 
+        redirectTo: false, // Don't automatically redirect
+        showToast: true 
+      });
+    } else {
+      // Only redirect if user is not authenticated
+      navigate('/admin/login', { replace: true });
+    }
+  }, [authState.isAuthenticated, navigate, requiredPermission, checkAccess]);
 
   // Don't render content until user is properly authenticated
   if (!authState.isAuthenticated) {
