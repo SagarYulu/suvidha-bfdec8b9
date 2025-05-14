@@ -26,20 +26,27 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
-  const { checkAccess } = useRoleAccess();
+  
+  // Important: We're not calling checkAccess here anymore
+  // That check is now exclusively handled by the RoleBasedGuard component
   
   useEffect(() => {
-    // Prevent automatic redirects when checking access
-    if (authState.isAuthenticated) {
-      checkAccess(requiredPermission, { 
-        redirectTo: false, // Don't automatically redirect
-        showToast: true 
-      });
-    } else {
-      // Only redirect if user is not authenticated
+    // Simple login check (no permission check)
+    // We only redirect if the user is definitely not authenticated
+    if (authState.isAuthenticated === false) { // Must be explicitly false
+      console.log("AdminLayout: User is definitely not authenticated, redirecting to login");
       navigate('/admin/login', { replace: true });
     }
-  }, [authState.isAuthenticated, navigate, requiredPermission, checkAccess]);
+  }, [authState.isAuthenticated, navigate]);
+
+  // Show loading indicator while authentication state is being determined
+  if (authState.isAuthenticated === undefined) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
+  }
 
   // Don't render content until user is properly authenticated
   if (!authState.isAuthenticated) {

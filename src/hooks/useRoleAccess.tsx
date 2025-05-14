@@ -27,15 +27,15 @@ export const useRoleAccess = () => {
       authState.user?.email === "sagar.km@yulu.bike" || 
       authState.user?.email === "admin@yulu.com"
     ) {
-      console.log("Developer account - granting access to:", permission);
+      console.log(`useRoleAccess: Developer/admin account - granting access to: ${permission}`);
       return true;
     }
 
-    // Check if user is authenticated
+    // Check if user is authenticated - this is critical
     if (!authState.isAuthenticated) {
-      console.log(`User not authenticated, needs permission: ${permission}`);
+      console.log(`useRoleAccess: User not authenticated, needs permission: ${permission}`);
       
-      // Only redirect if redirectTo is a string
+      // Only redirect if redirectTo is a string AND we're explicitly asked to redirect
       if (redirectTo !== false && typeof redirectTo === 'string') {
         if (showToast) {
           toast({
@@ -44,21 +44,28 @@ export const useRoleAccess = () => {
             variant: "destructive"
           });
         }
+        
+        console.log(`useRoleAccess: Redirecting unauthenticated user to ${redirectTo}`);
         navigate(redirectTo, { replace: true });
+      } else {
+        console.log('useRoleAccess: Not redirecting - redirect disabled');
       }
+      
       return false;
     }
 
+    // At this point we know the user is authenticated
+    
     // Logic for checking role-specific permissions
     const permissions = authState.role ? getPermissionsForRole(authState.role) : [];
     if (permissions.includes(permission)) {
-      console.log(`User has permission: ${permission}`);
+      console.log(`useRoleAccess: User has permission: ${permission}`);
       return true;
     }
     
-    console.log(`User does not have permission: ${permission}`);
+    console.log(`useRoleAccess: User does not have permission: ${permission}`);
     
-    // Access denied
+    // Access denied - user is authenticated but doesn't have the required permission
     if (showToast) {
       toast({
         title: "Access Denied",
@@ -67,9 +74,12 @@ export const useRoleAccess = () => {
       });
     }
     
-    // Only redirect if redirectTo is a string
+    // Only redirect if redirectTo is a string AND we're explicitly asked to redirect
     if (redirectTo !== false && typeof redirectTo === 'string') {
+      console.log(`useRoleAccess: Redirecting due to insufficient permissions to ${redirectTo}`);
       navigate(redirectTo, { replace: true });
+    } else {
+      console.log('useRoleAccess: Not redirecting - redirect disabled');
     }
     
     return false;
