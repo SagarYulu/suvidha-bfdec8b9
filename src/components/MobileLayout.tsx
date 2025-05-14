@@ -82,12 +82,17 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
         return;
       }
       
-      // Regular employees are allowed through - add a debug message confirming this
+      // Regular employees are allowed through
       console.log("User authorized for mobile app access:", authState.user);
       setIsAccessChecked(true);
     };
     
-    checkUserAccess();
+    // Add short delay to checkUserAccess to avoid race conditions
+    const timer = setTimeout(() => {
+      checkUserAccess();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [authState, navigate, checkAccess, logout]);
 
   const handleLogout = () => {
