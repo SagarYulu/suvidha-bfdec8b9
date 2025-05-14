@@ -8,6 +8,7 @@ export type IssueSubmitData = {
   description: string;
   status?: string;
   priority?: string;
+  attachmentUrl?: string | null;
 };
 
 export const submitIssue = async (data: IssueSubmitData) => {
@@ -24,6 +25,7 @@ export const submitIssue = async (data: IssueSubmitData) => {
       description: data.description,
       status: data.status || "open",
       priority: data.priority || "medium",
+      attachment_url: data.attachmentUrl || null,
     });
 
   if (error) {
@@ -37,7 +39,7 @@ export const uploadBankProof = async (file: File, employeeUuid: string): Promise
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `${employeeUuid}-${Date.now()}.${fileExt}`;
-    const filePath = `bank-proofs/${fileName}`;
+    const filePath = `issue-attachments/${fileName}`;
     
     const { error: uploadError } = await supabase.storage
       .from('issue-attachments')

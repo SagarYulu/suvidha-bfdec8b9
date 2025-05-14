@@ -34,7 +34,9 @@ export const ISSUE_TYPES: IssueType[] = [
       { id: "name-change", label: "Name change approval" },
       { id: "advance-request", label: "Advance request approval" },
       { id: "pf-transfer", label: "PF transfer approval" },
-      { id: "nominee-details", label: "Nominee details update" },
+      { id: "nominee-details", label: "Nominee details approval" }, // Changed from "update" to "approval"
+      { id: "uan-activation", label: "UAN Activation" }, // Added UAN Activation
+      { id: "need-uan-number", label: "Need UAN Number" }, // Added Need UAN Number
     ]
   },
   {
@@ -44,6 +46,7 @@ export const ISSUE_TYPES: IssueType[] = [
       { id: "family-addition", label: "Family members addition" },
       { id: "nominee-change", label: "Need to change nominee" },
       { id: "name-change", label: "Need to change name" },
+      { id: "change-personal-details", label: "Need to change Name/Phone Number/Date of Birth/Address" }, // Added new subtype
     ]
   },
   {
