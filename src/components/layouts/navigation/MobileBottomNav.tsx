@@ -41,7 +41,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             className="bg-[#00CEDE] text-white w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-md"
           >
             <FilePlus className="h-6 w-6" />
-            <span className="text-xs mt-1">New</span>
+            <span className="text-xs mt-1">Raise ticket</span>
           </button>
         </div>
         

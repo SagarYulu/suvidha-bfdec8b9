@@ -11,6 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
+import MobileSentiment from "./Sentiment";
+import { useNavigate as useRouterNavigate } from 'react-router-dom';
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -20,6 +22,7 @@ const MobileIssues = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
+  const [isSentimentDialogOpen, setSentimentDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchEmployeeDetails = async () => {
@@ -237,6 +240,12 @@ const MobileIssues = () => {
           )}
         </div>
       </div>
+      
+      {/* Sentiment Dialog */}
+      <MobileSentiment 
+        isOpen={isSentimentDialogOpen}
+        onClose={() => setSentimentDialogOpen(false)}
+      />
     </MobileLayout>
   );
 };
