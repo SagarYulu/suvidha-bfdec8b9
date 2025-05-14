@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { EyeIcon, EyeOffIcon, MailIcon } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { authState, login, logout } = useAuth();
   const navigate = useNavigate();
@@ -23,49 +25,59 @@ const MobileLogin = () => {
   // Restricted emails that should never access mobile app
   const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
 
-  // Check auth only once on component mount
+  // Check auth only once on component mount with improved loading state
   useEffect(() => {
     if (initialCheckDone.current) {
       return; // Skip if we've already checked
     }
     
-    // Mark that we've done the initial check
-    initialCheckDone.current = true;
-    
-    const checkExistingAuth = () => {
-      if (authState && authState.isAuthenticated && authState.user) {
-        console.log("User already authenticated, checking access rights");
-        
-        // Check if user email is explicitly restricted
-        if (restrictedEmails.includes(authState.user.email)) {
-          console.log("Restricted email detected:", authState.user.email);
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to the mobile app. Please use the admin dashboard.",
-            variant: "destructive",
-          });
-          logout();
-          return;
+    // Add a short timeout to allow UI to render before checking auth
+    const timer = setTimeout(() => {
+      // Mark that we've done the initial check
+      initialCheckDone.current = true;
+      
+      const checkExistingAuth = () => {
+        if (authState && authState.isAuthenticated && authState.user) {
+          console.log("User already authenticated, checking access rights");
+          
+          // Check if user email is explicitly restricted
+          if (restrictedEmails.includes(authState.user.email)) {
+            console.log("Restricted email detected:", authState.user.email);
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            logout();
+            setPageLoading(false);
+            return;
+          }
+          
+          // Check if user has a dashboard role
+          if (authState.role && dashboardUserRoles.includes(authState.role)) {
+            console.log("Dashboard role detected:", authState.role);
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            logout();
+            setPageLoading(false);
+            return;
+          }
+          
+          // If no restrictions, redirect to mobile issues
+          navigate("/mobile/issues", { replace: true });
+        } else {
+          // Not authenticated, just show login form
+          setPageLoading(false);
         }
-        
-        // Check if user has a dashboard role
-        if (authState.role && dashboardUserRoles.includes(authState.role)) {
-          console.log("Dashboard role detected:", authState.role);
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to the mobile app. Please use the admin dashboard.",
-            variant: "destructive",
-          });
-          logout();
-          return;
-        }
-        
-        // If no restrictions, redirect to mobile issues
-        navigate("/mobile/issues", { replace: true });
-      }
-    };
+      };
+      
+      checkExistingAuth();
+    }, 300); // Small delay for better UI experience
     
-    checkExistingAuth();
+    return () => clearTimeout(timer);
   }, [authState, navigate, logout]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -154,6 +166,35 @@ const MobileLogin = () => {
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-[#00CEDE]/10">
+        <div className="bg-[#00CEDE] h-[40vh] w-full"></div>
+        <div className="relative px-6 mx-auto max-w-md -mt-32">
+          <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+            <div className="px-8 py-10">
+              <Skeleton className="h-10 w-48 mx-auto mb-10" />
+              
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                
+                <Skeleton className="h-12 w-full mt-8" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#00CEDE]/10">
