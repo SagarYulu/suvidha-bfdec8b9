@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -30,27 +30,34 @@ const Login = () => {
     // Removed security user credentials from demo section
   ];
 
-  useEffect(() => {
-    // Check if user is already logged in
-    if (authState.isAuthenticated && authState.role) {
-      // Define dashboard roles
-      const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
-      
-      // Only redirect if user has a dashboard role
-      if (dashboardUserRoles.includes(authState.role) || authState.user?.email === 'sagar.km@yulu.bike' || authState.user?.email === 'admin@yulu.com') {
-        console.log("Admin user already authenticated, redirecting to:", returnTo || '/admin/dashboard');
-        navigate(returnTo || '/admin/dashboard', { replace: true });
-      } else {
-        // If logged in but not an admin user, show error and log them out
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to access the admin dashboard.",
-          variant: "destructive",
-        });
-        logout();
+  // Modified: Only check auth status once on component mount, don't redirect in useEffect
+  React.useEffect(() => {
+    const checkInitialAuth = () => {
+      // Only redirect on initial render if already logged in
+      if (authState.isAuthenticated && authState.role) {
+        // Define dashboard roles
+        const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+        
+        // Only redirect if user has a dashboard role
+        if (dashboardUserRoles.includes(authState.role) || authState.user?.email === 'sagar.km@yulu.bike' || authState.user?.email === 'admin@yulu.com') {
+          console.log("Admin user already authenticated, redirecting to:", returnTo || '/admin/dashboard');
+          navigate(returnTo || '/admin/dashboard', { replace: true });
+        } else {
+          // If logged in but not an admin user, show error and log them out
+          toast({
+            title: "Access Denied",
+            description: "You don't have permission to access the admin dashboard.",
+            variant: "destructive",
+          });
+          logout();
+        }
       }
-    }
-  }, [authState.isAuthenticated, authState.role, authState.user, navigate, returnTo, logout]);
+    };
+    
+    // Only run once on mount
+    checkInitialAuth();
+    // Intentionally NOT including authState in dependencies to prevent loops
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();

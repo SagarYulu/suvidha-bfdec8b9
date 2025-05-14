@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,9 +42,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [forceRefresh, setForceRefresh] = useState(0); // Added to control refresh frequency
+  const [lastRefreshTime, setLastRefreshTime] = useState(0); // Track when we last refreshed
 
   // Function to refresh the session
   const refreshSession = useCallback(async () => {
+    // Rate-limit refreshes to prevent loops
+    const now = Date.now();
+    if (now - lastRefreshTime < 2000) { // Don't refresh more than once every 2 seconds
+      console.log("Skipping rapid session refresh", now - lastRefreshTime);
+      return;
+    }
+    setLastRefreshTime(now);
+    
     // Avoid multiple concurrent refreshes
     if (!isInitializing) {
       setIsLoading(true);
@@ -147,7 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setIsLoading(false);
     }
-  }, [isInitializing]);
+  }, [isInitializing, lastRefreshTime]);
 
   // Alias for refreshSession
   const refreshAuth = refreshSession;
@@ -162,7 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Avoid refreshSession on initialization as we call it separately
       if (!isInitializing) {
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-          refreshSession();
+          // Use the forceRefresh mechanism instead of directly calling refreshSession
+          setForceRefresh(prev => prev + 1);
         }
       }
     });
@@ -175,6 +185,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [refreshSession, isInitializing]);
 
+  // Handle forced refresh with rate limiting
+  useEffect(() => {
+    if (forceRefresh > 0) {
+      refreshSession();
+    }
+  }, [forceRefresh, refreshSession]);
+
   // Sign-in function - tries both local auth and Supabase auth
   const signIn = async (email: string, password: string): Promise<boolean> => {
     try {
@@ -185,7 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const localUser = await authServiceLogin(email, password);
       
       if (localUser) {
-        console.log("Local authentication succeeded with:", localUser);
+        console.log('Local authentication succeeded with:', localUser);
         // Local auth success, try Supabase auth but don't fail if it doesn't work
         try {
           const { data, error } = await supabase.auth.signInWithPassword({
