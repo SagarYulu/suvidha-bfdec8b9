@@ -83,6 +83,12 @@ export const useDashboardData = () => {
           "Not set") : 
         "Not active");
       
+      // Ensure we have valid date ranges before fetching
+      if (dateRange && (!dateRange.from || !dateRange.to)) {
+        console.warn("Incomplete date range, skipping fetch");
+        return { primaryData: { daily: [], weekly: [], monthly: [], quarterly: [] } };
+      }
+      
       // Pass proper date ranges to the service
       return getResolutionTimeTrends(
         filters,

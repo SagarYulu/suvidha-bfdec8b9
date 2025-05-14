@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -345,19 +344,16 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
   };
   
   // Custom dot render function to handle zero values
-  const renderCustomDot = (props: any, isComparison = false) => {
+  const renderCustomDot = (props: any) => {
     const { cx, cy, payload } = props;
-    
-    // Skip this dot if it belongs to the other dataset type
-    if ((isComparison && (!payload.datasetType || payload.datasetType === 'primary')) || 
-        (!isComparison && payload.datasetType === 'comparison')) {
-      return null;
-    }
     
     // If no resolutions (volume=0), don't render a dot
     if (payload.volume === 0) {
       return null; // Don't show dots for periods with no resolutions
     }
+    
+    // Determine the color based on dataset type
+    const color = payload.datasetType === 'comparison' ? comparisonColor : primaryColor;
     
     // Highlight outliers where resolution time exceeds 72 hours
     if (payload.time > 72) {
@@ -379,7 +375,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
         cx={cx}
         cy={cy}
         r={4}
-        stroke={isComparison ? comparisonColor : primaryColor}
+        stroke={color}
         strokeWidth={1}
         fill="#FFF"
       />
@@ -520,7 +516,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                               strokeWidth={2}
                               activeDot={{ r: 8 }}
                               connectNulls={true}
-                              dot={(props) => renderCustomDot(props)}
+                              dot={renderCustomDot}
                             />
                             
                             {/* Comparison dataset line */}
@@ -534,7 +530,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                                 strokeWidth={2}
                                 activeDot={{ r: 8 }}
                                 connectNulls={true}
-                                dot={(props) => renderCustomDot(props, true)}
+                                dot={renderCustomDot}
                               />
                             )}
                           </LineChart>
@@ -638,13 +634,13 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                                 <TableCell>
                                   {item.primary?.volume ? 
                                     (item.primary.time > 0 ? `${item.primary.time.toFixed(2)} hours` : '0 hours') : 
-                                    'No resolutions'}
+                                    'No data'}
                                 </TableCell>
                                 <TableCell>{item.primary?.volume || 0}</TableCell>
                                 <TableCell>
                                   {item.comparison?.volume ? 
                                     (item.comparison.time > 0 ? `${item.comparison.time.toFixed(2)} hours` : '0 hours') : 
-                                    'No resolutions'}
+                                    'No data'}
                                 </TableCell>
                                 <TableCell>{item.comparison?.volume || 0}</TableCell>
                                 <TableCell>
@@ -679,7 +675,7 @@ const ResolutionTimeTrendAnalysis: React.FC<ResolutionTimeTrendProps> = ({
                                 <TableCell>
                                   {item.volume ? 
                                     (item.time > 0 ? `${item.time.toFixed(2)} hours` : '0 hours') : 
-                                    'No resolutions'}
+                                    'No data'}
                                 </TableCell>
                                 <TableCell>
                                   {!item.volume ? (

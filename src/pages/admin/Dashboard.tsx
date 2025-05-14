@@ -52,7 +52,7 @@ const DashboardContent = () => {
     return analytics?.resolutionTimeHistory || [];
   }, [analytics]);
 
-  // Log the current filters and date ranges for debugging
+  // Debug logging for resolution time data
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
     console.log("Dashboard current date range:", dateRange ? 
