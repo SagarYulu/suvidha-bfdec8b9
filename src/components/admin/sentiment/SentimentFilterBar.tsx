@@ -59,7 +59,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   const { data: clusters } = useQuery({
     queryKey: ['clusters', city],
     queryFn: async () => {
-      if (!city) return [];
+      if (!city || city === 'all-cities') return [];
       
       const { data, error } = await supabase
         .from('master_clusters')
@@ -70,7 +70,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!city
+    enabled: !!city && city !== 'all-cities'
   });
 
   // Fetch roles
@@ -91,9 +91,9 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     onFilterChange({
       startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      city: city,
-      cluster: cluster,
-      role: role
+      city: city && city !== 'all-cities' ? city : undefined,
+      cluster: cluster && cluster !== 'all-clusters' ? cluster : undefined,
+      role: role && role !== 'all-roles' ? role : undefined
     });
   };
 
@@ -155,7 +155,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
               <SelectValue placeholder="Select city" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Cities</SelectItem>
+              <SelectItem value="all-cities">All Cities</SelectItem>
               {cities?.map((city) => (
                 <SelectItem key={city.id} value={city.id}>
                   {city.name}
@@ -177,7 +177,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
               <SelectValue placeholder={city ? "Select cluster" : "Select city first"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Clusters</SelectItem>
+              <SelectItem value="all-clusters">All Clusters</SelectItem>
               {clusters?.map((cluster) => (
                 <SelectItem key={cluster.id} value={cluster.id}>
                   {cluster.name}
@@ -195,7 +195,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="all-roles">All Roles</SelectItem>
               {roles?.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
                   {role.name}
