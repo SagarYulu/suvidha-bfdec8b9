@@ -7,7 +7,6 @@ import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
 import ChartSection from "@/components/dashboard/ChartSection";
 import RecentTicketsTable from "@/components/dashboard/RecentTicketsTable";
 import DashboardLoader from "@/components/dashboard/DashboardLoader";
-import ResolutionTimeTrendAnalysis from "@/components/dashboard/ResolutionTimeTrendAnalysis";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
 
@@ -32,13 +31,6 @@ const DashboardContent = () => {
     typePieData,
     cityBarData,
     filters,
-    resolutionTimeData,
-    dateRange,
-    setDateRange,
-    comparisonDateRange,
-    setComparisonDateRange,
-    comparisonMode,
-    toggleComparisonMode
   } = useDashboardData();
 
   // Format issues consistently with the other pages
@@ -52,17 +44,10 @@ const DashboardContent = () => {
     return analytics?.resolutionTimeHistory || [];
   }, [analytics]);
 
-  // Debug logging for resolution time data
+  // Debug logging for current filters
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
-    console.log("Dashboard current date range:", dateRange ? 
-      `From: ${dateRange.from?.toLocaleDateString()} To: ${dateRange.to?.toLocaleDateString()}` : 
-      "None");
-    
-    if (resolutionTimeData) {
-      console.log("Resolution time data received:", resolutionTimeData);
-    }
-  }, [filters, dateRange, resolutionTimeData]);
+  }, [filters]);
 
   return (
     <AdminLayout title="Dashboard">
@@ -89,21 +74,6 @@ const DashboardContent = () => {
             cityBarData={cityBarData}
             resolutionTimeHistory={resolutionTimeHistory}
             isLoading={isLoading}
-          />
-          
-          {/* Resolution Time Trend Analysis with Date Range Comparison */}
-          <ResolutionTimeTrendAnalysis
-            dailyData={resolutionTimeData?.primaryData?.daily || []}
-            weeklyData={resolutionTimeData?.primaryData?.weekly || []}
-            monthlyData={resolutionTimeData?.primaryData?.monthly || []}
-            quarterlyData={resolutionTimeData?.primaryData?.quarterly || []}
-            isLoading={isLoading}
-            dateRange={dateRange}
-            comparisonDateRange={comparisonDateRange}
-            comparisonMode={comparisonMode}
-            onDateRangeChange={setDateRange}
-            onComparisonDateRangeChange={setComparisonDateRange}
-            onToggleComparisonMode={toggleComparisonMode}
           />
 
           {/* Recent Tickets Table - Pass formatted consistent issues */}
