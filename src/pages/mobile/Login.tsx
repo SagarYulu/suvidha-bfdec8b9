@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -15,12 +14,61 @@ const MobileLogin = () => {
   const [error, setError] = useState<string | null>(null);
   const { login, logout } = useAuth();
   const navigate = useNavigate();
+  const initialCheckDone = useRef(false);
 
   // Explicitly defined dashboard user roles that should be redirected to admin dashboard
   const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
   
   // Explicitly defined dashboard user emails that should never access mobile app
   const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+
+  // Check auth only once on component mount
+  useEffect(() => {
+    if (initialCheckDone.current) {
+      return; // Skip if we've already checked
+    }
+    
+    // Mark that we've done the initial check
+    initialCheckDone.current = true;
+    
+    // Check if user is already logged in and redirect accordingly
+    const checkExistingAuth = async () => {
+      const authState = JSON.parse(localStorage.getItem("authState") || "{}");
+      
+      if (authState && authState.isAuthenticated) {
+        console.log("User already authenticated, checking access rights");
+        
+        // Check if user email is explicitly restricted
+        if (authState.user && restrictedEmails.includes(authState.user.email)) {
+          console.log("Restricted email detected:", authState.user.email);
+          toast({
+            title: "Access Denied",
+            description: "You don't have access to the mobile app. Please use the admin dashboard.",
+            variant: "destructive",
+          });
+          await logout();
+          return;
+        }
+        
+        // Check if user has a dashboard role
+        if (authState.role && dashboardUserRoles.includes(authState.role)) {
+          console.log("Dashboard role detected:", authState.role);
+          toast({
+            title: "Access Denied",
+            description: "You don't have access to the mobile app. Please use the admin dashboard.",
+            variant: "destructive",
+          });
+          await logout();
+          return;
+        }
+        
+        // If no restrictions, redirect to mobile issues
+        navigate("/mobile/issues");
+      }
+    };
+    
+    checkExistingAuth();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

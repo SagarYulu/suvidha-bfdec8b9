@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -23,16 +22,18 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { returnTo } = (location.state as LocationState) || {};
+  const initialCheckDone = useRef(false);
 
-  // Demo credentials for testing specific access
-  const demoCredentials = [
-    { email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' }
-    // Removed security user credentials from demo section
-  ];
-
-  // Modified: Only check auth status once on component mount, don't redirect in useEffect
-  React.useEffect(() => {
+  // Check auth only once on component mount, with no auto redirects on state changes
+  useEffect(() => {
     const checkInitialAuth = () => {
+      if (initialCheckDone.current) {
+        return; // Skip if we've already checked
+      }
+      
+      // Mark that we've done the initial check
+      initialCheckDone.current = true;
+      
       // Only redirect on initial render if already logged in
       if (authState.isAuthenticated && authState.role) {
         // Define dashboard roles
@@ -56,8 +57,7 @@ const Login = () => {
     
     // Only run once on mount
     checkInitialAuth();
-    // Intentionally NOT including authState in dependencies to prevent loops
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // Intentionally empty dependency array to run only once
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -211,7 +211,7 @@ const Login = () => {
               Demo credentials for testing
             </p>
             <div className="flex flex-col gap-2 w-full">
-              {demoCredentials.map((cred, index) => (
+              {[{ email: 'admin@yulu.com', password: 'admin123', label: 'Default Admin' }].map((cred, index) => (
                 <Button 
                   key={index}
                   variant="outline" 
