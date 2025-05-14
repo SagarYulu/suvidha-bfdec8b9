@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, 
-  LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer
 } from 'recharts';
@@ -176,33 +175,28 @@ const AdminAnalytics = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Average Resolution Time Trend</CardTitle>
-                <CardDescription>How resolution times have changed over time (based on real data)</CardDescription>
+                <CardTitle>Issues by City</CardTitle>
+                <CardDescription>Distribution of issues across cities</CardDescription>
               </CardHeader>
               <CardContent className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={analytics?.resolutionTimeHistory || []}
+                  <BarChart
+                    data={getCityBarData()}
+                    layout="vertical"
                     margin={{
                       top: 5,
                       right: 30,
-                      left: 20,
+                      left: 50,
                       bottom: 5,
                     }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+                    <XAxis type="number" />
+                    <YAxis type="category" dataKey="name" />
                     <Tooltip />
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="time" 
-                      name="Resolution Time" 
-                      stroke="#1E40AF" 
-                      activeDot={{ r: 8 }} 
-                    />
-                  </LineChart>
+                    <Bar dataKey="value" name="Issues" fill="#1E40AF" />
+                  </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
