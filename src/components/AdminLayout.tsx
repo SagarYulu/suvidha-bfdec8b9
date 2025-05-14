@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from "@/hooks/use-toast"; 
@@ -26,26 +26,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
   
-  useEffect(() => {
-    // Simple login check (no permission check)
-    // We only redirect if the user is definitely not authenticated
-    if (authState.isAuthenticated === false) { // Must be explicitly false
-      console.log("AdminLayout: User is definitely not authenticated, redirecting to login");
-      navigate('/admin/login', { replace: true });
-    }
-  }, [authState.isAuthenticated, navigate]);
-
   // Show loading indicator while authentication state is being determined
   if (authState.isAuthenticated === undefined) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
-      </div>
-    );
-  }
-
-  // Don't render content until user is properly authenticated
-  if (!authState.isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>

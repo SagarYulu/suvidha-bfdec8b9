@@ -45,7 +45,13 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
     );
   }
 
-  // If no access, redirect
+  // If not authenticated at all, redirect to login
+  if (isAuthenticated === false) {
+    console.log('RoleBasedGuard: User not authenticated, redirecting to login');
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // If authenticated but no permission, redirect to specified route
   if (!hasAccess) {
     console.log(`RoleBasedGuard: Access denied for ${permission}, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;

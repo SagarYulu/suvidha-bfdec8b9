@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -50,32 +49,23 @@ export const useRoleAccess = () => {
   }, [authState]);
 
   // Legacy function that supports navigation and toasts
-  // This is kept for backward compatibility
+  // Simplified to prevent conflicting redirects
   const checkAccess = useCallback((permission: Permission, options: AccessCheckOptions = {}) => {
-    const { redirectTo = '/admin/login', showToast = true } = options;
+    const { showToast = true } = options;
     
     // Check permission without side effects
     const hasAccess = hasPermission(permission);
     
-    if (!hasAccess) {
-      // Access denied - user is authenticated but doesn't have the required permission
-      if (showToast) {
-        toast({
-          title: "Access Denied",
-          description: `You don't have permission to access this resource.`,
-          variant: "destructive"
-        });
-      }
-      
-      // Only redirect if redirectTo is a string AND we're explicitly asked to redirect
-      if (redirectTo !== false && typeof redirectTo === 'string') {
-        console.log(`useRoleAccess: Redirecting due to insufficient permissions to ${redirectTo}`);
-        navigate(redirectTo, { replace: true });
-      }
+    if (!hasAccess && showToast) {
+      toast({
+        title: "Access Denied",
+        description: `You don't have permission to access this resource.`,
+        variant: "destructive"
+      });
     }
     
     return hasAccess;
-  }, [hasPermission, navigate]);
+  }, [hasPermission]);
 
   return {
     checkAccess,
