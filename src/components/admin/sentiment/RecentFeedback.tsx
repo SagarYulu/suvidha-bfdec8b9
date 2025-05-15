@@ -44,6 +44,7 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
   
   // Force refetch when filters change
   useEffect(() => {
+    console.log("RecentFeedback filters changed, refetching...");
     refetch();
   }, [filters, refetch]);
   
@@ -52,25 +53,42 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
       .filter(item => {
         // Apply sentiment filter if set
         if (!sentimentFilter) return true;
-        return item.sentiment_label === sentimentFilter;
+        
+        const sentiment = item.sentiment_label?.toLowerCase() || '';
+        // Handle variations of sentiment labels
+        if (sentimentFilter === 'positive') {
+          return sentiment.includes('positive');
+        } else if (sentimentFilter === 'negative') {
+          return sentiment.includes('negative');
+        } else {
+          return sentiment === sentimentFilter;
+        }
       })
-      .filter(item => item.feedback && item.feedback.trim() !== '') // Only show items with feedback
       .sort((a, b) => {
         // Sort by creation date - most recent first
-        return new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime();
+        if (!a.created_at || !b.created_at) return 0;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       })
       .slice(0, 20) // Limit to 20 items
     : [];
   
+  // Separate items with feedback from those without
+  const itemsWithFeedback = filteredData.filter(item => item.feedback && item.feedback.trim() !== '');
+  const itemsWithoutFeedback = filteredData.filter(item => !item.feedback || item.feedback.trim() === '');
+  
+  // Combine the lists, prioritizing items with feedback
+  const displayData = [...itemsWithFeedback, ...itemsWithoutFeedback].slice(0, 20);
+  
   const getSentimentIcon = (label: string | undefined) => {
-    switch(label?.toLowerCase()) {
-      case 'positive': 
-      case 'very positive': 
-        return <ThumbsUp className="h-5 w-5 text-green-500" />;
-      case 'negative': 
-      case 'very negative': 
-        return <ThumbsDown className="h-5 w-5 text-red-500" />;
-      default: return <MessageCircle className="h-5 w-5 text-yellow-500" />;
+    if (!label) return <MessageCircle className="h-5 w-5 text-yellow-500" />;
+    
+    const lowerLabel = label.toLowerCase();
+    if (lowerLabel.includes('positive')) {
+      return <ThumbsUp className="h-5 w-5 text-green-500" />;
+    } else if (lowerLabel.includes('negative')) {
+      return <ThumbsDown className="h-5 w-5 text-red-500" />;
+    } else {
+      return <MessageCircle className="h-5 w-5 text-yellow-500" />;
     }
   };
   
@@ -153,7 +171,7 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
       <CardContent>
         {/* Add filter status indicator */}
         <div className="mb-4 text-sm text-gray-500">
-          {getActiveFiltersText()}
+          {getActiveFiltersText()}{sentimentFilter ? `, Sentiment: ${sentimentFilter}` : ''}
         </div>
         
         {isLoading ? (
@@ -165,14 +183,14 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
             <p>No sentiment data available for the current filters.</p>
             <p className="mt-2">Try clearing some filters or submitting feedback.</p>
           </div>
-        ) : filteredData.length === 0 ? (
+        ) : displayData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <p>No feedback text available matching the current filters.</p>
+            <p>No feedback available matching the current filters.</p>
             <p className="mt-2">Try selecting a different sentiment type or clearing filters.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredData.map((item) => (
+            {displayData.map((item) => (
               <div key={item.id} className="border rounded-lg p-4">
                 <div className="flex items-start">
                   <div className="flex-shrink-0 mr-4">
@@ -196,7 +214,11 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
                         {item.created_at && format(parseISO(item.created_at), 'PPp')}
                       </div>
                     </div>
-                    <p className="mt-2">{item.feedback}</p>
+                    {item.feedback ? (
+                      <p className="mt-2">{item.feedback}</p>
+                    ) : (
+                      <p className="mt-2 text-gray-400 italic">No feedback text provided</p>
+                    )}
                     {item.tags && item.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {item.tags.map(tag => (

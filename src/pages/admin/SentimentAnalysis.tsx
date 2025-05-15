@@ -85,6 +85,17 @@ const SentimentAnalysis: React.FC = () => {
   const handleExport = () => {
     exportMutation.mutate();
   };
+
+  const forceRefresh = () => {
+    // Force refetch all sentiment data
+    queryClient.invalidateQueries({ queryKey: ['sentiment'] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback'] });
+    
+    toast({
+      title: "Refreshing Data",
+      description: "Fetching the latest sentiment data from the database."
+    });
+  };
   
   return (
     <AdminLayout 
@@ -93,13 +104,21 @@ const SentimentAnalysis: React.FC = () => {
     >
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Employee Sentiment Analysis</h1>
-        <Button 
-          onClick={handleExport}
-          disabled={exportMutation.isPending}
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Export Data
-        </Button>
+        <div className="space-x-2">
+          <Button 
+            variant="outline"
+            onClick={forceRefresh}
+          >
+            Refresh Data
+          </Button>
+          <Button 
+            onClick={handleExport}
+            disabled={exportMutation.isPending}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Data
+          </Button>
+        </div>
       </div>
       
       <SentimentFilterBar onFilterChange={handleFilterChange} />

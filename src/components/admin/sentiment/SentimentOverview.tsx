@@ -39,10 +39,17 @@ const SENTIMENT_COLORS = {
 };
 
 const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
-  const { data: sentimentData, isLoading } = useQuery({
+  const { data: sentimentData, isLoading, refetch } = useQuery({
     queryKey: ['sentiment', filters],
-    queryFn: () => fetchAllSentiment(filters)
+    queryFn: () => fetchAllSentiment(filters),
+    staleTime: 30000, // 30 seconds
   });
+
+  // Force refetch when filters change
+  React.useEffect(() => {
+    console.log("Sentiment Overview filters changed, refetching data:", filters);
+    refetch();
+  }, [filters, refetch]);
 
   if (isLoading) {
     return (
@@ -56,13 +63,16 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     return (
       <div className="text-center text-gray-500 py-8">
         No sentiment data available for the selected filters.
+        <p className="mt-2">Try clearing some filters or submitting feedback.</p>
       </div>
     );
   }
 
   // Calculate average sentiment by date
   const sentimentByDate = sentimentData.reduce((acc, curr) => {
-    const date = format(parseISO(curr.created_at!), 'yyyy-MM-dd');
+    if (!curr.created_at) return acc;
+    
+    const date = format(parseISO(curr.created_at), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = { 
         count: 0, 
@@ -92,7 +102,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   // Calculate sentiment distribution
   const sentimentDistribution = sentimentData.reduce((acc, curr) => {
-    const label = curr.sentiment_label || 'unknown';
+    const label = curr.sentiment_label?.toLowerCase() || 'unknown';
     if (!acc[label]) {
       acc[label] = 0;
     }
@@ -119,20 +129,39 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     value: ratingDistribution[Number(key)]
   }));
 
-  // Calculate tag distribution
+  // Calculate tag distribution with improved handling
   const tagCounts: Record<string, number> = {};
+  let taggedFeedbackCount = 0;
+  
   sentimentData.forEach(item => {
-    if (item.tags && Array.isArray(item.tags)) {
+    if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+      taggedFeedbackCount++;
       item.tags.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        if (tag) { // Only count non-empty tags
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        }
       });
     }
   });
+  
+  // For sentiment with no tags, create default categories
+  if (taggedFeedbackCount === 0 && sentimentData.length > 0) {
+    console.log("No tagged feedback found, creating default categories");
+    
+    // Count sentiment label distribution for default categories
+    sentimentData.forEach(item => {
+      const label = item.sentiment_label?.toLowerCase() || 'unknown';
+      const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Sentiment`;
+      tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
+    });
+  }
 
   const tagData = Object.keys(tagCounts)
     .map(tag => ({ name: tag, count: tagCounts[tag] }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
+
+  console.log("Tag data:", tagData);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -245,21 +274,28 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
           <CardTitle>Top Feedback Themes</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={tagData}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" />
-                <Tooltip />
-                <Bar dataKey="count" fill="#00C49F" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {tagData.length === 0 ? (
+            <div className="text-center text-gray-500 py-8">
+              No feedback themes available for the selected filters.
+              <p className="mt-2">Try clearing some filters or submitting more detailed feedback.</p>
+            </div>
+          ) : (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={tagData}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="name" />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#00C49F" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
