@@ -175,6 +175,13 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   console.log("Tag data:", tagData);
 
+  // Create an array of mood data for the bar chart
+  const moodData = Object.keys(ratingDistribution).map(key => ({
+    rating: ratingLabels[Number(key) as keyof typeof ratingLabels],
+    score: Number(key),
+    count: ratingDistribution[Number(key)]
+  }));
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Simplified Time Series Chart */}
@@ -271,11 +278,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={Object.keys(ratingDistribution).map(key => ({
-                  rating: ratingLabels[Number(key) as keyof typeof ratingLabels],
-                  score: Number(key),
-                  count: ratingDistribution[Number(key)]
-                }))}
+                data={moodData}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
@@ -288,12 +291,18 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 <Bar 
                   dataKey="count" 
                   name="Number of Responses"
-                  fill={(data) => {
-                    if (data.score <= 2) return "#F44336"; // Red for negative
-                    if (data.score === 3) return "#FFC107"; // Yellow for neutral
-                    return "#4CAF50"; // Green for positive
-                  }}
-                />
+                >
+                  {moodData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`}
+                      fill={
+                        entry.score <= 2 ? "#F44336" : // Red for negative
+                        entry.score === 3 ? "#FFC107" : // Yellow for neutral
+                        "#4CAF50" // Green for positive
+                      }
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
