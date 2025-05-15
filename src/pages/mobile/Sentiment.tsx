@@ -11,6 +11,9 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
+  // Background gradient for better aesthetics
+  const bgGradient = "linear-gradient(135deg, #02C0DE 0%, #01A6D8 100%)";
+  
   // When used as a standalone page
   if (!isOpen && !onClose) {
     return (
@@ -18,7 +21,12 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
         title="Feedback Matters" 
         bgColor="#00CEDE"
       >
-        <MobileSentimentForm />
+        <div 
+          className="min-h-screen -mt-16 pt-16" 
+          style={{ background: bgGradient }}
+        >
+          <MobileSentimentForm />
+        </div>
       </MobileLayout>
     );
   }
@@ -26,12 +34,12 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
   // When used as a dialog
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose && onClose()}>
-      <DialogContent className="sm:max-w-md p-0 bg-[#00CEDE]">
+      <DialogContent className="sm:max-w-md p-0 border-0 overflow-hidden" style={{ background: bgGradient }}>
         <div className="py-4 relative">
           {onClose && (
             <button 
               onClick={onClose}
-              className="absolute right-4 top-4 text-white hover:bg-[#00bdcd] rounded-full p-1"
+              className="absolute right-4 top-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>

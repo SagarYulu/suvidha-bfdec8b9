@@ -22,14 +22,68 @@ export const useSentiment = () => {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const { authState } = useAuth();
 
+  // Improved tag loading - add error handling and retry mechanism
   useEffect(() => {
+    let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
     const loadTags = async () => {
-      const sentimentTags = await fetchSentimentTags();
-      console.log("Loaded sentiment tags:", sentimentTags);
-      setTags(sentimentTags);
+      try {
+        console.log("Attempting to load sentiment tags...");
+        const sentimentTags = await fetchSentimentTags();
+        
+        if (!mounted) return;
+        
+        if (sentimentTags && sentimentTags.length > 0) {
+          console.log(`Loaded ${sentimentTags.length} sentiment tags:`, sentimentTags);
+          setTags(sentimentTags);
+        } else {
+          // If we got an empty array, we should retry
+          console.warn("Received empty tags array, will retry...");
+          retryTag();
+        }
+      } catch (error) {
+        console.error("Error loading sentiment tags:", error);
+        retryTag();
+      }
     };
     
+    const retryTag = () => {
+      if (retryCount < maxRetries && mounted) {
+        retryCount++;
+        const delay = 1000 * retryCount; // Exponential backoff
+        console.log(`Retrying tag load (${retryCount}/${maxRetries}) in ${delay}ms...`);
+        setTimeout(loadTags, delay);
+      }
+    };
+    
+    // Load tags on mount
     loadTags();
+    
+    // Fallback: Create default tags if we couldn't load them after retries
+    const fallbackTimer = setTimeout(() => {
+      if (mounted && (!tags || tags.length === 0)) {
+        console.log("Using fallback tags as loading from API failed");
+        setTags([
+          { id: 'fallback-1', name: 'Work-Life Balance', category: 'Balance' },
+          { id: 'fallback-2', name: 'Career Growth', category: 'Career' },
+          { id: 'fallback-3', name: 'Compensation', category: 'Career' },
+          { id: 'fallback-4', name: 'Manager', category: 'People' },
+          { id: 'fallback-5', name: 'Team', category: 'People' },
+          { id: 'fallback-6', name: 'Workload', category: 'Balance' },
+          { id: 'fallback-7', name: 'Communication', category: 'People' },
+          { id: 'fallback-8', name: 'Equipment', category: 'Environment' },
+          { id: 'fallback-9', name: 'Training', category: 'Career' },
+          { id: 'fallback-10', name: 'Company Policies', category: 'Company' }
+        ]);
+      }
+    }, 5000);
+    
+    return () => {
+      mounted = false;
+      clearTimeout(fallbackTimer);
+    };
   }, []);
 
   const handleRatingChange = (value: number) => {
