@@ -287,13 +287,10 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 />
                 <Bar 
                   dataKey="count" 
-                  fill="#8884d8" 
                   name="Number of Responses"
-                  // Color bars by rating
                   fill={(data) => {
-                    const score = data.score;
-                    if (score <= 2) return "#F44336"; // Red for negative
-                    if (score === 3) return "#FFC107"; // Yellow for neutral
+                    if (data.score <= 2) return "#F44336"; // Red for negative
+                    if (data.score === 3) return "#FFC107"; // Yellow for neutral
                     return "#4CAF50"; // Green for positive
                   }}
                 />
