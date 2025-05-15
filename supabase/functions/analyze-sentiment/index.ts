@@ -1,5 +1,6 @@
 
-import { serve } from 'std/server'
+// Using the correct import syntax for Deno standard library
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 interface RequestData {
   feedback: string
