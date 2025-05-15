@@ -27,7 +27,7 @@ const MobileNewIssue = () => {
   };
   
   return (
-    <MobileLayout title="Raise Ticket">
+    <MobileLayout title="Raise Ticket" bgColor="bg-yulu-cyan">
       <div className="pb-16">
         <div className="space-y-6">
           <IssueTypeSelector 

@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
@@ -19,7 +18,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   children, 
   title,
   className,
-  bgColor = "#2563EB" // Updated default color to match admin dashboard
+  bgColor = "bg-yulu-cyan" // Updated to use Yulu cyan color as default
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
@@ -104,7 +103,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   if (!authState.isAuthenticated || !isAccessChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-cyan"></div>
       </div>
     );
   }

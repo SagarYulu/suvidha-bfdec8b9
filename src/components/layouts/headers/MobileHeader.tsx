@@ -22,7 +22,7 @@ const MobileHeader: React.FC<BaseHeaderProps> = ({
   children
 }) => {
   // Determine background color based on priority if provided
-  let headerBgColor = bgColor || "bg-[#2563EB]"; // Updated default color
+  let headerBgColor = bgColor || "bg-yulu-cyan"; // Updated to match dashboard cyan color
   
   if (priority) {
     switch (priority) {
@@ -39,7 +39,7 @@ const MobileHeader: React.FC<BaseHeaderProps> = ({
         headerBgColor = "bg-red-600";
         break;
       default:
-        headerBgColor = "bg-[#2563EB]"; // Updated default color
+        headerBgColor = "bg-yulu-cyan"; // Updated to match dashboard cyan color
     }
   }
 

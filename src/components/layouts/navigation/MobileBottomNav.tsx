@@ -26,7 +26,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             onClick={onHomeClick}
             className={cn(
               "flex flex-col items-center py-3",
-              location.pathname === "/mobile/issues" && "text-blue-500"
+              location.pathname === "/mobile/issues" && "text-yulu-cyan-dark"
             )}
           >
             <Home className="h-5 w-5" />
@@ -38,7 +38,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <div className="flex-grow-0 flex justify-center -mt-5 mx-4">
           <button
             onClick={onNewIssueClick}
-            className="bg-[#00CEDE] text-white w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-md"
+            className="bg-yulu-cyan hover:bg-yulu-cyan-dark text-white w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-md"
           >
             <FilePlus className="h-6 w-6" />
             <span className="text-xs mt-1">Raise ticket</span>

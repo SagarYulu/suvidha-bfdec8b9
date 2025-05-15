@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +12,6 @@ import { Clock, Search, User as UserIcon, CreditCard, Smile, MessageSquare } fro
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import MobileSentiment from "./Sentiment";
-import { useEffect as useEffectOnce } from "react";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -116,28 +114,28 @@ const MobileIssues = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="bg-blue-100 p-2 rounded-full">
-                  <UserIcon className="h-5 w-5 text-blue-500" />
+                  <UserIcon className="h-5 w-5 text-yulu-cyan" />
                 </div>
                 <h2 className="text-lg font-medium">Employee Details</h2>
               </div>
               
-              {/* Enhanced Feedback button - updated color to match admin dashboard */}
+              {/* Updated feedback button to match Yulu cyan colors */}
               <Button 
                 onClick={() => setSentimentDialogOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 relative animate-pulse"
+                className="bg-yulu-cyan hover:bg-yulu-cyan-dark text-white flex items-center gap-2 relative animate-pulse"
               >
                 <MessageSquare className="h-4 w-4" />
                 How are you feeling today?
               </Button>
             </div>
             
-            {/* Feedback prompt banner that appears and disappears - updated color */}
+            {/* Feedback prompt banner with updated colors */}
             {showFeedbackPrompt && (
-              <div className="absolute -top-12 right-0 bg-blue-600 text-white p-2 rounded-t-lg shadow-lg animate-bounce">
+              <div className="absolute -top-12 right-0 bg-yulu-cyan text-white p-2 rounded-t-lg shadow-lg animate-bounce">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Smile className="h-4 w-4" />
                   Share your feedback!
-                  <div className="absolute h-3 w-3 bg-blue-600 rotate-45 -bottom-1.5 right-10"></div>
+                  <div className="absolute h-3 w-3 bg-yulu-cyan rotate-45 -bottom-1.5 right-10"></div>
                 </div>
               </div>
             )}
@@ -230,7 +228,7 @@ const MobileIssues = () => {
 
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00CEDE]"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-cyan"></div>
             </div>
           ) : filteredIssues.length > 0 ? (
             <div className="space-y-3">
@@ -275,7 +273,7 @@ const MobileIssues = () => {
               <div className="mt-6">
                 <button
                   onClick={() => navigate("/mobile/issues/new")}
-                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-[#00CEDE] hover:bg-[#00B8C8]"
+                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-yulu-cyan hover:bg-yulu-cyan-dark"
                 >
                   Raise a new ticket
                 </button>
