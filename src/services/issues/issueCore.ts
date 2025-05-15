@@ -16,3 +16,9 @@ export { updateIssueStatus } from "./issueStatusService";
 export { assignIssueToUser } from "./issueAssignmentService";
 export { reopenTicket } from "./issueReopeningService";
 export { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";
+
+// Re-export Issue type from types
+export type { Issue as IssueType } from "@/types";
+
+// Add a fetchUserIssues function that uses the existing getIssuesByUserId
+export const fetchUserIssues = getIssuesByUserId;

@@ -2,11 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MobileLayout from '@/components/MobileLayout';
-import { fetchUserIssues, IssueType } from '@/services/issues/issueCore';
+import { getIssuesByUserId, IssueType } from '@/services/issues/issueCore';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { formatTimeAgo } from '@/utils/dateUtils';
-import { Tab, Tabs } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import IssuesList from '@/components/mobile/issues/IssuesList';
 import FeedbackFab from '@/components/mobile/FeedbackFab';
 
@@ -30,7 +30,7 @@ function Issues() {
           return;
         }
 
-        const userIssues = await fetchUserIssues(authState.user.id);
+        const userIssues = await getIssuesByUserId(authState.user.id);
         
         // Format the dates for display
         const formattedIssues = userIssues.map((issue: IssueType) => ({
@@ -66,10 +66,6 @@ function Issues() {
     getIssues();
   }, [authState.isAuthenticated, authState.user?.id]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
   const feedbackMessages = [
     "We want your feedback!",
     "How was your experience?",
@@ -80,22 +76,24 @@ function Issues() {
   return (
     <MobileLayout title="My Issues" bgColor="#1E40AF">
       <div className="p-4">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <Tab value="active" text="Active Issues" />
-          <Tab value="closed" text="Closed Issues" />
-        </Tabs>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="active">Active Issues</TabsTrigger>
+            <TabsTrigger value="closed">Closed Issues</TabsTrigger>
+          </TabsList>
 
-        <div className="mt-4">
-          {activeTab === "active" ? (
+          <TabsContent value="active" className="mt-4">
             <div className="pb-20">
               <IssuesList issues={activeIssues} isLoading={isLoading} />
             </div>
-          ) : (
+          </TabsContent>
+          
+          <TabsContent value="closed" className="mt-4">
             <div className="pb-20">
               <IssuesList issues={closedIssues} isLoading={isLoading} />
             </div>
-          )}
-        </div>
+          </TabsContent>
+        </Tabs>
 
         <div className="fixed bottom-16 right-4 z-50">
           <button
