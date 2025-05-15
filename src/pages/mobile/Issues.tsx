@@ -35,7 +35,7 @@ function Issues() {
         // Format the dates for display
         const formattedIssues = userIssues.map((issue: IssueType) => ({
           ...issue,
-          created_at_formatted: formatTimeAgo(issue.created_at)
+          created_at_formatted: formatTimeAgo(issue.createdAt) // Changed from created_at to createdAt
         }));
         
         setIssues(formattedIssues);
