@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -180,27 +181,48 @@ export const useSentiment = () => {
           sentiment_score = 0.0;
       }
       
-      // Get user metadata with safe access to optional properties
-      // Extract user details more carefully
-      const userData = {
-        city: typeof authState.user === 'object' && authState.user !== null ? 
-          (authState.user.city || (authState.user as any).city) : undefined,
-        cluster: typeof authState.user === 'object' && authState.user !== null ? 
-          (authState.user.cluster || (authState.user as any).cluster) : undefined,
-        role: authState.role || undefined
-      };
+      // Check if user is defined and is an object (defensive programming)
+      if (!authState.user || typeof authState.user !== 'object') {
+        console.error("Invalid user data:", authState.user);
+        throw new Error("Invalid user data");
+      }
       
-      // Log the user data we're getting from authState
       console.log("Auth state user data:", authState.user);
-      console.log("Extracted user data for sentiment:", userData);
+      
+      // Extract user metadata more safely
+      const user = authState.user;
+      
+      // Try to extract city and cluster using multiple approaches since the User type might vary
+      let city: string | undefined = undefined;
+      let cluster: string | undefined = undefined;
+      
+      // Check if these properties exist directly on user
+      if ('city' in user) {
+        city = (user as any).city;
+      }
+      
+      if ('cluster' in user) {
+        cluster = (user as any).cluster;
+      }
+      
+      // If not found directly, try accessing through user metadata if available
+      if (city === undefined && 'user_metadata' in user && user.user_metadata) {
+        city = (user.user_metadata as any).city;
+      }
+      
+      if (cluster === undefined && 'user_metadata' in user && user.user_metadata) {
+        cluster = (user.user_metadata as any).cluster;
+      }
+      
+      console.log("Extracted user data for sentiment:", { city, cluster, role: authState.role });
       
       const sentimentData: SentimentRating = {
         employee_id: authState.user.id,
         rating,
         feedback: feedback.trim() || undefined,
-        city: userData.city,
-        cluster: userData.cluster,
-        role: userData.role,
+        city,
+        cluster,
+        role: authState.role || undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
         sentiment_score: sentiment_score,
         sentiment_label: sentiment_label
@@ -253,3 +275,4 @@ export const useSentiment = () => {
     handleSubmit
   };
 };
+
