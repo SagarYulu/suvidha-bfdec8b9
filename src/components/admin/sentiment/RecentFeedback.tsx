@@ -32,8 +32,13 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
     queryFn: () => fetchAllSentiment(filters)
   });
   
+  // Debug log for filters and data
+  console.log("RecentFeedback filters:", filters);
+  console.log("RecentFeedback data count:", sentimentData?.length || 0);
+  
   const filteredData = sentimentData 
     ? sentimentData.filter(item => {
+        console.log("Processing feedback item:", item);
         if (!sentimentFilter) return true;
         return item.sentiment_label === sentimentFilter;
       })
@@ -123,6 +128,7 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
         ) : filteredData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No feedback data available for the selected filters.
+            {filters.city && <p className="mt-2">Filtering by city: {filters.city}</p>}
           </div>
         ) : (
           <div className="space-y-4">

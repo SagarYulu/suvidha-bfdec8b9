@@ -27,6 +27,7 @@ const SentimentAnalysis: React.FC = () => {
   
   const exportMutation = useMutation({
     mutationFn: async () => {
+      console.log("Starting export with filters:", filters);
       const data = await fetchAllSentiment(filters);
       return data;
     },
@@ -53,10 +54,11 @@ const SentimentAnalysis: React.FC = () => {
       
       toast({
         title: "Export Successful",
-        description: "Sentiment data has been exported to CSV."
+        description: `Sentiment data has been exported to CSV (${csvData.length} records).`
       });
     },
     onError: (error) => {
+      console.error("Export error:", error);
       toast({
         title: "Export Failed",
         description: "There was an error exporting the data. Please try again.",
@@ -72,7 +74,12 @@ const SentimentAnalysis: React.FC = () => {
     cluster?: string;
     role?: string;
   }) => {
+    console.log("Filter change:", newFilters);
     setFilters(newFilters);
+    
+    // Invalidate queries to refresh data with new filters
+    queryClient.invalidateQueries({ queryKey: ['sentiment', filters] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', filters] });
   };
   
   const handleExport = () => {

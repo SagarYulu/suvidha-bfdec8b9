@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -153,34 +154,52 @@ export const fetchAllSentiment = async (filters: {
   role?: string;
 }): Promise<SentimentRating[]> => {
   try {
+    console.log("Fetching sentiment with filters:", filters);
+    
     let query = supabase
       .from('employee_sentiment')
       .select('*')
       .order('created_at', { ascending: false });
     
+    // Apply date filters if provided
     if (filters.startDate) {
       query = query.gte('created_at', filters.startDate);
     }
     
     if (filters.endDate) {
-      query = query.lte('created_at', filters.endDate);
+      // Add one day to include the end date fully
+      const endDate = new Date(filters.endDate);
+      endDate.setDate(endDate.getDate() + 1);
+      query = query.lt('created_at', endDate.toISOString());
     }
     
+    // Apply city filter - handle as text search for flexibility
     if (filters.city) {
+      console.log("Filtering by city:", filters.city);
+      // First try looking up the exact city
       query = query.eq('city', filters.city);
     }
     
+    // Apply cluster filter
     if (filters.cluster) {
+      console.log("Filtering by cluster:", filters.cluster);
       query = query.eq('cluster', filters.cluster);
     }
     
+    // Apply role filter
     if (filters.role) {
+      console.log("Filtering by role:", filters.role);
       query = query.eq('role', filters.role);
     }
     
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching sentiment data:", error);
+      throw error;
+    }
+    
+    console.log(`Fetched ${data?.length || 0} sentiment records`);
     return data || [];
   } catch (error) {
     console.error("Error fetching all sentiment:", error);

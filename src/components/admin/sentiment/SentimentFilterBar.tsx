@@ -88,6 +88,15 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   const handleApplyFilters = () => {
+    // Log the filters for debugging
+    console.log("Applying filters:", {
+      startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+      endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      city: city && city !== 'all-cities' ? city : undefined,
+      cluster: cluster && cluster !== 'all-clusters' ? cluster : undefined,
+      role: role && role !== 'all-roles' ? role : undefined
+    });
+    
     onFilterChange({
       startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
@@ -103,7 +112,9 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     setRole(undefined);
     setDateRange(undefined);
     
+    // Immediately apply the reset
     onFilterChange({});
+    console.log("Filters reset");
   };
 
   return (
