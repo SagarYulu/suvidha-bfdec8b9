@@ -34,8 +34,8 @@ const MobileSentimentForm: React.FC = () => {
   
   // Animation state for heading
   const [animateHeading, setAnimateHeading] = useState(true);
-  // State for showing/hiding tag selection
-  const [showTagsSection, setShowTagsSection] = useState(false);
+  // State for showing/hiding tag selection - default to shown now
+  const [showTagsSection, setShowTagsSection] = useState(true);
   // State for showing user metadata
   const [showUserMetadata, setShowUserMetadata] = useState(false);
 
@@ -58,13 +58,6 @@ const MobileSentimentForm: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, []);
-
-  // Auto-expand tags section when we have suggested tags
-  useEffect(() => {
-    if (suggestedTags.length > 0) {
-      setShowTagsSection(true);
-    }
-  }, [suggestedTags]);
 
   // For custom submit with error handling
   const submitWithErrorHandling = async () => {
@@ -259,33 +252,18 @@ const MobileSentimentForm: React.FC = () => {
         </div>
       </div>
       
-      {/* Tags Section Button */}
-      <Button
-        variant="outline"
-        className="w-full bg-white bg-opacity-10 border-white border-opacity-30 text-white"
-        onClick={() => setShowTagsSection(!showTagsSection)}
-      >
-        <Tag className="w-4 h-4 mr-2" />
-        {showTagsSection ? "Hide Tags" : "Select Tags"} 
-        {suggestedTags.length > 0 && !showTagsSection && (
-          <span className="ml-1 text-xs bg-blue-500 text-white rounded-full px-2 py-0.5">
-            {suggestedTags.length} suggested
-          </span>
-        )}
-      </Button>
-      
-      {/* Tags Selection */}
-      {showTagsSection && tags.length > 0 && (
-        <div className="bg-white bg-opacity-10 rounded-lg p-4">
-          <label className="block text-sm font-medium mb-3 text-white">
-            What areas does your feedback relate to?
-            {suggestedTags.length > 0 && (
-              <span className="text-xs text-blue-200 ml-2">
-                (Suggested tags are highlighted)
-              </span>
-            )}
-          </label>
-          
+      {/* Tags Section - Now always visible with clearer instructions */}
+      <div className="bg-white bg-opacity-10 rounded-lg p-4">
+        <label className="block text-sm font-medium mb-3 text-white">
+          Select topics related to your feedback:
+          {suggestedTags.length > 0 && (
+            <span className="text-xs text-blue-200 ml-2">
+              (Suggestions are highlighted)
+            </span>
+          )}
+        </label>
+        
+        {tags && tags.length > 0 ? (
           <div className="grid grid-cols-2 gap-2">
             {tags.map((tag) => {
               const isSelected = selectedTags.includes(tag.name);
@@ -322,15 +300,19 @@ const MobileSentimentForm: React.FC = () => {
               );
             })}
           </div>
-          
-          {/* Selected Tags Summary */}
-          {selectedTags.length > 0 && (
-            <div className="mt-3">
-              <p className="text-sm text-white">Selected: {selectedTags.join(', ')}</p>
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className="text-center p-4 text-white bg-white bg-opacity-5 rounded">
+            <p>Loading available topics...</p>
+          </div>
+        )}
+        
+        {/* Selected Tags Summary */}
+        {selectedTags.length > 0 && (
+          <div className="mt-3">
+            <p className="text-sm text-white">Selected topics: {selectedTags.join(', ')}</p>
+          </div>
+        )}
+      </div>
       
       {/* Submit Button */}
       <Button 

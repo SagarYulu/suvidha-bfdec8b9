@@ -90,19 +90,23 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number, ratings: number[] }>);
 
-  // Convert to array for charts
+  // Convert to array for charts with simpler labels
   const timeSeriesData = Object.keys(sentimentByDate)
     .sort()
     .map(date => ({
       date,
-      averageRating: sentimentByDate[date].totalRating / sentimentByDate[date].count,
-      averageScore: sentimentByDate[date].totalScore / sentimentByDate[date].count,
+      rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
       count: sentimentByDate[date].count,
     }));
 
-  // Calculate sentiment distribution
+  // Calculate sentiment distribution with clearer labels
   const sentimentDistribution = sentimentData.reduce((acc, curr) => {
-    const label = curr.sentiment_label?.toLowerCase() || 'unknown';
+    let label = curr.sentiment_label?.toLowerCase() || 'unknown';
+    // Simplify labels to just positive, neutral, negative
+    if (label.includes('positive')) label = 'positive';
+    if (label.includes('negative')) label = 'negative';
+    if (label.includes('neutral')) label = 'neutral';
+    
     if (!acc[label]) {
       acc[label] = 0;
     }
@@ -115,7 +119,15 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     value: sentimentDistribution[key]
   }));
 
-  // Calculate rating distribution
+  // Calculate rating distribution with descriptive labels
+  const ratingLabels = {
+    1: "Very Dissatisfied",
+    2: "Dissatisfied",
+    3: "Neutral",
+    4: "Satisfied",
+    5: "Very Satisfied"
+  };
+  
   const ratingDistribution = sentimentData.reduce((acc, curr) => {
     if (!acc[curr.rating]) {
       acc[curr.rating] = 0;
@@ -125,7 +137,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
   }, {} as Record<number, number>);
 
   const ratingPieData = Object.keys(ratingDistribution).map(key => ({
-    name: `Rating ${key}`,
+    name: `${ratingLabels[Number(key) as keyof typeof ratingLabels]} (${key})`,
     value: ratingDistribution[Number(key)]
   }));
 
@@ -151,7 +163,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     // Count sentiment label distribution for default categories
     sentimentData.forEach(item => {
       const label = item.sentiment_label?.toLowerCase() || 'unknown';
-      const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Sentiment`;
+      const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
       tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
     });
   }
@@ -165,10 +177,10 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Time Series Chart */}
+      {/* Simplified Time Series Chart */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
-          <CardTitle>Sentiment Trend</CardTitle>
+          <CardTitle>Employee Mood Trend</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80">
@@ -179,24 +191,32 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
-                <YAxis yAxisId="left" domain={[1, 5]} />
-                <YAxis yAxisId="right" orientation="right" domain={[-1, 1]} />
-                <Tooltip />
+                <YAxis 
+                  domain={[1, 5]} 
+                  ticks={[1, 2, 3, 4, 5]}
+                  tickFormatter={(value) => {
+                    const labels = {
+                      1: "Very Low",
+                      2: "Low",
+                      3: "Neutral",
+                      4: "Good", 
+                      5: "Excellent"
+                    };
+                    return labels[value as keyof typeof labels] || value;
+                  }}
+                />
+                <Tooltip 
+                  formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
+                  labelFormatter={(label) => `Date: ${label}`}
+                />
                 <Legend />
                 <Line
-                  yAxisId="left"
                   type="monotone"
-                  dataKey="averageRating"
+                  dataKey="rating"
                   stroke="#8884d8"
-                  name="Average Rating (1-5)"
+                  name="Employee Mood Rating (1-5)"
                   activeDot={{ r: 8 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="averageScore"
-                  stroke="#82ca9d"
-                  name="Sentiment Score (-1 to 1)"
+                  strokeWidth={2}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -204,10 +224,10 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
         </CardContent>
       </Card>
 
-      {/* Sentiment Distribution */}
+      {/* Sentiment Distribution with clearer labels */}
       <Card>
         <CardHeader>
-          <CardTitle>Sentiment Distribution</CardTitle>
+          <CardTitle>Overall Sentiment</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64">
@@ -218,7 +238,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -235,24 +255,25 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                     />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => [`${value} responses`, `${value} responses`]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Rating Distribution */}
+      {/* Rating Distribution with clearer labels */}
       <Card>
         <CardHeader>
-          <CardTitle>Rating Distribution</CardTitle>
+          <CardTitle>Mood Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={Object.keys(ratingDistribution).map(key => ({
-                  rating: `Rating ${key}`,
+                  rating: ratingLabels[Number(key) as keyof typeof ratingLabels],
+                  score: Number(key),
                   count: ratingDistribution[Number(key)]
                 }))}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
@@ -260,23 +281,37 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="rating" />
                 <YAxis />
-                <Tooltip />
-                <Bar dataKey="count" fill="#8884d8" />
+                <Tooltip 
+                  formatter={(value, name) => [`${value} responses`, "Count"]}
+                  labelFormatter={(label) => `Mood: ${label}`}
+                />
+                <Bar 
+                  dataKey="count" 
+                  fill="#8884d8" 
+                  name="Number of Responses"
+                  // Color bars by rating
+                  fill={(data) => {
+                    const score = data.score;
+                    if (score <= 2) return "#F44336"; // Red for negative
+                    if (score === 3) return "#FFC107"; // Yellow for neutral
+                    return "#4CAF50"; // Green for positive
+                  }}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      {/* Top Tags */}
+      {/* Top Feedback Topics with clearer labeling */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
-          <CardTitle>Top Feedback Themes</CardTitle>
+          <CardTitle>Top Feedback Topics</CardTitle>
         </CardHeader>
         <CardContent>
           {tagData.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
-              No feedback themes available for the selected filters.
+              No feedback topics available for the selected filters.
               <p className="mt-2">Try clearing some filters or submitting more detailed feedback.</p>
             </div>
           ) : (
@@ -289,9 +324,20 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#00C49F" />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value} mentions`, "Mentions"]}
+                    labelFormatter={(label) => `Topic: ${label}`}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    name="Times Mentioned"
+                    fill="#00C49F"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>

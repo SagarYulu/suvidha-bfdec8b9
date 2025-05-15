@@ -70,7 +70,7 @@ export const analyzeSentiment = async (feedback: string): Promise<SentimentAnaly
   }
 };
 
-// Function to submit sentiment with better error handling
+// Function to submit sentiment with better error handling and metadata processing
 export const submitSentiment = async (sentimentData: SentimentRating): Promise<{ success: boolean, error?: string }> => {
   try {
     console.log("Submitting sentiment data:", sentimentData);
@@ -109,12 +109,87 @@ export const submitSentiment = async (sentimentData: SentimentRating): Promise<{
     }
     
     console.log("Sentiment submission successful:", data);
+    
+    // After successful submission, check if we need to create alert
+    await checkAndCreateAlert(formattedData);
+    
     return { success: true };
   } catch (error: any) {
     console.error("Error submitting sentiment:", error);
     return { success: false, error: error.message || "Unknown error occurred" };
   }
 };
+
+// Check and create alert if sentiment trends warrant it
+async function checkAndCreateAlert(newSentiment: SentimentRating) {
+  try {
+    // Only create alerts if we have city or cluster info
+    if (!newSentiment.city && !newSentiment.cluster && !newSentiment.role) {
+      return;
+    }
+    
+    // Get previous sentiment data for the same city, cluster, or role
+    let query = supabase
+      .from('employee_sentiment')
+      .select('rating, sentiment_score, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30); // Look at last 30 entries for trend
+    
+    if (newSentiment.city) {
+      query = query.eq('city', newSentiment.city);
+    }
+    
+    if (newSentiment.cluster) {
+      query = query.eq('cluster', newSentiment.cluster);
+    }
+    
+    if (newSentiment.role) {
+      query = query.eq('role', newSentiment.role);
+    }
+    
+    const { data: previousSentiment, error } = await query;
+    
+    if (error || !previousSentiment || previousSentiment.length < 5) {
+      // Not enough data to create meaningful alert
+      return;
+    }
+    
+    // Calculate averages
+    const recentSentiment = previousSentiment.slice(0, 10);
+    const olderSentiment = previousSentiment.slice(10, 30);
+    
+    if (olderSentiment.length < 5) {
+      return; // Not enough historical data
+    }
+    
+    const recentAverage = recentSentiment.reduce((sum, item) => sum + (item.rating || 3), 0) / recentSentiment.length;
+    const olderAverage = olderSentiment.reduce((sum, item) => sum + (item.rating || 3), 0) / olderSentiment.length;
+    
+    const percentChange = ((recentAverage - olderAverage) / olderAverage) * 100;
+    
+    // Create alert for significant negative changes
+    if (percentChange < -15 || (recentAverage < 2.5 && olderAverage > 3.5)) {
+      // Significant negative change or absolute low score
+      const alert = {
+        city: newSentiment.city,
+        cluster: newSentiment.cluster, 
+        role: newSentiment.role,
+        average_score: recentAverage,
+        previous_average_score: olderAverage,
+        change_percentage: percentChange,
+        trigger_reason: percentChange < -15 
+          ? "Significant drop in employee sentiment"
+          : "Employee sentiment is notably low",
+        is_resolved: false
+      };
+      
+      await supabase.from('sentiment_alerts').insert(alert);
+      console.log("Created sentiment alert:", alert);
+    }
+  } catch (error) {
+    console.error("Error checking for sentiment alerts:", error);
+  }
+}
 
 // Function to fetch sentiment tags
 export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
@@ -208,10 +283,14 @@ export const fetchAllSentiment = async (filters: {
     
     // Only use sample data if explicitly requested or if in development mode
     // This ensures real data is displayed when available
-    const useSampleData = false; // Set to false to always prefer real data
+    const useSampleData = false; // Always use real data
+    
+    if (data && data.length > 0) {
+      return data;
+    }
     
     // Add dummy data for testing only if we have no results AND sample data is requested
-    if ((!data || data.length === 0) && useSampleData) {
+    if (useSampleData) {
       console.log("No sentiment data found, using sample data");
       // Create sample entries for testing purposes with the applied filters
       const dummyData = [{
@@ -255,7 +334,7 @@ export const fetchAllSentiment = async (filters: {
       return dummyData;
     }
     
-    return data || [];
+    return [];
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
     return [];
