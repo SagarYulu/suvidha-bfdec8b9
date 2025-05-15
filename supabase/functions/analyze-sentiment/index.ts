@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Simple function to analyze sentiment from text
 const analyzeSentiment = (text: string) => {
-  // Create a simple scoring system based on positive and negative words
+  // Create a scoring system based on positive and negative words
   const positiveWords = [
     "good", "great", "excellent", "amazing", "awesome", "fantastic", "wonderful", 
     "happy", "satisfied", "convenient", "helpful", "easy", "comfortable", "enjoy",
@@ -58,14 +58,16 @@ const analyzeSentiment = (text: string) => {
   
   // Calculate suggested tags based on content
   const tagPatterns = [
-    { pattern: /\b(pay|salary|wage|money|compensation|bonus)\b/i, tag: "Compensation" },
-    { pattern: /\b(team|colleague|coworker|people|staff)\b/i, tag: "Team" },
-    { pattern: /\b(manager|management|supervisor|leader|boss)\b/i, tag: "Manager" },
-    { pattern: /\b(work|shift|hour|timing|schedule|time)\b/i, tag: "Workload" },
-    { pattern: /\b(train|learning|skill|education|development|grow)\b/i, tag: "Career Growth" },
-    { pattern: /\b(communicate|communication|information|update|informed)\b/i, tag: "Communication" },
-    { pattern: /\b(balance|life|family|personal|stress)\b/i, tag: "Work-Life Balance" },
-    { pattern: /\b(equipment|tool|bike|resource|facility|office)\b/i, tag: "Equipment" }
+    { pattern: /\b(pay|salary|wage|money|compensation|bonus|incentive|payment)\b/i, tag: "Compensation" },
+    { pattern: /\b(team|colleague|coworker|people|staff|peer|member)\b/i, tag: "Team" },
+    { pattern: /\b(manager|management|supervisor|leader|boss|superior)\b/i, tag: "Manager" },
+    { pattern: /\b(work|shift|hour|timing|schedule|time|overwork|overtime)\b/i, tag: "Workload" },
+    { pattern: /\b(train|learning|skill|education|development|grow|career|progress)\b/i, tag: "Career Growth" },
+    { pattern: /\b(communicate|communication|information|update|informed|clarity)\b/i, tag: "Communication" },
+    { pattern: /\b(balance|life|family|personal|stress|pressure|health|mental)\b/i, tag: "Work-Life Balance" },
+    { pattern: /\b(equipment|tool|bike|resource|facility|office|infrastructure)\b/i, tag: "Equipment" },
+    { pattern: /\b(appreciate|recognition|acknowledge|feedback|praise|reward)\b/i, tag: "Recognition" },
+    { pattern: /\b(policy|process|procedure|system|bureaucracy|rule)\b/i, tag: "Policies" }
   ];
   
   const suggestedTags: string[] = [];
@@ -79,14 +81,16 @@ const analyzeSentiment = (text: string) => {
   // Flag for urgent issues
   const urgentPatterns = [
     /\b(urgent|immediately|emergency|danger|unsafe|critical|serious)\b/i,
-    /\b(quit|resign|leaving|fire|fired|quitting)\b/i
+    /\b(quit|resign|leaving|fire|fired|quitting)\b/i,
+    /\b(harassment|bully|discrimination|abuse|threat)\b/i
   ];
   
   const flagUrgent = urgentPatterns.some(pattern => pattern.test(normalized));
   
   // Flag for abusive content
   const abusivePatterns = [
-    /\b(damn|hell|idiot|stupid|useless|sucks|terrible|worst|hate|garbage)\b/i
+    /\b(damn|hell|idiot|stupid|useless|sucks|terrible|worst|hate|garbage)\b/i,
+    /\b(curse|swear|offensive|inappropriate)\b/i
   ];
   
   const flagAbusive = abusivePatterns.some(pattern => pattern.test(normalized));

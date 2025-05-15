@@ -4,9 +4,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useSentiment } from '@/hooks/useSentiment';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const MobileSentimentForm: React.FC = () => {
   const {
@@ -26,6 +27,8 @@ const MobileSentimentForm: React.FC = () => {
   
   // Animation state for heading
   const [animateHeading, setAnimateHeading] = useState(true);
+  // State for showing/hiding tag selection
+  const [showTagsSection, setShowTagsSection] = useState(false);
 
   // Auto-analyze feedback when the user stops typing
   useEffect(() => {
@@ -46,6 +49,13 @@ const MobileSentimentForm: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, []);
+
+  // Auto-expand tags section when we have suggested tags
+  useEffect(() => {
+    if (suggestedTags.length > 0) {
+      setShowTagsSection(true);
+    }
+  }, [suggestedTags]);
 
   // For custom submit with error handling
   const submitWithErrorHandling = async () => {
@@ -163,10 +173,25 @@ const MobileSentimentForm: React.FC = () => {
         </div>
       </div>
       
+      {/* Tags Section Button */}
+      <Button
+        variant="outline"
+        className="w-full bg-white bg-opacity-10 border-white border-opacity-30 text-white"
+        onClick={() => setShowTagsSection(!showTagsSection)}
+      >
+        <Tag className="w-4 h-4 mr-2" />
+        {showTagsSection ? "Hide Tags" : "Select Tags"} 
+        {suggestedTags.length > 0 && !showTagsSection && (
+          <span className="ml-1 text-xs bg-blue-500 text-white rounded-full px-2 py-0.5">
+            {suggestedTags.length} suggested
+          </span>
+        )}
+      </Button>
+      
       {/* Tags Selection */}
-      {tags.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium mb-2 text-white">
+      {showTagsSection && tags.length > 0 && (
+        <div className="bg-white bg-opacity-10 rounded-lg p-4">
+          <label className="block text-sm font-medium mb-3 text-white">
             What areas does your feedback relate to?
             {suggestedTags.length > 0 && (
               <span className="text-xs text-blue-200 ml-2">
@@ -174,26 +199,50 @@ const MobileSentimentForm: React.FC = () => {
               </span>
             )}
           </label>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <Button
-                key={tag.id}
-                size="sm"
-                variant={selectedTags.includes(tag.name) ? "secondary" : "outline"}
-                className={cn(
-                  "rounded-full text-xs bg-opacity-90",
-                  selectedTags.includes(tag.name) 
-                    ? "bg-white text-[#00CEDE]" 
-                    : "bg-transparent text-white border-white",
-                  suggestedTags.includes(tag.name) && !selectedTags.includes(tag.name) && "border-blue-300"
-                )}
-                onClick={() => handleTagToggle(tag.name)}
-                disabled={isSubmitting}
-              >
-                {tag.name}
-              </Button>
-            ))}
+          
+          <div className="grid grid-cols-2 gap-2">
+            {tags.map((tag) => {
+              const isSelected = selectedTags.includes(tag.name);
+              const isSuggested = suggestedTags.includes(tag.name);
+              
+              return (
+                <div
+                  key={tag.id}
+                  className={cn(
+                    "flex items-center space-x-2 rounded-md p-2",
+                    isSelected && "bg-white bg-opacity-20",
+                    !isSelected && isSuggested && "border border-blue-300 border-opacity-50"
+                  )}
+                >
+                  <Checkbox
+                    id={`tag-${tag.id}`}
+                    checked={isSelected}
+                    onCheckedChange={() => handleTagToggle(tag.name)}
+                    className={cn(
+                      isSelected ? "bg-blue-500 border-blue-500" : "border-white",
+                      isSuggested && !isSelected && "border-blue-300"
+                    )}
+                  />
+                  <label
+                    htmlFor={`tag-${tag.id}`}
+                    className="text-sm font-medium leading-none text-white cursor-pointer flex-1"
+                  >
+                    {tag.name}
+                    {isSuggested && !isSelected && (
+                      <span className="ml-1 text-xs text-blue-200">(suggested)</span>
+                    )}
+                  </label>
+                </div>
+              );
+            })}
           </div>
+          
+          {/* Selected Tags Summary */}
+          {selectedTags.length > 0 && (
+            <div className="mt-3">
+              <p className="text-sm text-white">Selected: {selectedTags.join(', ')}</p>
+            </div>
+          )}
         </div>
       )}
       

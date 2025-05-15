@@ -24,6 +24,7 @@ export const useSentiment = () => {
   useEffect(() => {
     const loadTags = async () => {
       const sentimentTags = await fetchSentimentTags();
+      console.log("Loaded sentiment tags:", sentimentTags);
       setTags(sentimentTags);
     };
     
@@ -179,12 +180,19 @@ export const useSentiment = () => {
           sentiment_score = 0.0;
       }
       
-      // Get user metadata, with safe access to optional properties
+      // Get user metadata with safe access to optional properties
+      // Extract user details more carefully
       const userData = {
-        city: (authState.user as any).city as string | undefined,
-        cluster: (authState.user as any).cluster as string | undefined,
-        role: authState.role as string | undefined
+        city: typeof authState.user === 'object' && authState.user !== null ? 
+          (authState.user.city || (authState.user as any).city) : undefined,
+        cluster: typeof authState.user === 'object' && authState.user !== null ? 
+          (authState.user.cluster || (authState.user as any).cluster) : undefined,
+        role: authState.role || undefined
       };
+      
+      // Log the user data we're getting from authState
+      console.log("Auth state user data:", authState.user);
+      console.log("Extracted user data for sentiment:", userData);
       
       const sentimentData: SentimentRating = {
         employee_id: authState.user.id,

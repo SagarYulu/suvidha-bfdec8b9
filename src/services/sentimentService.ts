@@ -92,6 +92,7 @@ export const submitSentiment = async (sentimentData: SentimentRating): Promise<{
       }
     }
     
+    // Make sure city, cluster, and role are properly set
     console.log("Formatted data for submission:", formattedData);
     
     const { error, data } = await supabase
@@ -121,6 +122,7 @@ export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
       .order('name');
     
     if (error) throw error;
+    console.log("Fetched sentiment tags:", data?.length || 0);
     return data || [];
   } catch (error) {
     console.error("Error fetching sentiment tags:", error);
@@ -174,19 +176,19 @@ export const fetchAllSentiment = async (filters: {
     }
     
     // Apply city filter - using case-insensitive match
-    if (filters.city) {
+    if (filters.city && filters.city !== 'all-cities') {
       console.log("Filtering by city name:", filters.city);
       query = query.ilike('city', `%${filters.city}%`);
     }
     
     // Apply cluster filter - using case-insensitive match
-    if (filters.cluster) {
+    if (filters.cluster && filters.cluster !== 'all-clusters') {
       console.log("Filtering by cluster:", filters.cluster);
       query = query.ilike('cluster', `%${filters.cluster}%`);
     }
     
     // Apply role filter - using case-insensitive match
-    if (filters.role) {
+    if (filters.role && filters.role !== 'all-roles') {
       console.log("Filtering by role:", filters.role);
       query = query.ilike('role', `%${filters.role}%`);
     }
@@ -204,7 +206,7 @@ export const fetchAllSentiment = async (filters: {
     // Add dummy data for testing if we have no results
     if (!data || data.length === 0) {
       console.log("No sentiment data found, using sample data");
-      // Create a sample entry for testing purposes
+      // Create sample entries for testing purposes with the applied filters
       const dummyData = [{
         id: "sample-1",
         employee_id: "sample-employee",
@@ -213,7 +215,7 @@ export const fetchAllSentiment = async (filters: {
         city: filters.city || "Sample City",
         cluster: filters.cluster || "Sample Cluster",
         role: filters.role || "Sample Role",
-        tags: ["Sample", "Testing", "Positive"],
+        tags: ["Sample", "Testing", "Positive", "Team", "Equipment"],
         sentiment_score: 0.8,
         sentiment_label: "positive",
         created_at: new Date().toISOString(),
@@ -225,10 +227,22 @@ export const fetchAllSentiment = async (filters: {
         city: filters.city || "Sample City",
         cluster: filters.cluster || "Sample Cluster",
         role: filters.role || "Sample Role",
-        tags: ["Issue", "Testing", "Negative"],
+        tags: ["Issue", "Testing", "Negative", "Workload", "Communication"],
         sentiment_score: -0.6,
         sentiment_label: "negative",
-        created_at: new Date().toISOString(),
+        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+      }, {
+        id: "sample-3",
+        employee_id: "sample-employee-3",
+        rating: 1,
+        feedback: "Very frustrated with current work environment and lack of support.",
+        city: filters.city || "Sample City 2",
+        cluster: filters.cluster || "Sample Cluster 2",
+        role: filters.role || "Sample Role 2",
+        tags: ["Manager", "Work-Life Balance", "Compensation"],
+        sentiment_score: -0.9,
+        sentiment_label: "very negative",
+        created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
       }];
       
       return dummyData;
