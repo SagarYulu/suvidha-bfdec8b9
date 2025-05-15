@@ -1,15 +1,22 @@
-
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useSentiment } from '@/hooks/useSentiment';
-import { Loader2, Tag } from 'lucide-react';
+import { Loader2, Tag, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuth } from '@/contexts/AuthContext';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const MobileSentimentForm: React.FC = () => {
+  const { authState } = useAuth();
   const {
     rating,
     feedback,
@@ -29,6 +36,8 @@ const MobileSentimentForm: React.FC = () => {
   const [animateHeading, setAnimateHeading] = useState(true);
   // State for showing/hiding tag selection
   const [showTagsSection, setShowTagsSection] = useState(false);
+  // State for showing user metadata
+  const [showUserMetadata, setShowUserMetadata] = useState(false);
 
   // Auto-analyze feedback when the user stops typing
   useEffect(() => {
@@ -98,6 +107,39 @@ const MobileSentimentForm: React.FC = () => {
     return "Excited, satisfied, motivated";
   };
 
+  // Extract user metadata for display
+  const getUserMetadata = () => {
+    const user = authState.user;
+    if (!user) return { city: "Unknown", cluster: "Unknown", role: "Unknown" };
+    
+    let city = "Unknown";
+    let cluster = "Unknown";
+    let role = authState.role || "Unknown";
+    
+    // Try to extract from different possible locations
+    if (typeof user === 'object') {
+      // Direct properties
+      if ('city' in user) city = (user as any).city || city;
+      if ('cluster' in user) cluster = (user as any).cluster || cluster;
+      
+      // User metadata
+      if ('user_metadata' in user && user.user_metadata) {
+        city = (user.user_metadata as any).city || city;
+        cluster = (user.user_metadata as any).cluster || cluster;
+      }
+      
+      // App metadata
+      if ('app_metadata' in user && user.app_metadata) {
+        city = (user.app_metadata as any).city || city;
+        cluster = (user.app_metadata as any).cluster || cluster;
+      }
+    }
+    
+    return { city, cluster, role };
+  };
+  
+  const metadata = getUserMetadata();
+
   return (
     <div className="p-4 flex flex-col gap-6">
       <div className="text-center">
@@ -109,6 +151,50 @@ const MobileSentimentForm: React.FC = () => {
         </h2>
         <p className="text-white text-sm opacity-75">Your feedback helps improve our workplace</p>
       </div>
+
+      {/* User Metadata Info */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="self-end text-white opacity-75 hover:bg-white hover:bg-opacity-10"
+              onClick={() => setShowUserMetadata(!showUserMetadata)}
+            >
+              <Info className="h-4 w-4 mr-1" />
+              Your Info
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Click to view what information will be sent with your feedback</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
+      {showUserMetadata && (
+        <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <h3 className="text-sm font-medium text-white mb-2">Your Information</h3>
+          <div className="text-xs text-white">
+            <div className="flex justify-between py-1 border-b border-white border-opacity-10">
+              <span>City:</span>
+              <span className="font-medium">{metadata.city}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-white border-opacity-10">
+              <span>Cluster:</span>
+              <span className="font-medium">{metadata.cluster}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span>Role:</span>
+              <span className="font-medium">{metadata.role}</span>
+            </div>
+          </div>
+          <p className="text-xs text-white opacity-75 mt-2">
+            This information helps us categorize feedback appropriately.
+            If any details are incorrect, please contact your manager.
+          </p>
+        </div>
+      )}
 
       {/* Emoji Selection */}
       <div className="flex flex-col items-center gap-2">

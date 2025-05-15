@@ -56,18 +56,18 @@ const analyzeSentiment = (text: string) => {
     label = "negative";
   }
   
-  // Calculate suggested tags based on content
+  // Calculate suggested tags based on content - enhanced version
   const tagPatterns = [
-    { pattern: /\b(pay|salary|wage|money|compensation|bonus|incentive|payment)\b/i, tag: "Compensation" },
-    { pattern: /\b(team|colleague|coworker|people|staff|peer|member)\b/i, tag: "Team" },
-    { pattern: /\b(manager|management|supervisor|leader|boss|superior)\b/i, tag: "Manager" },
-    { pattern: /\b(work|shift|hour|timing|schedule|time|overwork|overtime)\b/i, tag: "Workload" },
-    { pattern: /\b(train|learning|skill|education|development|grow|career|progress)\b/i, tag: "Career Growth" },
-    { pattern: /\b(communicate|communication|information|update|informed|clarity)\b/i, tag: "Communication" },
-    { pattern: /\b(balance|life|family|personal|stress|pressure|health|mental)\b/i, tag: "Work-Life Balance" },
-    { pattern: /\b(equipment|tool|bike|resource|facility|office|infrastructure)\b/i, tag: "Equipment" },
-    { pattern: /\b(appreciate|recognition|acknowledge|feedback|praise|reward)\b/i, tag: "Recognition" },
-    { pattern: /\b(policy|process|procedure|system|bureaucracy|rule)\b/i, tag: "Policies" }
+    { pattern: /\b(pay|salary|wage|money|compensation|bonus|incentive|payment|stipend|allowance|reimbursement)\b/i, tag: "Compensation" },
+    { pattern: /\b(team|colleague|coworker|co-worker|people|staff|peer|member|teammates)\b/i, tag: "Team" },
+    { pattern: /\b(manager|management|supervisor|leader|boss|superior|lead|leadership)\b/i, tag: "Manager" },
+    { pattern: /\b(work|shift|hour|timing|schedule|time|overwork|overtime|workload|deadline|pressure|busy)\b/i, tag: "Workload" },
+    { pattern: /\b(train|learning|skill|education|development|grow|career|progress|advancement|promotion|potential)\b/i, tag: "Career Growth" },
+    { pattern: /\b(communicate|communication|information|update|informed|clarity|transparent|transparency|unclear)\b/i, tag: "Communication" },
+    { pattern: /\b(balance|life|family|personal|stress|pressure|health|mental|wellbeing|burnout|tired|exhausted)\b/i, tag: "Work-Life Balance" },
+    { pattern: /\b(equipment|tool|bike|resource|facility|office|infrastructure|supplies|tech|technology|device)\b/i, tag: "Equipment" },
+    { pattern: /\b(appreciate|recognition|acknowledge|feedback|praise|reward|valued|thank|gratitude)\b/i, tag: "Recognition" },
+    { pattern: /\b(policy|process|procedure|system|bureaucracy|rule|guideline|regulation|protocol)\b/i, tag: "Policies" }
   ];
   
   const suggestedTags: string[] = [];

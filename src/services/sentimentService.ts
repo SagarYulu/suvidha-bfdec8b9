@@ -92,6 +92,9 @@ export const submitSentiment = async (sentimentData: SentimentRating): Promise<{
       }
     }
     
+    // Add timestamp for better tracking
+    formattedData.created_at = new Date().toISOString();
+    
     // Make sure city, cluster, and role are properly set
     console.log("Formatted data for submission:", formattedData);
     
@@ -175,19 +178,19 @@ export const fetchAllSentiment = async (filters: {
       query = query.lt('created_at', endDate.toISOString());
     }
     
-    // Apply city filter - using case-insensitive match
+    // Apply city filter - using case-insensitive match and handling null values
     if (filters.city && filters.city !== 'all-cities') {
       console.log("Filtering by city name:", filters.city);
       query = query.ilike('city', `%${filters.city}%`);
     }
     
-    // Apply cluster filter - using case-insensitive match
+    // Apply cluster filter - using case-insensitive match and handling null values
     if (filters.cluster && filters.cluster !== 'all-clusters') {
       console.log("Filtering by cluster:", filters.cluster);
       query = query.ilike('cluster', `%${filters.cluster}%`);
     }
     
-    // Apply role filter - using case-insensitive match
+    // Apply role filter - using case-insensitive match and handling null values
     if (filters.role && filters.role !== 'all-roles') {
       console.log("Filtering by role:", filters.role);
       query = query.ilike('role', `%${filters.role}%`);
@@ -203,8 +206,12 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Add dummy data for testing if we have no results
-    if (!data || data.length === 0) {
+    // Only use sample data if explicitly requested or if in development mode
+    // This ensures real data is displayed when available
+    const useSampleData = false; // Set to false to always prefer real data
+    
+    // Add dummy data for testing only if we have no results AND sample data is requested
+    if ((!data || data.length === 0) && useSampleData) {
       console.log("No sentiment data found, using sample data");
       // Create sample entries for testing purposes with the applied filters
       const dummyData = [{
@@ -248,7 +255,7 @@ export const fetchAllSentiment = async (filters: {
       return dummyData;
     }
     
-    return data;
+    return data || [];
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
     return [];

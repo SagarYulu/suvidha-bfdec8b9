@@ -189,14 +189,13 @@ export const useSentiment = () => {
       
       console.log("Auth state user data:", authState.user);
       
-      // Extract user metadata more safely
+      // Extract user metadata from multiple possible locations
       const user = authState.user;
-      
-      // Try to extract city and cluster using multiple approaches since the User type might vary
       let city: string | undefined = undefined;
       let cluster: string | undefined = undefined;
       
-      // Check if these properties exist directly on user
+      // Try to extract from all possible locations in the user object
+      // 1. Try direct properties on user object
       if ('city' in user) {
         city = (user as any).city;
       }
@@ -205,7 +204,7 @@ export const useSentiment = () => {
         cluster = (user as any).cluster;
       }
       
-      // If not found directly, try accessing through user metadata if available
+      // 2. Try user_metadata if available
       if (city === undefined && 'user_metadata' in user && user.user_metadata) {
         city = (user.user_metadata as any).city;
       }
@@ -214,7 +213,48 @@ export const useSentiment = () => {
         cluster = (user.user_metadata as any).cluster;
       }
       
-      console.log("Extracted user data for sentiment:", { city, cluster, role: authState.role });
+      // 3. Try app_metadata if available
+      if (city === undefined && 'app_metadata' in user && user.app_metadata) {
+        city = (user.app_metadata as any).city;
+      }
+      
+      if (cluster === undefined && 'app_metadata' in user && user.app_metadata) {
+        cluster = (user.app_metadata as any).cluster;
+      }
+      
+      // 4. Final fallback - try to extract from other user properties
+      if (city === undefined && 'raw_user_meta_data' in user) {
+        city = (user.raw_user_meta_data as any)?.city;
+      }
+      
+      if (cluster === undefined && 'raw_user_meta_data' in user) {
+        cluster = (user.raw_user_meta_data as any)?.cluster;
+      }
+      
+      console.log("Final extracted user data for sentiment:", { 
+        city, 
+        cluster, 
+        role: authState.role,
+        userId: authState.user.id 
+      });
+      
+      // If still no city/cluster, try to retrieve from employee data
+      if (!city || !cluster) {
+        try {
+          console.log("Attempting to fetch city/cluster from employees table for user:", authState.user.id);
+          const { data: employeeData, error } = await fetchEmployeeData(authState.user.id);
+          
+          if (!error && employeeData) {
+            console.log("Retrieved employee data:", employeeData);
+            city = city || employeeData.city;
+            cluster = cluster || employeeData.cluster;
+          } else if (error) {
+            console.error("Error fetching employee data:", error);
+          }
+        } catch (err) {
+          console.error("Exception fetching employee data:", err);
+        }
+      }
       
       const sentimentData: SentimentRating = {
         employee_id: authState.user.id,
@@ -260,6 +300,22 @@ export const useSentiment = () => {
     }
   };
 
+  // Helper function to fetch employee data when city/cluster is not available
+  const fetchEmployeeData = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('city, cluster, role')
+        .eq('id', userId)
+        .single();
+      
+      return { data, error };
+    } catch (error) {
+      console.error("Error in fetchEmployeeData:", error);
+      return { data: null, error };
+    }
+  };
+
   return {
     rating,
     feedback,
@@ -275,4 +331,3 @@ export const useSentiment = () => {
     handleSubmit
   };
 };
-
