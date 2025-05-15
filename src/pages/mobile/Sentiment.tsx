@@ -11,15 +11,15 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
-  // Updated background gradient to match admin dashboard colors
-  const bgGradient = "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)";
+  // Updated background gradient for better visual appeal
+  const bgGradient = "linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%)";
   
   // When used as a standalone page
   if (!isOpen && !onClose) {
     return (
       <MobileLayout 
         title="Feedback Matters" 
-        bgColor="#2563EB"
+        bgColor="#1E40AF"
       >
         <div 
           className="min-h-screen -mt-16 pt-16" 
@@ -34,18 +34,23 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
   // When used as a dialog
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose && onClose()}>
-      <DialogContent className="sm:max-w-md p-0 border-0 overflow-hidden" style={{ background: bgGradient }}>
-        <div className="py-4 relative">
+      <DialogContent 
+        className="sm:max-w-md p-0 border-0 overflow-hidden h-[90vh] max-h-[90vh]" 
+        style={{ background: bgGradient }}
+      >
+        <div className="relative h-full">
           {onClose && (
             <button 
               onClick={onClose}
-              className="absolute right-4 top-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors"
+              className="absolute right-4 top-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors z-10"
             >
               <X className="h-5 w-5" />
             </button>
           )}
-          <h2 className="text-xl font-semibold text-center text-white">Feedback Matters</h2>
-          <MobileSentimentForm />
+          <h2 className="text-xl font-semibold text-center text-white pt-4">Feedback Matters</h2>
+          <div className="h-[calc(100%-40px)] overflow-hidden">
+            <MobileSentimentForm />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

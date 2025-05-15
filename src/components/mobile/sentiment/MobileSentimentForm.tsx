@@ -133,7 +133,7 @@ const MobileSentimentForm: React.FC = () => {
   const metadata = getUserMetadata();
 
   return (
-    <div className="p-4 flex flex-col gap-5 pb-20">
+    <div className="p-4 flex flex-col gap-4 pb-32 max-h-[90vh] overflow-y-auto">
       <div className="text-center">
         <h2 className={cn(
           "text-2xl font-semibold mb-2 text-white",
@@ -141,7 +141,7 @@ const MobileSentimentForm: React.FC = () => {
         )}>
           How are you feeling today?
         </h2>
-        <p className="text-white text-sm opacity-85">Your feedback helps improve our workplace</p>
+        <p className="text-white/90 text-sm">Your feedback helps improve our workplace</p>
       </div>
 
       {/* User Metadata Info */}
@@ -151,7 +151,7 @@ const MobileSentimentForm: React.FC = () => {
             <Button 
               variant="ghost" 
               size="sm"
-              className="self-end text-white opacity-90 hover:bg-white hover:bg-opacity-15"
+              className="self-end text-white/90 hover:bg-white hover:bg-opacity-15"
               onClick={() => setShowUserMetadata(!showUserMetadata)}
             >
               <Info className="h-4 w-4 mr-1" />
@@ -165,14 +165,14 @@ const MobileSentimentForm: React.FC = () => {
       </TooltipProvider>
 
       {showUserMetadata && (
-        <div className="bg-white bg-opacity-15 rounded-lg p-3">
+        <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
           <h3 className="text-sm font-medium text-white mb-2">Your Information</h3>
           <div className="text-xs text-white">
-            <div className="flex justify-between py-1 border-b border-white border-opacity-10">
+            <div className="flex justify-between py-1 border-b border-white/20">
               <span>City:</span>
               <span className="font-medium">{metadata.city}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-white border-opacity-10">
+            <div className="flex justify-between py-1 border-b border-white/20">
               <span>Cluster:</span>
               <span className="font-medium">{metadata.cluster}</span>
             </div>
@@ -181,21 +181,20 @@ const MobileSentimentForm: React.FC = () => {
               <span className="font-medium">{metadata.role}</span>
             </div>
           </div>
-          <p className="text-xs text-white opacity-75 mt-2">
+          <p className="text-xs text-white/80 mt-2">
             This information helps us categorize feedback appropriately.
-            If any details are incorrect, please contact your manager.
           </p>
         </div>
       )}
 
       {/* Emoji Selection */}
-      <div className="flex flex-col items-center gap-2 mt-2 bg-white bg-opacity-15 rounded-xl p-5">
+      <div className="flex flex-col items-center gap-2 mt-1 bg-white/25 rounded-xl p-5 backdrop-blur-sm">
         <div className="text-6xl mb-2">{getEmoji(rating)}</div>
         <p className="text-lg font-medium text-white">{getMoodText(rating)}</p>
-        <p className="text-sm text-white opacity-85 text-center">{getEmotionDescription(rating)}</p>
+        <p className="text-sm text-white/90 text-center">{getEmotionDescription(rating)}</p>
       </div>
       
-      {/* Emoji Selector */}
+      {/* Emoji Selector (Horizontal Row) */}
       <div className="grid grid-cols-5 gap-2 mt-1">
         {[5, 4, 3, 2, 1].map((value) => (
           <button
@@ -203,8 +202,8 @@ const MobileSentimentForm: React.FC = () => {
             className={cn(
               "flex flex-col items-center p-2 rounded-lg transition-all",
               rating === value 
-                ? "bg-white bg-opacity-25 border-2 border-white shadow-lg transform scale-105" 
-                : "hover:bg-white hover:bg-opacity-15"
+                ? "bg-white/30 border-2 border-white shadow-lg transform scale-105" 
+                : "hover:bg-white/20"
             )}
             onClick={() => handleRatingChange(value)}
           >
@@ -226,7 +225,7 @@ const MobileSentimentForm: React.FC = () => {
       </div>
       
       {/* Feedback Input */}
-      <div className="bg-white bg-opacity-15 p-3 rounded-xl">
+      <div className="bg-white/25 p-3 rounded-xl backdrop-blur-sm">
         <label className="block text-sm font-medium mb-2 text-white">
           Tell us more about your experience (optional)
         </label>
@@ -235,7 +234,7 @@ const MobileSentimentForm: React.FC = () => {
             placeholder="Share your thoughts, concerns, or suggestions..."
             value={feedback}
             onChange={(e) => handleFeedbackChange(e.target.value)}
-            className="min-h-[120px] resize-none bg-white border-none"
+            className="min-h-[100px] max-h-[150px] resize-none bg-white border-none"
             disabled={isSubmitting}
           />
           {isAnalyzing && (
@@ -246,43 +245,47 @@ const MobileSentimentForm: React.FC = () => {
         </div>
         
         {/* Word count */}
-        <div className="text-right text-xs text-white opacity-90 mt-1">
+        <div className="text-right text-xs text-white/90 mt-1">
           {feedback.length} characters
         </div>
       </div>
       
-      {/* Tags Section - Improved UI with more clickable area and better contrast */}
-      <div className="bg-white bg-opacity-15 rounded-xl p-4 mt-1">
-        <div className="flex justify-between items-center mb-3">
+      {/* Tags Section - Improved UI */}
+      <div className="bg-white/25 rounded-xl p-4 mt-1 backdrop-blur-sm">
+        <div className="mb-3">
           <label className="block text-sm font-medium text-white">
             Select topics related to your feedback:
           </label>
         </div>
         
         {tags && tags.length > 0 ? (
-          <div className="grid grid-cols-1 gap-2">
+          <div className="flex flex-col gap-2.5 max-h-[40vh] overflow-y-auto pr-1 mobile-scrollbar">
             {tags.map((tag) => {
               const isSelected = selectedTags.includes(tag.name);
               
               return (
                 <div
                   key={tag.id}
-                  onClick={() => handleTagToggle(tag.name)}
                   className={cn(
-                    "flex items-center bg-white bg-opacity-90 rounded-lg py-3 px-3 transition-all cursor-pointer",
-                    isSelected ? "bg-blue-100 border-2 border-blue-600" : "border-2 border-transparent"
+                    "flex items-center rounded-lg py-3 px-3 transition-all",
+                    isSelected ? "bg-blue-100 border border-blue-600" : "bg-white/90 border border-transparent"
                   )}
                 >
-                  <Checkbox
-                    id={`tag-${tag.id}`}
-                    checked={isSelected}
-                    onCheckedChange={() => handleTagToggle(tag.name)}
-                    className={cn(
-                      "mr-3 h-5 w-5 border-2",
-                      isSelected ? "bg-blue-600 border-blue-600" : "border-gray-400"
-                    )}
-                  />
-                  <div className="flex-1">
+                  <div className="mr-3">
+                    <Checkbox
+                      id={`tag-${tag.id}`}
+                      checked={isSelected}
+                      onCheckedChange={() => handleTagToggle(tag.name)}
+                      className={cn(
+                        "h-5 w-5 border-2",
+                        isSelected ? "bg-blue-600 border-blue-600" : "border-gray-400"
+                      )}
+                    />
+                  </div>
+                  <div 
+                    className="flex-1 cursor-pointer"
+                    onClick={() => handleTagToggle(tag.name)}
+                  >
                     <label
                       htmlFor={`tag-${tag.id}`}
                       className="text-gray-900 font-medium text-sm cursor-pointer block"
@@ -300,7 +303,7 @@ const MobileSentimentForm: React.FC = () => {
             })}
           </div>
         ) : (
-          <div className="bg-white bg-opacity-10 rounded-lg p-4 text-center">
+          <div className="bg-white/10 rounded-lg p-4 text-center">
             <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-white" />
             <p className="text-white text-sm">Loading available topics...</p>
           </div>
@@ -310,7 +313,7 @@ const MobileSentimentForm: React.FC = () => {
         {selectedTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {selectedTags.map(tag => (
-              <div key={tag} className="bg-blue-600/50 text-white text-xs rounded-full px-3 py-1 flex items-center">
+              <div key={tag} className="bg-blue-600/70 text-white text-xs rounded-full px-3 py-1 flex items-center">
                 {tag}
                 <button 
                   className="ml-1 hover:text-white/80" 
@@ -324,24 +327,26 @@ const MobileSentimentForm: React.FC = () => {
         )}
       </div>
       
-      {/* Submit Button */}
-      <Button 
-        className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 rounded-xl shadow-lg mt-2"
-        onClick={submitWithErrorHandling}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            Submitting...
-          </>
-        ) : (
-          <>
-            <CheckCircle className="mr-2 h-5 w-5" />
-            Submit Feedback
-          </>
-        )}
-      </Button>
+      {/* Fixed Submit Button at bottom */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-blue-700 to-blue-700/90">
+        <Button 
+          className="w-full bg-blue-500 hover:bg-blue-600 text-lg py-6 rounded-xl shadow-lg"
+          onClick={submitWithErrorHandling}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <CheckCircle className="mr-2 h-5 w-5" />
+              Submit Feedback
+            </>
+          )}
+        </Button>
+      </div>
     </div>
   );
 };
