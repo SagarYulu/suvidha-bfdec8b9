@@ -173,11 +173,11 @@ export const fetchAllSentiment = async (filters: {
       query = query.lt('created_at', endDate.toISOString());
     }
     
-    // Apply city filter - handle as text search for flexibility
+    // Apply city filter - this is the key fix to ensure we're using the proper column
     if (filters.city) {
-      console.log("Filtering by city:", filters.city);
-      // First try looking up the exact city
-      query = query.eq('city', filters.city);
+      console.log("Filtering by city name:", filters.city);
+      // Use ilike for case-insensitive text search rather than direct UUID comparison
+      query = query.ilike('city', `%${filters.city}%`);
     }
     
     // Apply cluster filter

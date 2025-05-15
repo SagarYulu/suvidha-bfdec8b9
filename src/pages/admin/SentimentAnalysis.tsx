@@ -78,8 +78,8 @@ const SentimentAnalysis: React.FC = () => {
     setFilters(newFilters);
     
     // Invalidate queries to refresh data with new filters
-    queryClient.invalidateQueries({ queryKey: ['sentiment', filters] });
-    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', filters] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment', newFilters] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', newFilters] });
   };
   
   const handleExport = () => {
@@ -103,6 +103,20 @@ const SentimentAnalysis: React.FC = () => {
       </div>
       
       <SentimentFilterBar onFilterChange={handleFilterChange} />
+      
+      {/* Debug info - will help diagnose filter issues */}
+      {Object.keys(filters).length > 0 && (
+        <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
+          <p><strong>Active Filters:</strong></p>
+          <ul>
+            {filters.city && <li>City: {filters.city}</li>}
+            {filters.cluster && <li>Cluster: {filters.cluster}</li>}
+            {filters.role && <li>Role: {filters.role}</li>}
+            {filters.startDate && <li>Start Date: {filters.startDate}</li>}
+            {filters.endDate && <li>End Date: {filters.endDate}</li>}
+          </ul>
+        </div>
+      )}
       
       <SentimentAlerts />
       

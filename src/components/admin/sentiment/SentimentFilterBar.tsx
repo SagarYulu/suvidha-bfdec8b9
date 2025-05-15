@@ -88,21 +88,48 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   const handleApplyFilters = () => {
+    // Find the city name if a city is selected (instead of using the ID)
+    let cityName: string | undefined = undefined;
+    
+    if (city && city !== 'all-cities') {
+      const selectedCity = cities?.find(c => c.id === city);
+      cityName = selectedCity?.name;
+      console.log("Selected city name:", cityName);
+    }
+    
+    // Find the cluster name if a cluster is selected
+    let clusterName: string | undefined = undefined;
+    
+    if (cluster && cluster !== 'all-clusters') {
+      const selectedCluster = clusters?.find(c => c.id === cluster);
+      clusterName = selectedCluster?.name;
+      console.log("Selected cluster name:", clusterName);
+    }
+    
+    // Find the role name if a role is selected
+    let roleName: string | undefined = undefined;
+    
+    if (role && role !== 'all-roles') {
+      const selectedRole = roles?.find(r => r.id === role);
+      roleName = selectedRole?.name;
+      console.log("Selected role name:", roleName);
+    }
+    
     // Log the filters for debugging
     console.log("Applying filters:", {
       startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      city: city && city !== 'all-cities' ? city : undefined,
-      cluster: cluster && cluster !== 'all-clusters' ? cluster : undefined,
-      role: role && role !== 'all-roles' ? role : undefined
+      city: cityName,
+      cluster: clusterName,
+      role: roleName
     });
     
     onFilterChange({
       startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      city: city && city !== 'all-cities' ? city : undefined,
-      cluster: cluster && cluster !== 'all-clusters' ? cluster : undefined,
-      role: role && role !== 'all-roles' ? role : undefined
+      city: cityName,
+      cluster: clusterName,
+      role: roleName
     });
   };
 

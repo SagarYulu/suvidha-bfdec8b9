@@ -38,7 +38,6 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
   
   const filteredData = sentimentData 
     ? sentimentData.filter(item => {
-        console.log("Processing feedback item:", item);
         if (!sentimentFilter) return true;
         return item.sentiment_label === sentimentFilter;
       })
@@ -129,6 +128,8 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
           <div className="text-center py-8 text-gray-500">
             No feedback data available for the selected filters.
             {filters.city && <p className="mt-2">Filtering by city: {filters.city}</p>}
+            {filters.cluster && <p className="mt-2">Filtering by cluster: {filters.cluster}</p>}
+            {filters.role && <p className="mt-2">Filtering by role: {filters.role}</p>}
           </div>
         ) : (
           <div className="space-y-4">
