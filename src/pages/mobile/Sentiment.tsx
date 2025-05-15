@@ -12,14 +12,14 @@ interface MobileSentimentProps {
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
   // Background gradient for better aesthetics
-  const bgGradient = "linear-gradient(135deg, #02C0DE 0%, #01A6D8 100%)";
+  const bgGradient = "linear-gradient(135deg, #33C3F0 0%, #00CEDE 100%)";
   
   // When used as a standalone page
   if (!isOpen && !onClose) {
     return (
       <MobileLayout 
         title="Feedback Matters" 
-        bgColor="#00CEDE"
+        bgColor="#33C3F0"
       >
         <div 
           className="min-h-screen -mt-16 pt-16" 

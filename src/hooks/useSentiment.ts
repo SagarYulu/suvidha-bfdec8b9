@@ -22,7 +22,7 @@ export const useSentiment = () => {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const { authState } = useAuth();
 
-  // Improved tag loading - add error handling and retry mechanism
+  // Improved tag loading with better error handling
   useEffect(() => {
     let mounted = true;
     let retryCount = 0;
@@ -36,7 +36,7 @@ export const useSentiment = () => {
         if (!mounted) return;
         
         if (sentimentTags && sentimentTags.length > 0) {
-          console.log(`Loaded ${sentimentTags.length} sentiment tags:`, sentimentTags);
+          console.log(`Successfully loaded ${sentimentTags.length} sentiment tags:`, sentimentTags);
           setTags(sentimentTags);
         } else {
           // If we got an empty array, we should retry
@@ -66,16 +66,16 @@ export const useSentiment = () => {
       if (mounted && (!tags || tags.length === 0)) {
         console.log("Using fallback tags as loading from API failed");
         setTags([
-          { id: 'fallback-1', name: 'Work-Life Balance', category: 'Balance' },
-          { id: 'fallback-2', name: 'Career Growth', category: 'Career' },
-          { id: 'fallback-3', name: 'Compensation', category: 'Career' },
-          { id: 'fallback-4', name: 'Manager', category: 'People' },
-          { id: 'fallback-5', name: 'Team', category: 'People' },
-          { id: 'fallback-6', name: 'Workload', category: 'Balance' },
-          { id: 'fallback-7', name: 'Communication', category: 'People' },
-          { id: 'fallback-8', name: 'Equipment', category: 'Environment' },
-          { id: 'fallback-9', name: 'Training', category: 'Career' },
-          { id: 'fallback-10', name: 'Company Policies', category: 'Company' }
+          { id: 'fb-1', name: 'Work-Life Balance', category: 'Wellness' },
+          { id: 'fb-2', name: 'Career Growth', category: 'Development' },
+          { id: 'fb-3', name: 'Compensation', category: 'Benefits' },
+          { id: 'fb-4', name: 'Manager', category: 'Leadership' },
+          { id: 'fb-5', name: 'Team', category: 'Work Environment' },
+          { id: 'fb-6', name: 'Workload', category: 'Wellness' },
+          { id: 'fb-7', name: 'Communication', category: 'Leadership' },
+          { id: 'fb-8', name: 'Equipment', category: 'Infrastructure' },
+          { id: 'fb-9', name: 'Training', category: 'Guiding' },
+          { id: 'fb-10', name: 'Company Policies', category: 'Organization' }
         ]);
       }
     }, 5000);
@@ -129,11 +129,26 @@ export const useSentiment = () => {
   };
 
   const handleTagToggle = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag) 
-        : [...prev, tag]
-    );
+    console.log("Toggling tag:", tag);
+    // Force state update in the next tick to ensure React registers the change
+    setTimeout(() => {
+      setSelectedTags(prevTags => {
+        const isSelected = prevTags.includes(tag);
+        console.log(`Tag ${tag} is currently ${isSelected ? 'selected' : 'not selected'}`);
+        
+        if (isSelected) {
+          // Remove tag
+          const newTags = prevTags.filter(t => t !== tag);
+          console.log("New selected tags after removal:", newTags);
+          return newTags;
+        } else {
+          // Add tag
+          const newTags = [...prevTags, tag];
+          console.log("New selected tags after addition:", newTags);
+          return newTags;
+        }
+      });
+    }, 0);
   };
 
   const handleAnalyzeFeedback = async () => {

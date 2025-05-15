@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -257,27 +256,19 @@ const MobileSentimentForm: React.FC = () => {
           <label className="block text-sm font-medium text-white">
             Select topics related to your feedback:
           </label>
-          {suggestedTags.length > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-              Suggestions available
-            </span>
-          )}
         </div>
         
         {tags && tags.length > 0 ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {tags.map((tag) => {
               const isSelected = selectedTags.includes(tag.name);
-              const isSuggested = suggestedTags.includes(tag.name);
               
               return (
                 <div
                   key={tag.id}
                   className={cn(
                     "flex items-center space-x-2 rounded-md p-2 transition-all",
-                    isSelected ? "bg-blue-600 bg-opacity-30" : 
-                    isSuggested ? "bg-blue-400 bg-opacity-10 border border-blue-300 border-opacity-50" : 
-                    "bg-white bg-opacity-10"
+                    isSelected ? "bg-white bg-opacity-25" : "bg-white bg-opacity-10"
                   )}
                   onClick={() => handleTagToggle(tag.name)}
                 >
@@ -287,8 +278,7 @@ const MobileSentimentForm: React.FC = () => {
                     onCheckedChange={() => handleTagToggle(tag.name)}
                     className={cn(
                       "border-2",
-                      isSelected ? "bg-blue-500 border-blue-500" : 
-                      isSuggested ? "border-blue-300" : "border-white"
+                      isSelected ? "bg-white border-white" : "border-white"
                     )}
                   />
                   <label
@@ -296,9 +286,9 @@ const MobileSentimentForm: React.FC = () => {
                     className="text-sm font-medium leading-none text-white cursor-pointer flex-1"
                   >
                     {tag.name}
-                    {isSuggested && (
-                      <span className="ml-1 text-xs text-blue-200">
-                        {isSelected ? "✓" : "(suggested)"}
+                    {tag.category && (
+                      <span className="ml-1 text-xs text-white/70">
+                        ({tag.category})
                       </span>
                     )}
                   </label>
@@ -317,7 +307,7 @@ const MobileSentimentForm: React.FC = () => {
         {selectedTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {selectedTags.map(tag => (
-              <div key={tag} className="bg-blue-500 text-white text-xs rounded-full px-3 py-1 flex items-center">
+              <div key={tag} className="bg-white bg-opacity-25 text-white text-xs rounded-full px-3 py-1 flex items-center">
                 {tag}
                 <button 
                   className="ml-1 hover:text-white/80" 

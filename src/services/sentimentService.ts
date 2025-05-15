@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -191,19 +190,30 @@ async function checkAndCreateAlert(newSentiment: SentimentRating) {
   }
 }
 
-// Function to fetch sentiment tags
+// Function to fetch sentiment tags with improved logging and error handling
 export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
   try {
+    console.log("Fetching sentiment tags from database...");
+    
     const { data, error } = await supabase
       .from('sentiment_tags')
       .select('*')
       .order('name');
     
-    if (error) throw error;
-    console.log("Fetched sentiment tags:", data?.length || 0);
-    return data || [];
+    if (error) {
+      console.error("Database error when fetching sentiment tags:", error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.warn("No sentiment tags found in the database");
+      return [];
+    }
+    
+    console.log(`Successfully fetched ${data.length} sentiment tags:`, data);
+    return data;
   } catch (error) {
-    console.error("Error fetching sentiment tags:", error);
+    console.error("Exception in fetchSentimentTags:", error);
     return [];
   }
 };
