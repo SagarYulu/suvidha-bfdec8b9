@@ -8,6 +8,16 @@ const initializeService = () => {
 };
 initializeService();
 
+// Import all the functions we need from their respective services
+import { processIssues } from "./issueProcessingService";
+import { getIssueById, getIssuesByUserId, getAssignedIssues } from "./issueFetchService";
+import { createIssue } from "./issueCreationService";
+import { updateIssueStatus } from "./issueStatusService";
+import { assignIssueToUser } from "./issueAssignmentService";
+import { reopenTicket } from "./issueReopeningService";
+import { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";
+import { Issue } from "@/types";
+
 // Re-export the functions from the modularized services
 export { processIssues } from "./issueProcessingService";
 export { getIssueById, getIssuesByUserId, getAssignedIssues } from "./issueFetchService";
