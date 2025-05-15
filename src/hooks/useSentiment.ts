@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -226,7 +225,6 @@ export const useSentiment = () => {
         description: "Unable to submit your feedback. Please try again.",
         variant: "destructive"
       });
-      throw error; // Rethrow for external handling
     } finally {
       setIsSubmitting(false);
     }
