@@ -43,7 +43,7 @@ export type SentimentAnalysisResult = {
   flag_abusive?: boolean;
 };
 
-// Function to analyze sentiment using OpenAI
+// Function to analyze sentiment using Supabase Edge Function
 export const analyzeSentiment = async (feedback: string): Promise<SentimentAnalysisResult> => {
   try {
     console.log("Analyzing sentiment for feedback:", feedback);
@@ -80,10 +80,19 @@ export const submitSentiment = async (sentimentData: SentimentRating): Promise<{
       return { success: false, error: "Missing employee ID" };
     }
     
-    // Convert tags array to PostgreSQL compatible format if needed
-    const formattedData = {
-      ...sentimentData
-    };
+    // Convert tags array to string array if it's not already
+    let formattedData: any = { ...sentimentData };
+    
+    // Ensure tags is sent as an array
+    if (formattedData.tags && !Array.isArray(formattedData.tags)) {
+      try {
+        formattedData.tags = JSON.parse(formattedData.tags);
+      } catch (e) {
+        formattedData.tags = formattedData.tags.split(',').map((tag: string) => tag.trim());
+      }
+    }
+    
+    console.log("Formatted data for submission:", formattedData);
     
     const { error, data } = await supabase
       .from('employee_sentiment')

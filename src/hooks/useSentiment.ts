@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -47,15 +48,15 @@ export const useSentiment = () => {
   // Get suggested tags based on emotion rating
   const getEmotionBasedTags = (value: number): string[] => {
     switch (value) {
-      case 5: // Very Positive
+      case 5: // Motivated
         return ["Career Growth", "Team"];
-      case 4: // Positive
+      case 4: // Happy
         return ["Work-Life Balance"];
       case 3: // Neutral
         return [];
-      case 2: // Negative
+      case 2: // Frustrated
         return ["Workload", "Communication"];
-      case 1: // Very Negative
+      case 1: // Angry
         return ["Manager"];
       default:
         return [];
@@ -154,28 +155,28 @@ export const useSentiment = () => {
       let sentiment_score: number;
       
       switch (rating) {
-        case 5:
-          sentiment_label = "Very Positive";
+        case 5: // Motivated
+          sentiment_label = "very positive";
           sentiment_score = 1.0;
           break;
-        case 4:
-          sentiment_label = "Positive";
+        case 4: // Happy
+          sentiment_label = "positive";
           sentiment_score = 0.5;
           break;
-        case 3:
-          sentiment_label = "Neutral";
+        case 3: // Neutral
+          sentiment_label = "neutral";
           sentiment_score = 0.0;
           break;
-        case 2:
-          sentiment_label = "Negative";
+        case 2: // Frustrated
+          sentiment_label = "negative";
           sentiment_score = -0.5;
           break;
-        case 1:
-          sentiment_label = "Very Negative";
+        case 1: // Angry
+          sentiment_label = "very negative";
           sentiment_score = -1.0;
           break;
         default:
-          sentiment_label = "Neutral";
+          sentiment_label = "neutral";
           sentiment_score = 0.0;
       }
       

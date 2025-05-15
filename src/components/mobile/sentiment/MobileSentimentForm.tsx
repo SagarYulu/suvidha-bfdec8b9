@@ -108,14 +108,14 @@ const MobileSentimentForm: React.FC = () => {
       </div>
       
       {/* Emoji Selector */}
-      <div className="grid grid-cols-5 gap-3 mt-2">
+      <div className="grid grid-cols-5 gap-2 mt-2">
         {[5, 4, 3, 2, 1].map((value) => (
           <button
             key={value}
             className={cn(
-              "flex flex-col items-center p-2 rounded-lg transition-all",
+              "flex flex-col items-center p-3 rounded-lg transition-all",
               rating === value 
-                ? "bg-white bg-opacity-30 border-2 border-white" 
+                ? "bg-white bg-opacity-30 border-2 border-white shadow-lg transform scale-110" 
                 : "hover:bg-white hover:bg-opacity-10"
             )}
             onClick={() => handleRatingChange(value)}

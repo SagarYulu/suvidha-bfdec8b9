@@ -1,120 +1,139 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import OpenAI from "https://esm.sh/openai@4.20.0";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0';
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { feedback } = await req.json();
     
-    if (!feedback || feedback.trim() === "") {
+    if (!feedback || feedback.trim().length === 0) {
       return new Response(
-        JSON.stringify({ 
-          sentiment_score: null, 
-          sentiment_label: null,
+        JSON.stringify({
+          sentiment_score: 0,
+          sentiment_label: "neutral",
           suggested_tags: []
-        }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        }), 
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Initialize OpenAI 
-    const openai = new OpenAI({
-      apiKey: Deno.env.get("OPENAI_API_KEY") || "",
-    });
-
-    const prompt = `
-      Analyze the following employee feedback for sentiment and identify main themes:
-      
-      Feedback: "${feedback}"
-      
-      Instructions:
-      1. Determine the overall sentiment on a 5-point scale:
-         - 5: Very Positive (Emotions: Excited, satisfied, motivated)
-         - 4: Positive (Emotions: Happy, content, comfortable)
-         - 3: Neutral (Emotions: Indifferent, routine, no specific highs/lows)
-         - 2: Negative (Emotions: Frustrated, unsatisfied, unacknowledged)
-         - 1: Very Negative (Emotions: Angry, disrespected, anxious)
-      
-      2. Provide a normalized sentiment score between -1 and 1:
-         - 5 corresponds to 1.0
-         - 4 corresponds to 0.5
-         - 3 corresponds to 0.0
-         - 2 corresponds to -0.5
-         - 1 corresponds to -1.0
-      
-      3. Identify the top 1-3 themes from the following options that best match the feedback:
-         Training, Manager, Workload, Facilities, Compensation, Team, Career Growth, Work-Life Balance, Communication, Tools
-      
-      4. Check if there's any urgent issue or abusive language that should be flagged
-      
-      Format your response as a JSON with the following structure:
-      {
-        "sentiment_label": "Very Positive/Positive/Neutral/Negative/Very Negative",
-        "sentiment_score": 0.0,
-        "rating": 1-5,
-        "themes": ["theme1", "theme2"],
-        "flag_urgent": true/false,
-        "flag_abusive": true/false
-      }
-    `;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: 500,
-    });
-
-    const result = completion.choices[0].message.content;
-    let parsedResult;
     
-    try {
-      parsedResult = JSON.parse(result);
-    } catch (e) {
-      console.error("Failed to parse OpenAI response:", e);
-      parsedResult = { 
-        sentiment_label: "Neutral", 
-        sentiment_score: 0, 
-        rating: 3,
-        themes: [],
-        flag_urgent: false,
-        flag_abusive: false
-      };
-    }
-
-    return new Response(
-      JSON.stringify({
-        sentiment_score: parsedResult.sentiment_score,
-        sentiment_label: parsedResult.sentiment_label,
-        rating: parsedResult.rating || 3,
-        suggested_tags: parsedResult.themes || [],
-        flag_urgent: parsedResult.flag_urgent || false,
-        flag_abusive: parsedResult.flag_abusive || false
-      }),
-      { 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    console.log("Analyzing feedback:", feedback);
+    
+    // Simple sentiment analysis based on keywords
+    const lowerFeedback = feedback.toLowerCase();
+    let score = 0;
+    let suggestedTags = [];
+    
+    // Positive keywords
+    const positiveWords = ["happy", "great", "good", "excellent", "love", "appreciate", "thank", "helpful", "support", "satisfied"];
+    
+    // Negative keywords
+    const negativeWords = ["unhappy", "bad", "terrible", "poor", "hate", "frustrated", "angry", "disappointing", "issue", "problem"];
+    
+    // Tag mapping by keywords
+    const tagMapping = {
+      "manager": ["Manager", "Leadership"],
+      "pay": ["Compensation", "Finance"],
+      "salary": ["Compensation", "Finance"],
+      "money": ["Compensation", "Finance"],
+      "team": ["Team", "Collaboration"],
+      "colleague": ["Team", "Collaboration"],
+      "work": ["Workload", "Work-Life Balance"],
+      "time": ["Work-Life Balance", "Scheduling"],
+      "hour": ["Work-Life Balance", "Scheduling"],
+      "schedule": ["Scheduling", "Work-Life Balance"],
+      "train": ["Training", "Career Growth"],
+      "learn": ["Training", "Career Growth"],
+      "grow": ["Career Growth", "Development"],
+      "career": ["Career Growth", "Development"],
+      "office": ["Facilities", "Work Environment"],
+      "facility": ["Facilities", "Work Environment"],
+      "environment": ["Work Environment", "Culture"],
+      "communication": ["Communication", "Feedback"],
+      "feedback": ["Feedback", "Communication"],
+      "benefit": ["Benefits", "Compensation"],
+      "health": ["Benefits", "Well-being"],
+      "software": ["Technology", "Tools"],
+      "tool": ["Tools", "Technology"],
+      "system": ["Technology", "Process"],
+      "process": ["Process", "Efficiency"]
+    };
+    
+    // Check for positive words
+    positiveWords.forEach(word => {
+      if (lowerFeedback.includes(word)) score += 0.2;
+    });
+    
+    // Check for negative words
+    negativeWords.forEach(word => {
+      if (lowerFeedback.includes(word)) score -= 0.2;
+    });
+    
+    // Collect suggested tags
+    Object.keys(tagMapping).forEach(keyword => {
+      if (lowerFeedback.includes(keyword)) {
+        suggestedTags = [...suggestedTags, ...tagMapping[keyword]];
       }
+    });
+    
+    // Remove duplicates from tags
+    suggestedTags = [...new Set(suggestedTags)];
+    
+    // Limit to top 3 tags
+    suggestedTags = suggestedTags.slice(0, 3);
+    
+    // Clamp score between -1 and 1
+    score = Math.max(-1, Math.min(1, score));
+    
+    // Determine sentiment label
+    let sentimentLabel = "neutral";
+    if (score > 0.6) sentimentLabel = "very positive";
+    else if (score > 0.2) sentimentLabel = "positive";
+    else if (score < -0.6) sentimentLabel = "very negative";
+    else if (score < -0.2) sentimentLabel = "negative";
+    
+    // Map sentiment label to suggested rating (1-5)
+    let suggestedRating;
+    if (sentimentLabel === "very positive") suggestedRating = 5;
+    else if (sentimentLabel === "positive") suggestedRating = 4;
+    else if (sentimentLabel === "neutral") suggestedRating = 3;
+    else if (sentimentLabel === "negative") suggestedRating = 2;
+    else if (sentimentLabel === "very negative") suggestedRating = 1;
+    
+    const result = {
+      sentiment_score: score,
+      sentiment_label: sentimentLabel,
+      suggested_tags: suggestedTags,
+      rating: suggestedRating
+    };
+    
+    console.log("Analysis result:", result);
+    
+    return new Response(
+      JSON.stringify(result),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error("Error processing sentiment:", error);
+    console.error("Error in sentiment analysis:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: "Failed to analyze sentiment",
+        details: error.message
+      }),
       { 
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
