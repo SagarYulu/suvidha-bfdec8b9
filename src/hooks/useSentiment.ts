@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -56,34 +55,34 @@ export const useSentiment = () => {
         const delay = 1000 * retryCount; // Exponential backoff
         console.log(`Retrying tag load (${retryCount}/${maxRetries}) in ${delay}ms...`);
         setTimeout(loadTags, delay);
+      } else {
+        // Fallback tags after all retries fail
+        setFallbackTags();
+      }
+    };
+    
+    const setFallbackTags = () => {
+      if (mounted && (!tags || tags.length === 0)) {
+        console.log("Using fallback tags as loading from API failed");
+        setTags([
+          { id: 'fb-1', name: 'Work-Life Balance', category: 'Wellness' },
+          { id: 'fb-2', name: 'Career Growth', category: 'Development' },
+          { id: 'fb-3', name: 'Salary', category: 'Benefits' },
+          { id: 'fb-4', name: 'Manager', category: 'Leadership' },
+          { id: 'fb-5', name: 'Team', category: 'Work Environment' },
+          { id: 'fb-6', name: 'Workload', category: 'Wellness' },
+          { id: 'fb-7', name: 'Communication', category: 'Leadership' },
+          { id: 'fb-8', name: 'Work Place', category: 'Infrastructure' },
+          { id: 'fb-9', name: 'Training', category: 'Guiding' }
+        ]);
       }
     };
     
     // Load tags on mount
     loadTags();
     
-    // Fallback: Create default tags if we couldn't load them after retries
-    const fallbackTimer = setTimeout(() => {
-      if (mounted && (!tags || tags.length === 0)) {
-        console.log("Using fallback tags as loading from API failed");
-        setTags([
-          { id: 'fb-1', name: 'Work-Life Balance', category: 'Wellness' },
-          { id: 'fb-2', name: 'Career Growth', category: 'Development' },
-          { id: 'fb-3', name: 'Salary', category: 'Benefits' }, // Changed from Compensation
-          { id: 'fb-4', name: 'Manager', category: 'Leadership' },
-          { id: 'fb-5', name: 'Team', category: 'Work Environment' },
-          { id: 'fb-6', name: 'Workload', category: 'Wellness' },
-          { id: 'fb-7', name: 'Communication', category: 'Leadership' },
-          { id: 'fb-8', name: 'Work Place', category: 'Infrastructure' }, // Changed from Equipment
-          { id: 'fb-9', name: 'Training', category: 'Guiding' }
-          // Removed Company Policies
-        ]);
-      }
-    }, 5000);
-    
     return () => {
       mounted = false;
-      clearTimeout(fallbackTimer);
     };
   }, []);
 
@@ -131,25 +130,18 @@ export const useSentiment = () => {
 
   const handleTagToggle = (tag: string) => {
     console.log("Toggling tag:", tag);
-    // Force state update in the next tick to ensure React registers the change
-    setTimeout(() => {
-      setSelectedTags(prevTags => {
-        const isSelected = prevTags.includes(tag);
-        console.log(`Tag ${tag} is currently ${isSelected ? 'selected' : 'not selected'}`);
-        
-        if (isSelected) {
-          // Remove tag
-          const newTags = prevTags.filter(t => t !== tag);
-          console.log("New selected tags after removal:", newTags);
-          return newTags;
-        } else {
-          // Add tag
-          const newTags = [...prevTags, tag];
-          console.log("New selected tags after addition:", newTags);
-          return newTags;
-        }
-      });
-    }, 0);
+    
+    setSelectedTags(prevTags => {
+      const isSelected = prevTags.includes(tag);
+      
+      if (isSelected) {
+        // Remove tag
+        return prevTags.filter(t => t !== tag);
+      } else {
+        // Add tag
+        return [...prevTags, tag];
+      }
+    });
   };
 
   const handleAnalyzeFeedback = async () => {

@@ -251,7 +251,7 @@ const MobileSentimentForm: React.FC = () => {
         </div>
       </div>
       
-      {/* Tags Section - Always visible with clearer instructions */}
+      {/* Tags Section - Improved UI with more clickable area and better contrast */}
       <div className="bg-white bg-opacity-15 rounded-xl p-4 mt-1">
         <div className="flex justify-between items-center mb-3">
           <label className="block text-sm font-medium text-white">
@@ -260,39 +260,41 @@ const MobileSentimentForm: React.FC = () => {
         </div>
         
         {tags && tags.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             {tags.map((tag) => {
               const isSelected = selectedTags.includes(tag.name);
               
               return (
                 <div
                   key={tag.id}
-                  className={cn(
-                    "flex items-center space-x-2 rounded-md p-2 transition-all",
-                    isSelected ? "bg-blue-600/50" : "bg-white bg-opacity-10"
-                  )}
                   onClick={() => handleTagToggle(tag.name)}
+                  className={cn(
+                    "flex items-center bg-white bg-opacity-90 rounded-lg py-3 px-3 transition-all cursor-pointer",
+                    isSelected ? "bg-blue-100 border-2 border-blue-600" : "border-2 border-transparent"
+                  )}
                 >
                   <Checkbox
                     id={`tag-${tag.id}`}
                     checked={isSelected}
                     onCheckedChange={() => handleTagToggle(tag.name)}
                     className={cn(
-                      "border-2",
-                      isSelected ? "bg-blue-600 border-blue-600" : "border-white"
+                      "mr-3 h-5 w-5 border-2",
+                      isSelected ? "bg-blue-600 border-blue-600" : "border-gray-400"
                     )}
                   />
-                  <label
-                    htmlFor={`tag-${tag.id}`}
-                    className="text-sm font-medium leading-none text-white cursor-pointer flex-1"
-                  >
-                    {tag.name}
+                  <div className="flex-1">
+                    <label
+                      htmlFor={`tag-${tag.id}`}
+                      className="text-gray-900 font-medium text-sm cursor-pointer block"
+                    >
+                      {tag.name}
+                    </label>
                     {tag.category && (
-                      <span className="ml-1 text-xs text-white/70">
-                        ({tag.category})
+                      <span className="text-xs text-gray-600 block mt-0.5">
+                        {tag.category}
                       </span>
                     )}
-                  </label>
+                  </div>
                 </div>
               );
             })}
