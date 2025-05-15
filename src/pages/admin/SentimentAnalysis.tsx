@@ -74,7 +74,7 @@ const SentimentAnalysis: React.FC = () => {
     cluster?: string;
     role?: string;
   }) => {
-    console.log("Filter change:", newFilters);
+    console.log("Filter change:", JSON.stringify(newFilters, null, 2));
     setFilters(newFilters);
     
     // Invalidate queries to refresh data with new filters
@@ -104,7 +104,7 @@ const SentimentAnalysis: React.FC = () => {
       
       <SentimentFilterBar onFilterChange={handleFilterChange} />
       
-      {/* Debug info - will help diagnose filter issues */}
+      {/* Debug info panel */}
       {Object.keys(filters).length > 0 && (
         <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
           <p><strong>Active Filters:</strong></p>

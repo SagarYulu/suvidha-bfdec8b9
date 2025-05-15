@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllSentiment } from '@/services/sentimentService';
 import {
@@ -27,21 +27,34 @@ interface RecentFeedbackProps {
 const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
   const [sentimentFilter, setSentimentFilter] = useState<string | null>(null);
   
-  const { data: sentimentData, isLoading } = useQuery({
+  const { data: sentimentData, isLoading, refetch } = useQuery({
     queryKey: ['sentiment-feedback', filters],
-    queryFn: () => fetchAllSentiment(filters)
+    queryFn: () => fetchAllSentiment(filters),
+    staleTime: 30000, // 30 seconds
   });
   
   // Debug log for filters and data
-  console.log("RecentFeedback filters:", filters);
-  console.log("RecentFeedback data count:", sentimentData?.length || 0);
+  useEffect(() => {
+    console.log("RecentFeedback filters:", JSON.stringify(filters, null, 2));
+    console.log("RecentFeedback data count:", sentimentData?.length || 0);
+    if (sentimentData?.length) {
+      console.log("Sample data:", sentimentData[0]);
+    }
+  }, [filters, sentimentData]);
+  
+  // Force refetch when filters change
+  useEffect(() => {
+    refetch();
+  }, [filters, refetch]);
   
   const filteredData = sentimentData 
-    ? sentimentData.filter(item => {
+    ? sentimentData
+      .filter(item => {
+        // Apply sentiment filter if set
         if (!sentimentFilter) return true;
         return item.sentiment_label === sentimentFilter;
       })
-      .filter(item => item.feedback) // Only show items with feedback
+      .filter(item => item.feedback && item.feedback.trim() !== '') // Only show items with feedback
       .sort((a, b) => {
         // Sort by creation date - most recent first
         return new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime();
@@ -50,9 +63,13 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
     : [];
   
   const getSentimentIcon = (label: string | undefined) => {
-    switch(label) {
-      case 'positive': return <ThumbsUp className="h-5 w-5 text-green-500" />;
-      case 'negative': return <ThumbsDown className="h-5 w-5 text-red-500" />;
+    switch(label?.toLowerCase()) {
+      case 'positive': 
+      case 'very positive': 
+        return <ThumbsUp className="h-5 w-5 text-green-500" />;
+      case 'negative': 
+      case 'very negative': 
+        return <ThumbsDown className="h-5 w-5 text-red-500" />;
       default: return <MessageCircle className="h-5 w-5 text-yellow-500" />;
     }
   };
@@ -63,6 +80,20 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
     if (rating === 3) return "😐";
     if (rating === 4) return "🙂";
     return "😃";
+  };
+  
+  // Debug - print active filters
+  const getActiveFiltersText = () => {
+    const activeFilters = [];
+    if (filters.city) activeFilters.push(`City: ${filters.city}`);
+    if (filters.cluster) activeFilters.push(`Cluster: ${filters.cluster}`);
+    if (filters.role) activeFilters.push(`Role: ${filters.role}`);
+    if (filters.startDate) activeFilters.push(`From: ${filters.startDate}`);
+    if (filters.endDate) activeFilters.push(`To: ${filters.endDate}`);
+    
+    return activeFilters.length > 0 
+      ? `Filtering by ${activeFilters.join(', ')}`
+      : 'No filters applied';
   };
   
   return (
@@ -120,16 +151,24 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({ filters }) => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Add filter status indicator */}
+        <div className="mb-4 text-sm text-gray-500">
+          {getActiveFiltersText()}
+        </div>
+        
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
           </div>
+        ) : !sentimentData || sentimentData.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>No sentiment data available for the current filters.</p>
+            <p className="mt-2">Try clearing some filters or submitting feedback.</p>
+          </div>
         ) : filteredData.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            No feedback data available for the selected filters.
-            {filters.city && <p className="mt-2">Filtering by city: {filters.city}</p>}
-            {filters.cluster && <p className="mt-2">Filtering by cluster: {filters.cluster}</p>}
-            {filters.role && <p className="mt-2">Filtering by role: {filters.role}</p>}
+            <p>No feedback text available matching the current filters.</p>
+            <p className="mt-2">Try selecting a different sentiment type or clearing filters.</p>
           </div>
         ) : (
           <div className="space-y-4">

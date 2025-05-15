@@ -154,7 +154,7 @@ export const fetchAllSentiment = async (filters: {
   role?: string;
 }): Promise<SentimentRating[]> => {
   try {
-    console.log("Fetching sentiment with filters:", filters);
+    console.log("Fetching sentiment with filters:", JSON.stringify(filters, null, 2));
     
     let query = supabase
       .from('employee_sentiment')
@@ -173,23 +173,22 @@ export const fetchAllSentiment = async (filters: {
       query = query.lt('created_at', endDate.toISOString());
     }
     
-    // Apply city filter - this is the key fix to ensure we're using the proper column
+    // Apply city filter - using case-insensitive match
     if (filters.city) {
       console.log("Filtering by city name:", filters.city);
-      // Use ilike for case-insensitive text search rather than direct UUID comparison
-      query = query.ilike('city', `%${filters.city}%`);
+      query = query.ilike('city', filters.city);
     }
     
-    // Apply cluster filter
+    // Apply cluster filter - using case-insensitive match
     if (filters.cluster) {
       console.log("Filtering by cluster:", filters.cluster);
-      query = query.eq('cluster', filters.cluster);
+      query = query.ilike('cluster', filters.cluster);
     }
     
-    // Apply role filter
+    // Apply role filter - using case-insensitive match
     if (filters.role) {
       console.log("Filtering by role:", filters.role);
-      query = query.eq('role', filters.role);
+      query = query.ilike('role', filters.role);
     }
     
     const { data, error } = await query;

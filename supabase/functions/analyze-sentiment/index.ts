@@ -1,118 +1,146 @@
 
-// Using the correct import syntax for Deno standard library
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-interface RequestData {
-  feedback: string
-}
+// Simple function to analyze sentiment from text
+const analyzeSentiment = (text: string) => {
+  // Create a simple scoring system based on positive and negative words
+  const positiveWords = [
+    "good", "great", "excellent", "amazing", "awesome", "fantastic", "wonderful", 
+    "happy", "satisfied", "convenient", "helpful", "easy", "comfortable", "enjoy",
+    "like", "love", "appreciate", "best", "better", "improved", "thank", "thanks"
+  ];
 
-function analyzeSentimentText(text: string) {
-  // Simple word-based sentiment analysis
-  const positiveWords = ['good', 'great', 'excellent', 'happy', 'satisfied', 'enjoy', 'like', 'love', 'appreciate', 'perfect', 'helpful']
-  const negativeWords = ['bad', 'poor', 'terrible', 'unhappy', 'disappointed', 'hate', 'dislike', 'awful', 'horrible', 'worst', 'issue', 'problem']
+  const negativeWords = [
+    "bad", "poor", "terrible", "awful", "horrible", "disappointing", "frustrated",
+    "difficult", "hard", "unhappy", "unsatisfied", "inconvenient", "unhelpful", 
+    "uncomfortable", "dislike", "hate", "worst", "worse", "not good", "problem",
+    "issue", "complaint", "broken", "useless", "waste", "annoying", "annoyed"
+  ];
 
-  const words = text.toLowerCase().split(/\W+/)
-  let positiveCount = 0
-  let negativeCount = 0
-
-  words.forEach(word => {
-    if (positiveWords.includes(word)) positiveCount++
-    if (negativeWords.includes(word)) negativeCount++
-  })
-
-  // Calculate sentiment score between -1 and 1
-  let sentimentScore = 0
-  if (positiveCount + negativeCount > 0) {
-    sentimentScore = (positiveCount - negativeCount) / (positiveCount + negativeCount)
+  // Normalize text for comparison
+  const normalized = text.toLowerCase();
+  
+  // Count word occurrences
+  let positiveCount = 0;
+  let negativeCount = 0;
+  
+  for (const word of positiveWords) {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const matches = normalized.match(regex);
+    if (matches) {
+      positiveCount += matches.length;
+    }
   }
-
-  // Determine sentiment label
-  let sentimentLabel = 'neutral'
-  if (sentimentScore > 0.2) sentimentLabel = 'positive'
-  else if (sentimentScore < -0.2) sentimentLabel = 'negative'
-
-  // Suggest rating between 1-5 based on sentiment
-  let suggestedRating
-  if (sentimentScore > 0.6) suggestedRating = 5
-  else if (sentimentScore > 0.2) suggestedRating = 4
-  else if (sentimentScore > -0.2) suggestedRating = 3
-  else if (sentimentScore > -0.6) suggestedRating = 2
-  else suggestedRating = 1
-
-  // Identify possible tags based on content
-  const suggestedTags = []
   
-  if (/\b(pay|salary|compensation|bonus|money)\b/i.test(text)) suggestedTags.push('Compensation')
-  if (/\b(manager|supervisor|leadership|boss)\b/i.test(text)) suggestedTags.push('Manager')
-  if (/\b(team|colleague|coworker)\b/i.test(text)) suggestedTags.push('Team')
-  if (/\b(hour|overtime|schedule|time|weekend)\b/i.test(text)) suggestedTags.push('Work-Life Balance')
-  if (/\b(growth|learn|advance|promotion|career|opportunity)\b/i.test(text)) suggestedTags.push('Career Growth')
-  if (/\b(difficult|challenge|stress|pressure|workload)\b/i.test(text)) suggestedTags.push('Workload')
-  if (/\b(communication|update|inform|unclear)\b/i.test(text)) suggestedTags.push('Communication')
-
-  // Flag urgent issues
-  const urgentFlags = /\b(urgent|emergency|immediate|unsafe|danger|harassment|discrimination)\b/i.test(text)
+  for (const word of negativeWords) {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    const matches = normalized.match(regex);
+    if (matches) {
+      negativeCount += matches.length;
+    }
+  }
   
-  // Flag potential abusive content
-  const abusiveFlags = /\b(hate|fire|quit|resign|awful|terrible|horrible)\b/i.test(text)
-
+  // Calculate sentiment score between -1 and 1
+  let score = 0;
+  if (positiveCount > 0 || negativeCount > 0) {
+    score = (positiveCount - negativeCount) / (positiveCount + negativeCount);
+  }
+  
+  // Determine label based on score
+  let label;
+  if (score >= 0.5) {
+    label = "positive";
+  } else if (score > -0.3 && score < 0.5) {
+    label = "neutral";
+  } else {
+    label = "negative";
+  }
+  
+  // Calculate suggested tags based on content
+  const tagPatterns = [
+    { pattern: /\b(pay|salary|wage|money|compensation|bonus)\b/i, tag: "Compensation" },
+    { pattern: /\b(team|colleague|coworker|people|staff)\b/i, tag: "Team" },
+    { pattern: /\b(manager|management|supervisor|leader|boss)\b/i, tag: "Manager" },
+    { pattern: /\b(work|shift|hour|timing|schedule|time)\b/i, tag: "Workload" },
+    { pattern: /\b(train|learning|skill|education|development|grow)\b/i, tag: "Career Growth" },
+    { pattern: /\b(communicate|communication|information|update|informed)\b/i, tag: "Communication" },
+    { pattern: /\b(balance|life|family|personal|stress)\b/i, tag: "Work-Life Balance" },
+    { pattern: /\b(equipment|tool|bike|resource|facility|office)\b/i, tag: "Equipment" }
+  ];
+  
+  const suggestedTags: string[] = [];
+  
+  for (const { pattern, tag } of tagPatterns) {
+    if (pattern.test(normalized)) {
+      suggestedTags.push(tag);
+    }
+  }
+  
+  // Flag for urgent issues
+  const urgentPatterns = [
+    /\b(urgent|immediately|emergency|danger|unsafe|critical|serious)\b/i,
+    /\b(quit|resign|leaving|fire|fired|quitting)\b/i
+  ];
+  
+  const flagUrgent = urgentPatterns.some(pattern => pattern.test(normalized));
+  
+  // Flag for abusive content
+  const abusivePatterns = [
+    /\b(damn|hell|idiot|stupid|useless|sucks|terrible|worst|hate|garbage)\b/i
+  ];
+  
+  const flagAbusive = abusivePatterns.some(pattern => pattern.test(normalized));
+  
+  // Suggest rating based on sentiment
+  let suggestedRating: number | undefined = undefined;
+  if (score >= 0.7) {
+    suggestedRating = 5; // Very positive
+  } else if (score >= 0.3) {
+    suggestedRating = 4; // Positive
+  } else if (score >= -0.3) {
+    suggestedRating = 3; // Neutral
+  } else if (score >= -0.7) {
+    suggestedRating = 2; // Negative
+  } else {
+    suggestedRating = 1; // Very negative
+  }
+  
   return {
-    sentiment_score: sentimentScore,
-    sentiment_label: sentimentLabel,
+    sentiment_score: score,
+    sentiment_label: label,
     rating: suggestedRating,
     suggested_tags: suggestedTags,
-    flag_urgent: urgentFlags,
-    flag_abusive: abusiveFlags
-  }
-}
+    flag_urgent: flagUrgent,
+    flag_abusive: flagAbusive
+  };
+};
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-      }
-    })
-  }
-
   try {
-    const requestData: RequestData = await req.json()
-    const { feedback } = requestData
+    // Get the request body
+    const body = await req.json();
     
-    if (!feedback) {
-      return new Response(JSON.stringify({ 
-        error: "Feedback text is required" 
-      }), {
-        status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*'
-        }
-      })
+    // Make sure we have feedback text
+    if (!body || !body.feedback) {
+      return new Response(
+        JSON.stringify({ error: 'Missing feedback text in request body' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    const result = analyzeSentimentText(feedback)
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    })
+    // Analyze the sentiment
+    const result = analyzeSentiment(body.feedback);
+    
+    // Return the result
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({ 
-      error: "Failed to process request" 
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
-    })
+    console.error('Error in sentiment analysis function:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
-})
+});

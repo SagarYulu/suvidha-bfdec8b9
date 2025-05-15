@@ -88,7 +88,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   const handleApplyFilters = () => {
-    // Find the city name if a city is selected (instead of using the ID)
+    // Find the city name if a city is selected
     let cityName: string | undefined = undefined;
     
     if (city && city !== 'all-cities') {
@@ -116,21 +116,17 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     }
     
     // Log the filters for debugging
-    console.log("Applying filters:", {
+    const filters = {
       startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
       endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
       city: cityName,
       cluster: clusterName,
       role: roleName
-    });
+    };
     
-    onFilterChange({
-      startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
-      endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
-      city: cityName,
-      cluster: clusterName,
-      role: roleName
-    });
+    console.log("Applying filters:", filters);
+    
+    onFilterChange(filters);
   };
 
   const handleResetFilters = () => {
@@ -209,10 +205,10 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
           <Select 
             value={cluster} 
             onValueChange={setCluster}
-            disabled={!city}
+            disabled={!city || city === 'all-cities'}
           >
             <SelectTrigger>
-              <SelectValue placeholder={city ? "Select cluster" : "Select city first"} />
+              <SelectValue placeholder={city && city !== 'all-cities' ? "Select cluster" : "Select city first"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all-clusters">All Clusters</SelectItem>
