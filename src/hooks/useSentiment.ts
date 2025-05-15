@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -68,14 +69,14 @@ export const useSentiment = () => {
         setTags([
           { id: 'fb-1', name: 'Work-Life Balance', category: 'Wellness' },
           { id: 'fb-2', name: 'Career Growth', category: 'Development' },
-          { id: 'fb-3', name: 'Compensation', category: 'Benefits' },
+          { id: 'fb-3', name: 'Salary', category: 'Benefits' }, // Changed from Compensation
           { id: 'fb-4', name: 'Manager', category: 'Leadership' },
           { id: 'fb-5', name: 'Team', category: 'Work Environment' },
           { id: 'fb-6', name: 'Workload', category: 'Wellness' },
           { id: 'fb-7', name: 'Communication', category: 'Leadership' },
-          { id: 'fb-8', name: 'Equipment', category: 'Infrastructure' },
-          { id: 'fb-9', name: 'Training', category: 'Guiding' },
-          { id: 'fb-10', name: 'Company Policies', category: 'Organization' }
+          { id: 'fb-8', name: 'Work Place', category: 'Infrastructure' }, // Changed from Equipment
+          { id: 'fb-9', name: 'Training', category: 'Guiding' }
+          // Removed Company Policies
         ]);
       }
     }, 5000);

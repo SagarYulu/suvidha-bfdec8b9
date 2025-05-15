@@ -1,3 +1,4 @@
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState, useRef } from "react";
@@ -18,7 +19,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   children, 
   title,
   className,
-  bgColor
+  bgColor = "#2563EB" // Updated default color to match admin dashboard
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();

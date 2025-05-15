@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -268,7 +269,7 @@ const MobileSentimentForm: React.FC = () => {
                   key={tag.id}
                   className={cn(
                     "flex items-center space-x-2 rounded-md p-2 transition-all",
-                    isSelected ? "bg-white bg-opacity-25" : "bg-white bg-opacity-10"
+                    isSelected ? "bg-blue-600/50" : "bg-white bg-opacity-10"
                   )}
                   onClick={() => handleTagToggle(tag.name)}
                 >
@@ -278,7 +279,7 @@ const MobileSentimentForm: React.FC = () => {
                     onCheckedChange={() => handleTagToggle(tag.name)}
                     className={cn(
                       "border-2",
-                      isSelected ? "bg-white border-white" : "border-white"
+                      isSelected ? "bg-blue-600 border-blue-600" : "border-white"
                     )}
                   />
                   <label
@@ -307,7 +308,7 @@ const MobileSentimentForm: React.FC = () => {
         {selectedTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {selectedTags.map(tag => (
-              <div key={tag} className="bg-white bg-opacity-25 text-white text-xs rounded-full px-3 py-1 flex items-center">
+              <div key={tag} className="bg-blue-600/50 text-white text-xs rounded-full px-3 py-1 flex items-center">
                 {tag}
                 <button 
                   className="ml-1 hover:text-white/80" 

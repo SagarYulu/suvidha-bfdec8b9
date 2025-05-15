@@ -11,15 +11,15 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
-  // Background gradient for better aesthetics
-  const bgGradient = "linear-gradient(135deg, #33C3F0 0%, #00CEDE 100%)";
+  // Updated background gradient to match admin dashboard colors
+  const bgGradient = "linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)";
   
   // When used as a standalone page
   if (!isOpen && !onClose) {
     return (
       <MobileLayout 
         title="Feedback Matters" 
-        bgColor="#33C3F0"
+        bgColor="#2563EB"
       >
         <div 
           className="min-h-screen -mt-16 pt-16" 

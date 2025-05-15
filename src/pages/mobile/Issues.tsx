@@ -121,23 +121,23 @@ const MobileIssues = () => {
                 <h2 className="text-lg font-medium">Employee Details</h2>
               </div>
               
-              {/* Enhanced Feedback button */}
+              {/* Enhanced Feedback button - updated color to match admin dashboard */}
               <Button 
                 onClick={() => setSentimentDialogOpen(true)}
-                className="bg-[#F97316] hover:bg-orange-600 text-white flex items-center gap-2 relative animate-pulse"
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 relative animate-pulse"
               >
                 <MessageSquare className="h-4 w-4" />
                 How are you feeling today?
               </Button>
             </div>
             
-            {/* Feedback prompt banner that appears and disappears */}
+            {/* Feedback prompt banner that appears and disappears - updated color */}
             {showFeedbackPrompt && (
-              <div className="absolute -top-12 right-0 bg-[#F97316] text-white p-2 rounded-t-lg shadow-lg animate-bounce">
+              <div className="absolute -top-12 right-0 bg-blue-600 text-white p-2 rounded-t-lg shadow-lg animate-bounce">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Smile className="h-4 w-4" />
                   Share your feedback!
-                  <div className="absolute h-3 w-3 bg-[#F97316] rotate-45 -bottom-1.5 right-10"></div>
+                  <div className="absolute h-3 w-3 bg-blue-600 rotate-45 -bottom-1.5 right-10"></div>
                 </div>
               </div>
             )}
