@@ -4,6 +4,11 @@ import MobileLayout from '@/components/MobileLayout';
 import MobileSentimentForm from '@/components/mobile/sentiment/MobileSentimentForm';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
 
 interface MobileSentimentProps {
   isOpen?: boolean;

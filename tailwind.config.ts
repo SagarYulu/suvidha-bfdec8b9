@@ -90,12 +90,26 @@ export default {
 				'fade-in': {
 					'0%': { opacity: '0' },
 					'100%': { opacity: '1' }
-				}
+				},
+                'bike-ride': {
+                    '0%': { transform: 'translateX(-5px) rotate(0deg)' },
+                    '25%': { transform: 'translateX(0px) rotate(2deg)' },
+                    '50%': { transform: 'translateX(5px) rotate(0deg)' },
+                    '75%': { transform: 'translateX(0px) rotate(-2deg)' },
+                    '100%': { transform: 'translateX(-5px) rotate(0deg)' }
+                },
+                'pulse': {
+                    '0%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)' },
+                    '70%': { boxShadow: '0 0 0 10px rgba(59, 130, 246, 0)' },
+                    '100%': { boxShadow: '0 0 0 0 rgba(59, 130, 246, 0)' }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.5s ease-out'
+				'fade-in': 'fade-in 0.5s ease-out',
+                'bike-ride': 'bike-ride 3s infinite ease-in-out',
+                'pulse': 'pulse 2s infinite'
 			}
 		}
 	},
