@@ -35,13 +35,21 @@ export const moodTooltipFormatter = (value: number, name: string) => {
  * @returns Formatted value as string or number
  */
 export const labelFormatter = (value: any): string | number => {
-  // If the value is an array, convert the first item to a string
-  if (Array.isArray(value)) {
-    return String(value[0] || '0');
+  // Check if the value is undefined or null and return a default value
+  if (value === undefined || value === null) {
+    return '0';
   }
   
-  // For non-arrays, ensure the return is either string or number
-  return typeof value === 'string' || typeof value === 'number' 
-    ? value 
-    : String(value || '0');
+  // If the value is an array, convert the first item to a string
+  if (Array.isArray(value)) {
+    return value.length > 0 ? String(value[0]) : '0';
+  }
+  
+  // For numbers and strings, return directly
+  if (typeof value === 'number' || typeof value === 'string') {
+    return value;
+  }
+  
+  // For other types, convert to string
+  return String(value);
 };
