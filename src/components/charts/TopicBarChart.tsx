@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   LabelList
 } from 'recharts';
+import { labelFormatter } from './ChartUtils';
 
 interface TopicBarChartProps {
   data: Array<{
@@ -20,24 +21,6 @@ interface TopicBarChartProps {
 }
 
 const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
-  // Create a type-safe formatter function
-  const safeFormatter = (value: any): string | number => {
-    // Handle null/undefined
-    if (value === undefined || value === null) return '0';
-    
-    // Handle arrays by extracting first value
-    if (Array.isArray(value)) {
-      return value.length > 0 ? (
-        typeof value[0] === 'number' || typeof value[0] === 'string' ? 
-          value[0] : String(value[0])
-      ) : '0';
-    }
-    
-    // Return primitive values directly
-    return typeof value === 'number' || typeof value === 'string' ? 
-      value : String(value);
-  };
-
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -85,7 +68,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10}
-              formatter={safeFormatter}
+              formatter={labelFormatter}
             />
           </Bar>
         </BarChart>
