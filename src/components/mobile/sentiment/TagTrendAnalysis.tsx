@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, TrendingUp, BarChart2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -226,7 +227,10 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           position="right" 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                           offset={10}
-                          formatter={(value: any) => String(value)}
+                          formatter={(value) => {
+                            // Ensure value is treated as a single value, not an array
+                            return typeof value === 'number' ? String(value) : String(value);
+                          }}
                         />
                       </Bar>
                     </BarChart>
