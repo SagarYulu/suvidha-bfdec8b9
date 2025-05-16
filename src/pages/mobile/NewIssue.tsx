@@ -15,7 +15,6 @@ const MobileNewIssue = () => {
   const [selectedSubType, setSelectedSubType] = useState("");
   
   const isBankAccountChange = selectedType === "personal" && selectedSubType === "bank-account";
-  const isOthersType = selectedType === "others";
   
   const form = useForm();
 
@@ -39,7 +38,7 @@ const MobileNewIssue = () => {
             resetForm={resetForm}
           />
 
-          {(selectedType && selectedSubType) || isOthersType ? (
+          {selectedType && selectedSubType ? (
             <>
               {isBankAccountChange ? (
                 <BankAccountChangeForm 
@@ -51,10 +50,9 @@ const MobileNewIssue = () => {
               ) : (
                 <StandardIssueForm 
                   employeeUuid={authState.user?.id || ""}
-                  selectedType={isOthersType ? "others" : selectedType}
-                  selectedSubType={isOthersType ? "general" : selectedSubType}
+                  selectedType={selectedType}
+                  selectedSubType={selectedSubType}
                   onSuccess={handleSuccess}
-                  skipTypeValidation={isOthersType}
                 />
               )}
             </>
