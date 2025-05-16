@@ -81,7 +81,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10} 
-              formatter={formatLabel as (value: any) => string | number}
+              formatter={(value) => formatLabel(value)}
             />
           </Bar>
         </BarChart>
