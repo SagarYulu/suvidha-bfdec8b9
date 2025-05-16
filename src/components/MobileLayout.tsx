@@ -19,7 +19,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   children, 
   title,
   className,
-  bgColor = "bg-yulu-dashboard-blue" // Updated to use dashboard blue color
+  bgColor = "bg-yulu-dashboard-blue" // Using dashboard blue color
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
@@ -28,12 +28,13 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const accessCheckPerformed = useRef(false);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  // Force loading to stop after 5 seconds even if checks are still running
-  // This prevents users from getting stuck on the loading screen
+  // Force loading to stop after 3 seconds (reduced from 5s)
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log("Loading timeout reached, forcing continuation");
       setLoadingTimeout(true);
-    }, 5000);
+      setIsAccessChecked(true); // Mark access checked when timeout occurs
+    }, 3000);
     
     return () => clearTimeout(timer);
   }, []);
@@ -56,52 +57,58 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
         return;
       }
       
-      // Explicitly defined dashboard user emails that should never access mobile app
-      const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
-      
-      // Dashboard user roles that should be redirected to admin dashboard
-      const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
-      
-      const userEmail = authState.user?.email || '';
-      const userRole = authState.role || '';
-      
-      console.log("User access check: email =", userEmail, "role =", userRole);
-      
-      // Check if email is in restricted list
-      if (restrictedEmails.includes(userEmail)) {
-        console.log("Restricted email detected in MobileLayout:", userEmail);
-        toast({
-          title: "Access Denied",
-          description: "You don't have access to the mobile app. Please use the admin dashboard.",
-          variant: "destructive"
-        });
-        await logout();
-        navigate("/admin/login", { replace: true });
-        return;
+      try {
+        // Explicitly defined dashboard user emails that should never access mobile app
+        const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+        
+        // Dashboard user roles that should be redirected to admin dashboard
+        const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+        
+        const userEmail = authState.user?.email || '';
+        const userRole = authState.role || '';
+        
+        console.log("User access check: email =", userEmail, "role =", userRole);
+        
+        // Check if email is in restricted list
+        if (restrictedEmails.includes(userEmail)) {
+          console.log("Restricted email detected in MobileLayout:", userEmail);
+          toast({
+            title: "Access Denied",
+            description: "You don't have access to the mobile app. Please use the admin dashboard.",
+            variant: "destructive"
+          });
+          await logout();
+          navigate("/admin/login", { replace: true });
+          return;
+        }
+        
+        // Check if user has a dashboard role
+        if (dashboardUserRoles.includes(userRole)) {
+          console.log("Dashboard role detected in MobileLayout:", userRole);
+          toast({
+            title: "Access Denied",
+            description: "You don't have access to the mobile app. Please use the admin dashboard.",
+            variant: "destructive"
+          });
+          await logout();
+          navigate("/admin/login", { replace: true });
+          return;
+        }
+        
+        // Regular employees are allowed through
+        console.log("User authorized for mobile app access:", authState.user);
+      } catch (error) {
+        console.error("Error during access check:", error);
+      } finally {
+        // Always mark access as checked, even if there was an error
+        setIsAccessChecked(true);
       }
-      
-      // Check if user has a dashboard role
-      if (dashboardUserRoles.includes(userRole)) {
-        console.log("Dashboard role detected in MobileLayout:", userRole);
-        toast({
-          title: "Access Denied",
-          description: "You don't have access to the mobile app. Please use the admin dashboard.",
-          variant: "destructive"
-        });
-        await logout();
-        navigate("/admin/login", { replace: true });
-        return;
-      }
-      
-      // Regular employees are allowed through
-      console.log("User authorized for mobile app access:", authState.user);
-      setIsAccessChecked(true);
     };
     
-    // Add short delay to checkUserAccess to avoid race conditions
+    // Reduced delay to checkUserAccess
     const timer = setTimeout(() => {
       checkUserAccess();
-    }, 100);
+    }, 50);
     
     return () => clearTimeout(timer);
   }, [authState, navigate, checkAccess, logout]);
@@ -111,12 +118,12 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     navigate("/mobile/login", { replace: true });
   };
 
-  // Show loading state while checking authorization, but don't get stuck forever
+  // Show loading state while checking authorization
   // Either we've checked access, or the timeout has occurred
-  if ((!authState.isAuthenticated || !isAccessChecked) && !loadingTimeout) {
+  if ((!isAccessChecked && !authState.isAuthenticated) && !loadingTimeout) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue mb-4"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-yulu-dashboard-blue mb-4"></div>
         <p className="text-sm text-gray-500">Loading your profile...</p>
       </div>
     );

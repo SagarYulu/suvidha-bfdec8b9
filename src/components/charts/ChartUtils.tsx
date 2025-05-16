@@ -10,7 +10,7 @@ export const SENTIMENT_COLORS = {
 };
 
 // Helper function to get sentiment color based on name with safe fallback
-export const getSentimentColor = (name: string): string => {
+export const getSentimentColor = (name: string | undefined): string => {
   if (!name) return CHART_COLORS[0]; // Default color if name is undefined
   
   const lowerName = name.toLowerCase();
@@ -101,5 +101,16 @@ export const hasData = (data: any[] | null | undefined): boolean => {
 
 // Helper to safely get a color from CHART_COLORS by index
 export const getChartColorByIndex = (index: number): string => {
+  if (index === undefined || index === null) return CHART_COLORS[0];
   return CHART_COLORS[index % CHART_COLORS.length];
+};
+
+/**
+ * Creates placeholder chart data to avoid rendering errors
+ * @returns Safe placeholder data
+ */
+export const getPlaceholderChartData = () => {
+  return [
+    { name: 'No Data', value: 1 }
+  ];
 };
