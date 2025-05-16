@@ -1,8 +1,8 @@
 
 import React from 'react';
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -28,58 +28,42 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
         <div className="h-64 overflow-x-auto">
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
+              <BarChart
                 data={data}
-                margin={{ top: 5, right: 20, left: 20, bottom: 30 }}
+                layout="vertical"
+                margin={{ top: 5, right: 20, left: 60, bottom: 30 }}
               >
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis 
-                  dataKey="name"
+                  type="number"
                   tick={{ fill: '#6B7280', fontSize: 11 }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
-                  height={60}
-                  angle={-45}
-                  textAnchor="end"
-                  interval={0}
+                  label={{ value: 'Mentions', position: 'insideBottom', offset: -5, fontSize: 11 }}
                 />
                 <YAxis 
+                  type="category"
+                  dataKey="name"
                   tick={{ fontSize: 11, fill: '#6B7280' }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
+                  width={60}
+                  tickFormatter={(value) => {
+                    // Ensure labels don't get too long on mobile
+                    return value.length > 10 ? `${value.substring(0, 8)}...` : value;
+                  }}
                 />
                 <Tooltip 
                   formatter={(value: number) => [`${value} mentions`, "Count"]}
                   contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
                 />
-                <defs>
-                  <linearGradient
-                    id="colorCount"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop 
-                      offset="5%"
-                      stopColor="#3B82F6"
-                      stopOpacity={0.8}
-                    />
-                    <stop 
-                      offset="95%"
-                      stopColor="#3B82F6"
-                      stopOpacity={0.2}
-                    />
-                  </linearGradient>
-                </defs>
-                <Area 
-                  type="monotone" 
+                <Bar 
                   dataKey="count" 
-                  stroke="#3B82F6"
-                  fill="url(#colorCount)"
                   name="Mentions"
+                  fill="#3B82F6"
+                  background={{ fill: '#eee' }}
                 />
-              </AreaChart>
+              </BarChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full">
