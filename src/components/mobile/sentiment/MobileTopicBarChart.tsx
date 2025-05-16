@@ -66,7 +66,7 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                     position="right" 
                     style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                     offset={10}
-                    formatter={(value: any) => typeof value === 'number' ? String(value) : String(value)}
+                    formatter={(value) => (Array.isArray(value) ? String(value[0] || 0) : String(value))}
                   />
                 </Bar>
               </BarChart>
