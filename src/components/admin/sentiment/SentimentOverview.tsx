@@ -269,46 +269,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
         </CardContent>
       </Card>
 
-      {/* Rating Distribution with clearer labels */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Mood Distribution</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={moodData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="rating" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value, name) => [`${value} responses`, "Count"]}
-                  labelFormatter={(label) => `Mood: ${label}`}
-                />
-                <Bar 
-                  dataKey="count" 
-                  name="Number of Responses"
-                >
-                  {moodData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`}
-                      fill={
-                        entry.score <= 2 ? "#F44336" : // Red for negative
-                        entry.score === 3 ? "#FFC107" : // Yellow for neutral
-                        "#4CAF50" // Green for positive
-                      }
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Top Feedback Topics with clearer labeling */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
