@@ -12,6 +12,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { labelFormatter } from '@/components/charts/ChartUtils';
 
 interface MobileTopicBarChartProps {
   data: Array<{
@@ -21,18 +22,6 @@ interface MobileTopicBarChartProps {
 }
 
 const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
-  // Define a formatter function that guarantees string or number return type
-  const formatLabel = (value: any): string | number => {
-    // Handle array case - extract first value and convert to string
-    if (Array.isArray(value)) {
-      return value.length > 0 ? String(value[0]) : '0';
-    }
-    // Handle non-array case - ensure string or number
-    return typeof value === 'string' || typeof value === 'number' 
-      ? value 
-      : String(value || '0');
-  };
-
   return (
     <Card className="bg-white/90">
       <CardHeader>
@@ -78,7 +67,7 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                     position="right" 
                     style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                     offset={10}
-                    formatter={(value) => formatLabel(value)}
+                    formatter={labelFormatter}
                   />
                 </Bar>
               </BarChart>
