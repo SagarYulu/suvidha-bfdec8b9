@@ -21,17 +21,16 @@ interface TopicBarChartProps {
 }
 
 const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
-  // Define a more specific formatter function for this component
-  // This formatter must return string | number to satisfy LabelList's type constraints
+  // Define a formatter function that guarantees string or number return type
   const formatLabel = (value: any): string | number => {
-    // If it's an array, convert the first value to string
+    // Handle array case - extract first value and convert to string
     if (Array.isArray(value)) {
-      return value && value.length > 0 ? String(value[0] || 0) : '0';
+      return value.length > 0 ? String(value[0]) : '0';
     }
-    // If it's already a string or number, return as is, otherwise convert to string
+    // Handle non-array case - ensure string or number
     return typeof value === 'string' || typeof value === 'number' 
       ? value 
-      : String(value);
+      : String(value || '0');
   };
 
   return (
@@ -81,7 +80,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10} 
-              formatter={formatLabel as (value: any) => string | number}
+              formatter={formatLabel}
             />
           </Bar>
         </BarChart>
