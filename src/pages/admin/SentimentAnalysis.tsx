@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
@@ -17,13 +16,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   ResponsiveContainer, 
+  ComposedChart,
   BarChart, 
   Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend 
+  Legend,
+  LabelList,
+  Cell
 } from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
@@ -215,6 +217,39 @@ const SentimentAnalysis: React.FC = () => {
     });
   };
   
+  // Custom tooltip for the topic mood chart
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const topic = payload[0].payload;
+      const total = topic.lowMood + topic.neutralMood + topic.highMood;
+      
+      return (
+        <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
+          <p className="font-medium text-gray-900">{label}</p>
+          <div className="grid gap-1 mt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-red-500 rounded-sm" />
+              <p className="text-sm">Negative (1-2): {topic.lowMood} ({Math.round(topic.lowMood/total*100)}%)</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-yellow-500 rounded-sm" />
+              <p className="text-sm">Neutral (3): {topic.neutralMood} ({Math.round(topic.neutralMood/total*100)}%)</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-green-500 rounded-sm" />
+              <p className="text-sm">Positive (4-5): {topic.highMood} ({Math.round(topic.highMood/total*100)}%)</p>
+            </div>
+            <div className="mt-1 pt-1 border-t border-gray-200">
+              <p className="text-sm font-medium">Total mentions: {total}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+  
   return (
     <AdminLayout 
       title="Sentiment Analysis" 
@@ -268,7 +303,7 @@ const SentimentAnalysis: React.FC = () => {
         </div>
       )}
 
-      {/* Combined Topic & Mood Chart */}
+      {/* Improved Topic & Mood Chart */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Topic Mood Analysis</CardTitle>
@@ -277,53 +312,80 @@ const SentimentAnalysis: React.FC = () => {
           {sentimentData && sentimentData.length > 0 ? (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <ComposedChart
                   data={getTopicMoodData()}
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fontSize: 12 }}
+                    tickLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                  />
                   <YAxis 
                     type="category" 
                     dataKey="name" 
                     tick={{ fontSize: 12 }}
                     width={100}
+                    tickLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
                   />
-                  <Tooltip 
-                    formatter={(value, name) => {
-                      if (name === "highMood") return [`${value} positive mentions`, "Positive (4-5)"];
-                      if (name === "neutralMood") return [`${value} neutral mentions`, "Neutral (3)"];
-                      if (name === "lowMood") return [`${value} negative mentions`, "Negative (1-2)"];
-                      return [`${value}`, name];
-                    }}
-                    labelFormatter={(label) => `Topic: ${label}`}
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    verticalAlign="top" 
+                    height={36} 
+                    formatter={(value) => {
+                      if (value === "lowMood") return "Negative (1-2)";
+                      if (value === "neutralMood") return "Neutral (3)";
+                      if (value === "highMood") return "Positive (4-5)";
+                      return value;
+                    }} 
                   />
-                  <Legend formatter={(value) => {
-                    if (value === "lowMood") return "Negative (1-2)";
-                    if (value === "neutralMood") return "Neutral (3)";
-                    if (value === "highMood") return "Positive (4-5)";
-                    return value;
-                  }} />
                   <Bar 
                     dataKey="lowMood" 
                     name="lowMood" 
                     stackId="a" 
-                    fill="#F44336" // Red for negative
-                  />
+                    fill="#F87171" // Lighter red
+                    radius={[0, 0, 0, 0]}
+                  >
+                    <LabelList 
+                      dataKey="lowMood" 
+                      position="center" 
+                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
+                      formatter={(value: any) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
                   <Bar 
                     dataKey="neutralMood" 
                     name="neutralMood" 
                     stackId="a" 
-                    fill="#FFC107" // Yellow for neutral
-                  />
+                    fill="#FBBF24" // Lighter yellow
+                    radius={[0, 0, 0, 0]}
+                  >
+                    <LabelList 
+                      dataKey="neutralMood" 
+                      position="center" 
+                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
+                      formatter={(value: any) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
                   <Bar 
                     dataKey="highMood" 
                     name="highMood" 
                     stackId="a" 
-                    fill="#4CAF50" // Green for positive
-                  />
-                </BarChart>
+                    fill="#4ADE80" // Lighter green
+                    radius={[0, 0, 0, 0]}
+                  >
+                    <LabelList 
+                      dataKey="highMood" 
+                      position="center" 
+                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
+                      formatter={(value: any) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           ) : (

@@ -14,7 +14,12 @@ import {
   ResponsiveContainer,
   CartesianGrid,
   Tooltip,
-  Legend
+  Legend,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 
@@ -23,11 +28,11 @@ interface TagTrendAnalysisProps {
   isLoading: boolean;
 }
 
-const COLORS = ['#1E40AF', '#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE'];
+const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#F0F9FF'];
 const SENTIMENT_COLORS = {
-  'positive': '#4CAF50',
-  'neutral': '#FFC107',
-  'negative': '#F44336'
+  'positive': '#4ADE80',  // Lighter green
+  'neutral': '#FBBF24',   // Lighter yellow
+  'negative': '#F87171'   // Lighter red
 };
 
 const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) => {
@@ -35,6 +40,7 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
   const [tagDistribution, setTagDistribution] = useState<any[]>([]);
   const [topTags, setTopTags] = useState<any[]>([]);
   const [sentimentDistribution, setSentimentDistribution] = useState<any[]>([]);
+  const [radarData, setRadarData] = useState<any[]>([]);
 
   useEffect(() => {
     if (!isLoading && data && data.length > 0) {
@@ -73,6 +79,13 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
     setTopTags(sortedTags.slice(0, 10).map(item => ({
       name: item.name,
       count: item.value
+    })));
+    
+    // Create radar data for top 5 tags
+    setRadarData(sortedTags.slice(0, 5).map(item => ({
+      subject: item.name,
+      count: item.value,
+      fullMark: Math.max(...sortedTags.map(t => t.value)) + 2
     })));
     
     // Process sentiment distribution
@@ -131,31 +144,34 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
         </TabsList>
         
         <TabsContent value="tags" className="space-y-4">
+          {/* Radar chart for mobile */}
           <Card className="bg-white/90">
             <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-800">Top Feedback Topics</CardTitle>
+              <CardTitle className="text-lg font-medium text-gray-800">Topic Analysis</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-64">
-                {tagDistribution.length > 0 ? (
+                {radarData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={tagDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {tagDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
+                    <RadarChart outerRadius={90} width={500} height={250} data={radarData}>
+                      <PolarGrid stroke="#E5E7EB" />
+                      <PolarAngleAxis 
+                        dataKey="subject" 
+                        tick={{ fill: '#6B7280', fontSize: 11 }}
+                      />
+                      <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={{ fill: '#6B7280', fontSize: 10 }} />
+                      <Radar
+                        name="Topic Frequency"
+                        dataKey="count"
+                        stroke="#2563EB"
+                        fill="#3B82F6"
+                        fillOpacity={0.6}
+                      />
+                      <Tooltip
+                        formatter={(value) => [`${value} mentions`, "Frequency"]}
+                      />
+                      <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                    </RadarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full">
@@ -179,21 +195,33 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                       layout="vertical"
                       margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
+                      <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                      <XAxis 
+                        type="number"
+                        tick={{ fill: '#6B7280', fontSize: 11 }}
+                        tickLine={{ stroke: '#e5e7eb' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
+                      />
                       <YAxis 
                         type="category" 
                         dataKey="name" 
-                        tick={{ fontSize: 11 }}
+                        tick={{ fontSize: 11, fill: '#6B7280' }}
+                        tickLine={{ stroke: '#e5e7eb' }}
+                        axisLine={{ stroke: '#e5e7eb' }}
                       />
                       <Tooltip 
                         formatter={(value) => [`${value} mentions`, "Count"]}
+                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
                       />
-                      <Bar 
-                        dataKey="count" 
-                        name="Mentions" 
-                        fill="#1E40AF"
-                      />
+                      <Bar dataKey="count" name="Mentions">
+                        {topTags.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={`hsl(${210 - index * (150 / topTags.length)}, 80%, 55%)`}
+                            radius={[0, 4, 4, 0]}
+                          />
+                        ))}
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -222,8 +250,10 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                         cy="50%"
                         labelLine={false}
                         outerRadius={80}
+                        innerRadius={40}
                         fill="#8884d8"
                         dataKey="value"
+                        paddingAngle={3}
                         label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                       >
                         {sentimentDistribution.map((entry, index) => (
@@ -235,10 +265,15 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                               entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
                               COLORS[index % COLORS.length]
                             } 
+                            stroke="#FFFFFF"
+                            strokeWidth={2}
                           />
                         ))}
                       </Pie>
-                      <Tooltip />
+                      <Tooltip
+                        formatter={(value) => [`${value} responses`, "Count"]}
+                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (

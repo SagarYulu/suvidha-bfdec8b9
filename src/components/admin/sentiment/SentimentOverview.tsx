@@ -16,7 +16,12 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
 import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
@@ -34,9 +39,9 @@ interface SentimentOverviewProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 const SENTIMENT_COLORS = {
-  'positive': '#4CAF50',
-  'neutral': '#FFC107',
-  'negative': '#F44336'
+  'positive': '#4ADE80',  // Lighter green
+  'neutral': '#FBBF24',   // Lighter yellow
+  'negative': '#F87171'   // Lighter red
 };
 
 const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
@@ -154,6 +159,32 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // Generate radar chart data for tag analysis
+  const radarData = tagData.slice(0, 5).map(item => ({
+    subject: item.name,
+    count: item.count,
+    fullMark: Math.max(...tagData.map(t => t.count)) + 2
+  }));
+
+  // Custom formatter for the line chart tooltips
+  const moodTooltipFormatter = (value: number, name: string) => {
+    const moodLabels: Record<number, string> = {
+      1: 'Very Low',
+      2: 'Low',
+      3: 'Neutral',
+      4: 'Good',
+      5: 'Excellent'
+    };
+    
+    const closestMood = Object.keys(moodLabels)
+      .map(Number)
+      .reduce((prev, curr) => {
+        return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
+      }, 3);
+      
+    return [`${value} (${moodLabels[closestMood]})`, "Mood Rating"];
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Employee Mood Trend Over Time */}
@@ -168,10 +199,13 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 data={timeSeriesData}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis 
                   dataKey="date"
                   tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                  tick={{ fill: '#6B7280', fontSize: 12 }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
                 />
                 <YAxis 
                   domain={[1, 5]} 
@@ -184,21 +218,30 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       4: "Good", 
                       5: "Excellent"
                     };
-                    return labels[value as keyof typeof labels] || value;
+                    return value.toString();
                   }}
+                  tick={{ fill: '#6B7280', fontSize: 12 }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
                 />
                 <Tooltip 
-                  formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
-                  labelFormatter={(label) => `Date: ${format(new Date(label), 'yyyy-MM-dd')}`}
+                  formatter={moodTooltipFormatter}
+                  labelFormatter={(label) => `Date: ${format(new Date(label), 'MMMM dd, yyyy')}`}
+                  contentStyle={{ 
+                    borderRadius: '8px', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+                    border: '1px solid #e5e7eb' 
+                  }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ paddingTop: '10px' }} />
                 <Line
                   type="monotone"
                   dataKey="rating"
-                  stroke="#8884d8"
-                  name="Employee Mood Rating (1-5)"
-                  activeDot={{ r: 8 }}
-                  strokeWidth={2}
+                  stroke="#3B82F6"
+                  name="Employee Mood Rating"
+                  strokeWidth={3}
+                  dot={{ r: 6, fill: '#3B82F6', strokeWidth: 2, stroke: '#FFFFFF' }}
+                  activeDot={{ r: 8, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -219,11 +262,13 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                   data={sentimentPieData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   outerRadius={80}
+                  innerRadius={40}
                   fill="#8884d8"
                   dataKey="value"
+                  paddingAngle={3}
+                  labelLine={{ strokeWidth: 1, stroke: '#9CA3AF' }}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
                   {sentimentPieData.map((entry, index) => (
                     <Cell 
@@ -234,20 +279,72 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                         entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
                         COLORS[index % COLORS.length]
                       } 
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`${value} responses`, `${value} responses`]} />
+                <Tooltip 
+                  formatter={(value) => [`${value} responses`, `${value} responses`]} 
+                  contentStyle={{ 
+                    borderRadius: '8px', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+                    border: '1px solid #e5e7eb' 
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
+      {/* Radar chart for top tags */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Feedback Topics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {radarData.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart outerRadius={90} width={730} height={250} data={radarData}>
+                  <PolarGrid stroke="#E5E7EB" />
+                  <PolarAngleAxis 
+                    dataKey="subject" 
+                    tick={{ fill: '#6B7280', fontSize: 11 }}
+                  />
+                  <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={{ fill: '#6B7280', fontSize: 10 }} />
+                  <Radar
+                    name="Topic Frequency"
+                    dataKey="count"
+                    stroke="#2563EB"
+                    fill="#3B82F6"
+                    fillOpacity={0.6}
+                  />
+                  <Tooltip
+                    formatter={(value) => [`${value} mentions`, "Frequency"]}
+                    contentStyle={{ 
+                      borderRadius: '8px', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+                      border: '1px solid #e5e7eb' 
+                    }}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No feedback topics available for the selected filters.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Top Feedback Topics with clearer labeling */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
-          <CardTitle>Top Feedback Topics</CardTitle>
+          <CardTitle>Topic Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           {tagData.length === 0 ? (
@@ -263,22 +360,47 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                   layout="vertical"
                   margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fill: '#6B7280', fontSize: 12 }}
+                    tickLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
+                  />
                   <YAxis 
                     type="category" 
                     dataKey="name" 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    tickLine={{ stroke: '#e5e7eb' }}
+                    axisLine={{ stroke: '#e5e7eb' }}
                   />
                   <Tooltip 
                     formatter={(value) => [`${value} mentions`, "Mentions"]}
                     labelFormatter={(label) => `Topic: ${label}`}
+                    contentStyle={{ 
+                      borderRadius: '8px', 
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
+                      border: '1px solid #e5e7eb' 
+                    }}
                   />
                   <Bar 
                     dataKey="count" 
                     name="Times Mentioned"
-                    fill="#00C49F"
-                  />
+                  >
+                    {tagData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={`hsl(${210 - index * (150 / tagData.length)}, 80%, 55%)`} 
+                        radius={[0, 4, 4, 0]}
+                      />
+                    ))}
+                    <LabelList 
+                      dataKey="count" 
+                      position="right" 
+                      style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
+                      offset={10} 
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
