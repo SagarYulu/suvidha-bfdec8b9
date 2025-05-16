@@ -35,11 +35,13 @@ export const moodTooltipFormatter = (value: number, name: string) => {
  * @returns Formatted value as string or number
  */
 export const labelFormatter = (value: any): string | number => {
-  // Handle array values (common in recharts) by extracting first element
+  // If the value is an array, convert the first item to a string
   if (Array.isArray(value)) {
-    // Return the first element as string if it exists, otherwise '0'
     return String(value[0] || '0');
   }
-  // For non-arrays, ensure return is string or number
-  return typeof value === 'string' || typeof value === 'number' ? value : String(value || '0');
+  
+  // For non-arrays, ensure the return is either string or number
+  return typeof value === 'string' || typeof value === 'number' 
+    ? value 
+    : String(value || '0');
 };
