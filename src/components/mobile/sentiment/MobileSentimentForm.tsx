@@ -1,23 +1,19 @@
-
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useSentiment } from '@/hooks/useSentiment';
-import { Loader2, Info, CheckCircle, BarChart2, ChevronRight } from 'lucide-react';
+import { Loader2, Info, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchAllSentiment } from '@/services/sentimentService';
 import { 
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TagTrendAnalysis from './TagTrendAnalysis';
 
 interface MobileSentimentFormProps {
   showTrendAnalysis?: boolean;
@@ -44,16 +40,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
   const [animateHeading, setAnimateHeading] = useState(true);
   // State for showing user metadata
   const [showUserMetadata, setShowUserMetadata] = useState(false);
-  // State for showing trend analysis
-  const [showTrends, setShowTrends] = useState(false);
-  // State for sentiment data
-  const [sentimentData, setSentimentData] = useState<any[]>([]);
-  // State for loading sentiment data
-  const [isLoadingSentiment, setIsLoadingSentiment] = useState(false);
   
-  // Active tab
-  const [activeTab, setActiveTab] = useState('form');
-
   // Auto-analyze feedback when the user stops typing
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -74,46 +61,10 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
     return () => clearTimeout(timer);
   }, []);
 
-  // Load sentiment data for trend analysis when tab is changed
-  useEffect(() => {
-    if (activeTab === 'trends' && sentimentData.length === 0) {
-      loadSentimentData();
-    }
-  }, [activeTab]);
-
-  // Load sentiment data
-  const loadSentimentData = async () => {
-    try {
-      setIsLoadingSentiment(true);
-      // Fetch sentiment data for the last 30 days
-      const filters = {
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        endDate: new Date().toISOString()
-      };
-      
-      const data = await fetchAllSentiment(filters);
-      setSentimentData(data);
-    } catch (error) {
-      console.error("Error loading sentiment data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load trend analysis data. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoadingSentiment(false);
-    }
-  };
-
   // For custom submit with error handling
   const submitWithErrorHandling = async () => {
     try {
       await handleSubmit();
-      // Switch to trends tab after successful submission
-      if (showTrendAnalysis) {
-        setActiveTab('trends');
-        loadSentimentData();
-      }
     } catch (error) {
       console.error("Error submitting feedback:", error);
       toast({
@@ -184,8 +135,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
   
   const metadata = getUserMetadata();
 
-  // Render feedback form UI
-  const renderFeedbackForm = () => (
+  return (
     <div className="p-4 flex flex-col gap-4 pb-32 max-h-[90vh] overflow-y-auto">
       <div className="text-center">
         <h2 className={cn(
@@ -379,68 +329,6 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
           </div>
         )}
       </div>
-    </div>
-  );
-
-  // If showing trend analysis option
-  if (showTrendAnalysis) {
-    return (
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full mb-2 bg-white/25 p-1">
-          <TabsTrigger value="form" className="flex-1 text-white data-[state=active]:bg-white data-[state=active]:text-blue-700">
-            Feedback Form
-          </TabsTrigger>
-          <TabsTrigger value="trends" className="flex-1 text-white data-[state=active]:bg-white data-[state=active]:text-blue-700">
-            Trend Analysis
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="form">
-          {renderFeedbackForm()}
-          
-          {/* Fixed Submit Button at bottom for form tab */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
-            <Button 
-              className="w-full bg-white hover:bg-white/90 text-yulu-dashboard-blue hover:text-yulu-dashboard-blue text-lg font-medium py-6 rounded-xl shadow-lg"
-              onClick={submitWithErrorHandling}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Submit Feedback
-                </>
-              )}
-            </Button>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="trends" className="h-full">
-          <TagTrendAnalysis data={sentimentData} isLoading={isLoadingSentiment} />
-          
-          {/* Fixed Back Button at bottom for trends tab */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
-            <Button 
-              className="w-full bg-white hover:bg-white/90 text-yulu-dashboard-blue hover:text-yulu-dashboard-blue text-lg font-medium py-6 rounded-xl shadow-lg"
-              onClick={() => setActiveTab('form')}
-            >
-              Back to Feedback Form
-            </Button>
-          </div>
-        </TabsContent>
-      </Tabs>
-    );
-  }
-
-  // Regular form without trend analysis
-  return (
-    <>
-      {renderFeedbackForm()}
       
       {/* Fixed Submit Button at bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
@@ -462,7 +350,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
           )}
         </Button>
       </div>
-    </>
+    </div>
   );
 };
 

@@ -48,7 +48,7 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
           </button>
           <h2 className="text-xl font-semibold text-center text-white pt-4">Feedback Matters</h2>
           <div className="h-[calc(100%-40px)] overflow-hidden">
-            <MobileSentimentForm showTrendAnalysis={true} />
+            <MobileSentimentForm />
           </div>
         </div>
       </DialogContent>
