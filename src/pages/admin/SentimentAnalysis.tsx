@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
@@ -14,8 +13,19 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ComparisonModeDropdown, { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Bar,
+  LabelList
+} from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
   const [filters, setFilters] = useState<{
