@@ -226,10 +226,13 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           position="right" 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                           offset={10}
-                          formatter={(value: any): string => {
+                          formatter={(value: any) => {
+                            // This is necessary to handle both single values and arrays
                             if (Array.isArray(value)) {
+                              // Convert the first element to a string, or return '0' if empty
                               return String(value[0] || 0);
                             }
+                            // Convert the value to a string
                             return String(value);
                           }}
                         />
