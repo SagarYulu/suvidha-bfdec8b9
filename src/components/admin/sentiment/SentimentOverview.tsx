@@ -401,12 +401,12 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
                       formatter={(value: any): string | number => {
-                        // Fix: Explicitly handle array type and ensure we return string | number
                         if (Array.isArray(value)) {
-                          return String(value[0] || 0); // Convert first item to string
+                          // Convert only the first element to a string, not the whole array
+                          return String(value[0] || 0);
                         }
-                        // If it's already a string or number, return it directly
-                        return value;
+                        // Return the value directly if it's already a string or number
+                        return typeof value === 'string' || typeof value === 'number' ? value : String(value);
                       }}
                     />
                   </Bar>

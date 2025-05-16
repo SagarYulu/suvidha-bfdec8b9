@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Loader2, TrendingUp, BarChart2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -228,13 +227,10 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                           offset={10}
                           formatter={(value: any): string | number => {
-                            // Fix: Properly handle potential array values and always return string | number
                             if (Array.isArray(value)) {
-                              // Convert the first element to a string, or return '0' if empty
                               return String(value[0] || 0);
                             }
-                            // If it's already a string or number, return it directly
-                            return value;
+                            return typeof value === 'string' || typeof value === 'number' ? value : String(value);
                           }}
                         />
                       </Bar>
@@ -251,6 +247,7 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
         </TabsContent>
         
         <TabsContent value="sentiment" className="space-y-4">
+          {/* Sentiment Distribution Card */}
           <Card className="bg-white/90">
             <CardHeader>
               <CardTitle className="text-lg font-medium text-gray-800">Sentiment Distribution</CardTitle>
@@ -301,6 +298,7 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
             </CardContent>
           </Card>
           
+          {/* About This Data Card */}
           <Card className="bg-white/90">
             <CardHeader className="pb-0">
               <CardTitle className="text-lg font-medium text-gray-800">About This Data</CardTitle>
