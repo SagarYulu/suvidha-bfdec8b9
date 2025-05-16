@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   LabelList
 } from 'recharts';
-import { labelFormatter } from './ChartUtils';
+import { labelFormatter, CHART_COLORS } from './ChartUtils';
 
 interface TopicBarChartProps {
   data: Array<{
