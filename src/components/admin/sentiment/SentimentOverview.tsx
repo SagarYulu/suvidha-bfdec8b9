@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
@@ -400,12 +399,13 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       position="right" 
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
-                      formatter={(value: any): string | number => {
+                      formatter={(value: any) => {
                         if (Array.isArray(value)) {
-                          // Convert only the first element to a string, not the whole array
+                          // When value is an array, convert the first element to a string
                           return String(value[0] || 0);
                         }
-                        // Return the value directly if it's already a string or number
+                        // For string or number values, return them directly
+                        // For any other type, convert to string
                         return typeof value === 'string' || typeof value === 'number' ? value : String(value);
                       }}
                     />
