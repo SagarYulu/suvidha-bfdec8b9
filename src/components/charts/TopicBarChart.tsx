@@ -68,7 +68,12 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10}
-              formatter={(value) => (Array.isArray(value) ? String(value[0] || 0) : String(value))}
+              formatter={(value: number | number[] | undefined): string => {
+                if (Array.isArray(value)) {
+                  return String(value[0] || 0);
+                }
+                return String(value || 0);
+              }}
             />
           </Bar>
         </BarChart>
