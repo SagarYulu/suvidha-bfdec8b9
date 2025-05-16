@@ -30,9 +30,8 @@ export const moodTooltipFormatter = (value: number, name: string) => {
 
 // Safe formatter for LabelList to ensure it returns string | number
 export const labelFormatter = (value: any): string | number => {
-  // Check if value is array and safely extract string/number
+  // Handle array values (common in recharts) by extracting first element
   if (Array.isArray(value)) {
-    // Extract first element and convert to string
     return value.length > 0 ? String(value[0] || '0') : '0';
   }
   // For non-arrays, ensure return is string or number
