@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -355,5 +354,154 @@ export const resolveSentimentAlert = async (alertId: string): Promise<boolean> =
   } catch (error) {
     console.error("Error resolving sentiment alert:", error);
     return false;
+  }
+};
+
+// Function to generate test sentiment data for demo purposes
+export const generateTestSentimentData = async (): Promise<{
+  employeesProcessed: number;
+  totalEntriesCreated: number;
+  success: boolean;
+}> => {
+  try {
+    console.log("Starting test sentiment data generation...");
+    
+    // 1. Fetch a list of employees to create test data for
+    const { data: employees, error: employeeError } = await supabase
+      .from('employees')
+      .select('id, name, city, cluster, role')
+      .limit(50);  // Limit to 50 employees for test data
+    
+    if (employeeError) {
+      console.error("Error fetching employees:", employeeError);
+      return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
+    }
+    
+    if (!employees || employees.length === 0) {
+      console.warn("No employees found to generate test data for");
+      return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
+    }
+    
+    console.log(`Found ${employees.length} employees for test data generation`);
+    
+    // 2. Fetch available sentiment tags to use in test data
+    const tags = await fetchSentimentTags();
+    const tagNames = tags.map(tag => tag.name);
+    
+    // 3. Generate sample feedback phrases
+    const positiveFeedback = [
+      "Very satisfied with the work environment",
+      "Great team collaboration this month",
+      "Appreciate the support from management",
+      "Excellent work-life balance",
+      "Projects have been well organized recently",
+      "Good opportunities for professional growth",
+      "Team morale is high"
+    ];
+    
+    const neutralFeedback = [
+      "Work environment is okay",
+      "Some aspects could be improved",
+      "Average experience overall",
+      "Neither good nor bad",
+      "Some things work well, others don't",
+      "Acceptable working conditions"
+    ];
+    
+    const negativeFeedback = [
+      "Communication issues with management",
+      "Workload has been too heavy lately",
+      "Not enough resources for tasks",
+      "Concerns about project deadlines",
+      "Team morale has been low",
+      "Need more clarity on objectives"
+    ];
+    
+    // 4. Parameters for test data generation
+    const entriesPerEmployee = Math.floor(Math.random() * 5) + 1;  // 1-5 entries per employee
+    const sentimentEntries = [];
+    const now = new Date();
+    
+    // 5. Generate test data for each employee
+    for (const employee of employees) {
+      for (let i = 0; i < entriesPerEmployee; i++) {
+        // Create a random date within the last 60 days
+        const randomDaysAgo = Math.floor(Math.random() * 60);
+        const entryDate = new Date(now);
+        entryDate.setDate(entryDate.getDate() - randomDaysAgo);
+        
+        // Determine rating and appropriate feedback
+        const rating = Math.floor(Math.random() * 5) + 1;  // Rating 1-5
+        let feedback;
+        
+        if (rating >= 4) {
+          feedback = positiveFeedback[Math.floor(Math.random() * positiveFeedback.length)];
+        } else if (rating >= 3) {
+          feedback = neutralFeedback[Math.floor(Math.random() * neutralFeedback.length)];
+        } else {
+          feedback = negativeFeedback[Math.floor(Math.random() * negativeFeedback.length)];
+        }
+        
+        // Select 1-3 random tags
+        const numTags = Math.floor(Math.random() * 3) + 1;
+        const selectedTags = [];
+        for (let j = 0; j < numTags; j++) {
+          const randomTag = tagNames[Math.floor(Math.random() * tagNames.length)];
+          if (!selectedTags.includes(randomTag)) {
+            selectedTags.push(randomTag);
+          }
+        }
+        
+        // Create sentiment entry
+        const sentimentEntry: SentimentRating = {
+          employee_id: employee.id,
+          rating: rating,
+          feedback: feedback,
+          city: employee.city,
+          cluster: employee.cluster,
+          role: employee.role,
+          tags: selectedTags,
+          created_at: entryDate.toISOString(),
+          sentiment_score: (rating - 1) / 4,  // Convert rating to 0-1 scale
+          sentiment_label: rating >= 4 ? "positive" : (rating >= 3 ? "neutral" : "negative")
+        };
+        
+        sentimentEntries.push(sentimentEntry);
+      }
+    }
+    
+    // 6. Insert the generated data in batches
+    console.log(`Preparing to insert ${sentimentEntries.length} test sentiment entries`);
+    
+    // Process in batches of 50 to avoid hitting Supabase limits
+    const batchSize = 50;
+    let successCount = 0;
+    
+    for (let i = 0; i < sentimentEntries.length; i += batchSize) {
+      const batch = sentimentEntries.slice(i, i + batchSize);
+      
+      const { data: insertedData, error: insertError } = await supabase
+        .from('employee_sentiment')
+        .insert(batch)
+        .select();
+      
+      if (insertError) {
+        console.error(`Error inserting batch ${i/batchSize + 1}:`, insertError);
+      } else {
+        console.log(`Successfully inserted batch ${i/batchSize + 1} with ${insertedData?.length || 0} entries`);
+        successCount += insertedData?.length || 0;
+      }
+    }
+    
+    // 7. Return summary of the operation
+    return {
+      employeesProcessed: employees.length,
+      totalEntriesCreated: successCount,
+      success: successCount > 0
+    };
+    
+  } catch (error) {
+    console.error("Error in generateTestSentimentData:", error);
+    return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
   }
 };
