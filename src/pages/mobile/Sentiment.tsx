@@ -31,7 +31,7 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
     );
   }
   
-  // When used as a dialog
+  // When used as a dialog - removed duplicate close button
   return (
     <Dialog open={isOpen} onOpenChange={open => !open && onClose && onClose()}>
       <DialogContent 
@@ -39,17 +39,16 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
         style={{ background: bgGradient }}
       >
         <div className="relative h-full">
-          {onClose && (
-            <button 
-              onClick={onClose}
-              className="absolute right-4 top-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors z-10"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          )}
+          {/* Only one close button */}
+          <button 
+            onClick={onClose}
+            className="absolute right-4 top-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-1 transition-colors z-10"
+          >
+            <X className="h-5 w-5" />
+          </button>
           <h2 className="text-xl font-semibold text-center text-white pt-4">Feedback Matters</h2>
           <div className="h-[calc(100%-40px)] overflow-hidden">
-            <MobileSentimentForm />
+            <MobileSentimentForm showTrendAnalysis={true} />
           </div>
         </div>
       </DialogContent>
