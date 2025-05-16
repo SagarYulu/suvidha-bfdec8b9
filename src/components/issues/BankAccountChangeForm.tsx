@@ -125,10 +125,11 @@ Reason: ${data.reason}`;
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">New Account Number</Label>
+        <Label htmlFor="accountNumber">New Account Number / नया खाता संख्या</Label>
         <Input
           id="accountNumber"
           type="text"
+          placeholder="Enter your new account number / अपना नया अकाउंट नंबर लिखें"
           {...register("accountNumber", { required: "Account number is required" })}
         />
         {errors.accountNumber && (
@@ -137,10 +138,11 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ifscCode">New IFSC Code</Label>
+        <Label htmlFor="ifscCode">New IFSC Code / नया IFSC कोड</Label>
         <Input
           id="ifscCode"
           type="text"
+          placeholder="Enter your new IFSC code / अपना नया IFSC कोड लिखें"
           {...register("ifscCode", { required: "IFSC code is required" })}
         />
         {errors.ifscCode && (
@@ -149,9 +151,10 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reason">Reason for Change</Label>
+        <Label htmlFor="reason">Reason for Change / बदलाव का कारण</Label>
         <Textarea
           id="reason"
+          placeholder="Explain why you need to change your bank account / बताएं कि आपको अपना बैंक अकाउंट क्यों बदलना है"
           {...register("reason", { required: "Reason is required" })}
           rows={3}
         />
@@ -161,7 +164,7 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankProof">Bank Proof Document (Required)</Label>
+        <Label htmlFor="bankProof">Bank Proof Document (Required) / बैंक प्रूफ दस्तावेज (जरूरी)</Label>
         <div className="flex items-center space-x-2">
           <input
             type="file"
@@ -178,7 +181,7 @@ Reason: ${data.reason}`;
             disabled={isUploading}
           >
             <Paperclip className="mr-2 h-4 w-4" />
-            {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Upload Bank Proof"}
+            {isUploading ? "Uploading... / अपलोड हो रहा है..." : selectedFile ? selectedFile.name : "Upload Bank Proof / बैंक प्रूफ अपलोड करें"}
           </Button>
           {selectedFile && !isUploading && (
             <Button 
@@ -187,15 +190,17 @@ Reason: ${data.reason}`;
               className="text-sm text-red-500 h-8 px-2"
               onClick={() => setSelectedFile(null)}
             >
-              Remove
+              Remove / हटायें
             </Button>
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Max file size: 5MB. Accepted formats: images, PDF, Word documents
+          Max file size: 5MB. Accepted formats: images, PDF, Word documents / 
+          अधिकतम फाइल साइज: 5MB. स्वीकृत फॉर्मेट: इमेज, PDF, वर्ड डॉक्यूमेंट
         </p>
         <p className="text-sm text-amber-600 font-medium">
-          Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code.
+          Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code. / 
+          महत्वपूर्ण: केवल पासबुक, चेक, या बैंक स्टेटमेंट अपलोड करें जिसमें आपका नाम, खाता संख्या और IFSC कोड स्पष्ट रूप से दिख रहा हो।
         </p>
       </div>
 
@@ -204,7 +209,7 @@ Reason: ${data.reason}`;
         className="w-full bg-yulu-blue hover:bg-blue-700"
         disabled={isSubmitting || isUploading}
       >
-        {isSubmitting ? "Submitting..." : "Submit Request"}
+        {isSubmitting ? "Submitting... / जमा हो रहा है..." : "Submit Request / अनुरोध जमा करें"}
       </Button>
     </form>
   );

@@ -29,7 +29,7 @@ const IssueTypeSelector = ({
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="issue-type">Ticket Type</Label>
+        <Label htmlFor="issue-type">Ticket Type / टिकट का प्रकार</Label>
         <Select
           value={selectedType}
           onValueChange={(value) => {
@@ -39,13 +39,13 @@ const IssueTypeSelector = ({
           }}
         >
           <SelectTrigger id="issue-type">
-            <SelectValue placeholder="Select ticket type" />
+            <SelectValue placeholder="Select ticket type / टिकट का प्रकार चुनें" />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               {ISSUE_TYPES.map((type) => (
                 <SelectItem key={type.id} value={type.id}>
-                  {type.label}
+                  {type.label} {type.labelHindi ? `/ ${type.labelHindi}` : ''}
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -55,20 +55,20 @@ const IssueTypeSelector = ({
 
       {selectedType && (
         <div className="space-y-2">
-          <Label htmlFor="issue-subtype">Ticket Subtype</Label>
+          <Label htmlFor="issue-subtype">Ticket Subtype / टिकट का उप-प्रकार</Label>
           <Select
             value={selectedSubType}
             onValueChange={setSelectedSubType}
           >
             <SelectTrigger id="issue-subtype">
-              <SelectValue placeholder="Select ticket subtype" />
+              <SelectValue placeholder="Select ticket subtype / टिकट का उप-प्रकार चुनें" />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {ISSUE_TYPES.find((type) => type.id === selectedType)
                   ?.subTypes.map((subType) => (
                     <SelectItem key={subType.id} value={subType.id}>
-                      {subType.label}
+                      {subType.label} {subType.labelHindi ? `/ ${subType.labelHindi}` : ''}
                     </SelectItem>
                   ))}
               </SelectGroup>

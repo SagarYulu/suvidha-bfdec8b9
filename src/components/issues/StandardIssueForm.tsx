@@ -250,10 +250,10 @@ const StandardIssueForm = ({
   return (
     <form onSubmit={handleStandardSubmit} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Description / विवरण</Label>
         <Textarea
           id="description"
-          placeholder="Please describe your issue in detail..."
+          placeholder="Please describe your issue in detail... / अपनी समस्या का विस्तार से वर्णन करें..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={6}
@@ -264,12 +264,13 @@ const StandardIssueForm = ({
         <div className="space-y-4">
           <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
             <p className="text-sm text-amber-700 font-medium">
-              For ESI-related requests, both front and back sides of your Aadhaar card are required
+              For ESI-related requests, both front and back sides of your Aadhaar card are required / 
+              ईएसआई संबंधित अनुरोधों के लिए, आपके आधार कार्ड के सामने और पीछे दोनों तरफ की तस्वीरें जरूरी हैं
             </p>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="aadharFront">Aadhaar Card Front (Required)</Label>
+            <Label htmlFor="aadharFront">Aadhaar Card Front (Required) / आधार कार्ड का सामने का हिस्सा (जरूरी)</Label>
             <div className="flex items-center space-x-2">
               <input
                 type="file"
@@ -286,7 +287,7 @@ const StandardIssueForm = ({
                 disabled={isUploadingAadharFront}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                {isUploadingAadharFront ? "Uploading..." : aadharFrontFile ? aadharFrontFile.name : "Upload Aadhaar Front"}
+                {isUploadingAadharFront ? "Uploading... / अपलोड हो रहा है..." : aadharFrontFile ? aadharFrontFile.name : "Upload Aadhaar Front / आधार कार्ड का सामने वाला हिस्सा अपलोड करें"}
               </Button>
               {aadharFrontFile && !isUploadingAadharFront && (
                 <Button 
@@ -295,14 +296,14 @@ const StandardIssueForm = ({
                   className="text-sm text-red-500 h-8 px-2"
                   onClick={() => setAadharFrontFile(null)}
                 >
-                  Remove
+                  Remove / हटायें
                 </Button>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="aadharBack">Aadhaar Card Back (Required)</Label>
+            <Label htmlFor="aadharBack">Aadhaar Card Back (Required) / आधार कार्ड का पीछे का हिस्सा (जरूरी)</Label>
             <div className="flex items-center space-x-2">
               <input
                 type="file"
@@ -319,7 +320,7 @@ const StandardIssueForm = ({
                 disabled={isUploadingAadharBack}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                {isUploadingAadharBack ? "Uploading..." : aadharBackFile ? aadharBackFile.name : "Upload Aadhaar Back"}
+                {isUploadingAadharBack ? "Uploading... / अपलोड हो रहा है..." : aadharBackFile ? aadharBackFile.name : "Upload Aadhaar Back / आधार कार्ड का पीछे वाला हिस्सा अपलोड करें"}
               </Button>
               {aadharBackFile && !isUploadingAadharBack && (
                 <Button 
@@ -328,14 +329,14 @@ const StandardIssueForm = ({
                   className="text-sm text-red-500 h-8 px-2"
                   onClick={() => setAadharBackFile(null)}
                 >
-                  Remove
+                  Remove / हटायें
                 </Button>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="additionalDoc">Additional Document (Optional)</Label>
+            <Label htmlFor="additionalDoc">Additional Document (Optional) / अतिरिक्त दस्तावेज (वैकल्पिक)</Label>
             <div className="flex items-center space-x-2">
               <input
                 type="file"
@@ -352,7 +353,7 @@ const StandardIssueForm = ({
                 disabled={isUploading}
               >
                 <Paperclip className="mr-2 h-4 w-4" />
-                {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Add Additional Document"}
+                {isUploading ? "Uploading... / अपलोड हो रहा है..." : selectedFile ? selectedFile.name : "Add Additional Document / अतिरिक्त दस्तावेज जोड़ें"}
               </Button>
               {selectedFile && !isUploading && (
                 <Button 
@@ -361,7 +362,7 @@ const StandardIssueForm = ({
                   className="text-sm text-red-500 h-8 px-2"
                   onClick={() => setSelectedFile(null)}
                 >
-                  Remove
+                  Remove / हटायें
                 </Button>
               )}
             </div>
@@ -369,7 +370,7 @@ const StandardIssueForm = ({
         </div>
       ) : (
         <div className="space-y-2">
-          <Label>Attachment (Optional)</Label>
+          <Label>Attachment (Optional) / अटैचमेंट (वैकल्पिक)</Label>
           <div className="flex items-center space-x-2">
             <input
               type="file"
@@ -386,7 +387,7 @@ const StandardIssueForm = ({
               disabled={isUploading}
             >
               <Paperclip className="mr-2 h-4 w-4" />
-              {isUploading ? "Uploading..." : selectedFile ? selectedFile.name : "Add Attachment"}
+              {isUploading ? "Uploading... / अपलोड हो रहा है..." : selectedFile ? selectedFile.name : "Add Attachment / अटैचमेंट जोड़ें"}
             </Button>
             {selectedFile && !isUploading && (
               <Button 
@@ -395,12 +396,13 @@ const StandardIssueForm = ({
                 className="text-sm text-red-500 h-8 px-2"
                 onClick={() => setSelectedFile(null)}
               >
-                Remove
+                Remove / हटायें
               </Button>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            Max file size: 5MB. Accepted formats: images, PDF, Word documents
+            Max file size: 5MB. Accepted formats: images, PDF, Word documents / 
+            अधिकतम फाइल साइज: 5MB. स्वीकृत फॉर्मेट: इमेज, PDF, वर्ड डॉक्यूमेंट
           </p>
         </div>
       )}
@@ -411,7 +413,7 @@ const StandardIssueForm = ({
           className="w-full bg-yulu-blue hover:bg-blue-700"
           disabled={isSubmitting || isUploading || isUploadingAadharFront || isUploadingAadharBack}
         >
-          {isSubmitting ? "Submitting..." : "Submit Ticket"}
+          {isSubmitting ? "Submitting... / जमा हो रहा है..." : "Submit Ticket / टिकट जमा करें"}
         </Button>
       </div>
     </form>
