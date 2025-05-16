@@ -25,33 +25,29 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
         <CardTitle className="text-lg font-medium text-gray-800">Topic Frequency</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64 overflow-x-auto">
+        <div className="h-64 overflow-y-auto">
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data}
-                layout="vertical"
-                margin={{ top: 5, right: 20, left: 60, bottom: 30 }}
+                margin={{ top: 5, right: 20, left: 20, bottom: 60 }}
               >
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis 
-                  type="number"
-                  tick={{ fill: '#6B7280', fontSize: 11 }}
-                  tickLine={{ stroke: '#e5e7eb' }}
-                  axisLine={{ stroke: '#e5e7eb' }}
-                  label={{ value: 'Mentions', position: 'insideBottom', offset: -5, fontSize: 11 }}
-                />
-                <YAxis 
-                  type="category"
                   dataKey="name"
                   tick={{ fontSize: 11, fill: '#6B7280' }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
-                  width={60}
-                  tickFormatter={(value) => {
-                    // Ensure labels don't get too long on mobile
-                    return value.length > 10 ? `${value.substring(0, 8)}...` : value;
-                  }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                />
+                <YAxis 
+                  tick={{ fontSize: 11, fill: '#6B7280' }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  label={{ value: 'Mentions', position: 'insideLeft', angle: -90, dy: 40, dx: -5, style: { textAnchor: 'middle', fontSize: 11 } }}
                 />
                 <Tooltip 
                   formatter={(value: number) => [`${value} mentions`, "Count"]}
@@ -61,7 +57,7 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                   dataKey="count" 
                   name="Mentions"
                   fill="#3B82F6"
-                  background={{ fill: '#eee' }}
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
