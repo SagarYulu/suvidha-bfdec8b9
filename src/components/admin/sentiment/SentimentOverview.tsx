@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllSentiment } from '@/services/sentimentService';
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
   XAxis,
@@ -18,7 +16,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
 
 interface SentimentOverviewProps {
@@ -68,37 +66,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     );
   }
 
-  // Calculate average sentiment by date
-  const sentimentByDate = sentimentData.reduce((acc, curr) => {
-    if (!curr.created_at) return acc;
-    
-    const date = format(parseISO(curr.created_at), 'yyyy-MM-dd');
-    if (!acc[date]) {
-      acc[date] = { 
-        count: 0, 
-        totalRating: 0, 
-        totalScore: 0,
-        ratings: [0, 0, 0, 0, 0] // Count for each rating (1-5)
-      };
-    }
-    acc[date].count++;
-    acc[date].totalRating += curr.rating;
-    if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
-      acc[date].totalScore += curr.sentiment_score;
-    }
-    acc[date].ratings[curr.rating - 1]++;
-    return acc;
-  }, {} as Record<string, { count: number; totalRating: number; totalScore: number, ratings: number[] }>);
-
-  // Convert to array for charts with simpler labels
-  const timeSeriesData = Object.keys(sentimentByDate)
-    .sort()
-    .map(date => ({
-      date,
-      rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
-      count: sentimentByDate[date].count,
-    }));
-
   // Calculate sentiment distribution with clearer labels
   const sentimentDistribution = sentimentData.reduce((acc, curr) => {
     let label = curr.sentiment_label?.toLowerCase() || 'unknown';
@@ -141,40 +108,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     value: ratingDistribution[Number(key)]
   }));
 
-  // Calculate tag distribution with improved handling
-  const tagCounts: Record<string, number> = {};
-  let taggedFeedbackCount = 0;
-  
-  sentimentData.forEach(item => {
-    if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
-      taggedFeedbackCount++;
-      item.tags.forEach(tag => {
-        if (tag) { // Only count non-empty tags
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        }
-      });
-    }
-  });
-  
-  // For sentiment with no tags, create default categories
-  if (taggedFeedbackCount === 0 && sentimentData.length > 0) {
-    console.log("No tagged feedback found, creating default categories");
-    
-    // Count sentiment label distribution for default categories
-    sentimentData.forEach(item => {
-      const label = item.sentiment_label?.toLowerCase() || 'unknown';
-      const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
-      tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
-    });
-  }
-
-  const tagData = Object.keys(tagCounts)
-    .map(tag => ({ name: tag, count: tagCounts[tag] }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  console.log("Tag data:", tagData);
-
   // Create an array of mood data for the bar chart
   const moodData = Object.keys(ratingDistribution).map(key => ({
     rating: ratingLabels[Number(key) as keyof typeof ratingLabels],
@@ -184,8 +117,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Removed the Employee Mood Trend chart (Line chart) that was here previously */}
-      
       {/* Sentiment Distribution with clearer labels */}
       <Card>
         <CardHeader>
@@ -263,51 +194,8 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Top Feedback Topics with clearer labeling */}
-      <Card className="col-span-1 lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Top Feedback Topics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {tagData.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              No feedback topics available for the selected filters.
-              <p className="mt-2">Try clearing some filters or submitting more detailed feedback.</p>
-            </div>
-          ) : (
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={tagData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => [`${value} mentions`, "Mentions"]}
-                    labelFormatter={(label) => `Topic: ${label}`}
-                  />
-                  <Bar 
-                    dataKey="count" 
-                    name="Times Mentioned"
-                    fill="#00C49F"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
 
 export default SentimentOverview;
-
