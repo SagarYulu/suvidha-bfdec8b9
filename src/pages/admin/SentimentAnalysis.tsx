@@ -25,7 +25,8 @@ import {
   Tooltip, 
   Legend,
   BarChart, 
-  Bar 
+  Bar,
+  Cell
 } from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
@@ -95,17 +96,45 @@ const SentimentAnalysis: React.FC = () => {
       }));
   };
 
-  // Calculate tag distribution
-  const getTopTags = () => {
-    const tagCounts: Record<string, number> = {};
+  // Calculate tag distribution with mood distribution
+  const getTopicMoodData = () => {
+    // Initialize data structure for topics and their mood distributions
+    const topicMoodMap: Record<string, { 
+      name: string, 
+      count: number,
+      highMood: number,  // Rating 4-5
+      neutralMood: number, // Rating 3
+      lowMood: number,  // Rating 1-2
+    }> = {};
+    
     let taggedFeedbackCount = 0;
     
     sentimentData.forEach(item => {
       if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
         taggedFeedbackCount++;
+        
         item.tags.forEach(tag => {
-          if (tag) { // Only count non-empty tags
-            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          if (!tag) return;
+          
+          if (!topicMoodMap[tag]) {
+            topicMoodMap[tag] = { 
+              name: tag, 
+              count: 0,
+              highMood: 0,
+              neutralMood: 0,
+              lowMood: 0
+            };
+          }
+          
+          topicMoodMap[tag].count++;
+          
+          // Categorize by mood
+          if (item.rating >= 4) {
+            topicMoodMap[tag].highMood++;
+          } else if (item.rating === 3) {
+            topicMoodMap[tag].neutralMood++;
+          } else {
+            topicMoodMap[tag].lowMood++;
           }
         });
       }
@@ -119,14 +148,33 @@ const SentimentAnalysis: React.FC = () => {
       sentimentData.forEach(item => {
         const label = item.sentiment_label?.toLowerCase() || 'unknown';
         const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
-        tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
+        
+        if (!topicMoodMap[tagName]) {
+          topicMoodMap[tagName] = { 
+            name: tagName, 
+            count: 0,
+            highMood: 0,
+            neutralMood: 0,
+            lowMood: 0
+          };
+        }
+        
+        topicMoodMap[tagName].count++;
+        
+        // Categorize by mood
+        if (item.rating >= 4) {
+          topicMoodMap[tagName].highMood++;
+        } else if (item.rating === 3) {
+          topicMoodMap[tagName].neutralMood++;
+        } else {
+          topicMoodMap[tagName].lowMood++;
+        }
       });
     }
 
-    return Object.keys(tagCounts)
-      .map(tag => ({ name: tag, count: tagCounts[tag] }))
+    return Object.values(topicMoodMap)
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10 tags
+      .slice(0, 10); // Top 10 topics
   };
   
   const exportMutation = useMutation({
@@ -254,7 +302,7 @@ const SentimentAnalysis: React.FC = () => {
         </div>
       )}
       
-      {/* New section - Employee Mood Trend */}
+      {/* Employee Mood Trend */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Employee Mood Trend Over Time</CardTitle>
@@ -307,19 +355,19 @@ const SentimentAnalysis: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* New section - Topic Frequency */}
+      {/* Combined Topic & Mood Chart */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Topic Frequency</CardTitle>
+          <CardTitle>Topic Mood Analysis</CardTitle>
         </CardHeader>
         <CardContent>
           {sentimentData && sentimentData.length > 0 ? (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={getTopTags()}
+                  data={getTopicMoodData()}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
@@ -327,16 +375,40 @@ const SentimentAnalysis: React.FC = () => {
                     type="category" 
                     dataKey="name" 
                     tick={{ fontSize: 12 }}
+                    width={100}
                   />
                   <Tooltip 
-                    formatter={(value) => [`${value} mentions`, "Mentions"]}
+                    formatter={(value, name) => {
+                      if (name === "highMood") return [`${value} positive mentions`, "Positive (4-5)"];
+                      if (name === "neutralMood") return [`${value} neutral mentions`, "Neutral (3)"];
+                      if (name === "lowMood") return [`${value} negative mentions`, "Negative (1-2)"];
+                      return [`${value}`, name];
+                    }}
                     labelFormatter={(label) => `Topic: ${label}`}
                   />
-                  <Legend />
+                  <Legend formatter={(value) => {
+                    if (value === "lowMood") return "Negative (1-2)";
+                    if (value === "neutralMood") return "Neutral (3)";
+                    if (value === "highMood") return "Positive (4-5)";
+                    return value;
+                  }} />
                   <Bar 
-                    dataKey="count" 
-                    name="Times Mentioned"
-                    fill="#00C49F"
+                    dataKey="lowMood" 
+                    name="lowMood" 
+                    stackId="a" 
+                    fill="#F44336" // Red for negative
+                  />
+                  <Bar 
+                    dataKey="neutralMood" 
+                    name="neutralMood" 
+                    stackId="a" 
+                    fill="#FFC107" // Yellow for neutral
+                  />
+                  <Bar 
+                    dataKey="highMood" 
+                    name="highMood" 
+                    stackId="a" 
+                    fill="#4CAF50" // Green for positive
                   />
                 </BarChart>
               </ResponsiveContainer>
