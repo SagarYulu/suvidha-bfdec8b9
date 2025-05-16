@@ -28,11 +28,17 @@ export const moodTooltipFormatter = (value: number, name: string) => {
   return [`${value} (${moodLabels[closestMood]})`, "Mood Rating"];
 };
 
-// Safe formatter for LabelList to ensure it returns string | number
+/**
+ * Safe formatter for LabelList to ensure it returns string | number
+ * This function correctly handles different input types including arrays
+ * @param value Any value that needs to be formatted
+ * @returns Formatted value as string or number
+ */
 export const labelFormatter = (value: any): string | number => {
   // Handle array values (common in recharts) by extracting first element
   if (Array.isArray(value)) {
-    return value.length > 0 ? String(value[0] || '0') : '0';
+    // Return the first element as string if it exists, otherwise '0'
+    return String(value[0] || '0');
   }
   // For non-arrays, ensure return is string or number
   return typeof value === 'string' || typeof value === 'number' ? value : String(value || '0');
