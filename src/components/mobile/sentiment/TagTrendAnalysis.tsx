@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Loader2, TrendingUp, BarChart2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -211,7 +210,7 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                         axisLine={{ stroke: '#e5e7eb' }}
                       />
                       <Tooltip 
-                        formatter={(value) => [`${value} mentions`, "Count"]}
+                        formatter={(value: number) => [`${value} mentions`, "Count"]}
                         contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
                       />
                       <Bar dataKey="count" name="Mentions">
@@ -226,7 +225,8 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           dataKey="count" 
                           position="right" 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
-                          offset={10} 
+                          offset={10}
+                          formatter={(value: number) => value}
                         />
                       </Bar>
                     </BarChart>

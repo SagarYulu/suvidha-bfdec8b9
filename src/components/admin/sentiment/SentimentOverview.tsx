@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
@@ -376,7 +375,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                     axisLine={{ stroke: '#e5e7eb' }}
                   />
                   <Tooltip 
-                    formatter={(value) => [`${value} mentions`, "Mentions"]}
+                    formatter={(value: number) => [`${value} mentions`, "Mentions"]}
                     labelFormatter={(label) => `Topic: ${label}`}
                     contentStyle={{ 
                       borderRadius: '8px', 
@@ -400,6 +399,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       position="right" 
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
+                      formatter={(value: number) => value}
                     />
                   </Bar>
                 </BarChart>
