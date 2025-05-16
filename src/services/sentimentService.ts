@@ -249,7 +249,7 @@ export const fetchAllSentiment = async (filters: {
     let query = supabase
       .from('employee_sentiment')
       .select('*')
-      .order('created_at', { ascending: true }); // Changed to ascending for proper time series
+      .order('created_at', { ascending: true });
     
     // Apply date filters if provided
     if (filters.startDate) {
@@ -291,8 +291,8 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Added: Generate sample data for different dates if we have less than 3 entries
-    const useSampleData = !data || data.length < 3;
+    // Generate sample data for different dates if we have fewer than 10 entries
+    const useSampleData = !data || data.length < 10;
     
     if (data && data.length > 0 && !useSampleData) {
       return data;
@@ -334,7 +334,7 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Issue", "Testing", "Negative", "Workload", "Communication"],
           sentiment_score: -0.6,
           sentiment_label: "negative",
-          created_at: new Date(today.setDate(today.getDate() - 1)).toISOString(), // 1 day ago
+          created_at: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
         }, 
         {
           id: "sample-3",
@@ -347,7 +347,7 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Manager", "Work-Life Balance", "Compensation"],
           sentiment_score: -0.9,
           sentiment_label: "very negative",
-          created_at: new Date(today.setDate(today.getDate() - 2)).toISOString(), // 2 days ago
+          created_at: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
         },
         {
           id: "sample-4",
@@ -360,7 +360,7 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Resources", "Work-Life Balance"],
           sentiment_score: 0,
           sentiment_label: "neutral",
-          created_at: new Date(today.setDate(today.getDate() - 3)).toISOString(), // 3 days ago
+          created_at: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
         },
         {
           id: "sample-5",
@@ -373,7 +373,7 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Team", "Leadership", "Career Growth"],
           sentiment_score: 0.95,
           sentiment_label: "very positive",
-          created_at: new Date(today.setDate(today.getDate() - 4)).toISOString(), // 4 days ago
+          created_at: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
         },
         {
           id: "sample-6",
@@ -386,7 +386,7 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Workload", "Stress", "Management"],
           sentiment_score: -0.5,
           sentiment_label: "negative",
-          created_at: new Date(today.setDate(today.getDate() - 5)).toISOString(), // 5 days ago
+          created_at: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
         },
         {
           id: "sample-7",
@@ -399,14 +399,53 @@ export const fetchAllSentiment = async (filters: {
           tags: ["Change Management", "Leadership", "Communication"],
           sentiment_score: 0.7,
           sentiment_label: "positive",
-          created_at: new Date(today.setDate(today.getDate() - 6)).toISOString(), // 6 days ago
+          created_at: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString(), // 6 days ago
+        },
+        {
+          id: "sample-8",
+          employee_id: "sample-employee-8",
+          rating: 3,
+          feedback: "No significant changes in my work conditions.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Neutral", "Status Quo"],
+          sentiment_score: 0.1,
+          sentiment_label: "neutral",
+          created_at: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+        },
+        {
+          id: "sample-9",
+          employee_id: "sample-employee-9",
+          rating: 4,
+          feedback: "Good progress on our team projects and goals.",
+          city: filters.city || "Sample City 2",
+          cluster: filters.cluster || "Sample Cluster 2",
+          role: filters.role || "Sample Role 2",
+          tags: ["Team", "Progress", "Goals"],
+          sentiment_score: 0.65,
+          sentiment_label: "positive",
+          created_at: new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days ago
+        },
+        {
+          id: "sample-10",
+          employee_id: "sample-employee-10",
+          rating: 5,
+          feedback: "Very happy with recent recognition and compensation adjustments.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Recognition", "Compensation", "Satisfaction"],
+          sentiment_score: 0.9,
+          sentiment_label: "very positive",
+          created_at: new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000).toISOString(), // 9 days ago
         }
       ];
       
       return dummyData;
     }
     
-    // Fix: Initialize baseData to empty array if it doesn't exist
+    // Initialize baseData to empty array if it doesn't exist
     const baseData = data || [];
     return baseData;
   } catch (error) {
