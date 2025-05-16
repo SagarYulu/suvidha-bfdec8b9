@@ -9,6 +9,15 @@ export const SENTIMENT_COLORS = {
   'negative': '#F87171'   // Lighter red
 };
 
+// Helper function to get sentiment color based on name
+export const getSentimentColor = (name: string): string => {
+  const lowerName = name.toLowerCase();
+  if (lowerName.includes('positive')) return SENTIMENT_COLORS.positive;
+  if (lowerName.includes('negative')) return SENTIMENT_COLORS.negative;
+  if (lowerName.includes('neutral')) return SENTIMENT_COLORS.neutral;
+  return CHART_COLORS[0]; // Default color
+};
+
 // Formatter for the line chart tooltips
 export const moodTooltipFormatter = (value: number, name: string) => {
   const moodLabels: Record<number, string> = {
@@ -53,3 +62,4 @@ export const labelFormatter = (value: any): string | number => {
   // For other types, convert to string
   return String(value);
 };
+

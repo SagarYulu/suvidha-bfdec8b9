@@ -8,7 +8,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { SENTIMENT_COLORS, CHART_COLORS } from './ChartUtils';
+import { CHART_COLORS, SENTIMENT_COLORS, getSentimentColor } from './ChartUtils';
 
 interface SentimentPieChartProps {
   data: Array<{
@@ -100,12 +100,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-prev-${index}`}
-                  fill={
-                    entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
-                    entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
-                    entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
-                    CHART_COLORS[index % CHART_COLORS.length]
-                  } 
+                  fill={getSentimentColor(entry.name)}
                   opacity={0.6}
                   stroke="#FFFFFF"
                   strokeWidth={1}
@@ -130,12 +125,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`}
-                fill={
-                  entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
-                  entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
-                  entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
-                  CHART_COLORS[index % CHART_COLORS.length]
-                } 
+                fill={getSentimentColor(entry.name)}
                 stroke="#FFFFFF"
                 strokeWidth={2}
               />

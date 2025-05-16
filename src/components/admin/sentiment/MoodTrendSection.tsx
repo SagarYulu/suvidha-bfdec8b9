@@ -23,9 +23,18 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
     showComparison,
     hasPreviousPeriodData,
     showComparisonLine: showComparison && hasPreviousPeriodData,
-    dataLength: data?.length,
-    hasPreviousData: data?.some(item => item.previousRating !== undefined)
+    dataLength: data?.length || 0,
+    hasData: Array.isArray(data) && data.length > 0,
+    hasPreviousData: Array.isArray(data) && data.some(item => item.previousRating !== undefined)
   });
+
+  // Safe check for data array
+  const safeData = Array.isArray(data) ? data : [];
+  
+  // Only show comparison if we have data with previousRating
+  const shouldShowComparison = showComparison && 
+                              hasPreviousPeriodData && 
+                              safeData.some(item => item.previousRating !== undefined);
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -56,10 +65,10 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
         </TooltipProvider>
       </CardHeader>
       <CardContent>
-        {data && data.length > 0 ? (
+        {safeData.length > 0 ? (
           <MoodTrendChart 
-            data={data} 
-            showComparison={showComparison && hasPreviousPeriodData} 
+            data={safeData} 
+            showComparison={shouldShowComparison} 
           />
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-50 text-gray-500">

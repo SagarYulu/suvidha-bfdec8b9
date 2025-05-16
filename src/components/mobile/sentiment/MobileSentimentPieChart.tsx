@@ -8,7 +8,7 @@ import {
   Tooltip
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
+import { SENTIMENT_COLORS, getSentimentColor } from '@/components/charts/ChartUtils';
 
 interface MobileSentimentPieChartProps {
   data: Array<{
@@ -18,6 +18,8 @@ interface MobileSentimentPieChartProps {
 }
 
 const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data }) => {
+  const validData = Array.isArray(data) ? data : [];
+  
   return (
     <Card className="bg-white/90">
       <CardHeader>
@@ -25,11 +27,11 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {data.length > 0 ? (
+          {validData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data}
+                  data={validData}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -40,15 +42,10 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
                   paddingAngle={3}
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                 >
-                  {data.map((entry, index) => (
+                  {validData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={
-                        entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
-                        entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
-                        entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
-                        `#${Math.floor(Math.random()*16777215).toString(16)}`
-                      } 
+                      fill={getSentimentColor(entry.name)} 
                       stroke="#FFFFFF"
                       strokeWidth={2}
                     />
