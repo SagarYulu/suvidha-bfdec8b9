@@ -184,10 +184,10 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Simplified Time Series Chart */}
+      {/* Employee Mood Trend Over Time */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
-          <CardTitle>Employee Mood Trend</CardTitle>
+          <CardTitle>Employee Mood Trend Over Time</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-80">
