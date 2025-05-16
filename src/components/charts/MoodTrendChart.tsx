@@ -33,6 +33,13 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
   console.log("MoodTrendChart showComparison:", showComparison);
   console.log("MoodTrendChart has previous data:", data.some(item => item.previousRating !== undefined));
 
+  // Sort the data by date to ensure chronological ordering
+  const sortedData = [...data].sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+  
+  console.log("MoodTrendChart sorted data first 5:", sortedData.slice(0, 5).map(d => d.date));
+
   // Custom tooltip that handles both current and previous data
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -93,7 +100,7 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart
-          data={data}
+          data={sortedData}
           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />

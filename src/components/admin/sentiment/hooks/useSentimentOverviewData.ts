@@ -258,9 +258,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number }>) : {};
 
-  // Sort dates chronologically for the time series
+  // Create time series data without sorting (we'll sort in the component)
   const timeSeriesData = Object.keys(sentimentByDate)
-    .sort()
     .map(date => {
       const result = {
         date,
