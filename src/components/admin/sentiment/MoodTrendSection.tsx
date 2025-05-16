@@ -18,13 +18,14 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
   comparisonLabel = 'previous',
   hasPreviousPeriodData = false
 }) => {
-  // Validate data to prevent runtime errors
-  const validData = Array.isArray(data) ? data : [];
-  
-  // Only show comparison when we have data and it's requested
-  const shouldShowComparison = showComparison && 
-                              hasPreviousPeriodData && 
-                              validData.some(item => item.previousRating !== undefined);
+  // Add a log to debug the props
+  console.info("MoodTrendSection props:", {
+    showComparison,
+    hasPreviousPeriodData,
+    showComparisonLine: showComparison && hasPreviousPeriodData,
+    dataLength: data?.length,
+    hasPreviousData: data?.some(item => item.previousRating !== undefined)
+  });
 
   return (
     <Card className="col-span-1 lg:col-span-2">
@@ -55,10 +56,10 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
         </TooltipProvider>
       </CardHeader>
       <CardContent>
-        {validData && validData.length > 0 ? (
+        {data && data.length > 0 ? (
           <MoodTrendChart 
-            data={validData} 
-            showComparison={shouldShowComparison} 
+            data={data} 
+            showComparison={showComparison && hasPreviousPeriodData} 
           />
         ) : (
           <div className="flex items-center justify-center h-64 bg-gray-50 text-gray-500">

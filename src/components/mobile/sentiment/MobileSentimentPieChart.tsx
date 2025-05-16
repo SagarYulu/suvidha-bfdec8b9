@@ -8,7 +8,7 @@ import {
   Tooltip
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { getSentimentColor } from '@/components/charts/ChartUtils';
+import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
 
 interface MobileSentimentPieChartProps {
   data: Array<{
@@ -43,7 +43,12 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
                   {data.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={getSentimentColor(entry.name)} 
+                      fill={
+                        entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
+                        entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
+                        entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
+                        `#${Math.floor(Math.random()*16777215).toString(16)}`
+                      } 
                       stroke="#FFFFFF"
                       strokeWidth={2}
                     />
