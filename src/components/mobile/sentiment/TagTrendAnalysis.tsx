@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2, TrendingUp, BarChart2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -226,8 +227,12 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           position="right" 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                           offset={10}
-                          formatter={(value) => {
-                            // Fix: Ensure we always return a string, never an array
+                          formatter={(value: any) => {
+                            // Handle both cases: single value or array
+                            // Ensure we always return a string
+                            if (Array.isArray(value)) {
+                              return String(value[0] || 0);
+                            }
                             return String(value);
                           }}
                         />
