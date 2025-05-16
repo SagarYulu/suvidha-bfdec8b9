@@ -354,7 +354,7 @@ const SentimentAnalysis: React.FC = () => {
                       dataKey="lowMood" 
                       position="center" 
                       style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: any) => (value > 0 ? value : '')}
+                      formatter={(value: number) => (value > 0 ? value : '')}
                     />
                   </Bar>
                   <Bar 
@@ -368,7 +368,7 @@ const SentimentAnalysis: React.FC = () => {
                       dataKey="neutralMood" 
                       position="center" 
                       style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: any) => (value > 0 ? value : '')}
+                      formatter={(value: number) => (value > 0 ? value : '')}
                     />
                   </Bar>
                   <Bar 
@@ -382,7 +382,7 @@ const SentimentAnalysis: React.FC = () => {
                       dataKey="highMood" 
                       position="center" 
                       style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: any) => (value > 0 ? value : '')}
+                      formatter={(value: number) => (value > 0 ? value : '')}
                     />
                   </Bar>
                 </ComposedChart>

@@ -19,7 +19,8 @@ import {
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
-  Radar
+  Radar,
+  LabelList
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 
@@ -221,6 +222,12 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                             radius={[0, 4, 4, 0]}
                           />
                         ))}
+                        <LabelList 
+                          dataKey="count" 
+                          position="right" 
+                          style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
+                          offset={10} 
+                        />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
