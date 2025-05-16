@@ -399,7 +399,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       position="right" 
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
-                      formatter={(value: number) => value}
+                      formatter={(value: number) => String(value)}
                     />
                   </Bar>
                 </BarChart>
