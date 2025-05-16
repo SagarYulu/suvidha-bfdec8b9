@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
 import SentimentFilterBar from '@/components/admin/sentiment/SentimentFilterBar';
+import SentimentOverview from '@/components/admin/sentiment/SentimentOverview';
 import SentimentAlerts from '@/components/admin/sentiment/SentimentAlerts';
 import RecentFeedback from '@/components/admin/sentiment/RecentFeedback';
-import MoodTrendChart from '@/components/admin/sentiment/MoodTrendChart';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw } from 'lucide-react';
 import { fetchAllSentiment } from '@/services/sentimentService';
@@ -17,16 +17,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   ResponsiveContainer, 
-  BarChart, 
-  Bar,
+  LineChart, 
+  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   Legend,
-  Cell
+  BarChart, 
+  Bar 
 } from 'recharts';
-import { DateRange } from 'react-day-picker';
 
 const SentimentAnalysis: React.FC = () => {
   const [filters, setFilters] = useState<{
@@ -37,15 +37,9 @@ const SentimentAnalysis: React.FC = () => {
     role?: string;
   }>({});
   const [showDebugInfo, setShowDebugInfo] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [sentimentData, setSentimentData] = useState<any[]>([]);
   
   const queryClient = useQueryClient();
-  
-  // Query for fetching sentiment data
-  const { data: sentimentData, isLoading } = useQuery({
-    queryKey: ['sentiment-analysis', filters],
-    queryFn: () => fetchAllSentiment(filters),
-  });
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -55,48 +49,63 @@ const SentimentAnalysis: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, []);
+  
+  // Fetch sentiment data based on filters
+  useEffect(() => {
+    const loadSentimentData = async () => {
+      try {
+        const data = await fetchAllSentiment(filters);
+        setSentimentData(data);
+      } catch (error) {
+        console.error("Error loading sentiment data:", error);
+      }
+    };
+    
+    loadSentimentData();
+  }, [filters]);
 
-  // Calculate tag distribution with mood distribution
-  const getTopicMoodData = () => {
-    if (!sentimentData) return [];
-    
-    // Initialize data structure for topics and their mood distributions
-    const topicMoodMap: Record<string, { 
-      name: string, 
-      count: number,
-      highMood: number,  // Rating 4-5
-      neutralMood: number, // Rating 3
-      lowMood: number,  // Rating 1-2
-    }> = {};
-    
+  // Calculate trend data
+  const getTimeSeriesData = () => {
+    const sentimentByDate = sentimentData.reduce((acc, curr) => {
+      if (!curr.created_at) return acc;
+      
+      const date = format(new Date(curr.created_at), 'yyyy-MM-dd');
+      if (!acc[date]) {
+        acc[date] = { 
+          count: 0, 
+          totalRating: 0, 
+          totalScore: 0
+        };
+      }
+      acc[date].count++;
+      acc[date].totalRating += curr.rating;
+      if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
+        acc[date].totalScore += curr.sentiment_score;
+      }
+      return acc;
+    }, {} as Record<string, { count: number; totalRating: number; totalScore: number }>);
+
+    // Convert to array for charts with simpler labels
+    return Object.keys(sentimentByDate)
+      .sort()
+      .map(date => ({
+        date,
+        rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
+        count: sentimentByDate[date].count,
+      }));
+  };
+
+  // Calculate tag distribution
+  const getTopTags = () => {
+    const tagCounts: Record<string, number> = {};
     let taggedFeedbackCount = 0;
     
     sentimentData.forEach(item => {
       if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
         taggedFeedbackCount++;
-        
         item.tags.forEach(tag => {
-          if (!tag) return;
-          
-          if (!topicMoodMap[tag]) {
-            topicMoodMap[tag] = { 
-              name: tag, 
-              count: 0,
-              highMood: 0,
-              neutralMood: 0,
-              lowMood: 0
-            };
-          }
-          
-          topicMoodMap[tag].count++;
-          
-          // Categorize by mood
-          if (item.rating >= 4) {
-            topicMoodMap[tag].highMood++;
-          } else if (item.rating === 3) {
-            topicMoodMap[tag].neutralMood++;
-          } else {
-            topicMoodMap[tag].lowMood++;
+          if (tag) { // Only count non-empty tags
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
           }
         });
       }
@@ -110,33 +119,14 @@ const SentimentAnalysis: React.FC = () => {
       sentimentData.forEach(item => {
         const label = item.sentiment_label?.toLowerCase() || 'unknown';
         const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
-        
-        if (!topicMoodMap[tagName]) {
-          topicMoodMap[tagName] = { 
-            name: tagName, 
-            count: 0,
-            highMood: 0,
-            neutralMood: 0,
-            lowMood: 0
-          };
-        }
-        
-        topicMoodMap[tagName].count++;
-        
-        // Categorize by mood
-        if (item.rating >= 4) {
-          topicMoodMap[tagName].highMood++;
-        } else if (item.rating === 3) {
-          topicMoodMap[tagName].neutralMood++;
-        } else {
-          topicMoodMap[tagName].lowMood++;
-        }
+        tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
       });
     }
 
-    return Object.values(topicMoodMap)
+    return Object.keys(tagCounts)
+      .map(tag => ({ name: tag, count: tagCounts[tag] }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10 topics
+      .slice(0, 10); // Top 10 tags
   };
   
   const exportMutation = useMutation({
@@ -191,15 +181,9 @@ const SentimentAnalysis: React.FC = () => {
     console.log("Filter change:", JSON.stringify(newFilters, null, 2));
     setFilters(newFilters);
     
-    // Update date range for comparison charts
-    if (newFilters.startDate && newFilters.endDate) {
-      setDateRange({
-        from: new Date(newFilters.startDate),
-        to: new Date(newFilters.endDate)
-      });
-    } else {
-      setDateRange(undefined);
-    }
+    // Invalidate queries to refresh data with new filters
+    queryClient.invalidateQueries({ queryKey: ['sentiment', newFilters] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', newFilters] });
   };
   
   const handleExport = () => {
@@ -210,7 +194,6 @@ const SentimentAnalysis: React.FC = () => {
     // Force refetch all sentiment data
     queryClient.invalidateQueries({ queryKey: ['sentiment'] });
     queryClient.invalidateQueries({ queryKey: ['sentiment-feedback'] });
-    queryClient.invalidateQueries({ queryKey: ['sentiment-analysis'] });
     
     toast({
       title: "Refreshing Data",
@@ -271,26 +254,72 @@ const SentimentAnalysis: React.FC = () => {
         </div>
       )}
       
-      {/* Enhanced Mood Trend Chart with comparison functionality */}
-      <MoodTrendChart 
-        sentimentData={sentimentData || []} 
-        dateRange={dateRange}
-        isLoading={isLoading}
-      />
-
-      {/* Combined Topic & Mood Chart */}
+      {/* New section - Employee Mood Trend */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Topic Mood Analysis</CardTitle>
+          <CardTitle>Employee Mood Trend Over Time</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sentimentData && sentimentData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={getTimeSeriesData()}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis 
+                    domain={[1, 5]} 
+                    ticks={[1, 2, 3, 4, 5]}
+                    tickFormatter={(value) => {
+                      const labels = {
+                        1: "Very Low",
+                        2: "Low",
+                        3: "Neutral",
+                        4: "Good", 
+                        5: "Excellent"
+                      };
+                      return labels[value as keyof typeof labels] || value;
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="rating"
+                    stroke="#8884d8"
+                    name="Employee Mood Rating (1-5)"
+                    activeDot={{ r: 8 }}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No sentiment data available for the selected filters.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* New section - Topic Frequency */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Topic Frequency</CardTitle>
         </CardHeader>
         <CardContent>
           {sentimentData && sentimentData.length > 0 ? (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={getTopicMoodData()}
+                  data={getTopTags()}
                   layout="vertical"
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
@@ -298,40 +327,16 @@ const SentimentAnalysis: React.FC = () => {
                     type="category" 
                     dataKey="name" 
                     tick={{ fontSize: 12 }}
-                    width={100}
                   />
                   <Tooltip 
-                    formatter={(value, name) => {
-                      if (name === "highMood") return [`${value} positive mentions`, "Positive (4-5)"];
-                      if (name === "neutralMood") return [`${value} neutral mentions`, "Neutral (3)"];
-                      if (name === "lowMood") return [`${value} negative mentions`, "Negative (1-2)"];
-                      return [`${value}`, name];
-                    }}
+                    formatter={(value) => [`${value} mentions`, "Mentions"]}
                     labelFormatter={(label) => `Topic: ${label}`}
                   />
-                  <Legend formatter={(value) => {
-                    if (value === "lowMood") return "Negative (1-2)";
-                    if (value === "neutralMood") return "Neutral (3)";
-                    if (value === "highMood") return "Positive (4-5)";
-                    return value;
-                  }} />
+                  <Legend />
                   <Bar 
-                    dataKey="lowMood" 
-                    name="lowMood" 
-                    stackId="a" 
-                    fill="#F44336" // Red for negative
-                  />
-                  <Bar 
-                    dataKey="neutralMood" 
-                    name="neutralMood" 
-                    stackId="a" 
-                    fill="#FFC107" // Yellow for neutral
-                  />
-                  <Bar 
-                    dataKey="highMood" 
-                    name="highMood" 
-                    stackId="a" 
-                    fill="#4CAF50" // Green for positive
+                    dataKey="count" 
+                    name="Times Mentioned"
+                    fill="#00C49F"
                   />
                 </BarChart>
               </ResponsiveContainer>
@@ -345,6 +350,10 @@ const SentimentAnalysis: React.FC = () => {
       </Card>
       
       <SentimentAlerts />
+      
+      <div className="my-6">
+        <SentimentOverview filters={filters} />
+      </div>
       
       <RecentFeedback filters={filters} />
     </AdminLayout>
