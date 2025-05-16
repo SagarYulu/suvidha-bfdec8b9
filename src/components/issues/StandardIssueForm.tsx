@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { submitIssue, uploadBankProof } from "@/services/issueSubmitService";
+import { submitIssue, uploadBankProof, uploadMultipleFiles } from "@/services/issueSubmitService";
 import { Paperclip, Upload } from "lucide-react";
 
 type StandardIssueFormProps = {
@@ -38,6 +38,7 @@ const StandardIssueForm = ({
   const aadharBackInputRef = useRef<HTMLInputElement>(null);
   
   const isESITicket = selectedType === "esi";
+  const isOthersTicket = selectedType === "others";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -130,6 +131,7 @@ const StandardIssueForm = ({
     let fileUrl = null;
     let aadharFrontUrl = null;
     let aadharBackUrl = null;
+    let allAttachments: string[] = [];
 
     try {
       // Upload regular attachment if selected
@@ -147,6 +149,8 @@ const StandardIssueForm = ({
           setIsSubmitting(false);
           return;
         }
+        
+        allAttachments.push(fileUrl);
       }
 
       // Upload Aadhaar attachments for ESI tickets
@@ -165,6 +169,8 @@ const StandardIssueForm = ({
             setIsSubmitting(false);
             return;
           }
+          
+          allAttachments.push(aadharFrontUrl);
         }
         
         if (aadharBackFile) {
@@ -181,6 +187,8 @@ const StandardIssueForm = ({
             setIsSubmitting(false);
             return;
           }
+          
+          allAttachments.push(aadharBackUrl);
         }
       }
 
@@ -199,8 +207,8 @@ const StandardIssueForm = ({
         attachmentDetails += `\nAadhaar Back: ${aadharBackUrl}`;
       }
 
-      // Submit the issue with optional attachment URL
-      await submitIssue({
+      // Submit the issue with optional attachment URL and attachments array
+      const result = await submitIssue({
         employeeUuid,
         typeId: selectedType,
         subTypeId: selectedSubType,
@@ -208,14 +216,24 @@ const StandardIssueForm = ({
         status: "open",
         priority: "medium",
         attachmentUrl: fileUrl || aadharFrontUrl, // Save the first available attachment URL
+        attachments: allAttachments.length > 0 ? allAttachments : null,
       });
 
-      toast({
-        title: "Ticket submitted",
-        description: "Your ticket has been successfully submitted.",
-      });
-      
-      onSuccess();
+      if (result.success) {
+        toast({
+          title: "Ticket submitted",
+          description: "Your ticket has been successfully submitted.",
+        });
+        
+        onSuccess();
+      } else {
+        console.error("Error submitting ticket:", result.error);
+        toast({
+          title: "Submission error",
+          description: result.error || "An error occurred while submitting your ticket. Please try again.",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error("Error submitting ticket:", error);
       toast({
@@ -231,23 +249,23 @@ const StandardIssueForm = ({
     }
   };
 
-  const triggerFileInput = () => {
+  const triggerFileInput = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
-  const triggerAadharFrontInput = () => {
+  const triggerAadharFrontInput = useCallback(() => {
     if (aadharFrontInputRef.current) {
       aadharFrontInputRef.current.click();
     }
-  };
+  }, []);
 
-  const triggerAadharBackInput = () => {
+  const triggerAadharBackInput = useCallback(() => {
     if (aadharBackInputRef.current) {
       aadharBackInputRef.current.click();
     }
-  };
+  }, []);
 
   return (
     <form onSubmit={handleStandardSubmit} className="space-y-6">
