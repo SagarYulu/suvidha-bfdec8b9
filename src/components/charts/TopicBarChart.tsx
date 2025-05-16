@@ -21,6 +21,14 @@ interface TopicBarChartProps {
 }
 
 const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
+  // Define a more specific formatter function for this component
+  const formatLabel = (value: any) => {
+    if (Array.isArray(value)) {
+      return String(value[0] || 0);
+    }
+    return String(value);
+  };
+
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -68,7 +76,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10} 
-              formatter={labelFormatter}
+              formatter={formatLabel}
             />
           </Bar>
         </BarChart>

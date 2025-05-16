@@ -29,9 +29,9 @@ export const moodTooltipFormatter = (value: number, name: string) => {
 };
 
 // Safe formatter for LabelList to ensure it returns string | number
-export const labelFormatter = (value: any): string | number => {
+export const labelFormatter = (value: any): string => {
   if (Array.isArray(value)) {
     return String(value[0] || 0);
   }
-  return typeof value === 'string' || typeof value === 'number' ? value : String(value);
+  return String(value);
 };
