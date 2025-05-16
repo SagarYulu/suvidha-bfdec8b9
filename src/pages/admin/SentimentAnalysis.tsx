@@ -14,6 +14,19 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { 
+  ResponsiveContainer, 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend,
+  BarChart, 
+  Bar 
+} from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
   const [filters, setFilters] = useState<{
@@ -24,6 +37,7 @@ const SentimentAnalysis: React.FC = () => {
     role?: string;
   }>({});
   const [showDebugInfo, setShowDebugInfo] = useState(true);
+  const [sentimentData, setSentimentData] = useState<any[]>([]);
   
   const queryClient = useQueryClient();
   
@@ -35,6 +49,85 @@ const SentimentAnalysis: React.FC = () => {
     
     return () => clearTimeout(timer);
   }, []);
+  
+  // Fetch sentiment data based on filters
+  useEffect(() => {
+    const loadSentimentData = async () => {
+      try {
+        const data = await fetchAllSentiment(filters);
+        setSentimentData(data);
+      } catch (error) {
+        console.error("Error loading sentiment data:", error);
+      }
+    };
+    
+    loadSentimentData();
+  }, [filters]);
+
+  // Calculate trend data
+  const getTimeSeriesData = () => {
+    const sentimentByDate = sentimentData.reduce((acc, curr) => {
+      if (!curr.created_at) return acc;
+      
+      const date = format(new Date(curr.created_at), 'yyyy-MM-dd');
+      if (!acc[date]) {
+        acc[date] = { 
+          count: 0, 
+          totalRating: 0, 
+          totalScore: 0
+        };
+      }
+      acc[date].count++;
+      acc[date].totalRating += curr.rating;
+      if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
+        acc[date].totalScore += curr.sentiment_score;
+      }
+      return acc;
+    }, {} as Record<string, { count: number; totalRating: number; totalScore: number }>);
+
+    // Convert to array for charts with simpler labels
+    return Object.keys(sentimentByDate)
+      .sort()
+      .map(date => ({
+        date,
+        rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
+        count: sentimentByDate[date].count,
+      }));
+  };
+
+  // Calculate tag distribution
+  const getTopTags = () => {
+    const tagCounts: Record<string, number> = {};
+    let taggedFeedbackCount = 0;
+    
+    sentimentData.forEach(item => {
+      if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+        taggedFeedbackCount++;
+        item.tags.forEach(tag => {
+          if (tag) { // Only count non-empty tags
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          }
+        });
+      }
+    });
+    
+    // For sentiment with no tags, create default categories
+    if (taggedFeedbackCount === 0 && sentimentData.length > 0) {
+      console.log("No tagged feedback found, creating default categories");
+      
+      // Count sentiment label distribution for default categories
+      sentimentData.forEach(item => {
+        const label = item.sentiment_label?.toLowerCase() || 'unknown';
+        const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
+        tagCounts[tagName] = (tagCounts[tagName] || 0) + 1;
+      });
+    }
+
+    return Object.keys(tagCounts)
+      .map(tag => ({ name: tag, count: tagCounts[tag] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10); // Top 10 tags
+  };
   
   const exportMutation = useMutation({
     mutationFn: async () => {
@@ -160,6 +253,101 @@ const SentimentAnalysis: React.FC = () => {
           </p>
         </div>
       )}
+      
+      {/* New section - Employee Mood Trend */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Employee Mood Trend Over Time</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sentimentData && sentimentData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={getTimeSeriesData()}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis 
+                    domain={[1, 5]} 
+                    ticks={[1, 2, 3, 4, 5]}
+                    tickFormatter={(value) => {
+                      const labels = {
+                        1: "Very Low",
+                        2: "Low",
+                        3: "Neutral",
+                        4: "Good", 
+                        5: "Excellent"
+                      };
+                      return labels[value as keyof typeof labels] || value;
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
+                    labelFormatter={(label) => `Date: ${label}`}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="rating"
+                    stroke="#8884d8"
+                    name="Employee Mood Rating (1-5)"
+                    activeDot={{ r: 8 }}
+                    strokeWidth={2}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No sentiment data available for the selected filters.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* New section - Topic Frequency */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Topic Frequency</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sentimentData && sentimentData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={getTopTags()}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${value} mentions`, "Mentions"]}
+                    labelFormatter={(label) => `Topic: ${label}`}
+                  />
+                  <Legend />
+                  <Bar 
+                    dataKey="count" 
+                    name="Times Mentioned"
+                    fill="#00C49F"
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              No topic data available for the selected filters.
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       <SentimentAlerts />
       
