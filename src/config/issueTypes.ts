@@ -98,4 +98,14 @@ export const ISSUE_TYPES: IssueType[] = [
       { id: "phone-number", label: "Phone Number", labelHindi: "फोन नंबर" },
     ]
   },
+  {
+    id: "others",
+    label: "Others",
+    labelHindi: "अन्य समस्या",
+    subTypes: [
+      { id: "general-query", label: "General Query", labelHindi: "सामान्य प्रश्न" },
+      { id: "it-issue", label: "IT Related Issue", labelHindi: "आईटी संबंधित समस्या" },
+      { id: "other-issue", label: "Other Issue", labelHindi: "अन्य समस्या" },
+    ]
+  },
 ];
