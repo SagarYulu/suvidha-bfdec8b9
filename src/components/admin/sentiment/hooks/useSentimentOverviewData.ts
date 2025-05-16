@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchAllSentiment } from '@/services/sentimentService';
@@ -77,6 +76,13 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   }, [filters, refetch]);
 
   // Check if we should show comparison data
+  // Add more detailed logging to debug comparison mode issues
+  console.log("Comparison data check:", {
+    comparisonMode: filters.comparisonMode,
+    hasPreviousPeriodData: !!previousPeriodData && Array.isArray(previousPeriodData) && previousPeriodData.length > 0,
+    previousDataLength: previousPeriodData ? (Array.isArray(previousPeriodData) ? previousPeriodData.length : 'not array') : 'undefined'
+  });
+
   const showComparison = filters.comparisonMode && 
                          filters.comparisonMode !== 'none' && 
                          !!previousPeriodData && 
@@ -272,6 +278,12 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
       
       return result;
     });
+
+  // Add logging to debug the time series data
+  console.log("TimeSeriesData sample:", timeSeriesData.slice(0, 3));
+  console.log("Previous data available for dates:", 
+    Object.keys(previousSentimentByDate).length > 0 ? 
+    Object.keys(previousSentimentByDate).slice(0, 5) : 'None');
 
   // Helper function to calculate sentiment distribution
   const calculateSentimentDistribution = (data: any[]) => {

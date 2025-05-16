@@ -25,7 +25,18 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
   comparisonLabel,
   hasPreviousPeriodData = true
 }) => {
+  // Calculate if we should show the comparison line
+  // We'll show it if comparison is enabled AND we actually have previous period data
   const showComparisonLine = showComparison && hasPreviousPeriodData;
+  
+  // Debug logs to help troubleshoot
+  console.log("MoodTrendSection props:", { 
+    showComparison, 
+    hasPreviousPeriodData, 
+    showComparisonLine,
+    dataLength: data.length,
+    hasPreviousData: data.some(item => item.previousRating !== undefined)
+  });
   
   return (
     <Card className="col-span-1 lg:col-span-2">

@@ -38,6 +38,15 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     comparisonLabel
   } = useSentimentOverviewData(filters);
 
+  // Add debugging logs
+  console.log("SentimentOverview state:", { 
+    showComparison, 
+    hasPreviousPeriodData,
+    comparisonMode: filters.comparisonMode, 
+    comparisonLabel,
+    timeSeriesDataLength: timeSeriesData?.length || 0
+  });
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">

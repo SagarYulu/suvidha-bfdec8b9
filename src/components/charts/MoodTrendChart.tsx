@@ -28,6 +28,11 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
   data, 
   showComparison = false 
 }) => {
+  // Add a console log to debug the data and showComparison flag
+  console.log("MoodTrendChart data:", data);
+  console.log("MoodTrendChart showComparison:", showComparison);
+  console.log("MoodTrendChart has previous data:", data.some(item => item.previousRating !== undefined));
+
   // Custom tooltip that handles both current and previous data
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -42,7 +47,7 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
               <p className="text-sm text-gray-700">
                 Current: <span className="font-medium">{payload[0].value}</span> 
                 <span className="ml-2 text-xs text-gray-500">
-                  ({payload[1]?.payload?.count || 0} responses)
+                  ({payload[0]?.payload?.count || 0} responses)
                 </span>
               </p>
             </div>
@@ -117,16 +122,18 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
             }}
           />
           
-          {/* Previous period line (dashed) */}
+          {/* Previous period line (dashed) - render conditionally but make sure it's rendered when needed */}
           {showComparison && (
             <Line
               type="monotone"
               dataKey="previousRating"
+              name="previousRating"
               stroke="#9CA3AF"
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ r: 4, fill: '#9CA3AF', strokeWidth: 1, stroke: '#FFFFFF' }}
               activeDot={{ r: 6, fill: '#6B7280', strokeWidth: 1, stroke: '#FFFFFF' }}
+              connectNulls={false}
             />
           )}
           
@@ -134,10 +141,12 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
           <Line
             type="monotone"
             dataKey="rating"
+            name="rating"
             stroke="#3B82F6"
             strokeWidth={3}
             dot={{ r: 6, fill: '#3B82F6', strokeWidth: 2, stroke: '#FFFFFF' }}
             activeDot={{ r: 8, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
+            connectNulls={true}
           />
         </LineChart>
       </ResponsiveContainer>
