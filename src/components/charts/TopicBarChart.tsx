@@ -11,7 +11,6 @@ import {
   ResponsiveContainer,
   LabelList
 } from 'recharts';
-import { labelFormatter } from './ChartUtils';
 
 interface TopicBarChartProps {
   data: Array<{
@@ -22,11 +21,16 @@ interface TopicBarChartProps {
 
 const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
   // Define a more specific formatter function for this component
-  const formatLabel = (value: any) => {
+  // This formatter must return string | number to satisfy LabelList's type constraints
+  const formatLabel = (value: any): string | number => {
+    // If it's an array, convert the first value to string
     if (Array.isArray(value)) {
       return String(value[0] || 0);
     }
-    return String(value);
+    // If it's already a string or number, return as is, otherwise convert to string
+    return typeof value === 'string' || typeof value === 'number' 
+      ? value 
+      : String(value);
   };
 
   return (
