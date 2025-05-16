@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -304,13 +303,13 @@ export const fetchAllSentiment = async (filters: {
       console.log("Limited sentiment data found, adding sample data for trend visualization");
       
       // Create base data from any existing entries
-      const existingData = data || [];
+      const baseData = data || [];
       
       // Create sample entries for testing purposes with the applied filters
       const today = new Date();
       
       const dummyData = [
-        ...existingData,
+        ...baseData,
         {
           id: "sample-1",
           employee_id: "sample-employee",
@@ -407,7 +406,7 @@ export const fetchAllSentiment = async (filters: {
       return dummyData;
     }
     
-    return existingData;
+    return baseData;
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
     return [];
