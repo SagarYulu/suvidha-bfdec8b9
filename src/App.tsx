@@ -20,7 +20,6 @@ import AdminSettings from "./pages/admin/Settings";
 import AdminLogin from "./pages/admin/Login";
 import AdminAccessControl from "./pages/admin/AccessControl";
 import AdminSentimentAnalysis from "./pages/admin/SentimentAnalysis";
-import TestDataGenerator from "./pages/admin/TestDataGenerator";
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
@@ -112,12 +111,6 @@ const App = () => {
                 <Route path="/admin/sentiment" element={
                   <AnalyticsGuard>
                     <AdminSentimentAnalysis />
-                  </AnalyticsGuard>
-                } />
-                
-                <Route path="/admin/test-data-generator" element={
-                  <AnalyticsGuard>
-                    <TestDataGenerator />
                   </AnalyticsGuard>
                 } />
                 
