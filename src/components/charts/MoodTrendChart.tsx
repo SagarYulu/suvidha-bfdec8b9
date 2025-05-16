@@ -11,7 +11,7 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { moodTooltipFormatter } from './ChartUtils';
+import { moodTooltipFormatter, hasData } from './ChartUtils';
 
 interface MoodTrendChartProps {
   data: Array<{
@@ -25,35 +25,39 @@ interface MoodTrendChartProps {
 }
 
 const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ 
-  data, 
+  data = [], 
   showComparison = false 
 }) => {
-  // Add a console log to debug the data and showComparison flag
-  console.log("MoodTrendChart data count:", data.length);
-  console.log("MoodTrendChart showComparison:", showComparison);
-  console.log("MoodTrendChart has previous data:", data.some(item => item.previousRating !== undefined));
+  // Safely check if data exists and has items
+  if (!hasData(data)) {
+    return (
+      <div className="h-80 flex items-center justify-center bg-gray-50 text-gray-500">
+        No mood trend data available to display.
+      </div>
+    );
+  }
 
   // Ensure the data is sorted by date to guarantee chronological ordering
   const sortedData = [...data].sort((a, b) => {
+    if (!a.date || !b.date) return 0;
     return new Date(a.date).getTime() - new Date(b.date).getTime();
   });
-  
-  console.log("MoodTrendChart sorted data first:", sortedData.length > 0 ? sortedData[0].date : "No data");
-  console.log("MoodTrendChart sorted data last:", sortedData.length > 0 ? sortedData[sortedData.length-1].date : "No data");
 
   // Custom tooltip that handles both current and previous data
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && label) {
       return (
         <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
-          <p className="font-medium text-gray-900">{format(new Date(label), 'MMMM dd, yyyy')}</p>
+          <p className="font-medium text-gray-900">
+            {format(new Date(label), 'MMMM dd, yyyy')}
+          </p>
           
           {/* Current period data */}
           <div className="mt-2">
             <div className="flex items-center gap-2">
               <div className="w-3 h-1 bg-blue-500 rounded-sm" style={{ height: '2px' }} />
               <p className="text-sm text-gray-700">
-                Current: <span className="font-medium">{payload[0].value}</span> 
+                Current: <span className="font-medium">{payload[0]?.value || 'N/A'}</span> 
                 <span className="ml-2 text-xs text-gray-500">
                   ({payload[0]?.payload?.count || 0} responses)
                 </span>
@@ -141,7 +145,7 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
               strokeDasharray="5 5"
               dot={{ r: 4, fill: '#9CA3AF', strokeWidth: 1, stroke: '#FFFFFF' }}
               activeDot={{ r: 6, fill: '#6B7280', strokeWidth: 1, stroke: '#FFFFFF' }}
-              connectNulls={false}
+              connectNulls={true}
             />
           )}
           

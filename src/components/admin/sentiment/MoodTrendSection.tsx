@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import MoodTrendChart from '@/components/charts/MoodTrendChart';
 import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { hasData } from '@/components/charts/ChartUtils';
 
 interface MoodTrendSectionProps {
   data: any[];
@@ -13,35 +14,25 @@ interface MoodTrendSectionProps {
 }
 
 const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({ 
-  data, 
+  data = [], 
   showComparison = false,
   comparisonLabel = 'previous',
   hasPreviousPeriodData = false
 }) => {
-  // Add a log to debug the props
-  console.info("MoodTrendSection props:", {
-    showComparison,
-    hasPreviousPeriodData,
-    showComparisonLine: showComparison && hasPreviousPeriodData,
-    dataLength: data?.length || 0,
-    hasData: Array.isArray(data) && data.length > 0,
-    hasPreviousData: Array.isArray(data) && data.some(item => item.previousRating !== undefined)
-  });
-
   // Safe check for data array
   const safeData = Array.isArray(data) ? data : [];
   
-  // Only show comparison if we have data with previousRating
+  // Only show comparison if we have data with previousRating and hasPreviousPeriodData is true
   const shouldShowComparison = showComparison && 
                               hasPreviousPeriodData && 
-                              safeData.some(item => item.previousRating !== undefined);
+                              safeData.some(item => item?.previousRating !== undefined);
 
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-medium">
           Employee Mood Trend Over Time
-          {showComparison && (
+          {showComparison && comparisonLabel && (
             <span className="ml-2 text-sm font-normal text-gray-500">
               ({comparisonLabel} comparison)
             </span>
@@ -65,7 +56,7 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
         </TooltipProvider>
       </CardHeader>
       <CardContent>
-        {safeData.length > 0 ? (
+        {hasData(safeData) ? (
           <MoodTrendChart 
             data={safeData} 
             showComparison={shouldShowComparison} 

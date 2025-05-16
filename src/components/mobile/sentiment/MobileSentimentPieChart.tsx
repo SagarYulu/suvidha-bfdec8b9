@@ -8,7 +8,7 @@ import {
   Tooltip
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { SENTIMENT_COLORS, getSentimentColor } from '@/components/charts/ChartUtils';
+import { SENTIMENT_COLORS, getSentimentColor, hasData } from '@/components/charts/ChartUtils';
 
 interface MobileSentimentPieChartProps {
   data: Array<{
@@ -17,8 +17,9 @@ interface MobileSentimentPieChartProps {
   }>;
 }
 
-const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data }) => {
-  const validData = Array.isArray(data) ? data : [];
+const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data = [] }) => {
+  // Safely check if data exists
+  const validData = hasData(data) ? data : [];
   
   return (
     <Card className="bg-white/90">
@@ -40,7 +41,9 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
                   fill="#8884d8"
                   dataKey="value"
                   paddingAngle={3}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => 
+                    `${name || 'Unknown'}: ${((percent || 0) * 100).toFixed(0)}%`
+                  }
                 >
                   {validData.map((entry, index) => (
                     <Cell 

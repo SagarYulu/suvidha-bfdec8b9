@@ -9,8 +9,10 @@ export const SENTIMENT_COLORS = {
   'negative': '#F87171'   // Lighter red
 };
 
-// Helper function to get sentiment color based on name
+// Helper function to get sentiment color based on name with safe fallback
 export const getSentimentColor = (name: string): string => {
+  if (!name) return CHART_COLORS[0]; // Default color if name is undefined
+  
   const lowerName = name.toLowerCase();
   if (lowerName.includes('positive')) return SENTIMENT_COLORS.positive;
   if (lowerName.includes('negative')) return SENTIMENT_COLORS.negative;
@@ -18,8 +20,10 @@ export const getSentimentColor = (name: string): string => {
   return CHART_COLORS[0]; // Default color
 };
 
-// Formatter for the line chart tooltips
-export const moodTooltipFormatter = (value: number, name: string) => {
+// Formatter for the line chart tooltips with defensive checks
+export const moodTooltipFormatter = (value: number | null, name: string) => {
+  if (value === null || value === undefined) return ["N/A", name || "Unknown"];
+  
   const moodLabels: Record<number, string> = {
     1: 'Very Low',
     2: 'Low',
@@ -34,7 +38,7 @@ export const moodTooltipFormatter = (value: number, name: string) => {
       return Math.abs(curr - value) < Math.abs(prev - value) ? curr : prev;
     }, 3);
     
-  return [`${value} (${moodLabels[closestMood]})`, "Mood Rating"];
+  return [`${value} (${moodLabels[closestMood]})`, name || "Mood Rating"];
 };
 
 /**
@@ -63,3 +67,12 @@ export const labelFormatter = (value: any): string | number => {
   return String(value);
 };
 
+// Helper function to safely check if data exists and has length
+export const hasData = (data: any[] | null | undefined): boolean => {
+  return Array.isArray(data) && data.length > 0;
+};
+
+// Helper to safely get a color from CHART_COLORS by index
+export const getChartColorByIndex = (index: number): string => {
+  return CHART_COLORS[index % CHART_COLORS.length];
+};

@@ -8,7 +8,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { CHART_COLORS, SENTIMENT_COLORS, getSentimentColor } from './ChartUtils';
+import { CHART_COLORS, SENTIMENT_COLORS, getSentimentColor, hasData } from './ChartUtils';
 
 interface SentimentPieChartProps {
   data: Array<{
@@ -20,25 +20,41 @@ interface SentimentPieChartProps {
 }
 
 const SentimentPieChart: React.FC<SentimentPieChartProps> = ({ 
-  data, 
+  data = [], 
   showComparison = false 
 }) => {
-  // Calculate total values for percentages
-  const totalCurrent = data.reduce((sum, item) => sum + item.value, 0);
+  // Safely check if data exists and has items
+  if (!hasData(data)) {
+    return (
+      <div className="h-64 flex items-center justify-center bg-gray-50 text-gray-500">
+        No sentiment data available to display.
+      </div>
+    );
+  }
+  
+  // Calculate total values for percentages (with safety checks)
+  const totalCurrent = data.reduce((sum, item) => sum + (item.value || 0), 0);
   const totalPrevious = showComparison 
     ? data.reduce((sum, item) => sum + (item.previousValue || 0), 0)
     : 0;
+
+  // Verify we have previous data if showComparison is true
+  const hasPreviousData = showComparison && 
+    totalPrevious > 0 && 
+    data.some(item => item.previousValue !== undefined);
 
   // Custom tooltip for showing comparison data
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const item = payload[0].payload;
-      const currentPercent = ((item.value / totalCurrent) * 100).toFixed(1);
+      const currentPercent = totalCurrent > 0 
+        ? ((item.value / totalCurrent) * 100).toFixed(1)
+        : '0.0';
       
       let previousPercent = '0.0';
       let change = 0;
       
-      if (showComparison && item.previousValue !== undefined && totalPrevious > 0) {
+      if (hasPreviousData && item.previousValue !== undefined && totalPrevious > 0) {
         previousPercent = ((item.previousValue / totalPrevious) * 100).toFixed(1);
         change = parseFloat(currentPercent) - parseFloat(previousPercent);
       }
@@ -52,14 +68,14 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
               <span className="ml-1">({currentPercent}%)</span>
             </p>
             
-            {showComparison && item.previousValue !== undefined && (
+            {hasPreviousData && item.previousValue !== undefined && (
               <p className="text-sm">
                 Previous: <span className="font-medium">{item.previousValue}</span>
                 <span className="ml-1">({previousPercent}%)</span>
               </p>
             )}
             
-            {showComparison && change !== 0 && (
+            {hasPreviousData && item.previousValue !== undefined && change !== 0 && (
               <p className="text-sm pt-1 border-t border-gray-100">
                 Change: {" "}
                 <span className={
@@ -85,7 +101,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
           {/* Previous period data (if comparison is enabled) */}
-          {showComparison && (
+          {hasPreviousData && (
             <Pie
               data={data.filter(item => item.previousValue !== undefined)}
               dataKey="previousValue"
@@ -114,7 +130,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
             data={data}
             cx="50%"
             cy="50%"
-            outerRadius={showComparison ? 65 : 80}
+            outerRadius={hasPreviousData ? 65 : 80}
             innerRadius={40}
             fill="#8884d8"
             dataKey="value"
