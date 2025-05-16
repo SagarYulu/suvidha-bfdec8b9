@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -235,7 +236,7 @@ export const fetchUserSentimentHistory = async (employeeId: string): Promise<Sen
   }
 };
 
-// Admin functions for dashboard
+// Admin functions for dashboard - completely refactored to use real data only
 export const fetchAllSentiment = async (filters: {
   startDate?: string;
   endDate?: string;
@@ -251,32 +252,34 @@ export const fetchAllSentiment = async (filters: {
       .select('*')
       .order('created_at', { ascending: true });
     
-    // Apply date filters if provided - using strict date range filtering
+    // Apply strict date filters with proper handling of time zones
     if (filters.startDate) {
-      // Start date is inclusive (>=)
+      // Start date inclusive from midnight (00:00:00)
       query = query.gte('created_at', `${filters.startDate}T00:00:00`);
     }
     
     if (filters.endDate) {
-      // End date is inclusive but we add 1 day to make it exclusive of the next day
-      const endDate = new Date(filters.endDate);
-      endDate.setDate(endDate.getDate() + 1);
-      query = query.lt('created_at', endDate.toISOString());
+      // End date inclusive until 23:59:59
+      // Add one day to the end date and use less than (<) for proper filtering
+      const endDateObj = new Date(filters.endDate);
+      endDateObj.setDate(endDateObj.getDate() + 1);
+      const nextDayEndDate = endDateObj.toISOString().split('T')[0];
+      query = query.lt('created_at', `${nextDayEndDate}T00:00:00`);
     }
     
-    // Apply city filter - using case-insensitive match and handling null values
+    // Apply city filter - case-insensitive match
     if (filters.city && filters.city !== 'all-cities') {
       console.log("Filtering by city name:", filters.city);
       query = query.ilike('city', `%${filters.city}%`);
     }
     
-    // Apply cluster filter - using case-insensitive match and handling null values
+    // Apply cluster filter - case-insensitive match
     if (filters.cluster && filters.cluster !== 'all-clusters') {
       console.log("Filtering by cluster:", filters.cluster);
       query = query.ilike('cluster', `%${filters.cluster}%`);
     }
     
-    // Apply role filter - using case-insensitive match and handling null values
+    // Apply role filter - case-insensitive match
     if (filters.role && filters.role !== 'all-roles') {
       console.log("Filtering by role:", filters.role);
       query = query.ilike('role', `%${filters.role}%`);
@@ -292,11 +295,8 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Generate more comprehensive sample data for testing comparisons
-    const useMoreSampleData = false; // Set to false to use real data only
-    
-    if (data && data.length > 0 && !useMoreSampleData) {
-      // Apply additional client-side filtering to ensure exact date matching
+    // Return the filtered data from the database
+    if (data && data.length > 0) {
       const filteredData = data.filter(item => {
         if (!item.created_at) return false;
         
@@ -319,9 +319,6 @@ export const fetchAllSentiment = async (filters: {
       console.log(`Returning ${filteredData.length} filtered sentiment records within date range`);
       return filteredData;
     }
-    
-    // Rest of the mock data generation code (only used if useMoreSampleData is true)
-    // ... keep existing code (mock data generation)
     
     return data || [];
   } catch (error) {

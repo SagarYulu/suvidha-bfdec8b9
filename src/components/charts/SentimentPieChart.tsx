@@ -8,7 +8,26 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { SENTIMENT_COLORS, CHART_COLORS } from './ChartUtils';
+
+// Define sentiment colors for consistency
+const SENTIMENT_COLORS = {
+  positive: '#4ADE80', // Green
+  neutral: '#FBBF24',  // Yellow
+  negative: '#F87171', // Red
+  unknown: '#9CA3AF'   // Gray
+};
+
+// Additional colors for other categories if needed
+const CHART_COLORS = [
+  '#3B82F6', // Blue
+  '#8B5CF6', // Purple
+  '#EC4899', // Pink
+  '#10B981', // Emerald
+  '#A855F7', // Violet
+  '#6366F1', // Indigo
+  '#0EA5E9', // Sky
+  '#F59E0B'  // Amber
+];
 
 interface SentimentPieChartProps {
   data: Array<{
@@ -143,12 +162,10 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
           </Pie>
           
           <Tooltip content={<CustomTooltip />} />
-          
           <Legend 
-            verticalAlign="bottom" 
-            formatter={(value) => {
-              return <span className="text-sm">{value}</span>;
-            }}
+            formatter={(value) => value}
+            verticalAlign="bottom"
+            align="center"
           />
         </PieChart>
       </ResponsiveContainer>

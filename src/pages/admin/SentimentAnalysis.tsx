@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
@@ -66,7 +67,7 @@ const SentimentAnalysis: React.FC = () => {
     loadSentimentData();
   }, [filters]);
 
-  // Calculate tag distribution with mood distribution
+  // Calculate tag distribution with mood distribution using real data
   const getTopicMoodData = () => {
     // Initialize data structure for topics and their mood distributions
     const topicMoodMap: Record<string, { 
@@ -314,7 +315,7 @@ const SentimentAnalysis: React.FC = () => {
         {/* Filters */}
         <SentimentFilterBar onFilterChange={handleFilterChange} />
         
-        {/* Comparison Mode - Now properly connected to data fetch logic */}
+        {/* Comparison Mode */}
         <Card className="p-4">
           <ComparisonModeDropdown 
             value={filters.comparisonMode || 'none'} 
