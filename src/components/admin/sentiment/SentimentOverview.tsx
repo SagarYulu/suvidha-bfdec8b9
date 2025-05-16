@@ -7,6 +7,8 @@ import MoodTrendSection from './MoodTrendSection';
 import SentimentDistributionSection from './SentimentDistributionSection';
 import TopicAnalysisSection from './TopicAnalysisSection';
 import TopicDistributionSection from './TopicDistributionSection';
+import ComparisonInsights from './ComparisonInsights';
+import { ComparisonMode } from './ComparisonModeDropdown';
 
 interface SentimentOverviewProps {
   filters: {
@@ -15,17 +17,22 @@ interface SentimentOverviewProps {
     city?: string;
     cluster?: string;
     role?: string;
+    comparisonMode?: ComparisonMode;
   };
 }
 
 const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
   const { 
     isLoading,
+    isLoadingComparison,
     sentimentData,
     timeSeriesData,
     sentimentPieData,
     tagData,
-    radarData
+    radarData,
+    comparisonInsights,
+    showComparison,
+    comparisonLabel
   } = useSentimentOverviewData(filters);
 
   if (isLoading) {
@@ -46,18 +53,44 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Employee Mood Trend Over Time */}
-      <MoodTrendSection data={timeSeriesData} />
+    <div>
+      {/* Display comparison insights if available */}
+      {showComparison && comparisonInsights && comparisonInsights.length > 0 && (
+        <ComparisonInsights 
+          insights={comparisonInsights} 
+          isLoading={isLoadingComparison} 
+        />
+      )}
 
-      {/* Sentiment Distribution */}
-      <SentimentDistributionSection data={sentimentPieData} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Employee Mood Trend Over Time */}
+        <MoodTrendSection 
+          data={timeSeriesData} 
+          showComparison={showComparison} 
+          comparisonLabel={comparisonLabel}
+        />
 
-      {/* Radar chart for top tags */}
-      <TopicAnalysisSection data={radarData} />
+        {/* Sentiment Distribution */}
+        <SentimentDistributionSection 
+          data={sentimentPieData} 
+          showComparison={showComparison}
+          comparisonLabel={comparisonLabel} 
+        />
 
-      {/* Top Feedback Topics */}
-      <TopicDistributionSection data={tagData} />
+        {/* Radar chart for top tags */}
+        <TopicAnalysisSection 
+          data={radarData} 
+          showComparison={showComparison}
+          comparisonLabel={comparisonLabel}
+        />
+
+        {/* Top Feedback Topics */}
+        <TopicDistributionSection 
+          data={tagData} 
+          showComparison={showComparison}
+          comparisonLabel={comparisonLabel}
+        />
+      </div>
     </div>
   );
 };

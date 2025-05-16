@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
@@ -13,20 +14,8 @@ import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { 
-  ResponsiveContainer, 
-  ComposedChart,
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend,
-  LabelList,
-  Cell
-} from 'recharts';
+import { Card } from '@/components/ui/card';
+import ComparisonModeDropdown, { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
 const SentimentAnalysis: React.FC = () => {
   const [filters, setFilters] = useState<{
@@ -35,7 +24,10 @@ const SentimentAnalysis: React.FC = () => {
     city?: string;
     cluster?: string;
     role?: string;
-  }>({});
+    comparisonMode?: ComparisonMode;
+  }>({
+    comparisonMode: 'none'
+  });
   const [showDebugInfo, setShowDebugInfo] = useState(true);
   const [sentimentData, setSentimentData] = useState<any[]>([]);
   
@@ -195,11 +187,28 @@ const SentimentAnalysis: React.FC = () => {
     role?: string;
   }) => {
     console.log("Filter change:", JSON.stringify(newFilters, null, 2));
-    setFilters(newFilters);
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      ...newFilters
+    }));
     
     // Invalidate queries to refresh data with new filters
     queryClient.invalidateQueries({ queryKey: ['sentiment', newFilters] });
     queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', newFilters] });
+  };
+
+  const handleComparisonModeChange = (mode: ComparisonMode) => {
+    console.log("Comparison mode changed to:", mode);
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      comparisonMode: mode
+    }));
+
+    // Invalidate queries to refresh data with new comparison mode
+    queryClient.invalidateQueries({ queryKey: ['sentiment', { ...filters, comparisonMode: mode }] });
+    if (mode !== 'none') {
+      queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
+    }
   };
   
   const handleExport = () => {
@@ -210,6 +219,7 @@ const SentimentAnalysis: React.FC = () => {
     // Force refetch all sentiment data
     queryClient.invalidateQueries({ queryKey: ['sentiment'] });
     queryClient.invalidateQueries({ queryKey: ['sentiment-feedback'] });
+    queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
     
     toast({
       title: "Refreshing Data",
@@ -275,7 +285,18 @@ const SentimentAnalysis: React.FC = () => {
         </div>
       </div>
       
-      <SentimentFilterBar onFilterChange={handleFilterChange} />
+      <div className="mb-6 grid grid-cols-1 gap-4">
+        {/* Filters */}
+        <SentimentFilterBar onFilterChange={handleFilterChange} />
+        
+        {/* Comparison Mode */}
+        <Card className="p-4">
+          <ComparisonModeDropdown 
+            value={filters.comparisonMode || 'none'} 
+            onChange={handleComparisonModeChange} 
+          />
+        </Card>
+      </div>
       
       {/* Debug info panel with toggle */}
       <div className="mb-4 flex items-start">

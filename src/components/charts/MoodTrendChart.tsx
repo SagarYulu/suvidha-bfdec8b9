@@ -18,10 +18,72 @@ interface MoodTrendChartProps {
     date: string;
     rating: number;
     count: number;
+    previousRating?: number;
+    previousCount?: number;
   }>;
+  showComparison?: boolean;
 }
 
-const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ data }) => {
+const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ 
+  data, 
+  showComparison = false 
+}) => {
+  // Custom tooltip that handles both current and previous data
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
+          <p className="font-medium text-gray-900">{format(new Date(label), 'MMMM dd, yyyy')}</p>
+          
+          {/* Current period data */}
+          <div className="mt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-1 bg-blue-500 rounded-sm" style={{ height: '2px' }} />
+              <p className="text-sm text-gray-700">
+                Current: <span className="font-medium">{payload[0].value}</span> 
+                <span className="ml-2 text-xs text-gray-500">
+                  ({payload[1]?.payload?.count || 0} responses)
+                </span>
+              </p>
+            </div>
+            
+            {/* Previous period data if available */}
+            {showComparison && payload[0]?.payload?.previousRating !== undefined && (
+              <div className="flex items-center gap-2 mt-1">
+                <div className="w-3 h-1 bg-gray-400 rounded-sm" style={{ height: '2px', borderStyle: 'dashed' }} />
+                <p className="text-sm text-gray-700">
+                  Previous: <span className="font-medium">{payload[0].payload.previousRating}</span>
+                  <span className="ml-2 text-xs text-gray-500">
+                    ({payload[0]?.payload?.previousCount || 0} responses)
+                  </span>
+                </p>
+              </div>
+            )}
+            
+            {/* Show change if comparison is enabled */}
+            {showComparison && payload[0]?.payload?.previousRating !== undefined && (
+              <div className="mt-1 pt-1 border-t border-gray-200">
+                <p className="text-sm">
+                  Change: {" "}
+                  <span className={
+                    payload[0].value > payload[0].payload.previousRating 
+                      ? "text-green-600 font-medium"
+                      : payload[0].value < payload[0].payload.previousRating
+                        ? "text-red-600 font-medium"
+                        : "text-gray-600"
+                  }>
+                    {((payload[0].value - payload[0].payload.previousRating) || 0).toFixed(2)}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -45,21 +107,29 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({ data }) => {
             tickLine={{ stroke: '#e5e7eb' }}
             axisLine={{ stroke: '#e5e7eb' }}
           />
-          <Tooltip 
-            formatter={moodTooltipFormatter}
-            labelFormatter={(label) => `Date: ${format(new Date(label), 'MMMM dd, yyyy')}`}
-            contentStyle={{ 
-              borderRadius: '8px', 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
-              border: '1px solid #e5e7eb' 
-            }}
-          />
+          <Tooltip content={<CustomTooltip />} />
           <Legend wrapperStyle={{ paddingTop: '10px' }} />
+          
+          {/* Previous period line (dashed) */}
+          {showComparison && (
+            <Line
+              type="monotone"
+              dataKey="previousRating"
+              stroke="#9CA3AF"
+              name="Previous Period"
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ r: 4, fill: '#9CA3AF', strokeWidth: 1, stroke: '#FFFFFF' }}
+              activeDot={{ r: 6, fill: '#6B7280', strokeWidth: 1, stroke: '#FFFFFF' }}
+            />
+          )}
+          
+          {/* Current period line (solid) */}
           <Line
             type="monotone"
             dataKey="rating"
             stroke="#3B82F6"
-            name="Employee Mood Rating"
+            name="Current Period"
             strokeWidth={3}
             dot={{ r: 6, fill: '#3B82F6', strokeWidth: 2, stroke: '#FFFFFF' }}
             activeDot={{ r: 8, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}

@@ -7,7 +7,9 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Cell,
+  Legend
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
@@ -15,10 +17,56 @@ interface MobileTopicBarChartProps {
   data: Array<{
     name: string;
     count: number;
+    previousCount?: number;
   }>;
+  showComparison?: boolean;
 }
 
-const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
+const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ 
+  data, 
+  showComparison = false 
+}) => {
+  // Custom tooltip for bar chart
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const item = payload[0].payload;
+      
+      return (
+        <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
+          <p className="font-medium text-gray-900 text-sm">{label}</p>
+          <div className="mt-2 space-y-1">
+            <p className="text-xs">
+              Current: <span className="font-medium">{item.count}</span> mentions
+            </p>
+            
+            {showComparison && item.previousCount !== undefined && (
+              <p className="text-xs">
+                Previous: <span className="font-medium">{item.previousCount}</span> mentions
+              </p>
+            )}
+            
+            {showComparison && item.previousCount !== undefined && (
+              <p className="text-xs pt-1 border-t border-gray-100">
+                Change: {" "}
+                <span className={
+                  item.count > item.previousCount 
+                    ? "text-green-600 font-medium" 
+                    : item.count < item.previousCount 
+                      ? "text-red-600 font-medium" 
+                      : "text-gray-600"
+                }>
+                  {item.count > item.previousCount ? '+' : ''}
+                  {item.count - item.previousCount}
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Card className="bg-white/90">
       <CardHeader>
@@ -47,18 +95,51 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                   tick={{ fontSize: 11, fill: '#6B7280' }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
-                  label={{ value: 'Mentions', position: 'insideLeft', angle: -90, dy: 40, dx: -5, style: { textAnchor: 'middle', fontSize: 11 } }}
+                  label={{ 
+                    value: 'Mentions', 
+                    position: 'insideLeft', 
+                    angle: -90, 
+                    dy: 40, 
+                    dx: -5, 
+                    style: { 
+                      textAnchor: 'middle', 
+                      fontSize: 11 
+                    } 
+                  }}
                 />
-                <Tooltip 
-                  formatter={(value: number) => [`${value} mentions`, "Count"]}
-                  contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                <Tooltip content={<CustomTooltip />} />
+                <Legend
+                  wrapperStyle={{ fontSize: 10 }}
+                  formatter={(value) => (value === "previousCount" ? "Previous" : "Current")} 
                 />
+                
+                {/* Previous period bars (if comparison enabled) */}
+                {showComparison && (
+                  <Bar 
+                    dataKey="previousCount"
+                    name="previousCount"
+                    fill="#9CA3AF"
+                    fillOpacity={0.6}
+                    radius={[0, 0, 0, 0]}
+                    barSize={12}
+                  />
+                )}
+                
+                {/* Current period bars */}
                 <Bar 
                   dataKey="count" 
-                  name="Mentions"
+                  name="Current Period"
                   fill="#3B82F6"
                   radius={[4, 4, 0, 0]}
-                />
+                  barSize={showComparison ? 12 : 20}
+                >
+                  {data.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={`hsl(${210 - index * (150 / Math.max(data.length, 1))}, 80%, 55%)`}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (

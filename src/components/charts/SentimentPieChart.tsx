@@ -5,7 +5,8 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip
+  Tooltip,
+  Legend
 } from 'recharts';
 import { SENTIMENT_COLORS, CHART_COLORS } from './ChartUtils';
 
@@ -13,19 +14,112 @@ interface SentimentPieChartProps {
   data: Array<{
     name: string;
     value: number;
+    previousValue?: number;
   }>;
+  showComparison?: boolean;
 }
 
-const SentimentPieChart: React.FC<SentimentPieChartProps> = ({ data }) => {
+const SentimentPieChart: React.FC<SentimentPieChartProps> = ({ 
+  data, 
+  showComparison = false 
+}) => {
+  // Calculate total values for percentages
+  const totalCurrent = data.reduce((sum, item) => sum + item.value, 0);
+  const totalPrevious = showComparison 
+    ? data.reduce((sum, item) => sum + (item.previousValue || 0), 0)
+    : 0;
+
+  // Custom tooltip for showing comparison data
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const item = payload[0].payload;
+      const currentPercent = ((item.value / totalCurrent) * 100).toFixed(1);
+      
+      let previousPercent = '0.0';
+      let change = 0;
+      
+      if (showComparison && item.previousValue !== undefined && totalPrevious > 0) {
+        previousPercent = ((item.previousValue / totalPrevious) * 100).toFixed(1);
+        change = parseFloat(currentPercent) - parseFloat(previousPercent);
+      }
+
+      return (
+        <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
+          <p className="font-medium text-gray-900">{item.name}</p>
+          <div className="mt-2 space-y-1">
+            <p className="text-sm">
+              Current: <span className="font-medium">{item.value}</span> 
+              <span className="ml-1">({currentPercent}%)</span>
+            </p>
+            
+            {showComparison && item.previousValue !== undefined && (
+              <p className="text-sm">
+                Previous: <span className="font-medium">{item.previousValue}</span>
+                <span className="ml-1">({previousPercent}%)</span>
+              </p>
+            )}
+            
+            {showComparison && change !== 0 && (
+              <p className="text-sm pt-1 border-t border-gray-100">
+                Change: {" "}
+                <span className={
+                  change > 0 
+                    ? "text-green-600 font-medium" 
+                    : change < 0 
+                      ? "text-red-600 font-medium" 
+                      : "text-gray-600"
+                }>
+                  {change > 0 ? '+' : ''}{change.toFixed(1)}%
+                </span>
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
+          {/* Previous period data (if comparison is enabled) */}
+          {showComparison && (
+            <Pie
+              data={data}
+              dataKey="previousValue"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={90}
+              innerRadius={70}
+              fill="#8884d8"
+              paddingAngle={1}
+            >
+              {data.map((entry, index) => (
+                <Cell 
+                  key={`cell-prev-${index}`}
+                  fill={
+                    entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
+                    entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
+                    entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
+                    CHART_COLORS[index % CHART_COLORS.length]
+                  } 
+                  opacity={0.6}
+                  stroke="#FFFFFF"
+                  strokeWidth={1}
+                />
+              ))}
+            </Pie>
+          )}
+          
+          {/* Current period data */}
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            outerRadius={80}
+            outerRadius={showComparison ? 65 : 80}
             innerRadius={40}
             fill="#8884d8"
             dataKey="value"
@@ -35,7 +129,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({ data }) => {
           >
             {data.map((entry, index) => (
               <Cell 
-                key={`cell-${index}`} 
+                key={`cell-${index}`}
                 fill={
                   entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
                   entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
@@ -47,12 +141,13 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({ data }) => {
               />
             ))}
           </Pie>
-          <Tooltip 
-            formatter={(value) => [`${value} responses`, `${value} responses`]} 
-            contentStyle={{ 
-              borderRadius: '8px', 
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)', 
-              border: '1px solid #e5e7eb' 
+          
+          <Tooltip content={<CustomTooltip />} />
+          
+          <Legend 
+            verticalAlign="bottom" 
+            formatter={(value) => {
+              return <span className="text-sm">{value}</span>;
             }}
           />
         </PieChart>
