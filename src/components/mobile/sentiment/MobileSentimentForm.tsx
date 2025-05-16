@@ -268,7 +268,7 @@ const MobileSentimentForm: React.FC = () => {
                   key={tag.id}
                   className={cn(
                     "flex items-center rounded-lg py-3 px-3 transition-all",
-                    isSelected ? "bg-yulu-cyan/20 border border-yulu-cyan" : "bg-white/90 border border-transparent"
+                    isSelected ? "bg-yulu-dashboard-blue/20 border border-yulu-dashboard-blue" : "bg-white/90 border border-transparent"
                   )}
                 >
                   <div className="mr-3">
@@ -278,7 +278,7 @@ const MobileSentimentForm: React.FC = () => {
                       onCheckedChange={() => handleTagToggle(tag.name)}
                       className={cn(
                         "h-5 w-5 border-2",
-                        isSelected ? "bg-yulu-cyan border-yulu-cyan" : "border-gray-400"
+                        isSelected ? "bg-yulu-dashboard-blue border-yulu-dashboard-blue" : "border-gray-400"
                       )}
                     />
                   </div>
@@ -313,7 +313,7 @@ const MobileSentimentForm: React.FC = () => {
         {selectedTags.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {selectedTags.map(tag => (
-              <div key={tag} className="bg-yulu-cyan text-white text-xs rounded-full px-3 py-1 flex items-center">
+              <div key={tag} className="bg-yulu-dashboard-blue text-white text-xs rounded-full px-3 py-1 flex items-center">
                 {tag}
                 <button 
                   className="ml-1 hover:text-white/80" 
@@ -328,9 +328,9 @@ const MobileSentimentForm: React.FC = () => {
       </div>
       
       {/* Fixed Submit Button at bottom */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-cyan to-yulu-cyan/90">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
         <Button 
-          className="w-full bg-white hover:bg-white/90 text-yulu-cyan hover:text-yulu-cyan text-lg font-medium py-6 rounded-xl shadow-lg"
+          className="w-full bg-white hover:bg-white/90 text-yulu-dashboard-blue hover:text-yulu-dashboard-blue text-lg font-medium py-6 rounded-xl shadow-lg"
           onClick={submitWithErrorHandling}
           disabled={isSubmitting}
         >

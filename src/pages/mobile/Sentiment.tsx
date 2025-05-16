@@ -11,15 +11,15 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
-  // Updated to use Yulu cyan colors for the gradient
-  const bgGradient = "linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)";
+  // Updated to use dashboard blue colors for the gradient
+  const bgGradient = "linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%)";
   
   // When used as a standalone page
   if (!isOpen && !onClose) {
     return (
       <MobileLayout 
         title="Feedback Matters" 
-        bgColor="bg-yulu-cyan"
+        bgColor="bg-yulu-dashboard-blue"
       >
         <div 
           className="min-h-screen -mt-16 pt-16" 

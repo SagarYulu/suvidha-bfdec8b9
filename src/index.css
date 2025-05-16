@@ -54,6 +54,11 @@
     --yulu-cyan: 187 92% 69%;
     --yulu-cyan-dark: 187 92% 59%;
     
+    /* Yulu dashboard blue colors */
+    --yulu-dashboard-blue: 224 89% 42%;
+    --yulu-dashboard-blue-light: 213 94% 68%;
+    --yulu-dashboard-blue-dark: 226 71% 40%;
+    
     /* Adding custom Yulu colors based on reference */
     --yulu-teal: 182 100% 44%;
     --yulu-teal-light: 182 100% 94%;

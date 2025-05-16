@@ -169,8 +169,8 @@ const MobileLogin = () => {
 
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-[#00CEDE]/10">
-        <div className="bg-[#00CEDE] h-[40vh] w-full"></div>
+      <div className="min-h-screen bg-[#1E40AF]/10">
+        <div className="bg-[#1E40AF] h-[40vh] w-full"></div>
         <div className="relative px-6 mx-auto max-w-md -mt-32">
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
             <div className="px-8 py-10">
@@ -197,15 +197,15 @@ const MobileLogin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#00CEDE]/10">
-      {/* Full-width curved cyan background */}
-      <div className="bg-[#00CEDE] h-[40vh] w-full"></div>
+    <div className="min-h-screen bg-[#1E40AF]/10">
+      {/* Full-width curved blue background */}
+      <div className="bg-[#1E40AF] h-[40vh] w-full"></div>
 
       {/* Card positioned over the background */}
       <div className="relative px-6 mx-auto max-w-md -mt-32">
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
           <div className="px-8 py-10">
-            <h1 className="text-3xl font-bold text-center text-[#00CEDE] mb-10">
+            <h1 className="text-3xl font-bold text-center text-[#1E40AF] mb-10">
               Yulu Suvidha
             </h1>
             
@@ -221,7 +221,7 @@ const MobileLogin = () => {
                 <label className="text-gray-500 text-sm font-medium ml-1">Email ID</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <MailIcon className="h-5 w-5 text-[#00CEDE]" />
+                    <MailIcon className="h-5 w-5 text-[#1E40AF]" />
                   </div>
                   <Input
                     type="email"
@@ -229,7 +229,7 @@ const MobileLogin = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
-                              focus:border-[#00CEDE] text-base py-2 mobile-input"
+                              focus:border-[#1E40AF] text-base py-2 mobile-input"
                   />
                 </div>
               </div>
@@ -244,7 +244,7 @@ const MobileLogin = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="pr-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
-                              focus:border-[#00CEDE] text-base py-2 mobile-input"
+                              focus:border-[#1E40AF] text-base py-2 mobile-input"
                   />
                   <button 
                     type="button"
@@ -262,7 +262,7 @@ const MobileLogin = () => {
 
               <Button
                 type="submit"
-                className="w-full py-6 text-lg font-medium rounded-full bg-[#00CEDE] hover:bg-[#00BECC] text-white mt-8"
+                className="w-full py-6 text-lg font-medium rounded-full bg-[#1E40AF] hover:bg-[#1E3A8A] text-white mt-8"
                 disabled={isLoading}
               >
                 {isLoading ? "Signing in..." : "Log in"}

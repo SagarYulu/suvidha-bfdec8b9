@@ -19,7 +19,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   children, 
   title,
   className,
-  bgColor = "bg-yulu-cyan" // Default is Yulu cyan color
+  bgColor = "bg-yulu-dashboard-blue" // Updated to use dashboard blue color
 }) => {
   const { authState, logout } = useAuth();
   const navigate = useNavigate();
@@ -104,7 +104,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   if (!authState.isAuthenticated || !isAccessChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-cyan"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue"></div>
       </div>
     );
   }

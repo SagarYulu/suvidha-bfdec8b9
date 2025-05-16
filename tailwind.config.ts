@@ -64,13 +64,17 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				yulu: {
-					blue: "#1E40AF",
+					blue: "#1E40AF",    // This is the yulu blue from the dashboard image
 					yellow: "#FBBF24",
 					lightblue: "#93C5FD",
 					gray: "#6B7280",
 					lightgray: "#E5E7EB",
 					cyan: "#22d3ee",
-					"cyan-dark": "#06b6d4"
+					"cyan-dark": "#06b6d4",
+					// Adding the dashboard blue color
+					"dashboard-blue": "#1E40AF", // Pure blue color from dashboard image
+					"dashboard-blue-light": "#3B82F6", // Lighter blue variant
+					"dashboard-blue-dark": "#1E3A8A" // Darker blue variant
 				}
 			},
 			borderRadius: {
