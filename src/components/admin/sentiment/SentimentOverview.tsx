@@ -349,7 +349,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
         <CardContent>
           {tagData.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
-              No feedback topics available for the selected filters.
+              <p>No feedback topics available for the selected filters.</p>
               <p className="mt-2">Try clearing some filters or submitting more detailed feedback.</p>
             </div>
           ) : (
@@ -399,7 +399,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       position="right" 
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
-                      formatter={(value: number) => String(value)}
+                      formatter={(value: any) => String(value)}
                     />
                   </Bar>
                 </BarChart>

@@ -226,7 +226,7 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
                           position="right" 
                           style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                           offset={10}
-                          formatter={(value: number) => String(value)}
+                          formatter={(value: any) => String(value)}
                         />
                       </Bar>
                     </BarChart>
