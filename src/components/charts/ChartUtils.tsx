@@ -67,9 +67,36 @@ export const labelFormatter = (value: any): string | number => {
   return String(value);
 };
 
-// Helper function to safely check if data exists and has length
+/**
+ * Helper function to safely check if data exists and has length
+ * Enhanced to handle more edge cases
+ */
 export const hasData = (data: any[] | null | undefined): boolean => {
-  return Array.isArray(data) && data.length > 0;
+  if (!data) return false;
+  if (!Array.isArray(data)) return false;
+  if (data.length === 0) return false;
+  
+  // Check if we have at least one item with valid value
+  return data.some(item => {
+    if (!item) return false;
+    
+    // For sentiment data that typically has name/value properties
+    if (typeof item === 'object') {
+      // If it's a typical chart data point with a value property
+      if ('value' in item && (item.value !== undefined && item.value !== null)) {
+        return true;
+      }
+      
+      // If it has any other numerical property that could be used for charts
+      if ('count' in item && typeof item.count === 'number') return true;
+      if ('rating' in item && typeof item.rating === 'number') return true;
+    }
+    
+    // For simple arrays of numbers
+    if (typeof item === 'number') return true;
+    
+    return false;
+  });
 };
 
 // Helper to safely get a color from CHART_COLORS by index

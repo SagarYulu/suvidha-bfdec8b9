@@ -26,6 +26,17 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   const { checkAccess } = useRoleAccess();
   const [isAccessChecked, setIsAccessChecked] = useState(false);
   const accessCheckPerformed = useRef(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Force loading to stop after 5 seconds even if checks are still running
+  // This prevents users from getting stuck on the loading screen
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoadingTimeout(true);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Skip if we've already performed the check in this component instance
@@ -100,11 +111,13 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
     navigate("/mobile/login", { replace: true });
   };
 
-  // Show loading state while checking authorization
-  if (!authState.isAuthenticated || !isAccessChecked) {
+  // Show loading state while checking authorization, but don't get stuck forever
+  // Either we've checked access, or the timeout has occurred
+  if ((!authState.isAuthenticated || !isAccessChecked) && !loadingTimeout) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue mb-4"></div>
+        <p className="text-sm text-gray-500">Loading your profile...</p>
       </div>
     );
   }

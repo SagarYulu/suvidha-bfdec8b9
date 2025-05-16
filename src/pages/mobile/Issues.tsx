@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,24 +20,31 @@ const MobileIssues = () => {
   const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmployeeLoading, setIsEmployeeLoading] = useState(true);
   const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
   const [isSentimentDialogOpen, setSentimentDialogOpen] = useState(false);
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEmployeeDetails = async () => {
       if (authState.user?.id) {
         try {
           console.log("Fetching employee details for:", authState.user.id);
+          setIsEmployeeLoading(true);
           const userData = await getUserById(authState.user.id);
           if (userData) {
             console.log("Employee details found:", userData);
             setEmployeeDetails(userData);
           } else {
             console.warn("No employee details found for user ID:", authState.user.id);
+            setLoadError("Could not load employee details. Please try again.");
           }
         } catch (error) {
           console.error("Error fetching employee details:", error);
+          setLoadError("Error loading employee details. Please try again.");
+        } finally {
+          setIsEmployeeLoading(false);
         }
       }
     };
@@ -56,9 +62,13 @@ const MobileIssues = () => {
           setFilteredIssues(userIssues);
         } catch (error) {
           console.error("Error fetching tickets:", error);
+          setLoadError("Error loading your tickets. Please try again.");
         } finally {
           setIsLoading(false);
         }
+      } else {
+        // If no user ID is available, still stop loading
+        setIsLoading(false);
       }
     };
 
@@ -110,7 +120,31 @@ const MobileIssues = () => {
     <MobileLayout title="Home">
       <div className="space-y-4 pb-16">
         {/* Employee Details Card */}
-        {employeeDetails && (
+        {isEmployeeLoading ? (
+          <div className="bg-white rounded-lg p-4">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="bg-white rounded-lg p-4">
+            <div className="text-center py-4">
+              <p className="text-red-500">{loadError}</p>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="mt-2 bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
+              >
+                Retry
+              </Button>
+            </div>
+          </div>
+        ) : employeeDetails ? (
           <div className="bg-white rounded-lg p-4 relative">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-3">
@@ -208,7 +242,7 @@ const MobileIssues = () => {
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* Tickets Section */}
         <div>
@@ -230,6 +264,16 @@ const MobileIssues = () => {
           {isLoading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue"></div>
+            </div>
+          ) : loadError ? (
+            <div className="text-center py-8 bg-white rounded-lg p-4">
+              <p className="text-red-500 mb-2">{loadError}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
+              >
+                Retry
+              </Button>
             </div>
           ) : filteredIssues.length > 0 ? (
             <div className="space-y-3">
@@ -259,7 +303,7 @@ const MobileIssues = () => {
                       {formatShortDate(issue.createdAt)}
                     </span>
                     <span className="flex items-center">
-                      {issue.comments.length} comments
+                      {issue.comments ? issue.comments.length : 0} comments
                     </span>
                   </div>
                 </div>
