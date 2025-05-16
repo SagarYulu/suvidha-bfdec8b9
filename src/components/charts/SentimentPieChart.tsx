@@ -87,7 +87,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
           {/* Previous period data (if comparison is enabled) */}
           {showComparison && (
             <Pie
-              data={data}
+              data={data.filter(item => item.previousValue !== undefined)}
               dataKey="previousValue"
               nameKey="name"
               cx="50%"
@@ -101,9 +101,9 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
                 <Cell 
                   key={`cell-prev-${index}`}
                   fill={
-                    entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
-                    entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
-                    entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
+                    entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
+                    entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
+                    entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
                     CHART_COLORS[index % CHART_COLORS.length]
                   } 
                   opacity={0.6}
@@ -131,9 +131,9 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
               <Cell 
                 key={`cell-${index}`}
                 fill={
-                  entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
-                  entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
-                  entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
+                  entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
+                  entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
+                  entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
                   CHART_COLORS[index % CHART_COLORS.length]
                 } 
                 stroke="#FFFFFF"

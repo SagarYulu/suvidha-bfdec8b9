@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowUpIcon, ArrowDownIcon, MinusIcon } from 'lucide-react';
 import { useSentimentOverviewData } from './hooks/useSentimentOverviewData';
 import EmptyDataState from '@/components/charts/EmptyDataState';
 import MoodTrendSection from './MoodTrendSection';
@@ -10,6 +10,7 @@ import TopicDistributionSection from './TopicDistributionSection';
 import ComparisonInsights from './ComparisonInsights';
 import { ComparisonMode } from './ComparisonModeDropdown';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface SentimentOverviewProps {
   filters: {
@@ -59,15 +60,55 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                                     filters.comparisonMode !== 'none' && 
                                     !hasPreviousPeriodData;
 
+  // Generate insights summary for display in the card
+  const renderInsightSummary = () => {
+    if (!showComparison || !comparisonInsights || comparisonInsights.length === 0) {
+      return null;
+    }
+
+    return (
+      <Card className="mb-6 bg-white border">
+        <CardContent className="pt-6">
+          <h3 className="text-lg font-semibold mb-4">Key Comparison Insights</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {comparisonInsights.map((insight, index) => {
+              // Determine change icon and color
+              let Icon = MinusIcon;
+              let colorClass = "text-gray-600";
+              
+              if (insight.change > 0) {
+                Icon = ArrowUpIcon;
+                colorClass = insight.label.includes('Negative') ? "text-red-600" : "text-green-600";
+              } else if (insight.change < 0) {
+                Icon = ArrowDownIcon;
+                colorClass = insight.label.includes('Negative') ? "text-green-600" : "text-red-600";
+              }
+              
+              return (
+                <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700">{insight.label}</h4>
+                  <div className="flex items-center mt-2 justify-between">
+                    <span className="text-lg font-bold">{insight.value}</span>
+                    <div className={`flex items-center ${colorClass}`}>
+                      <Icon size={16} className="mr-1" />
+                      <span className="text-sm font-medium">
+                        {insight.change > 0 ? '+' : ''}{Math.abs(insight.change).toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div>
-      {/* Display comparison insights if available */}
-      {showComparison && comparisonInsights && comparisonInsights.length > 0 && (
-        <ComparisonInsights 
-          insights={comparisonInsights} 
-          isLoading={isLoadingComparison} 
-        />
-      )}
+      {/* Display key insights summary */}
+      {renderInsightSummary()}
 
       {/* Show warning if comparison mode is selected but no previous data exists */}
       {showNoPreviousDataWarning && (

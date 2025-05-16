@@ -108,7 +108,14 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
             axisLine={{ stroke: '#e5e7eb' }}
           />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ paddingTop: '10px' }} />
+          <Legend 
+            wrapperStyle={{ paddingTop: '10px' }}
+            formatter={(value) => {
+              if (value === "rating") return "Current Period";
+              if (value === "previousRating") return "Previous Period";
+              return value;
+            }}
+          />
           
           {/* Previous period line (dashed) */}
           {showComparison && (
@@ -116,7 +123,6 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
               type="monotone"
               dataKey="previousRating"
               stroke="#9CA3AF"
-              name="Previous Period"
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ r: 4, fill: '#9CA3AF', strokeWidth: 1, stroke: '#FFFFFF' }}
@@ -129,7 +135,6 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
             type="monotone"
             dataKey="rating"
             stroke="#3B82F6"
-            name="Current Period"
             strokeWidth={3}
             dot={{ r: 6, fill: '#3B82F6', strokeWidth: 2, stroke: '#FFFFFF' }}
             activeDot={{ r: 8, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}

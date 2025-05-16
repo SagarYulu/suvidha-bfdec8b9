@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import MoodTrendChart from '@/components/charts/MoodTrendChart';
 import EmptyDataState from '@/components/charts/EmptyDataState';
 import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface MoodTrendSectionProps {
   data: Array<{
@@ -48,6 +49,16 @@ const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {showComparison && !hasPreviousPeriodData && (
+          <Alert variant="default" className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              No data available for the previous {comparisonLabel} comparison period. 
+              Only current period data will be shown.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {data.length > 0 ? (
           <MoodTrendChart 
             data={data} 

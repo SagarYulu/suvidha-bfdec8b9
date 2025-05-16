@@ -114,16 +114,19 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     
     Object.keys(currTopics).forEach(topic => {
       if (prevTopics[topic]) {
-        const currentPct = (currTopics[topic] / sentimentData.length) * 100;
-        const prevPct = (prevTopics[topic] / previousPeriodData.length) * 100;
-        const change = currentPct - prevPct;
+        const currentRatio = (currTopics[topic] / sentimentData.length);
+        const prevRatio = (prevTopics[topic] / previousPeriodData.length); 
+        const change = ((currentRatio - prevRatio) / prevRatio) * 100;
         
-        if (change > mostImproved.change) {
-          mostImproved = { topic, change };
-        }
-        
-        if (change < mostDeclined.change) {
-          mostDeclined = { topic, change: change };
+        // Only consider topics that have appeared more than once
+        if (currTopics[topic] > 1 && prevTopics[topic] > 1) {
+          if (change > mostImproved.change) {
+            mostImproved = { topic, change };
+          }
+          
+          if (change < mostDeclined.change) {
+            mostDeclined = { topic, change: change };
+          }
         }
       }
     });
@@ -140,12 +143,12 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
         change: positivePctChange
       },
       {
-        label: 'Most Improved',
+        label: mostImproved.topic ? 'Most Improved' : 'No Improvement',
         value: mostImproved.topic || 'N/A',
         change: mostImproved.change
       },
       {
-        label: 'Largest Drop',
+        label: mostDeclined.topic ? 'Largest Drop' : 'No Decline',
         value: mostDeclined.topic || 'N/A',
         change: mostDeclined.change
       }
