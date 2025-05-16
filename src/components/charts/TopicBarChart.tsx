@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   LabelList
 } from 'recharts';
-import { CHART_COLORS } from './ChartUtils';
+import { CHART_COLORS, labelFormatter } from './ChartUtils';
 
 interface TopicBarChartProps {
   data: Array<{
@@ -68,12 +68,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10}
-              formatter={(value: number | number[] | undefined): string => {
-                if (Array.isArray(value)) {
-                  return String(value[0] || 0);
-                }
-                return String(value || 0);
-              }}
+              formatter={labelFormatter}
             />
           </Bar>
         </BarChart>

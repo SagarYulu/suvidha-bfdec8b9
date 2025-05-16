@@ -12,6 +12,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { labelFormatter } from '@/components/charts/ChartUtils';
 
 interface MobileTopicBarChartProps {
   data: Array<{
@@ -66,12 +67,7 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                     position="right" 
                     style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                     offset={10}
-                    formatter={(value: number | number[] | undefined): string => {
-                      if (Array.isArray(value)) {
-                        return String(value[0] || 0);
-                      }
-                      return String(value || 0);
-                    }}
+                    formatter={labelFormatter}
                   />
                 </Bar>
               </BarChart>
