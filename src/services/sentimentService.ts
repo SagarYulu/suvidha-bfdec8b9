@@ -291,163 +291,439 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Generate sample data for different dates if we have fewer than 10 entries
-    const useSampleData = !data || data.length < 10;
+    // Generate more comprehensive sample data for testing comparisons
+    const useMoreSampleData = true; // Set to true to always generate sample data for testing comparison
     
-    if (data && data.length > 0 && !useSampleData) {
+    if (data && data.length > 0 && !useMoreSampleData) {
       return data;
     }
     
-    // Add dummy data for testing only if we have limited results
-    if (useSampleData) {
-      console.log("Limited sentiment data found, adding sample data for trend visualization");
+    // Create base data from any existing entries
+    const baseData = data || [];
+    
+    // Generate more comprehensive mock data for testing comparison modes
+    const today = new Date();
+    const mockData = [];
+    
+    // Create data points for current period (last 30 days)
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
       
-      // Create base data from any existing entries
-      const baseData = data || [];
+      // Create 2-4 entries per day with varying ratings
+      const entriesForDay = Math.floor(Math.random() * 3) + 2;
       
-      // Create sample entries for testing purposes with the applied filters
-      const today = new Date();
-      
-      const dummyData = [
-        ...baseData,
-        {
-          id: "sample-1",
-          employee_id: "sample-employee",
-          rating: 4,
-          feedback: "This is a sample positive feedback entry for testing purposes.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Sample", "Testing", "Positive", "Team", "Equipment"],
-          sentiment_score: 0.8,
-          sentiment_label: "positive",
-          created_at: today.toISOString(),
-        }, 
-        {
-          id: "sample-2",
-          employee_id: "sample-employee-2",
-          rating: 2,
-          feedback: "This is a sample negative feedback entry for testing issues.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Issue", "Testing", "Negative", "Workload", "Communication"],
-          sentiment_score: -0.6,
-          sentiment_label: "negative",
-          created_at: new Date(today.getTime() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
-        }, 
-        {
-          id: "sample-3",
-          employee_id: "sample-employee-3",
-          rating: 1,
-          feedback: "Very frustrated with current work environment and lack of support.",
-          city: filters.city || "Sample City 2",
-          cluster: filters.cluster || "Sample Cluster 2",
-          role: filters.role || "Sample Role 2",
-          tags: ["Manager", "Work-Life Balance", "Compensation"],
-          sentiment_score: -0.9,
-          sentiment_label: "very negative",
-          created_at: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
-        },
-        {
-          id: "sample-4",
-          employee_id: "sample-employee-4",
-          rating: 3,
-          feedback: "Things are okay, but could be better with more resources.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Resources", "Work-Life Balance"],
-          sentiment_score: 0,
-          sentiment_label: "neutral",
-          created_at: new Date(today.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
-        },
-        {
-          id: "sample-5",
-          employee_id: "sample-employee-5",
-          rating: 5,
-          feedback: "Really enjoying the new team structure and support.",
-          city: filters.city || "Sample City 3",
-          cluster: filters.cluster || "Sample Cluster 3",
-          role: filters.role || "Sample Role 3",
-          tags: ["Team", "Leadership", "Career Growth"],
-          sentiment_score: 0.95,
-          sentiment_label: "very positive",
-          created_at: new Date(today.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
-        },
-        {
-          id: "sample-6",
-          employee_id: "sample-employee-6",
-          rating: 2,
-          feedback: "Struggling with workload distribution.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Workload", "Stress", "Management"],
-          sentiment_score: -0.5,
-          sentiment_label: "negative",
-          created_at: new Date(today.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-        },
-        {
-          id: "sample-7",
-          employee_id: "sample-employee-7",
-          rating: 4,
-          feedback: "Recent changes have been positive.",
-          city: filters.city || "Sample City 2",
-          cluster: filters.cluster || "Sample Cluster 2",
-          role: filters.role || "Sample Role 2",
-          tags: ["Change Management", "Leadership", "Communication"],
-          sentiment_score: 0.7,
-          sentiment_label: "positive",
-          created_at: new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000).toISOString(), // 6 days ago
-        },
-        {
-          id: "sample-8",
-          employee_id: "sample-employee-8",
-          rating: 3,
-          feedback: "No significant changes in my work conditions.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Neutral", "Status Quo"],
-          sentiment_score: 0.1,
-          sentiment_label: "neutral",
-          created_at: new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-        },
-        {
-          id: "sample-9",
-          employee_id: "sample-employee-9",
-          rating: 4,
-          feedback: "Good progress on our team projects and goals.",
-          city: filters.city || "Sample City 2",
-          cluster: filters.cluster || "Sample Cluster 2",
-          role: filters.role || "Sample Role 2",
-          tags: ["Team", "Progress", "Goals"],
-          sentiment_score: 0.65,
-          sentiment_label: "positive",
-          created_at: new Date(today.getTime() - 8 * 24 * 60 * 60 * 1000).toISOString(), // 8 days ago
-        },
-        {
-          id: "sample-10",
-          employee_id: "sample-employee-10",
-          rating: 5,
-          feedback: "Very happy with recent recognition and compensation adjustments.",
-          city: filters.city || "Sample City",
-          cluster: filters.cluster || "Sample Cluster",
-          role: filters.role || "Sample Role",
-          tags: ["Recognition", "Compensation", "Satisfaction"],
-          sentiment_score: 0.9,
-          sentiment_label: "very positive",
-          created_at: new Date(today.getTime() - 9 * 24 * 60 * 60 * 1000).toISOString(), // 9 days ago
+      for (let j = 0; j < entriesForDay; j++) {
+        // Generate data with realistic patterns
+        // More positive on weekends, more neutral/negative midweek
+        const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+        let moodBias = 0;
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          moodBias = 1; // Weekend bias (more positive)
+        } else if (dayOfWeek === 3) {
+          moodBias = -0.5; // Wednesday bias (more negative)
         }
-      ];
-      
-      return dummyData;
+        
+        // Base rating with some randomness and day-of-week bias
+        let rating = Math.floor(Math.random() * 5) + 1;
+        rating = Math.max(1, Math.min(5, rating + (moodBias > 0 ? 1 : moodBias < 0 ? -1 : 0)));
+        
+        // Sentiment label based on rating
+        let sentimentLabel = '';
+        let sentimentScore = 0;
+        
+        switch (rating) {
+          case 1:
+            sentimentLabel = 'very negative';
+            sentimentScore = -0.8 - Math.random() * 0.2; // -0.8 to -1.0
+            break;
+          case 2:
+            sentimentLabel = 'negative';
+            sentimentScore = -0.4 - Math.random() * 0.4; // -0.4 to -0.8
+            break;
+          case 3:
+            sentimentLabel = 'neutral';
+            sentimentScore = -0.2 + Math.random() * 0.4; // -0.2 to 0.2
+            break;
+          case 4:
+            sentimentLabel = 'positive';
+            sentimentScore = 0.4 + Math.random() * 0.4; // 0.4 to 0.8
+            break;
+          case 5:
+            sentimentLabel = 'very positive';
+            sentimentScore = 0.8 + Math.random() * 0.2; // 0.8 to 1.0
+            break;
+        }
+        
+        // Create different topic distributions based on sentiment
+        let tags = [];
+        
+        if (rating <= 2) {
+          // Negative sentiment topics
+          const negativeTags = [
+            'Workload',
+            'Communication',
+            'Management',
+            'Work-Life Balance',
+            'Compensation',
+            'Resources',
+            'Team Dynamics',
+            'Stress',
+            'Recognition',
+            'Process Issues'
+          ];
+          
+          // Pick 1-3 random tags from the negative list
+          const tagCount = Math.floor(Math.random() * 3) + 1;
+          for (let t = 0; t < tagCount; t++) {
+            const randomTag = negativeTags[Math.floor(Math.random() * negativeTags.length)];
+            if (!tags.includes(randomTag)) tags.push(randomTag);
+          }
+        } else if (rating >= 4) {
+          // Positive sentiment topics
+          const positiveTags = [
+            'Team',
+            'Recognition',
+            'Career Growth',
+            'Leadership',
+            'Work Environment',
+            'Flexibility',
+            'Benefits',
+            'Culture',
+            'Innovation',
+            'Training'
+          ];
+          
+          // Pick 1-3 random tags from the positive list
+          const tagCount = Math.floor(Math.random() * 3) + 1;
+          for (let t = 0; t < tagCount; t++) {
+            const randomTag = positiveTags[Math.floor(Math.random() * positiveTags.length)];
+            if (!tags.includes(randomTag)) tags.push(randomTag);
+          }
+        } else {
+          // Neutral sentiment topics
+          const neutralTags = [
+            'Process',
+            'Communication',
+            'Workspace',
+            'Equipment',
+            'Training',
+            'Policies',
+            'Schedule',
+            'Meetings',
+            'Collaboration',
+            'Onboarding'
+          ];
+          
+          // Pick 1-2 random tags from the neutral list
+          const tagCount = Math.floor(Math.random() * 2) + 1;
+          for (let t = 0; t < tagCount; t++) {
+            const randomTag = neutralTags[Math.floor(Math.random() * neutralTags.length)];
+            if (!tags.includes(randomTag)) tags.push(randomTag);
+          }
+        }
+
+        // Generic feedback templates based on sentiment
+        let feedback = '';
+        if (rating === 1) {
+          const veryNegativeFeedback = [
+            "Extremely frustrated with the current situation.",
+            "Feeling completely overwhelmed and unsupported.",
+            "Major issues with workload distribution that need immediate attention.",
+            "Very disappointed with recent management decisions.",
+            "Serious concerns about team direction and lack of clear objectives."
+          ];
+          feedback = veryNegativeFeedback[Math.floor(Math.random() * veryNegativeFeedback.length)];
+        } else if (rating === 2) {
+          const negativeFeedback = [
+            "Struggling with current workload and expectations.",
+            "Communication issues are causing problems in our team.",
+            "Not feeling valued or recognized for my contributions.",
+            "Concerned about the work-life balance in our department.",
+            "The processes need improvement as they're inefficient."
+          ];
+          feedback = negativeFeedback[Math.floor(Math.random() * negativeFeedback.length)];
+        } else if (rating === 3) {
+          const neutralFeedback = [
+            "Things are going okay, no major issues to report.",
+            "Some processes work well, others could be improved.",
+            "The workload is manageable most of the time.",
+            "Communication is adequate but could be better.",
+            "The team environment is generally satisfactory."
+          ];
+          feedback = neutralFeedback[Math.floor(Math.random() * neutralFeedback.length)];
+        } else if (rating === 4) {
+          const positiveFeedback = [
+            "Enjoying my role and the team environment.",
+            "Communication has improved significantly recently.",
+            "Feeling supported by management in my career goals.",
+            "Good work-life balance and flexible arrangements.",
+            "Appreciate the recognition for recent accomplishments."
+          ];
+          feedback = positiveFeedback[Math.floor(Math.random() * positiveFeedback.length)];
+        } else {
+          const veryPositiveFeedback = [
+            "Extremely satisfied with the team and leadership.",
+            "The work environment is excellent and supportive.",
+            "Very happy with recent improvements and changes.",
+            "Great opportunities for growth and development.",
+            "Exceptional support from management and colleagues."
+          ];
+          feedback = veryPositiveFeedback[Math.floor(Math.random() * veryPositiveFeedback.length)];
+        }
+        
+        // Rotate through cities, clusters, and roles for variety
+        const cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai'];
+        const clusters = ['Central', 'Eastern', 'Western', 'Northern', 'Southern'];
+        const roles = ['Engineer', 'Mechanic', 'Manager', 'Supervisor', 'Driver'];
+        
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+        const role = roles[Math.floor(Math.random() * roles.length)];
+        
+        // Add entry to mock data
+        mockData.push({
+          id: `mock-${date.toISOString()}-${j}`,
+          employee_id: `employee-${Math.floor(Math.random() * 1000)}`,
+          rating,
+          feedback,
+          city: filters.city || city,
+          cluster: filters.cluster || cluster,
+          role: filters.role || role,
+          tags,
+          sentiment_score: sentimentScore,
+          sentiment_label: sentimentLabel,
+          created_at: date.toISOString(),
+        });
+      }
     }
     
-    // Initialize baseData to empty array if it doesn't exist
-    const baseData = data || [];
-    return baseData;
+    // Create previous periods data (older than 30 days) for comparison
+    // This allows testing week-over-week, month-over-month, etc.
+    
+    // Previous week/month with slight overall mood difference
+    for (let i = 30; i < 60; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      // Fewer entries per day in previous periods (1-3)
+      const entriesForDay = Math.floor(Math.random() * 3) + 1;
+      
+      for (let j = 0; j < entriesForDay; j++) {
+        // Previous period has slightly different mood pattern
+        // Make previous period slightly worse for testing improvement scenarios
+        const dayOfWeek = date.getDay();
+        let moodBias = -0.5; // Previous period bias (slightly more negative)
+        
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          moodBias = 0.5; // Weekend still positive but less so
+        }
+        
+        // Base rating with more negative bias for previous period
+        let rating = Math.floor(Math.random() * 5) + 1;
+        rating = Math.max(1, Math.min(5, rating + (moodBias > 0 ? 0 : -1)));
+        
+        // Sentiment label based on rating (same logic as current period)
+        let sentimentLabel = '';
+        let sentimentScore = 0;
+        
+        switch (rating) {
+          case 1:
+            sentimentLabel = 'very negative';
+            sentimentScore = -0.8 - Math.random() * 0.2;
+            break;
+          case 2:
+            sentimentLabel = 'negative';
+            sentimentScore = -0.4 - Math.random() * 0.4;
+            break;
+          case 3:
+            sentimentLabel = 'neutral';
+            sentimentScore = -0.2 + Math.random() * 0.4;
+            break;
+          case 4:
+            sentimentLabel = 'positive';
+            sentimentScore = 0.4 + Math.random() * 0.4;
+            break;
+          case 5:
+            sentimentLabel = 'very positive';
+            sentimentScore = 0.8 + Math.random() * 0.2;
+            break;
+        }
+        
+        // Previous period had different topic distribution
+        // More workload and communication issues in previous period
+        let tags = [];
+        
+        if (rating <= 2) {
+          // Previous period negative tags - more focus on specific issues
+          const negativeTags = [
+            'Workload',
+            'Communication',
+            'Stress',
+            'Process Issues',
+            'Resources'
+          ];
+          
+          const tagCount = Math.floor(Math.random() * 2) + 1;
+          for (let t = 0; t < tagCount; t++) {
+            const randomTag = negativeTags[Math.floor(Math.random() * negativeTags.length)];
+            if (!tags.includes(randomTag)) tags.push(randomTag);
+          }
+        } else if (rating >= 4) {
+          // Previous period positive tags
+          const positiveTags = [
+            'Team',
+            'Work Environment',
+            'Flexibility',
+            'Culture'
+          ];
+          
+          const tagCount = Math.floor(Math.random() * 2) + 1;
+          for (let t = 0; t < tagCount; t++) {
+            const randomTag = positiveTags[Math.floor(Math.random() * positiveTags.length)];
+            if (!tags.includes(randomTag)) tags.push(randomTag);
+          }
+        } else {
+          const neutralTags = [
+            'Process',
+            'Communication',
+            'Equipment',
+            'Schedule'
+          ];
+          
+          if (Math.random() > 0.5) {
+            tags.push(neutralTags[Math.floor(Math.random() * neutralTags.length)]);
+          }
+        }
+        
+        // Generic feedback templates for previous period
+        // Less detailed feedback in previous period
+        let feedback = '';
+        if (rating <= 2) {
+          const negativeFeedback = [
+            "Having issues with the current workload.",
+            "Communication problems in the team.",
+            "Not feeling motivated lately.",
+          ];
+          feedback = negativeFeedback[Math.floor(Math.random() * negativeFeedback.length)];
+        } else if (rating === 3) {
+          const neutralFeedback = [
+            "Things are average, nothing special to report.",
+            "Neither good nor bad overall.",
+          ];
+          feedback = neutralFeedback[Math.floor(Math.random() * neutralFeedback.length)];
+        } else {
+          const positiveFeedback = [
+            "Enjoying my work generally.",
+            "Team atmosphere is good.",
+          ];
+          feedback = positiveFeedback[Math.floor(Math.random() * positiveFeedback.length)];
+        }
+        
+        // Same location distribution as current period
+        const cities = ['Bangalore', 'Mumbai', 'Delhi', 'Hyderabad', 'Chennai'];
+        const clusters = ['Central', 'Eastern', 'Western', 'Northern', 'Southern'];
+        const roles = ['Engineer', 'Mechanic', 'Manager', 'Supervisor', 'Driver'];
+        
+        const city = cities[Math.floor(Math.random() * cities.length)];
+        const cluster = clusters[Math.floor(Math.random() * clusters.length)];
+        const role = roles[Math.floor(Math.random() * roles.length)];
+        
+        // Add entry to mock data
+        mockData.push({
+          id: `mock-prev-${date.toISOString()}-${j}`,
+          employee_id: `employee-${Math.floor(Math.random() * 1000)}`,
+          rating,
+          feedback,
+          city: filters.city || city,
+          cluster: filters.cluster || cluster,
+          role: filters.role || role,
+          tags,
+          sentiment_score: sentimentScore,
+          sentiment_label: sentimentLabel,
+          created_at: date.toISOString(),
+        });
+      }
+    }
+    
+    // Additional data for quarter and year comparisons (60-90 days and 300-365 days ago)
+    // For quarterly comparison
+    for (let i = 90; i < 120; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      if (Math.random() > 0.7) { // Fewer entries for older periods
+        const rating = Math.floor(Math.random() * 5) + 1;
+        
+        mockData.push({
+          id: `mock-quarter-${date.toISOString()}`,
+          employee_id: `employee-${Math.floor(Math.random() * 1000)}`,
+          rating,
+          feedback: "Quarterly comparison data point",
+          city: filters.city || ['Bangalore', 'Mumbai', 'Delhi'][Math.floor(Math.random() * 3)],
+          cluster: filters.cluster || ['Central', 'Eastern', 'Western'][Math.floor(Math.random() * 3)],
+          role: filters.role || ['Engineer', 'Mechanic', 'Manager'][Math.floor(Math.random() * 3)],
+          tags: rating > 3 ? ['Team', 'Culture'] : ['Workload', 'Process'],
+          sentiment_score: rating > 3 ? 0.7 : (rating === 3 ? 0 : -0.7),
+          sentiment_label: rating > 3 ? 'positive' : (rating === 3 ? 'neutral' : 'negative'),
+          created_at: date.toISOString(),
+        });
+      }
+    }
+    
+    // For yearly comparison
+    for (let i = 350; i < 380; i++) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      if (Math.random() > 0.8) { // Even fewer entries for yearly comparison
+        const rating = Math.floor(Math.random() * 5) + 1;
+        
+        mockData.push({
+          id: `mock-year-${date.toISOString()}`,
+          employee_id: `employee-${Math.floor(Math.random() * 1000)}`,
+          rating,
+          feedback: "Yearly comparison data point",
+          city: filters.city || ['Bangalore', 'Mumbai', 'Delhi'][Math.floor(Math.random() * 3)],
+          cluster: filters.cluster || ['Central', 'Eastern', 'Western'][Math.floor(Math.random() * 3)],
+          role: filters.role || ['Engineer', 'Mechanic', 'Manager'][Math.floor(Math.random() * 3)],
+          tags: rating > 3 ? ['Recognition', 'Benefits'] : ['Management', 'Compensation'],
+          sentiment_score: rating > 3 ? 0.6 : (rating === 3 ? 0 : -0.6),
+          sentiment_label: rating > 3 ? 'positive' : (rating === 3 ? 'neutral' : 'negative'),
+          created_at: date.toISOString(),
+        });
+      }
+    }
+    
+    // Combine real data with mock data
+    const combinedData = [...baseData, ...mockData];
+    
+    // Apply date filters to the combined data if needed
+    let filteredData = combinedData;
+    if (filters.startDate || filters.endDate) {
+      filteredData = combinedData.filter(item => {
+        const itemDate = new Date(item.created_at);
+        
+        if (filters.startDate && filters.endDate) {
+          const start = new Date(filters.startDate);
+          const end = new Date(filters.endDate);
+          end.setDate(end.getDate() + 1); // Include end date fully
+          return itemDate >= start && itemDate < end;
+        } else if (filters.startDate) {
+          const start = new Date(filters.startDate);
+          return itemDate >= start;
+        } else if (filters.endDate) {
+          const end = new Date(filters.endDate);
+          end.setDate(end.getDate() + 1); // Include end date fully
+          return itemDate < end;
+        }
+        
+        return true;
+      });
+    }
+    
+    return filteredData;
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
     return [];
