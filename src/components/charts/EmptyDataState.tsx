@@ -6,7 +6,7 @@ interface EmptyDataStateProps {
   subMessage?: string;
 }
 
-const EmptyDataState: React.FC<EmptyDataStateProps> = ({ message, subMessage }) => {
+export const EmptyDataState: React.FC<EmptyDataStateProps> = ({ message, subMessage }) => {
   return (
     <div className="text-center text-gray-500 py-8">
       <p>{message}</p>

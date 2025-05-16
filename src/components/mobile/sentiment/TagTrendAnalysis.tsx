@@ -1,40 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { Loader2, TrendingUp, BarChart2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Loader2, BarChart2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  PieChart,
-  Pie,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Cell,
-  ResponsiveContainer,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  LabelList
-} from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
+import MobileTopicRadarChart from './MobileTopicRadarChart';
+import MobileTopicBarChart from './MobileTopicBarChart';
+import MobileSentimentPieChart from './MobileSentimentPieChart';
+import AboutDataCard from './AboutDataCard';
+import { EmptyDataState } from '@/components/charts/EmptyDataState';
 
 interface TagTrendAnalysisProps {
   data: any[];
   isLoading: boolean;
 }
-
-const COLORS = ['#3B82F6', '#60A5FA', '#93C5FD', '#BFDBFE', '#DBEAFE', '#F0F9FF'];
-const SENTIMENT_COLORS = {
-  'positive': '#4ADE80',  // Lighter green
-  'neutral': '#FBBF24',   // Lighter yellow
-  'negative': '#F87171'   // Lighter red
-};
 
 const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) => {
   const [activeTab, setActiveTab] = useState('tags');
@@ -145,182 +122,13 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
         </TabsList>
         
         <TabsContent value="tags" className="space-y-4">
-          {/* Radar chart for mobile */}
-          <Card className="bg-white/90">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-800">Topic Analysis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                {radarData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart outerRadius={90} width={500} height={250} data={radarData}>
-                      <PolarGrid stroke="#E5E7EB" />
-                      <PolarAngleAxis 
-                        dataKey="subject" 
-                        tick={{ fill: '#6B7280', fontSize: 11 }}
-                      />
-                      <PolarRadiusAxis angle={30} domain={[0, 'auto']} tick={{ fill: '#6B7280', fontSize: 10 }} />
-                      <Radar
-                        name="Topic Frequency"
-                        dataKey="count"
-                        stroke="#2563EB"
-                        fill="#3B82F6"
-                        fillOpacity={0.6}
-                      />
-                      <Tooltip
-                        formatter={(value) => [`${value} mentions`, "Frequency"]}
-                      />
-                      <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No topic data available</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-white/90">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-800">Topic Frequency</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64 overflow-x-auto">
-                {topTags.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={topTags}
-                      layout="vertical"
-                      margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                      <XAxis 
-                        type="number"
-                        tick={{ fill: '#6B7280', fontSize: 11 }}
-                        tickLine={{ stroke: '#e5e7eb' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <YAxis 
-                        type="category" 
-                        dataKey="name" 
-                        tick={{ fontSize: 11, fill: '#6B7280' }}
-                        tickLine={{ stroke: '#e5e7eb' }}
-                        axisLine={{ stroke: '#e5e7eb' }}
-                      />
-                      <Tooltip 
-                        formatter={(value: number) => [`${value} mentions`, "Count"]}
-                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-                      />
-                      <Bar dataKey="count" name="Mentions">
-                        {topTags.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={`hsl(${210 - index * (150 / topTags.length)}, 80%, 55%)`}
-                            radius={[0, 4, 4, 0]}
-                          />
-                        ))}
-                        <LabelList 
-                          dataKey="count" 
-                          position="right" 
-                          style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
-                          offset={10}
-                          formatter={(value) => {
-                            // Handle different value types to ensure we return string | number
-                            if (Array.isArray(value)) {
-                              // If value is an array, return string representation of first element
-                              return String(value[0] || 0);
-                            }
-                            // For primitive values, ensure they're string or number
-                            return typeof value === 'string' || typeof value === 'number' ? value : String(value);
-                          }}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No topic data available</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <MobileTopicRadarChart data={radarData} />
+          <MobileTopicBarChart data={topTags} />
         </TabsContent>
         
         <TabsContent value="sentiment" className="space-y-4">
-          {/* Sentiment Distribution Card */}
-          <Card className="bg-white/90">
-            <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-800">Sentiment Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                {sentimentDistribution.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={sentimentDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        innerRadius={40}
-                        fill="#8884d8"
-                        dataKey="value"
-                        paddingAngle={3}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {sentimentDistribution.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={
-                              entry.name.toLowerCase() === 'positive' ? SENTIMENT_COLORS.positive :
-                              entry.name.toLowerCase() === 'negative' ? SENTIMENT_COLORS.negative :
-                              entry.name.toLowerCase() === 'neutral' ? SENTIMENT_COLORS.neutral :
-                              COLORS[index % COLORS.length]
-                            } 
-                            stroke="#FFFFFF"
-                            strokeWidth={2}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value) => [`${value} responses`, "Count"]}
-                        contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">No sentiment data available</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          {/* About This Data Card */}
-          <Card className="bg-white/90">
-            <CardHeader className="pb-0">
-              <CardTitle className="text-lg font-medium text-gray-800">About This Data</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                This analysis shows the distribution of feedback sentiment and topics from the last 30 days.
-                The charts provide insights into the most common feedback topics and the overall sentiment
-                of employee feedback.
-              </p>
-              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-100 flex items-center">
-                <TrendingUp className="h-5 w-5 text-blue-600 mr-2" />
-                <p className="text-xs text-blue-700">
-                  Based on {data.length} feedback submissions
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <MobileSentimentPieChart data={sentimentDistribution} />
+          <AboutDataCard dataCount={data.length} />
         </TabsContent>
       </Tabs>
     </div>
