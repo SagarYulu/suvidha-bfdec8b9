@@ -8,26 +8,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-
-// Define sentiment colors for consistency
-const SENTIMENT_COLORS = {
-  positive: '#4ADE80', // Green
-  neutral: '#FBBF24',  // Yellow
-  negative: '#F87171', // Red
-  unknown: '#9CA3AF'   // Gray
-};
-
-// Additional colors for other categories if needed
-const CHART_COLORS = [
-  '#3B82F6', // Blue
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-  '#10B981', // Emerald
-  '#A855F7', // Violet
-  '#6366F1', // Indigo
-  '#0EA5E9', // Sky
-  '#F59E0B'  // Amber
-];
+import { SENTIMENT_COLORS, CHART_COLORS, getSentimentColor } from './ChartUtils';
 
 interface SentimentPieChartProps {
   data: Array<{
@@ -119,12 +100,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-prev-${index}`}
-                  fill={
-                    entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
-                    entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
-                    entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
-                    CHART_COLORS[index % CHART_COLORS.length]
-                  } 
+                  fill={getSentimentColor(entry.name)}
                   opacity={0.6}
                   stroke="#FFFFFF"
                   strokeWidth={1}
@@ -149,12 +125,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`}
-                fill={
-                  entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
-                  entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
-                  entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
-                  CHART_COLORS[index % CHART_COLORS.length]
-                } 
+                fill={getSentimentColor(entry.name)}
                 stroke="#FFFFFF"
                 strokeWidth={2}
               />
