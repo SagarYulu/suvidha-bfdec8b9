@@ -26,6 +26,7 @@ import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
 import MobileSentiment from "./pages/mobile/Sentiment";
 import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
+import TestDataGenerator from "./pages/admin/TestDataGenerator";
 
 // Import guards
 import {
@@ -124,6 +125,12 @@ const App = () => {
                   <SecurityGuard>
                     <AdminAccessControl />
                   </SecurityGuard>
+                } />
+                
+                <Route path="/admin/test-data-generator" element={
+                  <AnalyticsGuard>
+                    <TestDataGenerator />
+                  </AnalyticsGuard>
                 } />
                 
                 {/* Dashboard Users Routes */}

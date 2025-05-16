@@ -38,7 +38,7 @@ const MobileNewIssue = () => {
             resetForm={resetForm}
           />
 
-          {selectedType && selectedSubType && (
+          {selectedType && selectedSubType ? (
             <>
               {isBankAccountChange ? (
                 <BankAccountChangeForm 
@@ -56,6 +56,14 @@ const MobileNewIssue = () => {
                 />
               )}
             </>
+          ) : (
+            <StandardIssueForm 
+              employeeUuid={authState.user?.id || ""}
+              selectedType="general"
+              selectedSubType="other"
+              onSuccess={handleSuccess}
+              skipTypeValidation={true}
+            />
           )}
         </div>
       </div>

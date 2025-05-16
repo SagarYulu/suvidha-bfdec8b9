@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,6 +11,7 @@ type StandardIssueFormProps = {
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
+  skipTypeValidation?: boolean;
 };
 
 const StandardIssueForm = ({
@@ -19,6 +19,7 @@ const StandardIssueForm = ({
   selectedType,
   selectedSubType,
   onSuccess,
+  skipTypeValidation = false,
 }: StandardIssueFormProps) => {
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,7 +94,7 @@ const StandardIssueForm = ({
       return;
     }
 
-    if (!selectedType || !selectedSubType) {
+    if (!skipTypeValidation && (!selectedType || !selectedSubType)) {
       toast({
         title: "Validation error",
         description: "Please select a ticket type and subtype.",
@@ -112,7 +113,7 @@ const StandardIssueForm = ({
     }
 
     // Special validation for ESI tickets
-    if (isESITicket) {
+    if (isESITicket && !skipTypeValidation) {
       if (!aadharFrontFile || !aadharBackFile) {
         toast({
           title: "Validation error",
@@ -147,7 +148,7 @@ const StandardIssueForm = ({
       }
 
       // Upload Aadhaar attachments for ESI tickets
-      if (isESITicket) {
+      if (isESITicket && !skipTypeValidation) {
         if (aadharFrontFile) {
           setIsUploadingAadharFront(true);
           aadharFrontUrl = await uploadBankProof(aadharFrontFile, employeeUuid);
@@ -259,7 +260,7 @@ const StandardIssueForm = ({
         />
       </div>
 
-      {isESITicket ? (
+      {isESITicket && !skipTypeValidation ? (
         <div className="space-y-4">
           <div className="bg-amber-50 p-3 rounded-md border border-amber-200">
             <p className="text-sm text-amber-700 font-medium">
