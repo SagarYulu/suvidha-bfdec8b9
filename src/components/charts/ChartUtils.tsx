@@ -33,5 +33,5 @@ export const labelFormatter = (value: any): string | number => {
   if (Array.isArray(value)) {
     return value && value.length > 0 ? String(value[0] || 0) : '0';
   }
-  return typeof value === 'string' || typeof value === 'number' ? value : String(value);
+  return typeof value === 'string' || typeof value === 'number' ? value : String(value || '0');
 };
