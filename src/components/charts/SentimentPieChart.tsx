@@ -8,7 +8,7 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { SENTIMENT_COLORS, CHART_COLORS, getSentimentColor } from './ChartUtils';
+import { SENTIMENT_COLORS, CHART_COLORS } from './ChartUtils';
 
 interface SentimentPieChartProps {
   data: Array<{
@@ -100,7 +100,12 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-prev-${index}`}
-                  fill={getSentimentColor(entry.name)}
+                  fill={
+                    entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
+                    entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
+                    entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
+                    CHART_COLORS[index % CHART_COLORS.length]
+                  } 
                   opacity={0.6}
                   stroke="#FFFFFF"
                   strokeWidth={1}
@@ -125,7 +130,12 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
             {data.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`}
-                fill={getSentimentColor(entry.name)}
+                fill={
+                  entry.name.toLowerCase().includes('positive') ? SENTIMENT_COLORS.positive :
+                  entry.name.toLowerCase().includes('negative') ? SENTIMENT_COLORS.negative :
+                  entry.name.toLowerCase().includes('neutral') ? SENTIMENT_COLORS.neutral :
+                  CHART_COLORS[index % CHART_COLORS.length]
+                } 
                 stroke="#FFFFFF"
                 strokeWidth={2}
               />
@@ -133,10 +143,12 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
           </Pie>
           
           <Tooltip content={<CustomTooltip />} />
+          
           <Legend 
-            formatter={(value) => value}
-            verticalAlign="bottom"
-            align="center"
+            verticalAlign="bottom" 
+            formatter={(value) => {
+              return <span className="text-sm">{value}</span>;
+            }}
           />
         </PieChart>
       </ResponsiveContainer>

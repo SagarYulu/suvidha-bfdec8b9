@@ -197,8 +197,29 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   // Check if previous period data exists
   const hasPreviousPeriodData = !!(previousPeriodData && Array.isArray(previousPeriodData) && previousPeriodData.length > 0);
 
+  // Filter data by date range if provided
+  let filteredSentimentData = sentimentData;
+  if (filters.startDate || filters.endDate) {
+    filteredSentimentData = sentimentData.filter(item => {
+      if (!item.created_at) return false;
+      
+      const itemDate = new Date(item.created_at);
+      const itemDateString = format(itemDate, 'yyyy-MM-dd');
+      
+      if (filters.startDate && filters.endDate) {
+        return itemDateString >= filters.startDate && itemDateString <= filters.endDate;
+      } else if (filters.startDate) {
+        return itemDateString >= filters.startDate;
+      } else if (filters.endDate) {
+        return itemDateString <= filters.endDate;
+      }
+      
+      return true;
+    });
+  }
+
   // Calculate average sentiment by date for current period
-  const sentimentByDate = sentimentData.reduce((acc, curr) => {
+  const sentimentByDate = filteredSentimentData.reduce((acc, curr) => {
     if (!curr.created_at) return acc;
     
     const date = format(parseISO(curr.created_at), 'yyyy-MM-dd');
@@ -219,8 +240,29 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number, ratings: number[] }>);
 
+  // Filter previous period data by date range
+  let filteredPreviousPeriodData = previousPeriodData || [];
+  if (previousPeriodFilters?.startDate || previousPeriodFilters?.endDate) {
+    filteredPreviousPeriodData = (previousPeriodData || []).filter(item => {
+      if (!item.created_at) return false;
+      
+      const itemDate = new Date(item.created_at);
+      const itemDateString = format(itemDate, 'yyyy-MM-dd');
+      
+      if (previousPeriodFilters?.startDate && previousPeriodFilters?.endDate) {
+        return itemDateString >= previousPeriodFilters.startDate && itemDateString <= previousPeriodFilters.endDate;
+      } else if (previousPeriodFilters?.startDate) {
+        return itemDateString >= previousPeriodFilters.startDate;
+      } else if (previousPeriodFilters?.endDate) {
+        return itemDateString <= previousPeriodFilters.endDate;
+      }
+      
+      return true;
+    });
+  }
+
   // Calculate average sentiment by date for previous period
-  const previousSentimentByDate = showComparison ? previousPeriodData.reduce((acc, curr) => {
+  const previousSentimentByDate = showComparison ? filteredPreviousPeriodData.reduce((acc, curr) => {
     if (!curr.created_at) return acc;
     
     // For comparison, adjust dates to align with current period
@@ -305,9 +347,9 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   };
 
   // Calculate sentiment distribution for current period and previous period
-  const sentimentDistribution = calculateSentimentDistribution(sentimentData);
+  const sentimentDistribution = calculateSentimentDistribution(filteredSentimentData);
   const previousSentimentDistribution = showComparison ? 
-    calculateSentimentDistribution(previousPeriodData) : {};
+    calculateSentimentDistribution(filteredPreviousPeriodData) : {};
 
   // Create sentiment pie chart data with comparison
   const sentimentPieData = Object.keys(sentimentDistribution).map(key => {
@@ -353,9 +395,9 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   };
 
   // Calculate tag distributions for current and previous periods
-  const tagCounts = calculateTagDistribution(sentimentData);
+  const tagCounts = calculateTagDistribution(filteredSentimentData);
   const previousTagCounts = showComparison ? 
-    calculateTagDistribution(previousPeriodData) : {};
+    calculateTagDistribution(filteredPreviousPeriodData) : {};
 
   // Create tag data for bar chart with comparison
   const tagData = Object.keys(tagCounts)
@@ -397,8 +439,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   return {
     isLoading,
     isLoadingComparison: isLoadingPreviousPeriod,
-    sentimentData: sentimentData,
-    previousPeriodData: previousPeriodData || [],
+    sentimentData: filteredSentimentData,
+    previousPeriodData: filteredPreviousPeriodData || [],
     timeSeriesData,
     sentimentPieData,
     tagData,
