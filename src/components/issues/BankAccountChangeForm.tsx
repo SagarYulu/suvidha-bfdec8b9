@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ type BankAccountChangeFormProps = {
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
+  showHindi?: boolean; // Add showHindi prop
 };
 
 const BankAccountChangeForm = ({
@@ -21,6 +21,7 @@ const BankAccountChangeForm = ({
   selectedType,
   selectedSubType,
   onSuccess,
+  showHindi = false, // Default to false
 }: BankAccountChangeFormProps) => {
   const { register, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -125,11 +126,15 @@ Reason: ${data.reason}`;
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="accountNumber">New Account Number / नया खाता संख्या</Label>
+        <Label htmlFor="accountNumber">
+          {showHindi ? "New Account Number / नया खाता संख्या" : "New Account Number"}
+        </Label>
         <Input
           id="accountNumber"
           type="text"
-          placeholder="Enter your new account number / अपना नया अकाउंट नंबर लिखें"
+          placeholder={showHindi 
+            ? "Enter your new account number / अपना नया अकाउंट नंबर लिखें" 
+            : "Enter your new account number"}
           {...register("accountNumber", { required: "Account number is required" })}
         />
         {errors.accountNumber && (
@@ -138,11 +143,15 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="ifscCode">New IFSC Code / नया IFSC कोड</Label>
+        <Label htmlFor="ifscCode">
+          {showHindi ? "New IFSC Code / नया IFSC कोड" : "New IFSC Code"}
+        </Label>
         <Input
           id="ifscCode"
           type="text"
-          placeholder="Enter your new IFSC code / अपना नया IFSC कोड लिखें"
+          placeholder={showHindi 
+            ? "Enter your new IFSC code / अपना नया IFSC कोड लिखें" 
+            : "Enter your new IFSC code"}
           {...register("ifscCode", { required: "IFSC code is required" })}
         />
         {errors.ifscCode && (
@@ -151,10 +160,14 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="reason">Reason for Change / बदलाव का कारण</Label>
+        <Label htmlFor="reason">
+          {showHindi ? "Reason for Change / बदलाव का कारण" : "Reason for Change"}
+        </Label>
         <Textarea
           id="reason"
-          placeholder="Explain why you need to change your bank account / बताएं कि आपको अपना बैंक अकाउंट क्यों बदलना है"
+          placeholder={showHindi 
+            ? "Explain why you need to change your bank account / बताएं कि आपको अपना बैंक अकाउंट क्यों बदलना है" 
+            : "Explain why you need to change your bank account"}
           {...register("reason", { required: "Reason is required" })}
           rows={3}
         />
@@ -164,7 +177,11 @@ Reason: ${data.reason}`;
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="bankProof">Bank Proof Document (Required) / बैंक प्रूफ दस्तावेज (जरूरी)</Label>
+        <Label htmlFor="bankProof">
+          {showHindi 
+            ? "Bank Proof Document (Required) / बैंक प्रूफ दस्तावेज (जरूरी)" 
+            : "Bank Proof Document (Required)"}
+        </Label>
         <div className="flex items-center space-x-2">
           <input
             type="file"
@@ -181,7 +198,11 @@ Reason: ${data.reason}`;
             disabled={isUploading}
           >
             <Paperclip className="mr-2 h-4 w-4" />
-            {isUploading ? "Uploading... / अपलोड हो रहा है..." : selectedFile ? selectedFile.name : "Upload Bank Proof / बैंक प्रूफ अपलोड करें"}
+            {isUploading 
+              ? (showHindi ? "Uploading... / अपलोड हो रहा है..." : "Uploading...") 
+              : selectedFile 
+                ? selectedFile.name 
+                : (showHindi ? "Upload Bank Proof / बैंक प्रूफ अपलोड करें" : "Upload Bank Proof")}
           </Button>
           {selectedFile && !isUploading && (
             <Button 
@@ -190,17 +211,19 @@ Reason: ${data.reason}`;
               className="text-sm text-red-500 h-8 px-2"
               onClick={() => setSelectedFile(null)}
             >
-              Remove / हटायें
+              {showHindi ? "Remove / हटायें" : "Remove"}
             </Button>
           )}
         </div>
         <p className="text-sm text-muted-foreground">
-          Max file size: 5MB. Accepted formats: images, PDF, Word documents / 
-          अधिकतम फाइल साइज: 5MB. स्वीकृत फॉर्मेट: इमेज, PDF, वर्ड डॉक्यूमेंट
+          {showHindi 
+            ? "Max file size: 5MB. Accepted formats: images, PDF, Word documents / अधिकतम फाइल साइज: 5MB. स्वीकृत फॉर्मेट: इमेज, PDF, वर्ड डॉक्यूमेंट" 
+            : "Max file size: 5MB. Accepted formats: images, PDF, Word documents"}
         </p>
         <p className="text-sm text-amber-600 font-medium">
-          Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code. / 
-          महत्वपूर्ण: केवल पासबुक, चेक, या बैंक स्टेटमेंट अपलोड करें जिसमें आपका नाम, खाता संख्या और IFSC कोड स्पष्ट रूप से दिख रहा हो।
+          {showHindi 
+            ? "Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code. / महत्वपूर्ण: केवल पासबुक, चेक, या बैंक स्टेटमेंट अपलोड करें जिसमें आपका नाम, खाता संख्या और IFSC कोड स्पष्ट रूप से दिख रहा हो।" 
+            : "Important: Only upload passbook, cheque, or bank statement clearly showing your name, account number, and IFSC code."}
         </p>
       </div>
 
@@ -209,7 +232,9 @@ Reason: ${data.reason}`;
         className="w-full bg-yulu-blue hover:bg-blue-700"
         disabled={isSubmitting || isUploading}
       >
-        {isSubmitting ? "Submitting... / जमा हो रहा है..." : "Submit Request / अनुरोध जमा करें"}
+        {isSubmitting 
+          ? (showHindi ? "Submitting... / जमा हो रहा है..." : "Submitting...") 
+          : (showHindi ? "Submit Request / अनुरोध जमा करें" : "Submit Request")}
       </Button>
     </form>
   );
