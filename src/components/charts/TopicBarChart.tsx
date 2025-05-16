@@ -20,12 +20,6 @@ interface TopicBarChartProps {
 }
 
 const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
-  // Simple formatter function that ensures we return string or number
-  const simpleLabelFormatter = (value: any): string | number => {
-    if (value === undefined || value === null) return '0';
-    return typeof value === 'number' || typeof value === 'string' ? value : String(value);
-  };
-
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -73,7 +67,12 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
               position="right" 
               style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
               offset={10}
-              formatter={simpleLabelFormatter}
+              formatter={(value: any): string | number => {
+                // Ensure we return string or number
+                if (value === undefined || value === null) return '0';
+                if (Array.isArray(value)) return value.length > 0 ? String(value[0]) : '0';
+                return typeof value === 'number' || typeof value === 'string' ? value : String(value);
+              }}
             />
           </Bar>
         </BarChart>
