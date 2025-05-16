@@ -80,7 +80,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   console.log("Comparison data check:", {
     comparisonMode: filters.comparisonMode,
     hasPreviousPeriodData: !!previousPeriodData && Array.isArray(previousPeriodData) && previousPeriodData.length > 0,
-    previousDataLength: previousPeriodData ? (Array.isArray(previousPeriodData) ? previousPeriodData.length : 'not array') : 'undefined'
+    previousDataLength: previousPeriodData ? (Array.isArray(previousPeriodData) ? previousPeriodData.length : 'not array') : 'undefined',
+    previousPeriodFilters
   });
 
   const showComparison = filters.comparisonMode && 
@@ -301,10 +302,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     }, {} as Record<string, number>);
   };
 
-  // Calculate sentiment distribution for current period
+  // Calculate sentiment distribution for current period and previous period
   const sentimentDistribution = calculateSentimentDistribution(sentimentData);
-  
-  // Calculate sentiment distribution for previous period
   const previousSentimentDistribution = showComparison ? 
     calculateSentimentDistribution(previousPeriodData) : {};
 
@@ -351,10 +350,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     return tagCounts;
   };
 
-  // Calculate tag distribution for current period
+  // Calculate tag distributions for current and previous periods
   const tagCounts = calculateTagDistribution(sentimentData);
-  
-  // Calculate tag distribution for previous period
   const previousTagCounts = showComparison ? 
     calculateTagDistribution(previousPeriodData) : {};
 

@@ -1,19 +1,12 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import MoodTrendChart from '@/components/charts/MoodTrendChart';
-import EmptyDataState from '@/components/charts/EmptyDataState';
-import { AlertTriangle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MoodTrendSectionProps {
-  data: Array<{
-    date: string;
-    rating: number;
-    count: number;
-    previousRating?: number;
-    previousCount?: number;
-  }>;
+  data: any[];
   showComparison?: boolean;
   comparisonLabel?: string;
   hasPreviousPeriodData?: boolean;
@@ -22,61 +15,56 @@ interface MoodTrendSectionProps {
 const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({ 
   data, 
   showComparison = false,
-  comparisonLabel,
-  hasPreviousPeriodData = true
+  comparisonLabel = 'previous',
+  hasPreviousPeriodData = false
 }) => {
-  // Calculate if we should show the comparison line
-  // We'll show it if comparison is enabled AND we actually have previous period data
-  const showComparisonLine = showComparison && hasPreviousPeriodData;
-  
-  // Debug logs to help troubleshoot
-  console.log("MoodTrendSection props:", { 
-    showComparison, 
-    hasPreviousPeriodData, 
-    showComparisonLine,
-    dataLength: data.length,
-    hasPreviousData: data.some(item => item.previousRating !== undefined)
+  // Add a log to debug the props
+  console.info("MoodTrendSection props:", {
+    showComparison,
+    hasPreviousPeriodData,
+    showComparisonLine: showComparison && hasPreviousPeriodData,
+    dataLength: data?.length,
+    hasPreviousData: data?.some(item => item.previousRating !== undefined)
   });
-  
+
   return (
     <Card className="col-span-1 lg:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>
-            Employee Mood Trend Over Time
-            {showComparison && comparisonLabel && (
-              <span className="ml-2 text-sm font-normal text-gray-500">
-                (Comparing: {comparisonLabel})
-              </span>
-            )}
-          </span>
-          
-          {showComparison && !hasPreviousPeriodData && (
-            <span className="text-amber-500 text-sm flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-1" />
-              No previous period data
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg font-medium">
+          Employee Mood Trend Over Time
+          {showComparison && (
+            <span className="ml-2 text-sm font-normal text-gray-500">
+              ({comparisonLabel} comparison)
             </span>
           )}
         </CardTitle>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <InfoCircledIcon className="h-4 w-4 text-gray-400" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs bg-white">
+              <div className="text-sm">
+                <p>This chart shows the average employee mood rating over time.</p>
+                <p className="mt-2">Each point represents the average rating of all feedback received on that day (1-5 scale).</p>
+                {showComparison && (
+                  <p className="mt-2 text-blue-600">Showing comparison with {comparisonLabel} period.</p>
+                )}
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </CardHeader>
       <CardContent>
-        {showComparison && !hasPreviousPeriodData && (
-          <Alert variant="default" className="mb-4 border-amber-200 bg-amber-50 text-amber-800">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              No data available for the previous {comparisonLabel} comparison period. 
-              Only current period data will be shown.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        {data.length > 0 ? (
+        {data && data.length > 0 ? (
           <MoodTrendChart 
             data={data} 
-            showComparison={showComparisonLine} 
+            showComparison={showComparison && hasPreviousPeriodData} 
           />
         ) : (
-          <EmptyDataState message="No mood trend data available for the selected filters." />
+          <div className="flex items-center justify-center h-64 bg-gray-50 text-gray-500">
+            No mood data available for the selected time period.
+          </div>
         )}
       </CardContent>
     </Card>

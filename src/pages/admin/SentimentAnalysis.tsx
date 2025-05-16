@@ -205,6 +205,11 @@ const SentimentAnalysis: React.FC = () => {
     // Invalidate queries to refresh data with new filters
     queryClient.invalidateQueries({ queryKey: ['sentiment', newFilters] });
     queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', newFilters] });
+    
+    // Also invalidate previous period data if comparison mode is active
+    if (filters.comparisonMode !== 'none') {
+      queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
+    }
   };
 
   const handleComparisonModeChange = (mode: ComparisonMode) => {
@@ -218,6 +223,16 @@ const SentimentAnalysis: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ['sentiment', { ...filters, comparisonMode: mode }] });
     if (mode !== 'none') {
       queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
+    }
+    
+    // Additional invalidation to ensure comparison data is fetched immediately
+    if (mode !== 'none') {
+      queryClient.invalidateQueries({ 
+        queryKey: ['sentiment-previous', { 
+          ...filters, 
+          comparisonMode: mode 
+        }]
+      });
     }
   };
   
@@ -299,7 +314,7 @@ const SentimentAnalysis: React.FC = () => {
         {/* Filters */}
         <SentimentFilterBar onFilterChange={handleFilterChange} />
         
-        {/* Comparison Mode */}
+        {/* Comparison Mode - Now properly connected to data fetch logic */}
         <Card className="p-4">
           <ComparisonModeDropdown 
             value={filters.comparisonMode || 'none'} 
@@ -429,7 +444,7 @@ const SentimentAnalysis: React.FC = () => {
       
       <SentimentAlerts />
       
-      {/* SentimentOverview component displays the main charts */}
+      {/* SentimentOverview component displays the main charts with comparison */}
       <div className="my-6">
         <SentimentOverview filters={filters} />
       </div>
