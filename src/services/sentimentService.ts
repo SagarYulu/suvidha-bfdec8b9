@@ -406,6 +406,8 @@ export const fetchAllSentiment = async (filters: {
       return dummyData;
     }
     
+    // Fix: Initialize baseData to empty array if it doesn't exist
+    const baseData = data || [];
     return baseData;
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
