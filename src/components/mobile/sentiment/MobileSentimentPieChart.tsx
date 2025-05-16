@@ -14,11 +14,11 @@ interface MobileSentimentPieChartProps {
   data: Array<{
     name: string;
     value: number;
-  }>;
+  }> | undefined;
 }
 
-const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data = [] }) => {
-  // Safely check if data exists
+const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data }) => {
+  // Safely check if data exists and has items
   const validData = hasData(data) ? data : [];
   
   return (
@@ -28,7 +28,7 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
       </CardHeader>
       <CardContent>
         <div className="h-64">
-          {validData.length > 0 ? (
+          {validData && validData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -41,9 +41,12 @@ const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data 
                   fill="#8884d8"
                   dataKey="value"
                   paddingAngle={3}
-                  label={({ name, percent }) => 
-                    `${name || 'Unknown'}: ${((percent || 0) * 100).toFixed(0)}%`
-                  }
+                  label={({ name, percent }) => {
+                    // Safe handling of undefined values
+                    const displayName = name || 'Unknown';
+                    const displayPercent = percent ? (percent * 100).toFixed(0) : '0';
+                    return `${displayName}: ${displayPercent}%`;
+                  }}
                 >
                   {validData.map((entry, index) => (
                     <Cell 
