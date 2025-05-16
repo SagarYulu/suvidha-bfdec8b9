@@ -1,18 +1,15 @@
 
 import React from 'react';
 import {
-  BarChart,
-  Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Cell,
-  LabelList,
   ResponsiveContainer
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { labelFormatter } from '@/components/charts/ChartUtils';
 
 interface MobileTopicBarChartProps {
   data: Array<{
@@ -31,21 +28,22 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
         <div className="h-64 overflow-x-auto">
           {data.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
+              <AreaChart
                 data={data}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                margin={{ top: 5, right: 20, left: 20, bottom: 30 }}
               >
                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                 <XAxis 
-                  type="number"
+                  dataKey="name"
                   tick={{ fill: '#6B7280', fontSize: 11 }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
+                  height={60}
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
                 />
                 <YAxis 
-                  type="category" 
-                  dataKey="name" 
                   tick={{ fontSize: 11, fill: '#6B7280' }}
                   tickLine={{ stroke: '#e5e7eb' }}
                   axisLine={{ stroke: '#e5e7eb' }}
@@ -54,23 +52,34 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                   formatter={(value: number) => [`${value} mentions`, "Count"]}
                   contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
                 />
-                <Bar dataKey="count" name="Mentions">
-                  {data.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={`hsl(${210 - index * (150 / data.length)}, 80%, 55%)`}
-                      radius={[0, 4, 4, 0]}
+                <defs>
+                  <linearGradient
+                    id="colorCount"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop 
+                      offset="5%"
+                      stopColor="#3B82F6"
+                      stopOpacity={0.8}
                     />
-                  ))}
-                  <LabelList 
-                    dataKey="count" 
-                    position="right" 
-                    style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
-                    offset={10}
-                    formatter={labelFormatter}
-                  />
-                </Bar>
-              </BarChart>
+                    <stop 
+                      offset="95%"
+                      stopColor="#3B82F6"
+                      stopOpacity={0.2}
+                    />
+                  </linearGradient>
+                </defs>
+                <Area 
+                  type="monotone" 
+                  dataKey="count" 
+                  stroke="#3B82F6"
+                  fill="url(#colorCount)"
+                  name="Mentions"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           ) : (
             <div className="flex items-center justify-center h-full">
