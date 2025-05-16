@@ -320,6 +320,8 @@ export type Database = {
       issues: {
         Row: {
           assigned_to: string | null
+          attachment_url: string | null
+          attachments: string[] | null
           closed_at: string | null
           created_at: string
           description: string
@@ -333,6 +335,8 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          attachment_url?: string | null
+          attachments?: string[] | null
           closed_at?: string | null
           created_at?: string
           description: string
@@ -346,6 +350,8 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          attachment_url?: string | null
+          attachments?: string[] | null
           closed_at?: string | null
           created_at?: string
           description?: string
