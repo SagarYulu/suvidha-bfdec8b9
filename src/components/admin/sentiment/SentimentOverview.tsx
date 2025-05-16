@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { useSentimentOverviewData } from './hooks/useSentimentOverviewData';
 import EmptyDataState from '@/components/charts/EmptyDataState';
 import MoodTrendSection from './MoodTrendSection';
@@ -9,6 +9,7 @@ import TopicAnalysisSection from './TopicAnalysisSection';
 import TopicDistributionSection from './TopicDistributionSection';
 import ComparisonInsights from './ComparisonInsights';
 import { ComparisonMode } from './ComparisonModeDropdown';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SentimentOverviewProps {
   filters: {
@@ -32,6 +33,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     radarData,
     comparisonInsights,
     showComparison,
+    hasPreviousPeriodData,
     comparisonLabel
   } = useSentimentOverviewData(filters);
 
@@ -52,6 +54,11 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     );
   }
 
+  // Show warning when comparison is requested but no previous data exists
+  const showNoPreviousDataWarning = filters.comparisonMode && 
+                                    filters.comparisonMode !== 'none' && 
+                                    !hasPreviousPeriodData;
+
   return (
     <div>
       {/* Display comparison insights if available */}
@@ -62,19 +69,32 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
         />
       )}
 
+      {/* Show warning if comparison mode is selected but no previous data exists */}
+      {showNoPreviousDataWarning && (
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            No data available for the previous {comparisonLabel} comparison period. 
+            Only current period data will be shown.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Employee Mood Trend Over Time */}
         <MoodTrendSection 
           data={timeSeriesData} 
           showComparison={showComparison} 
           comparisonLabel={comparisonLabel}
+          hasPreviousPeriodData={hasPreviousPeriodData}
         />
 
         {/* Sentiment Distribution */}
         <SentimentDistributionSection 
           data={sentimentPieData} 
           showComparison={showComparison}
-          comparisonLabel={comparisonLabel} 
+          comparisonLabel={comparisonLabel}
+          hasPreviousPeriodData={hasPreviousPeriodData}
         />
 
         {/* Radar chart for top tags */}
@@ -82,6 +102,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
           data={radarData} 
           showComparison={showComparison}
           comparisonLabel={comparisonLabel}
+          hasPreviousPeriodData={hasPreviousPeriodData}
         />
 
         {/* Top Feedback Topics */}
@@ -89,6 +110,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
           data={tagData} 
           showComparison={showComparison}
           comparisonLabel={comparisonLabel}
+          hasPreviousPeriodData={hasPreviousPeriodData}
         />
       </div>
     </div>

@@ -30,8 +30,7 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
 
     const startDate = new Date(filters.startDate);
     const endDate = new Date(filters.endDate);
-    const duration = endDate.getTime() - startDate.getTime();
-
+    
     let prevStartDate, prevEndDate;
 
     switch (filters.comparisonMode) {
@@ -80,7 +79,9 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   // Check if we should show comparison data
   const showComparison = filters.comparisonMode && 
                          filters.comparisonMode !== 'none' && 
-                         !!previousPeriodData;
+                         !!previousPeriodData && 
+                         Array.isArray(previousPeriodData) &&
+                         previousPeriodData.length > 0; // Only show comparison if we have previous data
 
   // Calculate comparison insights
   const getComparisonInsights = () => {
@@ -162,7 +163,8 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
       tagData: [], 
       radarData: [],
       comparisonInsights: [],
-      showComparison: false
+      showComparison: false,
+      hasPreviousPeriodData: false
     };
   }
 
@@ -176,9 +178,13 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
       tagData: [], 
       radarData: [],
       comparisonInsights: [],
-      showComparison: false
+      showComparison: false,
+      hasPreviousPeriodData: false
     };
   }
+
+  // Check if previous period data exists
+  const hasPreviousPeriodData = !!(previousPeriodData && Array.isArray(previousPeriodData) && previousPeriodData.length > 0);
 
   // Calculate average sentiment by date for current period
   const sentimentByDate = sentimentData.reduce((acc, curr) => {
@@ -386,6 +392,7 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     radarData,
     comparisonInsights,
     showComparison,
+    hasPreviousPeriodData,
     comparisonMode: filters.comparisonMode,
     comparisonLabel: filters.comparisonMode ? COMPARISON_MODE_LABELS[filters.comparisonMode] : ''
   };
