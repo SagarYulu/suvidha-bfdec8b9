@@ -184,53 +184,8 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Simplified Time Series Chart */}
-      <Card className="col-span-1 lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Employee Mood Trend</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={timeSeriesData}
-                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis 
-                  domain={[1, 5]} 
-                  ticks={[1, 2, 3, 4, 5]}
-                  tickFormatter={(value) => {
-                    const labels = {
-                      1: "Very Low",
-                      2: "Low",
-                      3: "Neutral",
-                      4: "Good", 
-                      5: "Excellent"
-                    };
-                    return labels[value as keyof typeof labels] || value;
-                  }}
-                />
-                <Tooltip 
-                  formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
-                  labelFormatter={(label) => `Date: ${label}`}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="rating"
-                  stroke="#8884d8"
-                  name="Employee Mood Rating (1-5)"
-                  activeDot={{ r: 8 }}
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
+      {/* Removed the Employee Mood Trend chart (Line chart) that was here previously */}
+      
       {/* Sentiment Distribution with clearer labels */}
       <Card>
         <CardHeader>
@@ -355,3 +310,4 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 };
 
 export default SentimentOverview;
+
