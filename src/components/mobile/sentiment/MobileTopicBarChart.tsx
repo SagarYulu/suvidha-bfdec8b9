@@ -79,7 +79,7 @@ const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
                     position="right" 
                     style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                     offset={10}
-                    formatter={(value) => formatLabel(value)}
+                    formatter={formatLabel}
                   />
                 </Bar>
               </BarChart>
