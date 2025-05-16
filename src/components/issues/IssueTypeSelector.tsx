@@ -17,6 +17,7 @@ type IssueTypeSelectorProps = {
   selectedSubType: string;
   setSelectedSubType: (value: string) => void;
   resetForm?: () => void;
+  showHindi?: boolean; // Add parameter to control Hindi display
 };
 
 const IssueTypeSelector = ({
@@ -25,11 +26,14 @@ const IssueTypeSelector = ({
   selectedSubType,
   setSelectedSubType,
   resetForm,
+  showHindi = false, // Default to false (admin behavior)
 }: IssueTypeSelectorProps) => {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="issue-type">Ticket Type / टिकट का प्रकार</Label>
+        <Label htmlFor="issue-type">
+          {showHindi ? "Ticket Type / टिकट का प्रकार" : "Ticket Type"}
+        </Label>
         <Select
           value={selectedType}
           onValueChange={(value) => {
@@ -39,13 +43,17 @@ const IssueTypeSelector = ({
           }}
         >
           <SelectTrigger id="issue-type">
-            <SelectValue placeholder="Select ticket type / टिकट का प्रकार चुनें" />
+            <SelectValue placeholder={showHindi 
+              ? "Select ticket type / टिकट का प्रकार चुनें" 
+              : "Select ticket type"} />
           </SelectTrigger>
           <SelectContent>
             <SelectGroup>
               {ISSUE_TYPES.map((type) => (
                 <SelectItem key={type.id} value={type.id}>
-                  {type.label} {type.labelHindi ? `/ ${type.labelHindi}` : ''}
+                  {showHindi && type.labelHindi 
+                    ? `${type.label} / ${type.labelHindi}` 
+                    : type.label}
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -55,20 +63,26 @@ const IssueTypeSelector = ({
 
       {selectedType && (
         <div className="space-y-2">
-          <Label htmlFor="issue-subtype">Ticket Subtype / टिकट का उप-प्रकार</Label>
+          <Label htmlFor="issue-subtype">
+            {showHindi ? "Ticket Subtype / टिकट का उप-प्रकार" : "Ticket Subtype"}
+          </Label>
           <Select
             value={selectedSubType}
             onValueChange={setSelectedSubType}
           >
             <SelectTrigger id="issue-subtype">
-              <SelectValue placeholder="Select ticket subtype / टिकट का उप-प्रकार चुनें" />
+              <SelectValue placeholder={showHindi 
+                ? "Select ticket subtype / टिकट का उप-प्रकार चुनें" 
+                : "Select ticket subtype"} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 {ISSUE_TYPES.find((type) => type.id === selectedType)
                   ?.subTypes.map((subType) => (
                     <SelectItem key={subType.id} value={subType.id}>
-                      {subType.label} {subType.labelHindi ? `/ ${subType.labelHindi}` : ''}
+                      {showHindi && subType.labelHindi 
+                        ? `${subType.label} / ${subType.labelHindi}` 
+                        : subType.label}
                     </SelectItem>
                   ))}
               </SelectGroup>

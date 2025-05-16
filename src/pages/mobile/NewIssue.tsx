@@ -36,6 +36,7 @@ const MobileNewIssue = () => {
             selectedSubType={selectedSubType}
             setSelectedSubType={setSelectedSubType}
             resetForm={resetForm}
+            showHindi={true} // Explicitly enable Hindi for mobile app
           />
 
           {selectedType && selectedSubType ? (
@@ -46,6 +47,7 @@ const MobileNewIssue = () => {
                   selectedType={selectedType}
                   selectedSubType={selectedSubType}
                   onSuccess={handleSuccess}
+                  showHindi={true} // Enable Hindi for mobile app
                 />
               ) : (
                 <StandardIssueForm 
@@ -53,6 +55,7 @@ const MobileNewIssue = () => {
                   selectedType={selectedType}
                   selectedSubType={selectedSubType}
                   onSuccess={handleSuccess}
+                  showHindi={true} // Enable Hindi for mobile app
                 />
               )}
             </>
@@ -63,6 +66,7 @@ const MobileNewIssue = () => {
               selectedSubType="other"
               onSuccess={handleSuccess}
               skipTypeValidation={true}
+              showHindi={true} // Enable Hindi for mobile app
             />
           )}
         </div>

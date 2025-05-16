@@ -17,10 +17,10 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
   // Constants for chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
 
-  // Format the issue type names for better display
+  // Format the issue type names for better display - FOR ADMIN DASHBOARD, ONLY SHOW ENGLISH
   const formattedTypePieData = typePieData.map(item => ({
     ...item,
-    name: getIssueTypeLabel(item.name) // Use the helper to get readable labels
+    name: getIssueTypeLabel(item.name, false) // Pass false to only show English labels
   }));
 
   return (
