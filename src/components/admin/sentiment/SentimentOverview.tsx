@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
@@ -401,8 +400,8 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                       style={{ fill: '#6B7280', fontSize: 12, fontWeight: 'bold' }}
                       offset={10} 
                       formatter={(value) => {
-                        // Ensure value is treated as a single value, not an array
-                        return typeof value === 'number' ? String(value) : String(value);
+                        // Fix: Ensure we always return a string, never an array
+                        return String(value);
                       }}
                     />
                   </Bar>
