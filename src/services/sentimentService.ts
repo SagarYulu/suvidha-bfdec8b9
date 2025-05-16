@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -249,7 +250,7 @@ export const fetchAllSentiment = async (filters: {
     let query = supabase
       .from('employee_sentiment')
       .select('*')
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: true }); // Changed to ascending for proper time series
     
     // Apply date filters if provided
     if (filters.startDate) {
@@ -291,60 +292,122 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Only use sample data if explicitly requested or if in development mode
-    // This ensures real data is displayed when available
-    const useSampleData = false; // Always use real data
+    // Added: Generate sample data for different dates if we have less than 3 entries
+    const useSampleData = !data || data.length < 3;
     
-    if (data && data.length > 0) {
+    if (data && data.length > 0 && !useSampleData) {
       return data;
     }
     
-    // Add dummy data for testing only if we have no results AND sample data is requested
+    // Add dummy data for testing only if we have limited results
     if (useSampleData) {
-      console.log("No sentiment data found, using sample data");
+      console.log("Limited sentiment data found, adding sample data for trend visualization");
+      
+      // Create base data from any existing entries
+      const existingData = data || [];
+      
       // Create sample entries for testing purposes with the applied filters
-      const dummyData = [{
-        id: "sample-1",
-        employee_id: "sample-employee",
-        rating: 4,
-        feedback: "This is a sample positive feedback entry for testing purposes.",
-        city: filters.city || "Sample City",
-        cluster: filters.cluster || "Sample Cluster",
-        role: filters.role || "Sample Role",
-        tags: ["Sample", "Testing", "Positive", "Team", "Equipment"],
-        sentiment_score: 0.8,
-        sentiment_label: "positive",
-        created_at: new Date().toISOString(),
-      }, {
-        id: "sample-2",
-        employee_id: "sample-employee-2",
-        rating: 2,
-        feedback: "This is a sample negative feedback entry for testing issues.",
-        city: filters.city || "Sample City",
-        cluster: filters.cluster || "Sample Cluster",
-        role: filters.role || "Sample Role",
-        tags: ["Issue", "Testing", "Negative", "Workload", "Communication"],
-        sentiment_score: -0.6,
-        sentiment_label: "negative",
-        created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-      }, {
-        id: "sample-3",
-        employee_id: "sample-employee-3",
-        rating: 1,
-        feedback: "Very frustrated with current work environment and lack of support.",
-        city: filters.city || "Sample City 2",
-        cluster: filters.cluster || "Sample Cluster 2",
-        role: filters.role || "Sample Role 2",
-        tags: ["Manager", "Work-Life Balance", "Compensation"],
-        sentiment_score: -0.9,
-        sentiment_label: "very negative",
-        created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-      }];
+      const today = new Date();
+      
+      const dummyData = [
+        ...existingData,
+        {
+          id: "sample-1",
+          employee_id: "sample-employee",
+          rating: 4,
+          feedback: "This is a sample positive feedback entry for testing purposes.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Sample", "Testing", "Positive", "Team", "Equipment"],
+          sentiment_score: 0.8,
+          sentiment_label: "positive",
+          created_at: today.toISOString(),
+        }, 
+        {
+          id: "sample-2",
+          employee_id: "sample-employee-2",
+          rating: 2,
+          feedback: "This is a sample negative feedback entry for testing issues.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Issue", "Testing", "Negative", "Workload", "Communication"],
+          sentiment_score: -0.6,
+          sentiment_label: "negative",
+          created_at: new Date(today.setDate(today.getDate() - 1)).toISOString(), // 1 day ago
+        }, 
+        {
+          id: "sample-3",
+          employee_id: "sample-employee-3",
+          rating: 1,
+          feedback: "Very frustrated with current work environment and lack of support.",
+          city: filters.city || "Sample City 2",
+          cluster: filters.cluster || "Sample Cluster 2",
+          role: filters.role || "Sample Role 2",
+          tags: ["Manager", "Work-Life Balance", "Compensation"],
+          sentiment_score: -0.9,
+          sentiment_label: "very negative",
+          created_at: new Date(today.setDate(today.getDate() - 2)).toISOString(), // 2 days ago
+        },
+        {
+          id: "sample-4",
+          employee_id: "sample-employee-4",
+          rating: 3,
+          feedback: "Things are okay, but could be better with more resources.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Resources", "Work-Life Balance"],
+          sentiment_score: 0,
+          sentiment_label: "neutral",
+          created_at: new Date(today.setDate(today.getDate() - 3)).toISOString(), // 3 days ago
+        },
+        {
+          id: "sample-5",
+          employee_id: "sample-employee-5",
+          rating: 5,
+          feedback: "Really enjoying the new team structure and support.",
+          city: filters.city || "Sample City 3",
+          cluster: filters.cluster || "Sample Cluster 3",
+          role: filters.role || "Sample Role 3",
+          tags: ["Team", "Leadership", "Career Growth"],
+          sentiment_score: 0.95,
+          sentiment_label: "very positive",
+          created_at: new Date(today.setDate(today.getDate() - 4)).toISOString(), // 4 days ago
+        },
+        {
+          id: "sample-6",
+          employee_id: "sample-employee-6",
+          rating: 2,
+          feedback: "Struggling with workload distribution.",
+          city: filters.city || "Sample City",
+          cluster: filters.cluster || "Sample Cluster",
+          role: filters.role || "Sample Role",
+          tags: ["Workload", "Stress", "Management"],
+          sentiment_score: -0.5,
+          sentiment_label: "negative",
+          created_at: new Date(today.setDate(today.getDate() - 5)).toISOString(), // 5 days ago
+        },
+        {
+          id: "sample-7",
+          employee_id: "sample-employee-7",
+          rating: 4,
+          feedback: "Recent changes have been positive.",
+          city: filters.city || "Sample City 2",
+          cluster: filters.cluster || "Sample Cluster 2",
+          role: filters.role || "Sample Role 2",
+          tags: ["Change Management", "Leadership", "Communication"],
+          sentiment_score: 0.7,
+          sentiment_label: "positive",
+          created_at: new Date(today.setDate(today.getDate() - 6)).toISOString(), // 6 days ago
+        }
+      ];
       
       return dummyData;
     }
     
-    return [];
+    return existingData;
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
     return [];

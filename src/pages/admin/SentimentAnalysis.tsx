@@ -17,16 +17,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { 
   ResponsiveContainer, 
-  LineChart, 
-  Line, 
+  BarChart, 
+  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend,
-  BarChart, 
-  Bar,
-  Cell
+  Legend 
 } from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
@@ -64,37 +61,6 @@ const SentimentAnalysis: React.FC = () => {
     
     loadSentimentData();
   }, [filters]);
-
-  // Calculate trend data
-  const getTimeSeriesData = () => {
-    const sentimentByDate = sentimentData.reduce((acc, curr) => {
-      if (!curr.created_at) return acc;
-      
-      const date = format(new Date(curr.created_at), 'yyyy-MM-dd');
-      if (!acc[date]) {
-        acc[date] = { 
-          count: 0, 
-          totalRating: 0, 
-          totalScore: 0
-        };
-      }
-      acc[date].count++;
-      acc[date].totalRating += curr.rating;
-      if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
-        acc[date].totalScore += curr.sentiment_score;
-      }
-      return acc;
-    }, {} as Record<string, { count: number; totalRating: number; totalScore: number }>);
-
-    // Convert to array for charts with simpler labels
-    return Object.keys(sentimentByDate)
-      .sort()
-      .map(date => ({
-        date,
-        rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
-        count: sentimentByDate[date].count,
-      }));
-  };
 
   // Calculate tag distribution with mood distribution
   const getTopicMoodData = () => {
@@ -301,59 +267,6 @@ const SentimentAnalysis: React.FC = () => {
           </p>
         </div>
       )}
-      
-      {/* Employee Mood Trend */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Employee Mood Trend Over Time</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sentimentData && sentimentData.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={getTimeSeriesData()}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis 
-                    domain={[1, 5]} 
-                    ticks={[1, 2, 3, 4, 5]}
-                    tickFormatter={(value) => {
-                      const labels = {
-                        1: "Very Low",
-                        2: "Low",
-                        3: "Neutral",
-                        4: "Good", 
-                        5: "Excellent"
-                      };
-                      return labels[value as keyof typeof labels] || value;
-                    }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
-                    labelFormatter={(label) => `Date: ${label}`}
-                  />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="rating"
-                    stroke="#8884d8"
-                    name="Employee Mood Rating (1-5)"
-                    activeDot={{ r: 8 }}
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              No sentiment data available for the selected filters.
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Combined Topic & Mood Chart */}
       <Card className="mb-6">
@@ -423,6 +336,7 @@ const SentimentAnalysis: React.FC = () => {
       
       <SentimentAlerts />
       
+      {/* SentimentOverview component displays the main charts */}
       <div className="my-6">
         <SentimentOverview filters={filters} />
       </div>

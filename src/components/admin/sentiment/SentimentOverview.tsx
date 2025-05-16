@@ -20,6 +20,7 @@ import {
 } from 'recharts';
 import { format, subDays, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { Loader2 } from 'lucide-react';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 
 interface SentimentOverviewProps {
   filters: {
@@ -68,7 +69,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     );
   }
 
-  // Calculate average sentiment by date
+  // Calculate average sentiment by date - Ensure dates are properly sorted
   const sentimentByDate = sentimentData.reduce((acc, curr) => {
     if (!curr.created_at) return acc;
     
@@ -90,14 +91,16 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number, ratings: number[] }>);
 
-  // Convert to array for charts with simpler labels
+  // Sort dates chronologically for the time series
   const timeSeriesData = Object.keys(sentimentByDate)
     .sort()
     .map(date => ({
       date,
-      rating: (sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1),
+      rating: parseFloat((sentimentByDate[date].totalRating / sentimentByDate[date].count).toFixed(1)),
       count: sentimentByDate[date].count,
     }));
+
+  console.log("Time series data for chart:", timeSeriesData);
 
   // Calculate sentiment distribution with clearer labels
   const sentimentDistribution = sentimentData.reduce((acc, curr) => {
@@ -117,28 +120,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
   const sentimentPieData = Object.keys(sentimentDistribution).map(key => ({
     name: key.charAt(0).toUpperCase() + key.slice(1),
     value: sentimentDistribution[key]
-  }));
-
-  // Calculate rating distribution with descriptive labels
-  const ratingLabels = {
-    1: "Very Dissatisfied",
-    2: "Dissatisfied",
-    3: "Neutral",
-    4: "Satisfied",
-    5: "Very Satisfied"
-  };
-  
-  const ratingDistribution = sentimentData.reduce((acc, curr) => {
-    if (!acc[curr.rating]) {
-      acc[curr.rating] = 0;
-    }
-    acc[curr.rating]++;
-    return acc;
-  }, {} as Record<number, number>);
-
-  const ratingPieData = Object.keys(ratingDistribution).map(key => ({
-    name: `${ratingLabels[Number(key) as keyof typeof ratingLabels]} (${key})`,
-    value: ratingDistribution[Number(key)]
   }));
 
   // Calculate tag distribution with improved handling
@@ -173,15 +154,6 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  console.log("Tag data:", tagData);
-
-  // Create an array of mood data for the bar chart
-  const moodData = Object.keys(ratingDistribution).map(key => ({
-    rating: ratingLabels[Number(key) as keyof typeof ratingLabels],
-    score: Number(key),
-    count: ratingDistribution[Number(key)]
-  }));
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Employee Mood Trend Over Time */}
@@ -197,7 +169,10 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis 
+                  dataKey="date"
+                  tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                />
                 <YAxis 
                   domain={[1, 5]} 
                   ticks={[1, 2, 3, 4, 5]}
@@ -214,7 +189,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
                 />
                 <Tooltip 
                   formatter={(value) => [`Average Rating: ${value}`, "Employee Mood"]}
-                  labelFormatter={(label) => `Date: ${label}`}
+                  labelFormatter={(label) => `Date: ${format(new Date(label), 'yyyy-MM-dd')}`}
                 />
                 <Legend />
                 <Line
