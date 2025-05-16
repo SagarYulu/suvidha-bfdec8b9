@@ -71,7 +71,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
 
       {/* Show warning if comparison mode is selected but no previous data exists */}
       {showNoPreviousDataWarning && (
-        <Alert variant="warning" className="mb-6">
+        <Alert variant="default" className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
             No data available for the previous {comparisonLabel} comparison period. 
