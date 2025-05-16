@@ -25,7 +25,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
   const formatLabel = (value: any): string | number => {
     // If it's an array, convert the first value to string
     if (Array.isArray(value)) {
-      return String(value[0] || 0);
+      return value && value.length > 0 ? String(value[0] || 0) : '0';
     }
     // If it's already a string or number, return as is, otherwise convert to string
     return typeof value === 'string' || typeof value === 'number' 

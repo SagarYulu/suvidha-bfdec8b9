@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
@@ -139,6 +138,14 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     count: item.count,
     fullMark: Math.max(...tagData.map(t => t.count)) + 2
   }));
+
+  // Safe formatter for label lists
+  const safeFormatLabel = (value: any): string | number => {
+    if (Array.isArray(value)) {
+      return value && value.length > 0 ? String(value[0] || 0) : '0';
+    }
+    return typeof value === 'string' || typeof value === 'number' ? value : String(value);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
