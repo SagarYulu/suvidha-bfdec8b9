@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
@@ -28,6 +29,7 @@ import {
 } from 'recharts';
 
 const SentimentAnalysis: React.FC = () => {
+  const today = format(new Date(), 'yyyy-MM-dd');
   const [filters, setFilters] = useState<{
     startDate?: string;
     endDate?: string;
@@ -36,21 +38,14 @@ const SentimentAnalysis: React.FC = () => {
     role?: string;
     comparisonMode?: ComparisonMode;
   }>({
+    startDate: today,
+    endDate: today,
     comparisonMode: 'none'
   });
-  const [showDebugInfo, setShowDebugInfo] = useState(true);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [sentimentData, setSentimentData] = useState<any[]>([]);
   
   const queryClient = useQueryClient();
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Auto-hide debug info after 10 seconds
-      setShowDebugInfo(false);
-    }, 10000);
-    
-    return () => clearTimeout(timer);
-  }, []);
   
   // Fetch sentiment data based on filters
   useEffect(() => {
@@ -60,6 +55,7 @@ const SentimentAnalysis: React.FC = () => {
         setSentimentData(data);
       } catch (error) {
         console.error("Error loading sentiment data:", error);
+        setSentimentData([]);
       }
     };
     
@@ -342,6 +338,7 @@ const SentimentAnalysis: React.FC = () => {
           <pre className="mt-2 bg-gray-200 p-2 rounded overflow-auto max-h-32">
             {JSON.stringify(filters, null, 2)}
           </pre>
+          <p className="mt-2"><strong>Data Count:</strong> {sentimentData?.length || 0} records</p>
           <p className="mt-2 text-xs text-gray-500">
             Note: If no data appears, check that employee records have city, cluster, and role information.
             Filter matches are case-insensitive partial matches.

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -292,11 +293,8 @@ export const fetchAllSentiment = async (filters: {
     
     console.log(`Fetched ${data?.length || 0} sentiment records`);
     
-    // Generate more comprehensive sample data for testing comparisons
-    const useMoreSampleData = false; // Set to false to use real data only
-    
-    if (data && data.length > 0 && !useMoreSampleData) {
-      // Apply additional client-side filtering to ensure exact date matching
+    // Apply additional client-side filtering to ensure exact date matching
+    if (data && data.length > 0) {
       const filteredData = data.filter(item => {
         if (!item.created_at) return false;
         
@@ -319,9 +317,6 @@ export const fetchAllSentiment = async (filters: {
       console.log(`Returning ${filteredData.length} filtered sentiment records within date range`);
       return filteredData;
     }
-    
-    // Rest of the mock data generation code (only used if useMoreSampleData is true)
-    // ... keep existing code (mock data generation)
     
     return data || [];
   } catch (error) {
@@ -360,152 +355,5 @@ export const resolveSentimentAlert = async (alertId: string): Promise<boolean> =
   } catch (error) {
     console.error("Error resolving sentiment alert:", error);
     return false;
-  }
-};
-
-// Function to generate test sentiment data
-export const generateTestSentimentData = async (): Promise<{
-  employeesProcessed: number;
-  totalEntriesCreated: number;
-  success: boolean;
-}> => {
-  try {
-    // Step 1: Get a subset of employees from the employees table
-    const { data: employees, error: empError } = await supabase
-      .from('employees')
-      .select('id, city, cluster, role')
-      .limit(15);  // Limit to 15 employees for test data
-    
-    if (empError) {
-      console.error("Error fetching employees:", empError);
-      throw empError;
-    }
-    
-    if (!employees || employees.length === 0) {
-      console.error("No employees found");
-      return {
-        employeesProcessed: 0,
-        totalEntriesCreated: 0,
-        success: false
-      };
-    }
-    
-    // Step 2: Get sentiment tags from the sentiment_tags table
-    const { data: sentimentTags, error: tagsError } = await supabase
-      .from('sentiment_tags')
-      .select('name');
-      
-    if (tagsError) {
-      console.error("Error fetching sentiment tags:", tagsError);
-      throw tagsError;
-    }
-    
-    if (!sentimentTags || sentimentTags.length === 0) {
-      console.error("No sentiment tags found");
-      return {
-        employeesProcessed: 0,
-        totalEntriesCreated: 0,
-        success: false
-      };
-    }
-    
-    const tagNames = sentimentTags.map(tag => tag.name);
-    
-    // Step 3: Generate time periods
-    const currentDate = new Date();
-    
-    // Define periods for test data
-    const periods = [
-      // Current week: 0-6 days ago
-      { name: 'current_week', startDays: 0, endDays: 6 },
-      // Last week: 7-13 days ago
-      { name: 'last_week', startDays: 7, endDays: 13 },
-      // Last month: 14-30 days ago
-      { name: 'last_month', startDays: 14, endDays: 30 },
-      // Last quarter: 31-90 days ago
-      { name: 'last_quarter', startDays: 31, endDays: 90 },
-      // Last year: 91-365 days ago
-      { name: 'last_year', startDays: 91, endDays: 365 }
-    ];
-    
-    // Step 4: Generate and insert test data
-    let totalInserted = 0;
-    const sentimentData = [];
-    
-    for (const employee of employees) {
-      const employeeUuid = employee.id;
-      
-      for (const period of periods) {
-        // Generate 2-3 random entries per period per employee
-        const entriesCount = Math.floor(Math.random() * 2) + 2; // 2-3 entries
-        
-        for (let i = 0; i < entriesCount; i++) {
-          // Generate a random date within this period
-          const daysAgo = Math.floor(
-            Math.random() * (period.endDays - period.startDays + 1) + period.startDays
-          );
-          const entryDate = new Date(currentDate);
-          entryDate.setDate(entryDate.getDate() - daysAgo);
-          
-          // Generate a random rating 1-5
-          const rating = Math.floor(Math.random() * 5) + 1;
-          
-          // Calculate sentiment score and label based on rating
-          let sentimentScore, sentimentLabel;
-          if (rating >= 4) {
-            sentimentScore = Math.random() * 0.5 + 0.5; // 0.5 to 1.0
-            sentimentLabel = "positive";
-          } else if (rating === 3) {
-            sentimentScore = Math.random() * 0.4 + 0.3; // 0.3 to 0.7
-            sentimentLabel = "neutral";
-          } else {
-            sentimentScore = Math.random() * 0.3; // 0 to 0.3
-            sentimentLabel = "negative";
-          }
-          
-          // Select 1-2 random tags
-          const tagCount = Math.floor(Math.random() * 2) + 1; // 1-2 tags
-          const shuffledTags = [...tagNames].sort(() => 0.5 - Math.random());
-          const selectedTags = shuffledTags.slice(0, tagCount);
-          
-          // Create sentiment rating entry
-          sentimentData.push({
-            employee_id: employeeUuid,
-            rating,
-            sentiment_score: sentimentScore,
-            sentiment_label: sentimentLabel,
-            tags: selectedTags,
-            city: employee.city,
-            cluster: employee.cluster,
-            role: employee.role,
-            created_at: entryDate.toISOString()
-          });
-        }
-      }
-    }
-    
-    // Step 5: Insert the data in batches
-    const batchSize = 50;
-    for (let i = 0; i < sentimentData.length; i += batchSize) {
-      const batch = sentimentData.slice(i, i + batchSize);
-      const { error: insertError } = await supabase
-        .from('employee_sentiment')
-        .insert(batch);
-      
-      if (insertError) {
-        console.error(`Error inserting batch ${i / batchSize}:`, insertError);
-      } else {
-        totalInserted += batch.length;
-      }
-    }
-    
-    return {
-      employeesProcessed: employees.length,
-      totalEntriesCreated: totalInserted,
-      success: totalInserted === sentimentData.length
-    };
-  } catch (error) {
-    console.error("Error generating test sentiment data:", error);
-    throw error;
   }
 };

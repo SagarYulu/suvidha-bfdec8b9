@@ -44,7 +44,8 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     hasPreviousPeriodData,
     comparisonMode: filters.comparisonMode, 
     comparisonLabel,
-    timeSeriesDataLength: timeSeriesData?.length || 0
+    timeSeriesDataLength: timeSeriesData?.length || 0,
+    sentimentData: sentimentData?.length || 0
   });
 
   if (isLoading) {
