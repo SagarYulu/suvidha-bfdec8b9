@@ -29,16 +29,17 @@ const MoodTrendChart: React.FC<MoodTrendChartProps> = ({
   showComparison = false 
 }) => {
   // Add a console log to debug the data and showComparison flag
-  console.log("MoodTrendChart data:", data);
+  console.log("MoodTrendChart data count:", data.length);
   console.log("MoodTrendChart showComparison:", showComparison);
   console.log("MoodTrendChart has previous data:", data.some(item => item.previousRating !== undefined));
 
-  // Sort the data by date to ensure chronological ordering
+  // Ensure the data is sorted by date to guarantee chronological ordering
   const sortedData = [...data].sort((a, b) => {
     return new Date(a.date).getTime() - new Date(b.date).getTime();
   });
   
-  console.log("MoodTrendChart sorted data first 5:", sortedData.slice(0, 5).map(d => d.date));
+  console.log("MoodTrendChart sorted data first:", sortedData.length > 0 ? sortedData[0].date : "No data");
+  console.log("MoodTrendChart sorted data last:", sortedData.length > 0 ? sortedData[sortedData.length-1].date : "No data");
 
   // Custom tooltip that handles both current and previous data
   const CustomTooltip = ({ active, payload, label }: any) => {

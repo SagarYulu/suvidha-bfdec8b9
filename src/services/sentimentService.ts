@@ -251,13 +251,14 @@ export const fetchAllSentiment = async (filters: {
       .select('*')
       .order('created_at', { ascending: true });
     
-    // Apply date filters if provided
+    // Apply date filters if provided - using strict date range filtering
     if (filters.startDate) {
-      query = query.gte('created_at', filters.startDate);
+      // Start date is inclusive (>=)
+      query = query.gte('created_at', `${filters.startDate}T00:00:00`);
     }
     
     if (filters.endDate) {
-      // Add one day to include the end date fully
+      // End date is inclusive but we add 1 day to make it exclusive of the next day
       const endDate = new Date(filters.endDate);
       endDate.setDate(endDate.getDate() + 1);
       query = query.lt('created_at', endDate.toISOString());
@@ -281,7 +282,7 @@ export const fetchAllSentiment = async (filters: {
       query = query.ilike('role', `%${filters.role}%`);
     }
     
-    console.log("Executing query...");
+    console.log("Executing query with date range filters:", filters.startDate, "to", filters.endDate);
     const { data, error } = await query;
     
     if (error) {
@@ -703,26 +704,32 @@ export const fetchAllSentiment = async (filters: {
     let filteredData = combinedData;
     if (filters.startDate || filters.endDate) {
       filteredData = combinedData.filter(item => {
+        if (!item.created_at) return false;
+        
         const itemDate = new Date(item.created_at);
         
         if (filters.startDate && filters.endDate) {
-          const start = new Date(filters.startDate);
-          const end = new Date(filters.endDate);
-          end.setDate(end.getDate() + 1); // Include end date fully
-          return itemDate >= start && itemDate < end;
+          const start = new Date(`${filters.startDate}T00:00:00`);
+          const end = new Date(`${filters.endDate}T23:59:59`);
+          return itemDate >= start && itemDate <= end;
         } else if (filters.startDate) {
-          const start = new Date(filters.startDate);
+          const start = new Date(`${filters.startDate}T00:00:00`);
           return itemDate >= start;
         } else if (filters.endDate) {
-          const end = new Date(filters.endDate);
-          end.setDate(end.getDate() + 1); // Include end date fully
-          return itemDate < end;
+          const end = new Date(`${filters.endDate}T23:59:59`);
+          return itemDate <= end;
         }
         
         return true;
       });
     }
     
+    // Sort data chronologically
+    filteredData.sort((a, b) => {
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    });
+    
+    console.log(`Returning ${filteredData.length} filtered sentiment records within date range`);
     return filteredData;
   } catch (error) {
     console.error("Error fetching all sentiment:", error);
