@@ -36,7 +36,7 @@ const MobileIssueDetails = () => {
   }
 
   const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
-  const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-yulu-cyan"; // Updated to use Yulu cyan
+  const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-yulu-cyan"; // Using Yulu cyan color
 
   return (
     <MobileLayout 

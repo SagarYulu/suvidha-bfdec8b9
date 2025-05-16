@@ -11,7 +11,7 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
-  // Updated background gradient using Yulu cyan colors
+  // Updated to use Yulu cyan colors for the gradient
   const bgGradient = "linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%)";
   
   // When used as a standalone page

@@ -26,7 +26,7 @@ const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
             onClick={onHomeClick}
             className={cn(
               "flex flex-col items-center py-3",
-              location.pathname === "/mobile/issues" && "text-yulu-cyan-dark"
+              location.pathname === "/mobile/issues" && "text-yulu-cyan"
             )}
           >
             <Home className="h-5 w-5" />
