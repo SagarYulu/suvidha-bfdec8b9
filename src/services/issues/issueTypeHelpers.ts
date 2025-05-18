@@ -19,6 +19,10 @@ export const getIssueSubTypeLabel = (typeId: string, subTypeId: string, showHind
  */
 export const getEffectiveIssueType = (issue: any): string => {
   // If the issue has been mapped, use the mapped type
+  if (issue.mappedTypeId) {
+    return issue.mappedTypeId;
+  }
+  // For database objects that might use snake_case
   if (issue.mapped_type_id) {
     return issue.mapped_type_id;
   }
@@ -30,6 +34,10 @@ export const getEffectiveIssueType = (issue: any): string => {
  */
 export const getEffectiveIssueSubType = (issue: any): string => {
   // If the issue has been mapped, use the mapped subtype
+  if (issue.mappedSubTypeId) {
+    return issue.mappedSubTypeId;
+  }
+  // For database objects that might use snake_case
   if (issue.mapped_sub_type_id) {
     return issue.mapped_sub_type_id;
   }

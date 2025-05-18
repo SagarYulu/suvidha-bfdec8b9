@@ -66,8 +66,37 @@ export const mapIssueType = async (
       `Issue mapped from 'Others' to ${newTypeId}`
     );
 
-    // Return the updated issue
-    return data?.[0] || null;
+    // If we have data, properly convert it to an Issue object
+    if (data && data[0]) {
+      const dbIssue = data[0];
+      
+      // Map database fields to Issue type fields
+      const issue: Issue = {
+        id: dbIssue.id,
+        employeeUuid: dbIssue.employee_uuid,
+        typeId: dbIssue.type_id,
+        subTypeId: dbIssue.sub_type_id,
+        description: dbIssue.description,
+        status: dbIssue.status as "open" | "in_progress" | "resolved" | "closed",
+        priority: dbIssue.priority as "low" | "medium" | "high" | "critical",
+        createdAt: dbIssue.created_at,
+        updatedAt: dbIssue.updated_at,
+        closedAt: dbIssue.closed_at,
+        assignedTo: dbIssue.assigned_to,
+        attachmentUrl: dbIssue.attachment_url,
+        attachments: dbIssue.attachments,
+        comments: [], // Comments will be populated separately
+        // Add mapped fields
+        mappedTypeId: dbIssue.mapped_type_id,
+        mappedSubTypeId: dbIssue.mapped_sub_type_id,
+        mappedAt: dbIssue.mapped_at,
+        mappedBy: dbIssue.mapped_by
+      };
+
+      return issue;
+    }
+
+    return null;
   } catch (error) {
     console.error("Error in mapIssueType:", error);
     return null;
