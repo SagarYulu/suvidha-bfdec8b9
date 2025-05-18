@@ -126,18 +126,7 @@ export const getAnalytics = async (): Promise<AnalyticsResult> => {
     return result;
   } catch (error) {
     console.error('Error getting analytics:', error);
-    // Return a default result instead of throwing error
-    return {
-      total: 0,
-      open: 0,
-      in_progress: 0,
-      resolved: 0,
-      closed: 0,
-      byType: {},
-      bySubType: {},
-      byDay: {},
-      averageResolutionTime: null
-    };
+    throw error;
   }
 };
 

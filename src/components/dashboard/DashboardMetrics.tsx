@@ -1,7 +1,7 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users, AlertTriangle, Clock3 } from 'lucide-react';
+import { TicketCheck, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 type DashboardMetricsProps = {
   analytics: any;
@@ -9,130 +9,62 @@ type DashboardMetricsProps = {
   isLoading: boolean;
 };
 
-const DashboardMetrics: React.FC<DashboardMetricsProps> = ({ analytics, userCount, isLoading }) => {
-  if (isLoading) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <p className="text-sm font-medium text-muted-foreground">Loading...</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-  
-  // If analytics data is not available or incomplete, show placeholder
-  if (!analytics) {
-    return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">--</div>
-            <p className="text-xs text-muted-foreground">No data available</p>
-          </CardContent>
-        </Card>
-        {/* Duplicate cards for other metrics */}
-      </div>
-    );
-  }
-
-  // Safely get the average resolution time with a fallback
-  const safeAvgResolutionTime = () => {
-    if (analytics.averageResolutionTime === null || analytics.averageResolutionTime === undefined) {
-      return "--";
-    }
-    return analytics.averageResolutionTime.toFixed(1);
-  };
+// Using memo to prevent unnecessary re-renders
+const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMetricsProps) => {
+  if (isLoading) return null;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            className="h-4 w-4 text-muted-foreground"
-          >
-            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
+          <TicketCheck className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{analytics.total || 0}</div>
+          <div className="text-2xl font-bold">{analytics?.totalIssues || 0}</div>
+          <p className="text-xs text-muted-foreground">Total tickets raised</p>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Resolved Tickets</CardTitle>
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{analytics?.resolvedIssues || 0}</div>
           <p className="text-xs text-muted-foreground">
-            Open: {analytics.open || 0} / Closed: {analytics.closed || 0}
+            {analytics ? (analytics.resolutionRate.toFixed(1) + '% resolution rate') : '0% resolution rate'}
           </p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">In Progress</CardTitle>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            className="h-4 w-4 text-muted-foreground"
-          >
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
+          <CardTitle className="text-sm font-medium">Average Resolution Time</CardTitle>
+          <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{analytics.in_progress || 0}</div>
-          <p className="text-xs text-muted-foreground">
-            {((analytics.in_progress / analytics.total) * 100 || 0).toFixed(1)}% of all tickets
-          </p>
+          <div className="text-2xl font-bold">{analytics?.avgResolutionTime || '0'} hrs</div>
+          <p className="text-xs text-muted-foreground">Average time to resolve tickets</p>
         </CardContent>
       </Card>
       
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Employees</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
+          <CardTitle className="text-sm font-medium">First Response Time</CardTitle>
+          <MessageCircle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{userCount || 0}</div>
-          <p className="text-xs text-muted-foreground">
-            {analytics.total && userCount ? (analytics.total / userCount).toFixed(1) : "0"} tickets per employee
-          </p>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Avg. Resolution Time</CardTitle>
-          <Clock3 className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{safeAvgResolutionTime()}</div>
-          <p className="text-xs text-muted-foreground">
-            Hours to resolution
-          </p>
+          <div className="text-2xl font-bold">{analytics?.avgFirstResponseTime || '0'} hrs</div>
+          <p className="text-xs text-muted-foreground">Average working hours to first response</p>
         </CardContent>
       </Card>
     </div>
   );
-};
+});
+
+// Display name for debugging
+DashboardMetrics.displayName = 'DashboardMetrics';
 
 export default DashboardMetrics;
