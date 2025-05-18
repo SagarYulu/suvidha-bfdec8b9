@@ -46,3 +46,10 @@ export {
   formatConsistentIssueData,
   processIssues
 } from "./issues/issueProcessingService";
+
+// Export the new mapping functions
+export {
+  mapIssueType,
+  unmapIssueType,
+  getEffectiveIssueType
+} from "./issues/issueMappingService";

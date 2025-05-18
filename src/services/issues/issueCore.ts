@@ -16,3 +16,4 @@ export { updateIssueStatus } from "./issueStatusService";
 export { assignIssueToUser } from "./issueAssignmentService";
 export { reopenTicket } from "./issueReopeningService";
 export { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";
+export { mapIssueType, unmapIssueType } from "./issueMappingService";

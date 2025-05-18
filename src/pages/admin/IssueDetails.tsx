@@ -13,6 +13,7 @@ import IssueActivity from "@/components/admin/issues/IssueActivity";
 import CommentSection from "@/components/admin/issues/CommentSection";
 import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
+import IssueTypeMapping from "@/components/admin/issues/IssueTypeMapping";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +38,7 @@ const AdminIssueDetails = () => {
     handleAddComment,
     formatDate,
     currentUserId,
+    handleIssueMapped,
   } = useAdminIssue(id);
 
   if (isLoading) {
@@ -63,6 +65,15 @@ const AdminIssueDetails = () => {
               getIssueTypeLabel={getIssueTypeLabel}
               getIssueSubTypeLabel={getIssueSubTypeLabel}
             />
+
+            {/* Add the IssueTypeMapping component here, 
+                but only show for "others" ticket type or tickets that have been mapped */}
+            {(issue.typeId === "others" || issue.mappedTypeId) && (
+              <IssueTypeMapping 
+                issue={issue}
+                onIssueMapped={handleIssueMapped}
+              />
+            )}
 
             <CommentSection
               issue={issue}

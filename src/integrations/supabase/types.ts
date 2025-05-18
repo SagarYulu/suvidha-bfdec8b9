@@ -327,6 +327,10 @@ export type Database = {
           description: string
           employee_uuid: string
           id: string
+          mapped_at: string | null
+          mapped_by: string | null
+          mapped_sub_type_id: string | null
+          mapped_type_id: string | null
           priority: string
           status: string
           sub_type_id: string
@@ -342,6 +346,10 @@ export type Database = {
           description: string
           employee_uuid: string
           id: string
+          mapped_at?: string | null
+          mapped_by?: string | null
+          mapped_sub_type_id?: string | null
+          mapped_type_id?: string | null
           priority: string
           status: string
           sub_type_id: string
@@ -357,6 +365,10 @@ export type Database = {
           description?: string
           employee_uuid?: string
           id?: string
+          mapped_at?: string | null
+          mapped_by?: string | null
+          mapped_sub_type_id?: string | null
+          mapped_type_id?: string | null
           priority?: string
           status?: string
           sub_type_id?: string

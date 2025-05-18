@@ -36,6 +36,10 @@ export interface Issue {
   previouslyClosedAt?: string[]; // Track history of closures for reopened tickets
   attachmentUrl?: string | null; // Field to store primary attachment URL
   attachments?: string[] | null; // Array of all attachment URLs
+  mappedTypeId?: string; // New field for mapped ticket type
+  mappedSubTypeId?: string; // New field for mapped ticket subtype
+  mappedAt?: string; // Timestamp when mapping occurred
+  mappedBy?: string; // User who mapped the ticket
 }
 
 export interface IssueComment {
