@@ -65,6 +65,7 @@ export const useAdminIssue = (issueId?: string) => {
   return {
     // Issue details
     issue,
+    setIssue,  // <-- Make sure we export setIssue for the mapping feature
     employee,
     isLoading,
     commenterNames,

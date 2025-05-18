@@ -25,7 +25,9 @@ export {
 
 export { 
   getIssueTypeLabel, 
-  getIssueSubTypeLabel 
+  getIssueSubTypeLabel,
+  getEffectiveIssueType,
+  getEffectiveIssueSubType
 } from "./issues/issueTypeHelpers";
 
 export { 
@@ -41,8 +43,14 @@ export {
   mapEmployeeUuidsToNames
 } from "./issues/issueUtils";
 
-// Export the formatting utilities
+// Re-export the formatting utilities
 export {
   formatConsistentIssueData,
   processIssues
 } from "./issues/issueProcessingService";
+
+// Re-export the mapping utilities
+export {
+  mapIssueType,
+  isIssueMappable
+} from "./issues/issueMapperService";

@@ -13,11 +13,13 @@ import IssueActivity from "@/components/admin/issues/IssueActivity";
 import CommentSection from "@/components/admin/issues/CommentSection";
 import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
+import IssueMappingSection from "@/components/admin/issues/IssueMappingSection";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
   const {
     issue,
+    setIssue,
     employee,
     isLoading,
     newComment,
@@ -54,6 +56,15 @@ const AdminIssueDetails = () => {
         
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-6">
+            {/* Add Issue Mapping Section at the top if issue type is "others" */}
+            {issue.typeId === "others" && (
+              <IssueMappingSection 
+                issue={issue} 
+                currentUserId={currentUserId} 
+                onIssueUpdated={setIssue} 
+              />
+            )}
+
             <IssueDetailsCard
               issue={issue}
               status={status}
