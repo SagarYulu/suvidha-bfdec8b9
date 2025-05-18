@@ -1,4 +1,4 @@
-import { User } from "@/types";
+import { User, DashboardUser } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Keep a local cache of users for faster access
@@ -123,6 +123,64 @@ export const getUserById = async (id: string): Promise<User | undefined> => {
     console.error("Error in getUserById:", error);
     // Fall back to local cache
     return users.find(user => user.id === id);
+  }
+};
+
+export const getEmployeeById = async (employeeId: string): Promise<User | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('employees')
+      .select('*')
+      .eq('id', employeeId)
+      .single();
+    
+    if (error || !data) {
+      console.error("Error fetching employee:", error);
+      return null;
+    }
+
+    return {
+      id: data.id,
+      userId: data.user_id || "",
+      name: data.name,
+      email: data.email,
+      phone: data.phone || "",
+      employeeId: data.emp_id,
+      city: data.city || "",
+      cluster: data.cluster || "",
+      manager: data.manager || "",
+      role: data.role || "employee",
+      password: data.password,
+      dateOfJoining: data.date_of_joining,
+      bloodGroup: data.blood_group,
+      dateOfBirth: data.date_of_birth,
+      accountNumber: data.account_number,
+      ifscCode: data.ifsc_code
+    };
+  } catch (error) {
+    console.error("Error in getEmployeeById:", error);
+    return null;
+  }
+};
+
+export const getDashboardUsers = async (): Promise<{ id: string; name: string }[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('dashboard_users')
+      .select('id, name');
+    
+    if (error || !data) {
+      console.error("Error fetching dashboard users:", error);
+      return [];
+    }
+
+    return data.map(user => ({
+      id: user.id,
+      name: user.name
+    }));
+  } catch (error) {
+    console.error("Error in getDashboardUsers:", error);
+    return [];
   }
 };
 

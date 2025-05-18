@@ -335,7 +335,10 @@ const AdminIssues = () => {
                           <div className="flex items-center">
                             <span>{getIssueTypeLabel(effectiveTypeId)}</span>
                             {issue.mappedTypeId && (
-                              <Tag className="h-3 w-3 ml-2 text-blue-500" title="Mapped from 'Others'" />
+                              <Tag 
+                                className="h-3 w-3 ml-2 text-blue-500" 
+                                aria-label="Mapped from 'Others'" 
+                              />
                             )}
                           </div>
                           <div className="text-xs text-gray-500">

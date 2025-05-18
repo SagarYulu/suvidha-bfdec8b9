@@ -2,7 +2,7 @@
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminIssue } from "@/hooks/useAdminIssue";
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 
 // Import the components
 import IssueHeader from "@/components/admin/issues/IssueHeader";
@@ -49,6 +49,12 @@ const AdminIssueDetails = () => {
     return <IssueError />;
   }
 
+  // Convert the availableAssignees to the format expected by the TicketAssignment component
+  const formattedAssignees = availableAssignees.map(assignee => ({
+    value: assignee.id,
+    label: assignee.name
+  }));
+
   return (
     <AdminLayout title="Issue Details">
       <div className="space-y-6">
@@ -66,8 +72,6 @@ const AdminIssueDetails = () => {
               getIssueSubTypeLabel={getIssueSubTypeLabel}
             />
 
-            {/* Add the IssueTypeMapping component here, 
-                but only show for "others" ticket type or tickets that have been mapped */}
             {(issue.typeId === "others" || issue.mappedTypeId) && (
               <IssueTypeMapping 
                 issue={issue}
@@ -91,7 +95,7 @@ const AdminIssueDetails = () => {
             <EmployeeInformation employee={employee} />
             
             <TicketAssignment 
-              availableAssignees={availableAssignees}
+              availableAssignees={formattedAssignees}
               currentAssigneeId={currentAssigneeId}
               currentAssigneeName={currentAssigneeName}
               selectedAssigneeId={selectedAssignee}

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getEffectiveIssueType } from "./issueMappingService";
@@ -27,15 +28,15 @@ export const getAnalytics = async (): Promise<AnalyticsResult> => {
       throw error;
     }
     
-    // Convert database records to Issue objects
+    // Convert database records to Issue objects with proper type casting
     const formattedIssues: Issue[] = issues.map(record => ({
       id: record.id,
       employeeUuid: record.employee_uuid,
       typeId: record.type_id,
       subTypeId: record.sub_type_id,
       description: record.description,
-      status: record.status,
-      priority: record.priority,
+      status: record.status as Issue["status"],  // Cast to the correct union type
+      priority: record.priority as Issue["priority"],  // Cast to the correct union type
       createdAt: record.created_at,
       updatedAt: record.updated_at,
       closedAt: record.closed_at,

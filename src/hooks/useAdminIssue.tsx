@@ -8,8 +8,7 @@ import {
   addComment, 
   reopenTicket
 } from "@/services/issueService";
-import { getEmployeeById } from "@/services/userService";
-import { getDashboardUsers } from "@/services/userService";
+import { getEmployeeById, getDashboardUsers } from "@/services/userService";
 import { Issue, User, IssueComment } from "@/types";
 import { toast } from "@/hooks/use-toast";
 
@@ -123,10 +122,7 @@ export const useAdminIssue = (issueId?: string) => {
       try {
         const users = await getDashboardUsers();
         // Filter users with appropriate permissions if needed
-        setAvailableAssignees(users.map(user => ({
-          id: user.id,
-          name: user.name
-        })));
+        setAvailableAssignees(users);
         
         // Find name of current assignee if it exists
         if (issue?.assignedTo) {
@@ -184,6 +180,7 @@ export const useAdminIssue = (issueId?: string) => {
     
     setIsAssigning(true);
     try {
+      // Updated to use all required parameters
       const success = await assignIssueToUser(issue.id, selectedAssignee, currentUserId);
       if (success) {
         // Update local state with the new assignee
@@ -223,7 +220,7 @@ export const useAdminIssue = (issueId?: string) => {
     }
   };
 
-  // Handle add comment
+  // Handle add comment - Fix the comment parameter type
   const handleAddComment = async () => {
     if (!issue || !currentUserId || !newComment.trim()) return;
     

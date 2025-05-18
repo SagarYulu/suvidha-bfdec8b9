@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { mapIssueType, unmapIssueType } from "@/services/issueService";
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueTypeHelpers";
-import { issueTypeOptions } from "@/config/issueTypes";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
+import { ISSUE_TYPES } from "@/config/issueTypes";
 import { Issue } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const IssueTypeMapping = ({ issue, onIssueMapped }: IssueTypeMappingProps) => {
   
   // Available subtypes based on the selected type
   const availableSubTypes = selectedType
-    ? issueTypeOptions.find(t => t.value === selectedType)?.subTypes || []
+    ? ISSUE_TYPES.find(t => t.id === selectedType)?.subTypes || []
     : [];
     
   const handleMapIssue = async () => {
@@ -218,10 +218,10 @@ const IssueTypeMapping = ({ issue, onIssueMapped }: IssueTypeMappingProps) => {
                     <SelectValue placeholder="Select issue type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {issueTypeOptions
-                      .filter(type => type.value !== "others") // Don't allow mapping to "others"
+                    {ISSUE_TYPES
+                      .filter(type => type.id !== "others") // Don't allow mapping to "others"
                       .map(type => (
-                        <SelectItem key={type.value} value={type.value}>
+                        <SelectItem key={type.id} value={type.id}>
                           {type.label}
                         </SelectItem>
                       ))
@@ -242,7 +242,7 @@ const IssueTypeMapping = ({ issue, onIssueMapped }: IssueTypeMappingProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     {availableSubTypes.map(subType => (
-                      <SelectItem key={subType.value} value={subType.value}>
+                      <SelectItem key={subType.id} value={subType.id}>
                         {subType.label}
                       </SelectItem>
                     ))}

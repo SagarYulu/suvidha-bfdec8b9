@@ -52,17 +52,15 @@ export const mapIssueType = async (
       `Issue mapped to type: ${mappedTypeId}, subtype: ${mappedSubTypeId}`
     );
 
-    // Map the database response to our Issue type
-    // Note: Full issue data would typically be fetched after the update
-    // with complete comment information, but we'll return what's available
+    // Map the database response to our Issue type with proper type casting
     return data ? {
       id: data.id,
       employeeUuid: data.employee_uuid,
       typeId: data.type_id,
       subTypeId: data.sub_type_id,
       description: data.description,
-      status: data.status,
-      priority: data.priority,
+      status: data.status as Issue["status"],  // Cast to the correct union type
+      priority: data.priority as Issue["priority"], // Cast to the correct union type
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       closedAt: data.closed_at,
@@ -139,15 +137,15 @@ export const getMappedIssues = async (): Promise<Issue[]> => {
       return [];
     }
 
-    // Convert database records to Issue objects
+    // Convert database records to Issue objects with proper type casting
     return data.map(record => ({
       id: record.id,
       employeeUuid: record.employee_uuid,
       typeId: record.type_id,
       subTypeId: record.sub_type_id,
       description: record.description,
-      status: record.status,
-      priority: record.priority,
+      status: record.status as Issue["status"],  // Cast to the correct union type
+      priority: record.priority as Issue["priority"],  // Cast to the correct union type
       createdAt: record.created_at,
       updatedAt: record.updated_at,
       closedAt: record.closed_at,
