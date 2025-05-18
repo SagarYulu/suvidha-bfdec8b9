@@ -123,23 +123,10 @@ export const useDashboardData = () => {
   const cityBarData = useMemo(() => {
     // Create dummy data for city bar chart if it's not available in analytics
     // This can be updated later when we implement proper city analytics
-    if (!issues || issues.length === 0) {
-      return [];
-    }
-    
     const dummyData = [
-      { 
-        name: "Bangalore", 
-        value: issues.filter(i => i.employeeUuid && i.employeeUuid.includes("bangalore")).length || 5 
-      },
-      { 
-        name: "Delhi", 
-        value: issues.filter(i => i.employeeUuid && i.employeeUuid.includes("delhi")).length || 3 
-      },
-      { 
-        name: "Mumbai", 
-        value: issues.filter(i => i.employeeUuid && i.employeeUuid.includes("mumbai")).length || 7 
-      }
+      { name: "Bangalore", value: issues.filter(i => i.employeeUuid.includes("bangalore")).length || 5 },
+      { name: "Delhi", value: issues.filter(i => i.employeeUuid.includes("delhi")).length || 3 },
+      { name: "Mumbai", value: issues.filter(i => i.employeeUuid.includes("mumbai")).length || 7 }
     ];
     console.log("Generated city bar data:", dummyData);
     return dummyData;
