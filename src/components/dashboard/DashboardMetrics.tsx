@@ -13,10 +13,6 @@ type DashboardMetricsProps = {
 const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMetricsProps) => {
   if (isLoading) return null;
 
-  // Safely get the resolution rate with a default of 0 if it doesn't exist
-  const resolutionRate = analytics?.resolutionRate !== undefined ? 
-    analytics.resolutionRate : 0;
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card>
@@ -38,7 +34,7 @@ const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMet
         <CardContent>
           <div className="text-2xl font-bold">{analytics?.resolvedIssues || 0}</div>
           <p className="text-xs text-muted-foreground">
-            {resolutionRate.toFixed(1)}% resolution rate
+            {analytics ? (analytics.resolutionRate.toFixed(1) + '% resolution rate') : '0% resolution rate'}
           </p>
         </CardContent>
       </Card>

@@ -2,7 +2,7 @@
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAdminIssue } from "@/hooks/useAdminIssue";
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
 
 // Import the components
 import IssueHeader from "@/components/admin/issues/IssueHeader";
@@ -13,7 +13,6 @@ import IssueActivity from "@/components/admin/issues/IssueActivity";
 import CommentSection from "@/components/admin/issues/CommentSection";
 import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
-import IssueTypeMapping from "@/components/admin/issues/IssueTypeMapping";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +37,6 @@ const AdminIssueDetails = () => {
     handleAddComment,
     formatDate,
     currentUserId,
-    handleIssueMapped,
   } = useAdminIssue(id);
 
   if (isLoading) {
@@ -48,12 +46,6 @@ const AdminIssueDetails = () => {
   if (!issue) {
     return <IssueError />;
   }
-
-  // Convert the availableAssignees to the format expected by the TicketAssignment component
-  const formattedAssignees = availableAssignees.map(assignee => ({
-    value: assignee.id,
-    label: assignee.name
-  }));
 
   return (
     <AdminLayout title="Issue Details">
@@ -72,13 +64,6 @@ const AdminIssueDetails = () => {
               getIssueSubTypeLabel={getIssueSubTypeLabel}
             />
 
-            {(issue.typeId === "others" || issue.mappedTypeId) && (
-              <IssueTypeMapping 
-                issue={issue}
-                onIssueMapped={handleIssueMapped}
-              />
-            )}
-
             <CommentSection
               issue={issue}
               newComment={newComment}
@@ -95,7 +80,7 @@ const AdminIssueDetails = () => {
             <EmployeeInformation employee={employee} />
             
             <TicketAssignment 
-              availableAssignees={formattedAssignees}
+              availableAssignees={availableAssignees}
               currentAssigneeId={currentAssigneeId}
               currentAssigneeName={currentAssigneeName}
               selectedAssigneeId={selectedAssignee}

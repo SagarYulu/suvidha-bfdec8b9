@@ -7,7 +7,6 @@ import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
 import { updateAllIssuePriorities, usePriorityUpdater } from "@/services/issues/priorityUpdateService";
-import { getEffectiveIssueType } from "@/services/issues/issueMappingService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, RefreshCw, Clock, AlertCircle, Tag } from "lucide-react";
+import { Search, Eye, RefreshCw, Clock, AlertCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -135,11 +134,8 @@ const AdminIssues = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(issue => {
-        // For type/subtype, use the effective (mapped) values if available
-        const { typeId, subTypeId } = getEffectiveIssueType(issue);
-        
-        const typeLabel = getIssueTypeLabel(typeId).toLowerCase();
-        const subTypeLabel = getIssueSubTypeLabel(typeId, subTypeId).toLowerCase();
+        const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
+        const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
         const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
         
@@ -164,11 +160,8 @@ const AdminIssues = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredAssigned = filteredAssigned.filter(issue => {
-        // For type/subtype, use the effective (mapped) values if available
-        const { typeId, subTypeId } = getEffectiveIssueType(issue);
-        
-        const typeLabel = getIssueTypeLabel(typeId).toLowerCase();
-        const subTypeLabel = getIssueSubTypeLabel(typeId, subTypeId).toLowerCase();
+        const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
+        const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
         const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
         
@@ -320,9 +313,6 @@ const AdminIssues = () => {
                     issue.status !== 'closed' && 
                     issue.status !== 'resolved';
                   
-                  // Get effective type and subtype for display
-                  const { typeId: effectiveTypeId, subTypeId: effectiveSubTypeId } = getEffectiveIssueType(issue);
-                  
                   return (
                     <TableRow 
                       key={issue.id}
@@ -332,22 +322,9 @@ const AdminIssues = () => {
                       <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
                       <TableCell>
                         <div>
-                          <div className="flex items-center">
-                            <span>{getIssueTypeLabel(effectiveTypeId)}</span>
-                            {issue.mappedTypeId && (
-                              <Tag 
-                                className="h-3 w-3 ml-2 text-blue-500" 
-                                aria-label="Mapped from 'Others'" 
-                              />
-                            )}
-                          </div>
+                          <div>{getIssueTypeLabel(issue.typeId)}</div>
                           <div className="text-xs text-gray-500">
-                            {getIssueSubTypeLabel(effectiveTypeId, effectiveSubTypeId)}
-                            {issue.typeId === "others" && issue.mappedTypeId && (
-                              <span className="text-xs text-blue-500 ml-1">
-                                (mapped)
-                              </span>
-                            )}
+                            {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
                           </div>
                         </div>
                       </TableCell>

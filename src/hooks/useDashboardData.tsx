@@ -1,8 +1,8 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAnalytics } from "@/services/issueService";
-import { getIssues, IssueFilters } from "@/services/issueService";
+import { getAnalytics } from "@/services/issues/issueAnalyticsService";
+import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
 import { toast } from "sonner";
 
@@ -37,17 +37,17 @@ export const useDashboardData = () => {
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
-  // Query for analytics data with proper caching - no filter parameter
+  // Query for analytics data with proper caching - making sure to use the fresh filters
   const { 
     data: analytics, 
     isLoading: isAnalyticsLoading,
     refetch: refetchAnalytics,
     error: analyticsError
   } = useQuery({
-    queryKey: ['analytics'],
+    queryKey: ['analytics', filters],
     queryFn: async () => {
-      console.log("Fetching analytics");
-      return getAnalytics();
+      console.log("Fetching analytics with filters:", filters);
+      return getAnalytics(filters);
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     refetchOnWindowFocus: false, // Prevent unwanted refetches
@@ -106,13 +106,13 @@ export const useDashboardData = () => {
     return users.filter(user => user.role === "employee").length;
   }, [users]);
   
-  // Memoize chart data to prevent recalculations - adapted for the new analytics structure
+  // Memoize chart data to prevent recalculations
   const typePieData = useMemo(() => {
-    if (!analytics?.byType) {
+    if (!analytics?.typeCounts) {
       console.log("No type counts data available for pie chart");
       return [];
     }
-    const data = Object.entries(analytics.byType).map(([name, value]) => ({
+    const data = Object.entries(analytics.typeCounts).map(([name, value]) => ({
       name,
       value
     }));
@@ -121,16 +121,17 @@ export const useDashboardData = () => {
   }, [analytics]);
   
   const cityBarData = useMemo(() => {
-    // Create dummy data for city bar chart if it's not available in analytics
-    // This can be updated later when we implement proper city analytics
-    const dummyData = [
-      { name: "Bangalore", value: issues.filter(i => i.employeeUuid.includes("bangalore")).length || 5 },
-      { name: "Delhi", value: issues.filter(i => i.employeeUuid.includes("delhi")).length || 3 },
-      { name: "Mumbai", value: issues.filter(i => i.employeeUuid.includes("mumbai")).length || 7 }
-    ];
-    console.log("Generated city bar data:", dummyData);
-    return dummyData;
-  }, [issues]);
+    if (!analytics?.cityCounts) {
+      console.log("No city counts data available for bar chart");
+      return [];
+    }
+    const data = Object.entries(analytics.cityCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+    console.log("Generated city bar data:", data);
+    return data;
+  }, [analytics]);
   
   // Improved filter change handler with consistent state management
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
