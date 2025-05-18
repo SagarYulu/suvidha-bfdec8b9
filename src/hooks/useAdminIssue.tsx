@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -220,19 +219,19 @@ export const useAdminIssue = (issueId?: string) => {
     }
   };
 
-  // Handle add comment - Fix the comment parameter type
+  // Handle add comment - Fix the function call to use the issueId and the proper comment object structure
   const handleAddComment = async () => {
     if (!issue || !currentUserId || !newComment.trim()) return;
     
     setIsSubmittingComment(true);
     try {
-      const commentId = await addComment({
-        issueId: issue.id,
+      // Fix #1: Properly pass both parameters (issueId and comment object)
+      const commentResult = await addComment(issue.id, {
         employeeUuid: currentUserId,
         content: newComment.trim()
       });
       
-      if (commentId) {
+      if (commentResult) {
         // Get user name for the current user
         let commenterName = commenterNames[currentUserId] || "You";
         if (!commenterNames[currentUserId] && authState.user?.name) {
@@ -245,13 +244,8 @@ export const useAdminIssue = (issueId?: string) => {
           }));
         }
         
-        // Create a new comment object
-        const newCommentObj: IssueComment = {
-          id: commentId,
-          employeeUuid: currentUserId,
-          content: newComment.trim(),
-          createdAt: new Date().toISOString()
-        };
+        // Fix #2: Use the returned comment object directly
+        const newCommentObj = commentResult;
         
         // Update the issue with the new comment
         setIssue(prevIssue => {
@@ -296,7 +290,8 @@ export const useAdminIssue = (issueId?: string) => {
     
     setIsReopeningTicket(true);
     try {
-      const updatedIssue = await reopenTicket(issue.id, currentUserId);
+      // Fix #3: Pass all required arguments to reopenTicket
+      const updatedIssue = await reopenTicket(issue.id, currentUserId, "open");
       if (updatedIssue) {
         setIssue(updatedIssue);
         setStatus(updatedIssue.status);
