@@ -23,6 +23,29 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
     name: getIssueTypeLabel(item.name, false) // Pass false to only show English labels
   }));
 
+  // Safe label formatter to prevent errors when rendering pie chart
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+    if (percent === undefined || isNaN(percent)) return null;
+    
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize="12"
+      >
+        {`${name} ${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card>
@@ -41,13 +64,13 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={renderCustomizedLabel}
                 >
                   {formattedTypePieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(value) => value ? value : "0"} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -77,7 +100,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip />
+                <Tooltip formatter={(value) => value ? value : "0"} />
                 <Legend />
                 <Bar dataKey="value" name="Tickets" fill="#1E40AF" />
               </BarChart>

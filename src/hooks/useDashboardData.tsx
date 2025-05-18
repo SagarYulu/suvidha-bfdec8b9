@@ -108,7 +108,7 @@ export const useDashboardData = () => {
   
   // Memoize chart data to prevent recalculations - adapted for the new analytics structure
   const typePieData = useMemo(() => {
-    if (!analytics?.byType) {
+    if (!analytics || !analytics.byType) {
       console.log("No type counts data available for pie chart");
       return [];
     }
