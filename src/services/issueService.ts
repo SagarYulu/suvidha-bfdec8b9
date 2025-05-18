@@ -1,5 +1,11 @@
+
 // This file is a facade that re-exports from the modularized services
 // This maintains backwards compatibility while allowing a cleaner structure
+
+// Import necessary types and utilities
+import { Issue } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { logAuditTrail } from "./issues/issueAuditService";
 
 // Re-export types
 import { IssueFilters } from "./issues/issueFilters";
@@ -13,7 +19,6 @@ export {
   updateIssueStatus,
   assignIssueToUser,
   getAssignedIssues,
-  reopenTicket,
   updateIssuePriority,
   updateAllIssuePriorities
 } from "./issues/issueCore";
@@ -53,7 +58,7 @@ export {
   getEffectiveIssueType
 } from "./issues/issueMappingService";
 
-// Update the reopenTicket function to accept a status parameter
+// Define and export the reopenTicket function (removing it from the re-exports above)
 export const reopenTicket = async (
   issueId: string, 
   currentUserId: string, 

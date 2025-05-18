@@ -14,6 +14,7 @@ export { getIssueById, getIssuesByUserId, getAssignedIssues } from "./issueFetch
 export { createIssue } from "./issueCreationService";
 export { updateIssueStatus } from "./issueStatusService";
 export { assignIssueToUser } from "./issueAssignmentService";
-export { reopenTicket } from "./issueReopeningService";
 export { updateIssuePriority, updateAllIssuePriorities } from "./priorityUpdateService";
 export { mapIssueType, unmapIssueType } from "./issueMappingService";
+
+// Remove the reopenTicket export since it's now directly in the parent issueService.ts
