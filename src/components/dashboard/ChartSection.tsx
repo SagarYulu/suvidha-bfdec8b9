@@ -32,6 +32,9 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
+    // Ensure we don't try to format undefined values
+    const percentValue = percent ? (percent * 100).toFixed(0) : "0";
+
     return (
       <text 
         x={x} 
@@ -41,7 +44,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
         dominantBaseline="central"
         fontSize="12"
       >
-        {`${name} ${(percent * 100).toFixed(0)}%`}
+        {`${name} ${percentValue}%`}
       </text>
     );
   };
@@ -70,7 +73,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => value ? value : "0"} />
+                <Tooltip formatter={(value) => value !== undefined && value !== null ? value : "0"} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -100,7 +103,7 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => value ? value : "0"} />
+                <Tooltip formatter={(value) => value !== undefined && value !== null ? value : "0"} />
                 <Legend />
                 <Bar dataKey="value" name="Tickets" fill="#1E40AF" />
               </BarChart>

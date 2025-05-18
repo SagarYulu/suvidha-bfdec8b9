@@ -50,7 +50,7 @@ export const getAnalytics = async (): Promise<AnalyticsResult> => {
       mappedBy: record.mapped_by
     }));
     
-    // Initialize result
+    // Initialize result with safe default values
     const result: AnalyticsResult = {
       total: formattedIssues.length,
       open: 0,

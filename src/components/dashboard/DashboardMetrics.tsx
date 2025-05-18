@@ -54,6 +54,22 @@ const DashboardMetrics: React.FC<DashboardMetricsProps> = ({ analytics, userCoun
     return analytics.averageResolutionTime.toFixed(1);
   };
 
+  // Calculate the percentage safely
+  const calculatePercentage = () => {
+    if (!analytics.in_progress || !analytics.total || analytics.total === 0) {
+      return "0.0";
+    }
+    return ((analytics.in_progress / analytics.total) * 100).toFixed(1);
+  };
+
+  // Calculate tickets per employee safely
+  const calculateTicketsPerEmployee = () => {
+    if (!analytics.total || !userCount || userCount === 0) {
+      return "0";
+    }
+    return (analytics.total / userCount).toFixed(1);
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -101,7 +117,7 @@ const DashboardMetrics: React.FC<DashboardMetricsProps> = ({ analytics, userCoun
         <CardContent>
           <div className="text-2xl font-bold">{analytics.in_progress || 0}</div>
           <p className="text-xs text-muted-foreground">
-            {((analytics.in_progress / analytics.total) * 100 || 0).toFixed(1)}% of all tickets
+            {calculatePercentage()}% of all tickets
           </p>
         </CardContent>
       </Card>
@@ -114,7 +130,7 @@ const DashboardMetrics: React.FC<DashboardMetricsProps> = ({ analytics, userCoun
         <CardContent>
           <div className="text-2xl font-bold">{userCount || 0}</div>
           <p className="text-xs text-muted-foreground">
-            {analytics.total && userCount ? (analytics.total / userCount).toFixed(1) : "0"} tickets per employee
+            {calculateTicketsPerEmployee()} tickets per employee
           </p>
         </CardContent>
       </Card>
