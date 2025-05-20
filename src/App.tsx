@@ -19,6 +19,7 @@ import AdminAnalytics from "./pages/admin/Analytics";
 import AdminSettings from "./pages/admin/Settings";
 import AdminLogin from "./pages/admin/Login";
 import AdminAccessControl from "./pages/admin/AccessControl";
+import AdminResolutionFeedback from "./pages/admin/ResolutionFeedback";
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
@@ -104,6 +105,12 @@ const App = () => {
                 <Route path="/admin/analytics" element={
                   <AnalyticsGuard>
                     <AdminAnalytics />
+                  </AnalyticsGuard>
+                } />
+
+                <Route path="/admin/resolution-feedback" element={
+                  <AnalyticsGuard>
+                    <AdminResolutionFeedback />
                   </AnalyticsGuard>
                 } />
                 

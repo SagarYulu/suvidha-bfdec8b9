@@ -1,94 +1,85 @@
 
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Lock, RefreshCw } from "lucide-react";
-import { useState } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import { AlertCircle, MessageSquare } from "lucide-react";
+import { useTicketFeedback } from "@/hooks/useTicketFeedback";
+import FeedbackForm from "./FeedbackForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ClosedIssueCommentNoticeProps {
   isReopenable: boolean;
-  onReopen: (reason: string) => Promise<void>;
+  onReopen: () => void;
+  ticketId: string;
+  resolverUuid?: string | null;
 }
 
-const ClosedIssueCommentNotice = ({ 
-  isReopenable, 
-  onReopen 
-}: ClosedIssueCommentNoticeProps) => {
-  const [showReopenForm, setShowReopenForm] = useState(false);
-  const [reopenReason, setReopenReason] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+const ClosedIssueCommentNotice: React.FC<ClosedIssueCommentNoticeProps> = ({
+  isReopenable,
+  onReopen,
+  ticketId,
+  resolverUuid
+}) => {
+  const { authState } = useAuth();
+  const {
+    hasFeedback,
+    isCheckingFeedback,
+    showFeedbackForm,
+    openFeedbackForm,
+    closeFeedbackForm,
+    handleFeedbackSubmitted
+  } = useTicketFeedback(ticketId);
 
-  const handleReopen = async () => {
-    if (!reopenReason.trim()) return;
-    
-    setIsSubmitting(true);
-    try {
-      await onReopen(reopenReason);
-      setShowReopenForm(false);
-      setReopenReason("");
-    } catch (error) {
-      console.error("Error reopening ticket:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const shouldShowFeedbackButton = !isCheckingFeedback && !hasFeedback && authState.user?.id;
 
   return (
-    <div className="bg-gray-100 rounded-lg p-4 my-4">
-      <div className="flex justify-center mb-2">
-        <Lock className="h-6 w-6 text-gray-500" />
+    <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div className="flex gap-2 items-start">
+        <AlertCircle className="text-gray-500 mt-0.5" size={18} />
+        <div>
+          <p className="text-gray-700">
+            This issue has been closed and cannot be commented on.
+          </p>
+          {isReopenable && (
+            <p className="text-sm text-gray-500 mt-1">
+              You can reopen the issue if you have additional information or follow-up questions.
+            </p>
+          )}
+        </div>
       </div>
-      <h3 className="text-gray-700 font-medium text-center">Chat Closed</h3>
-      <p className="text-gray-500 text-sm mt-1 text-center">
-        You can't add new comments to a closed ticket.
-      </p>
 
-      {isReopenable && !showReopenForm && (
-        <div className="mt-4">
-          <Button 
+      <div className="mt-4 flex flex-col sm:flex-row gap-3">
+        {isReopenable && (
+          <Button
+            onClick={onReopen}
             variant="outline"
-            onClick={() => setShowReopenForm(true)}
-            className="w-full flex items-center justify-center"
+            className="w-full sm:w-auto border-amber-500 text-amber-600 hover:bg-amber-50"
           >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Reopen Ticket
+            Reopen Issue / मुद्दा फिर से खोलें
           </Button>
-          <div className="flex items-center mt-2 text-xs text-amber-600 justify-center">
-            <span>You can reopen this ticket within 7 days of closure</span>
-          </div>
-        </div>
-      )}
-
-      {isReopenable && showReopenForm && (
-        <div className="mt-4">
-          <p className="text-sm font-medium mb-2">Please provide a reason for reopening:</p>
-          <Textarea
-            value={reopenReason}
-            onChange={(e) => setReopenReason(e.target.value)}
-            placeholder="Enter reason for reopening..."
-            className="min-h-[80px] mb-3"
+        )}
+        
+        {shouldShowFeedbackButton && (
+          <Button
+            onClick={openFeedbackForm}
+            variant="outline"
+            className="w-full sm:w-auto border-yulu-dashboard-blue text-yulu-dashboard-blue hover:bg-blue-50 flex items-center gap-1"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Share Your Feedback / अपनी प्रतिक्रिया साझा करें
+          </Button>
+        )}
+        
+        {shouldShowFeedbackButton && (
+          <FeedbackForm
+            isOpen={showFeedbackForm}
+            onClose={closeFeedbackForm}
+            ticketId={ticketId}
+            resolverUuid={resolverUuid}
+            employeeUuid={authState.user.id}
+            onFeedbackSubmitted={handleFeedbackSubmitted}
           />
-          <div className="flex space-x-2">
-            <Button 
-              variant="outline" 
-              className="flex-1"
-              onClick={() => {
-                setShowReopenForm(false);
-                setReopenReason("");
-              }}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="flex-1" 
-              onClick={handleReopen}
-              disabled={!reopenReason.trim() || isSubmitting}
-            >
-              {isSubmitting ? "Reopening..." : "Submit"}
-            </Button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

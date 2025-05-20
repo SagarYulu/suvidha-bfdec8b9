@@ -59,6 +59,8 @@ const MobileIssueDetails = () => {
             <ClosedIssueCommentNotice 
               isReopenable={isReopenable || false}
               onReopen={processReopenTicket}
+              ticketId={issue.id}
+              resolverUuid={issue.assignedTo}
             />
             <CommentSection
               comments={issue.comments}
