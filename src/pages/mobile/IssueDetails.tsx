@@ -41,10 +41,9 @@ const MobileIssueDetails = () => {
   // Create a wrapper function that matches the expected function signature (no parameters)
   // This is needed because IssueHeader expects a function with no parameters
   const handleReopenTicket = () => {
-    // Since IssueHeader expects a no-parameter function but our actual implementation
-    // requires a reopenReason parameter, we create this dummy function for the prop
-    // The actual reopen functionality with reason is handled by ClosedIssueCommentNotice
-    console.log("Reopen button clicked in header, but action handled by notice component");
+    // This is just a placeholder function that meets the type requirements
+    // The actual reopening will be handled by the ClosedIssueCommentNotice component
+    console.log("Reopen button clicked in header");
   };
 
   return (

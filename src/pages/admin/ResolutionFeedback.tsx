@@ -20,7 +20,7 @@ const ResolutionFeedback = () => {
   return (
     <AdminLayout title="Resolution Feedback" requiredPermission="manage:analytics">
       <div className="space-y-6">
-        <Alert variant="warning" className="mb-6">
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4 mr-2" />
           <AlertTitle>Database Tables Missing</AlertTitle>
           <AlertDescription>

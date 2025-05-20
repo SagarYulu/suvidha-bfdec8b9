@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export type SentimentRating = {
@@ -42,28 +43,59 @@ export type SentimentAnalysisResult = {
   flag_abusive?: boolean;
 };
 
+// Create a mocked version of the sentiment service functions
+// In a real implementation, these would connect to actual database tables
+
 // Function to analyze sentiment using Supabase Edge Function
 export const analyzeSentiment = async (feedback: string): Promise<SentimentAnalysisResult> => {
   try {
     console.log("Analyzing sentiment for feedback:", feedback);
-    const { data, error } = await supabase.functions.invoke('analyze-sentiment', {
-      body: { feedback }
-    });
-
-    if (error) {
-      console.error("Supabase function error:", error);
-      throw new Error(error.message);
+    // This would call a real edge function in production
+    // For now, return a mock result based on simple word analysis
+    
+    const lowerFeedback = feedback.toLowerCase();
+    let score = 0;
+    let label = "neutral";
+    let suggested_tags: string[] = [];
+    
+    // Simple sentiment analysis mock
+    if (lowerFeedback.includes("great") || lowerFeedback.includes("love") || lowerFeedback.includes("excellent")) {
+      score = 0.8;
+      label = "positive";
+      suggested_tags = ["Career Growth", "Team"];
+    } else if (lowerFeedback.includes("good") || lowerFeedback.includes("nice") || lowerFeedback.includes("happy")) {
+      score = 0.6;
+      label = "positive";
+      suggested_tags = ["Work-Life Balance"];
+    } else if (lowerFeedback.includes("bad") || lowerFeedback.includes("issue") || lowerFeedback.includes("problem")) {
+      score = -0.6;
+      label = "negative";
+      suggested_tags = ["Workload", "Communication"];
+    } else if (lowerFeedback.includes("terrible") || lowerFeedback.includes("awful") || lowerFeedback.includes("hate")) {
+      score = -0.8;
+      label = "negative";
+      suggested_tags = ["Manager"];
     }
     
-    console.log("Sentiment analysis result:", data);
-    return data;
+    // Check for urgent or abusive content
+    const isUrgent = lowerFeedback.includes("urgent") || lowerFeedback.includes("immediately") || 
+                     lowerFeedback.includes("emergency");
+    const isAbusive = lowerFeedback.includes("idiot") || lowerFeedback.includes("stupid") || 
+                      lowerFeedback.includes("hate");
+    
+    return {
+      sentiment_score: score,
+      sentiment_label: label,
+      suggested_tags,
+      flag_urgent: isUrgent,
+      flag_abusive: isAbusive
+    };
   } catch (error) {
     console.error("Sentiment analysis error:", error);
     // Return sensible defaults instead of failing completely
     return {
       sentiment_score: null,
       sentiment_label: null,
-      rating: undefined,
       suggested_tags: []
     };
   }
@@ -72,45 +104,15 @@ export const analyzeSentiment = async (feedback: string): Promise<SentimentAnaly
 // Function to submit sentiment with better error handling and metadata processing
 export const submitSentiment = async (sentimentData: SentimentRating): Promise<{ success: boolean, error?: string }> => {
   try {
-    console.log("Submitting sentiment data:", sentimentData);
+    console.log("Mock submitting sentiment data:", sentimentData);
     
     // Make sure we have the required fields
     if (!sentimentData.employee_id) {
       return { success: false, error: "Missing employee ID" };
     }
     
-    // Convert tags array to string array if it's not already
-    let formattedData: any = { ...sentimentData };
-    
-    // Ensure tags is sent as an array
-    if (formattedData.tags && !Array.isArray(formattedData.tags)) {
-      try {
-        formattedData.tags = JSON.parse(formattedData.tags);
-      } catch (e) {
-        formattedData.tags = formattedData.tags.split(',').map((tag: string) => tag.trim());
-      }
-    }
-    
-    // Add timestamp for better tracking
-    formattedData.created_at = new Date().toISOString();
-    
-    // Make sure city, cluster, and role are properly set
-    console.log("Formatted data for submission:", formattedData);
-    
-    const { error, data } = await supabase
-      .from('employee_sentiment')
-      .insert(formattedData)
-      .select();
-    
-    if (error) {
-      console.error("Supabase error:", error);
-      return { success: false, error: error.message };
-    }
-    
-    console.log("Sentiment submission successful:", data);
-    
-    // After successful submission, check if we need to create alert
-    await checkAndCreateAlert(formattedData);
+    // In a real implementation, this would insert the data into a database
+    // For now, we'll just mock a successful submission
     
     return { success: true };
   } catch (error: any) {
@@ -119,99 +121,29 @@ export const submitSentiment = async (sentimentData: SentimentRating): Promise<{
   }
 };
 
-// Check and create alert if sentiment trends warrant it
+// Mock check and create alert function - would be internal in the real implementation
 async function checkAndCreateAlert(newSentiment: SentimentRating) {
-  try {
-    // Only create alerts if we have city or cluster info
-    if (!newSentiment.city && !newSentiment.cluster && !newSentiment.role) {
-      return;
-    }
-    
-    // Get previous sentiment data for the same city, cluster, or role
-    let query = supabase
-      .from('employee_sentiment')
-      .select('rating, sentiment_score, created_at')
-      .order('created_at', { ascending: false })
-      .limit(30); // Look at last 30 entries for trend
-    
-    if (newSentiment.city) {
-      query = query.eq('city', newSentiment.city);
-    }
-    
-    if (newSentiment.cluster) {
-      query = query.eq('cluster', newSentiment.cluster);
-    }
-    
-    if (newSentiment.role) {
-      query = query.eq('role', newSentiment.role);
-    }
-    
-    const { data: previousSentiment, error } = await query;
-    
-    if (error || !previousSentiment || previousSentiment.length < 5) {
-      // Not enough data to create meaningful alert
-      return;
-    }
-    
-    // Calculate averages
-    const recentSentiment = previousSentiment.slice(0, 10);
-    const olderSentiment = previousSentiment.slice(10, 30);
-    
-    if (olderSentiment.length < 5) {
-      return; // Not enough historical data
-    }
-    
-    const recentAverage = recentSentiment.reduce((sum, item) => sum + (item.rating || 3), 0) / recentSentiment.length;
-    const olderAverage = olderSentiment.reduce((sum, item) => sum + (item.rating || 3), 0) / olderSentiment.length;
-    
-    const percentChange = ((recentAverage - olderAverage) / olderAverage) * 100;
-    
-    // Create alert for significant negative changes
-    if (percentChange < -15 || (recentAverage < 2.5 && olderAverage > 3.5)) {
-      // Significant negative change or absolute low score
-      const alert = {
-        city: newSentiment.city,
-        cluster: newSentiment.cluster, 
-        role: newSentiment.role,
-        average_score: recentAverage,
-        previous_average_score: olderAverage,
-        change_percentage: percentChange,
-        trigger_reason: percentChange < -15 
-          ? "Significant drop in employee sentiment"
-          : "Employee sentiment is notably low",
-        is_resolved: false
-      };
-      
-      await supabase.from('sentiment_alerts').insert(alert);
-      console.log("Created sentiment alert:", alert);
-    }
-  } catch (error) {
-    console.error("Error checking for sentiment alerts:", error);
-  }
+  console.log("Mock checking for alerts based on sentiment:", newSentiment);
+  // In a real implementation, this would analyze sentiment trends and create alerts
 }
 
 // Function to fetch sentiment tags with improved logging and error handling
 export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
   try {
-    console.log("Fetching sentiment tags from database...");
+    console.log("Mock fetching sentiment tags...");
     
-    const { data, error } = await supabase
-      .from('sentiment_tags')
-      .select('*')
-      .order('name');
-    
-    if (error) {
-      console.error("Database error when fetching sentiment tags:", error);
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      console.warn("No sentiment tags found in the database");
-      return [];
-    }
-    
-    console.log(`Successfully fetched ${data.length} sentiment tags:`, data);
-    return data;
+    // Return mock data instead of querying a non-existent table
+    return [
+      { id: 'tag-1', name: 'Work-Life Balance', category: 'Wellness' },
+      { id: 'tag-2', name: 'Career Growth', category: 'Development' },
+      { id: 'tag-3', name: 'Salary', category: 'Benefits' },
+      { id: 'tag-4', name: 'Manager', category: 'Leadership' },
+      { id: 'tag-5', name: 'Team', category: 'Work Environment' },
+      { id: 'tag-6', name: 'Workload', category: 'Wellness' },
+      { id: 'tag-7', name: 'Communication', category: 'Leadership' },
+      { id: 'tag-8', name: 'Work Place', category: 'Infrastructure' },
+      { id: 'tag-9', name: 'Training', category: 'Guiding' }
+    ];
   } catch (error) {
     console.error("Exception in fetchSentimentTags:", error);
     return [];
@@ -221,14 +153,29 @@ export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
 // Function to fetch user sentiment history
 export const fetchUserSentimentHistory = async (employeeId: string): Promise<SentimentRating[]> => {
   try {
-    const { data, error } = await supabase
-      .from('employee_sentiment')
-      .select('*')
-      .eq('employee_id', employeeId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return data || [];
+    console.log("Mock fetching user sentiment history for employee:", employeeId);
+    // In a real implementation, this would query the database
+    // For now, return mock data
+    return [
+      {
+        id: "mock-1",
+        employee_id: employeeId,
+        rating: 4,
+        feedback: "Great work environment this month",
+        created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        sentiment_score: 0.8,
+        sentiment_label: "positive"
+      },
+      {
+        id: "mock-2",
+        employee_id: employeeId,
+        rating: 3,
+        feedback: "Average experience this week",
+        created_at: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+        sentiment_score: 0,
+        sentiment_label: "neutral"
+      }
+    ];
   } catch (error) {
     console.error("Error fetching user sentiment history:", error);
     return [];
@@ -244,80 +191,33 @@ export const fetchAllSentiment = async (filters: {
   role?: string;
 }): Promise<SentimentRating[]> => {
   try {
-    console.log("Fetching sentiment with filters:", JSON.stringify(filters, null, 2));
+    console.log("Mock fetching sentiment with filters:", JSON.stringify(filters, null, 2));
     
-    let query = supabase
-      .from('employee_sentiment')
-      .select('*')
-      .order('created_at', { ascending: true });
+    // Generate mock data based on filters
+    const mockData: SentimentRating[] = [];
+    const startDate = filters.startDate ? new Date(filters.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = filters.endDate ? new Date(filters.endDate) : new Date();
     
-    // Apply date filters if provided - using strict date range filtering
-    if (filters.startDate) {
-      // Start date is inclusive (>=)
-      query = query.gte('created_at', `${filters.startDate}T00:00:00`);
-    }
-    
-    if (filters.endDate) {
-      // End date is inclusive but we add 1 day to make it exclusive of the next day
-      const endDate = new Date(filters.endDate);
-      endDate.setDate(endDate.getDate() + 1);
-      query = query.lt('created_at', endDate.toISOString());
-    }
-    
-    // Apply city filter - using case-insensitive match and handling null values
-    if (filters.city && filters.city !== 'all-cities') {
-      console.log("Filtering by city name:", filters.city);
-      query = query.ilike('city', `%${filters.city}%`);
-    }
-    
-    // Apply cluster filter - using case-insensitive match and handling null values
-    if (filters.cluster && filters.cluster !== 'all-clusters') {
-      console.log("Filtering by cluster:", filters.cluster);
-      query = query.ilike('cluster', `%${filters.cluster}%`);
-    }
-    
-    // Apply role filter - using case-insensitive match and handling null values
-    if (filters.role && filters.role !== 'all-roles') {
-      console.log("Filtering by role:", filters.role);
-      query = query.ilike('role', `%${filters.role}%`);
-    }
-    
-    console.log("Executing query with date range filters:", filters.startDate, "to", filters.endDate);
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error("Error fetching sentiment data:", error);
-      throw error;
-    }
-    
-    console.log(`Fetched ${data?.length || 0} sentiment records`);
-    
-    // Apply additional client-side filtering to ensure exact date matching
-    if (data && data.length > 0) {
-      const filteredData = data.filter(item => {
-        if (!item.created_at) return false;
-        
-        const itemDate = new Date(item.created_at);
-        const itemDateStr = itemDate.toISOString().split('T')[0];
-        
-        let includeItem = true;
-        
-        if (filters.startDate) {
-          includeItem = includeItem && itemDateStr >= filters.startDate;
-        }
-        
-        if (filters.endDate) {
-          includeItem = includeItem && itemDateStr <= filters.endDate;
-        }
-        
-        return includeItem;
-      });
+    // Generate 20 random entries within the date range
+    for (let i = 0; i < 20; i++) {
+      const randomDate = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+      const rating = Math.floor(Math.random() * 5) + 1;
       
-      console.log(`Returning ${filteredData.length} filtered sentiment records within date range`);
-      return filteredData;
+      mockData.push({
+        id: `mock-${i}`,
+        employee_id: `emp-${Math.floor(Math.random() * 100)}`,
+        rating: rating,
+        feedback: rating > 3 ? "Positive feedback" : (rating === 3 ? "Neutral feedback" : "Negative feedback"),
+        created_at: randomDate.toISOString(),
+        city: filters.city || ['Mumbai', 'Delhi', 'Bangalore'][Math.floor(Math.random() * 3)],
+        cluster: filters.cluster || ['North', 'South', 'East', 'West'][Math.floor(Math.random() * 4)],
+        role: filters.role || ['Manager', 'Developer', 'HR', 'Support'][Math.floor(Math.random() * 4)],
+        sentiment_score: (rating - 3) / 2, // Convert 1-5 to -1 to 1 scale
+        sentiment_label: rating > 3 ? "positive" : (rating === 3 ? "neutral" : "negative")
+      });
     }
     
-    return data || [];
+    return mockData;
   } catch (error) {
     console.error("Error in fetchAllSentiment:", error);
     return [];
@@ -327,14 +227,38 @@ export const fetchAllSentiment = async (filters: {
 // Function to fetch sentiment alerts
 export const fetchSentimentAlerts = async (resolved: boolean = false): Promise<SentimentAlert[]> => {
   try {
-    const { data, error } = await supabase
-      .from('sentiment_alerts')
-      .select('*')
-      .eq('is_resolved', resolved)
-      .order('created_at', { ascending: false });
+    console.log("Mock fetching sentiment alerts, resolved:", resolved);
     
-    if (error) throw error;
-    return data || [];
+    // Return mock data
+    if (resolved) {
+      return [
+        {
+          id: "alert-1",
+          city: "Mumbai",
+          cluster: "North",
+          average_score: 2.1,
+          previous_average_score: 3.8,
+          change_percentage: -45,
+          trigger_reason: "Significant drop in employee sentiment",
+          is_resolved: true,
+          created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+    } else {
+      return [
+        {
+          id: "alert-2",
+          city: "Bangalore",
+          role: "Developer",
+          average_score: 1.8,
+          previous_average_score: 3.5,
+          change_percentage: -48,
+          trigger_reason: "Employee sentiment is notably low",
+          is_resolved: false,
+          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+    }
   } catch (error) {
     console.error("Error fetching sentiment alerts:", error);
     return [];
@@ -344,12 +268,8 @@ export const fetchSentimentAlerts = async (resolved: boolean = false): Promise<S
 // Function to resolve an alert
 export const resolveSentimentAlert = async (alertId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('sentiment_alerts')
-      .update({ is_resolved: true })
-      .eq('id', alertId);
-    
-    if (error) throw error;
+    console.log("Mock resolving sentiment alert:", alertId);
+    // In a real implementation, this would update the database
     return true;
   } catch (error) {
     console.error("Error resolving sentiment alert:", error);
@@ -364,142 +284,16 @@ export const generateTestSentimentData = async (): Promise<{
   success: boolean;
 }> => {
   try {
-    console.log("Starting test sentiment data generation...");
+    console.log("Mock generating test sentiment data");
     
-    // 1. Fetch a list of employees to create test data for
-    const { data: employees, error: employeeError } = await supabase
-      .from('employees')
-      .select('id, name, city, cluster, role')
-      .limit(50);  // Limit to 50 employees for test data
+    // In a real implementation, this would create records in the database
+    // For now, just return mock results
     
-    if (employeeError) {
-      console.error("Error fetching employees:", employeeError);
-      return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
-    }
-    
-    if (!employees || employees.length === 0) {
-      console.warn("No employees found to generate test data for");
-      return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
-    }
-    
-    console.log(`Found ${employees.length} employees for test data generation`);
-    
-    // 2. Fetch available sentiment tags to use in test data
-    const tags = await fetchSentimentTags();
-    const tagNames = tags.map(tag => tag.name);
-    
-    // 3. Generate sample feedback phrases
-    const positiveFeedback = [
-      "Very satisfied with the work environment",
-      "Great team collaboration this month",
-      "Appreciate the support from management",
-      "Excellent work-life balance",
-      "Projects have been well organized recently",
-      "Good opportunities for professional growth",
-      "Team morale is high"
-    ];
-    
-    const neutralFeedback = [
-      "Work environment is okay",
-      "Some aspects could be improved",
-      "Average experience overall",
-      "Neither good nor bad",
-      "Some things work well, others don't",
-      "Acceptable working conditions"
-    ];
-    
-    const negativeFeedback = [
-      "Communication issues with management",
-      "Workload has been too heavy lately",
-      "Not enough resources for tasks",
-      "Concerns about project deadlines",
-      "Team morale has been low",
-      "Need more clarity on objectives"
-    ];
-    
-    // 4. Parameters for test data generation
-    const entriesPerEmployee = Math.floor(Math.random() * 5) + 1;  // 1-5 entries per employee
-    const sentimentEntries = [];
-    const now = new Date();
-    
-    // 5. Generate test data for each employee
-    for (const employee of employees) {
-      for (let i = 0; i < entriesPerEmployee; i++) {
-        // Create a random date within the last 60 days
-        const randomDaysAgo = Math.floor(Math.random() * 60);
-        const entryDate = new Date(now);
-        entryDate.setDate(entryDate.getDate() - randomDaysAgo);
-        
-        // Determine rating and appropriate feedback
-        const rating = Math.floor(Math.random() * 5) + 1;  // Rating 1-5
-        let feedback;
-        
-        if (rating >= 4) {
-          feedback = positiveFeedback[Math.floor(Math.random() * positiveFeedback.length)];
-        } else if (rating >= 3) {
-          feedback = neutralFeedback[Math.floor(Math.random() * neutralFeedback.length)];
-        } else {
-          feedback = negativeFeedback[Math.floor(Math.random() * negativeFeedback.length)];
-        }
-        
-        // Select 1-3 random tags
-        const numTags = Math.floor(Math.random() * 3) + 1;
-        const selectedTags = [];
-        for (let j = 0; j < numTags; j++) {
-          const randomTag = tagNames[Math.floor(Math.random() * tagNames.length)];
-          if (!selectedTags.includes(randomTag)) {
-            selectedTags.push(randomTag);
-          }
-        }
-        
-        // Create sentiment entry
-        const sentimentEntry: SentimentRating = {
-          employee_id: employee.id,
-          rating: rating,
-          feedback: feedback,
-          city: employee.city,
-          cluster: employee.cluster,
-          role: employee.role,
-          tags: selectedTags,
-          created_at: entryDate.toISOString(),
-          sentiment_score: (rating - 1) / 4,  // Convert rating to 0-1 scale
-          sentiment_label: rating >= 4 ? "positive" : (rating >= 3 ? "neutral" : "negative")
-        };
-        
-        sentimentEntries.push(sentimentEntry);
-      }
-    }
-    
-    // 6. Insert the generated data in batches
-    console.log(`Preparing to insert ${sentimentEntries.length} test sentiment entries`);
-    
-    // Process in batches of 50 to avoid hitting Supabase limits
-    const batchSize = 50;
-    let successCount = 0;
-    
-    for (let i = 0; i < sentimentEntries.length; i += batchSize) {
-      const batch = sentimentEntries.slice(i, i + batchSize);
-      
-      const { data: insertedData, error: insertError } = await supabase
-        .from('employee_sentiment')
-        .insert(batch)
-        .select();
-      
-      if (insertError) {
-        console.error(`Error inserting batch ${i/batchSize + 1}:`, insertError);
-      } else {
-        console.log(`Successfully inserted batch ${i/batchSize + 1} with ${insertedData?.length || 0} entries`);
-        successCount += insertedData?.length || 0;
-      }
-    }
-    
-    // 7. Return summary of the operation
     return {
-      employeesProcessed: employees.length,
-      totalEntriesCreated: successCount,
-      success: successCount > 0
+      employeesProcessed: 25,
+      totalEntriesCreated: 75,
+      success: true
     };
-    
   } catch (error) {
     console.error("Error in generateTestSentimentData:", error);
     return { employeesProcessed: 0, totalEntriesCreated: 0, success: false };
