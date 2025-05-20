@@ -20,14 +20,14 @@ const FormatInstructions = () => {
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">Required Headers:</span> User ID, emp_id, name, email, role
+              <span className="font-medium">Required Headers:</span> User ID, emp_id (Employee ID / एम्प्लॉई आईडी), name, email, role
             </div>
           </div>
 
           <div className="flex items-start">
             <Check className="h-4 w-4 text-green-500 mr-2 mt-0.5" />
             <div className="text-sm">
-              <span className="font-medium">Optional Headers:</span> phone, city, cluster, manager, date_of_joining, date_of_birth, blood_group, account_number, ifsc_code, password
+              <span className="font-medium">Optional Headers:</span> phone, city, cluster, manager, date_of_joining (Date of Joining / जॉइनिंग डेट), date_of_birth (Date of Birth / जनम दिनांक), blood_group, account_number, ifsc_code, password
             </div>
           </div>
 

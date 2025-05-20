@@ -223,7 +223,7 @@ const MobileIssues = () => {
                 <p>{employeeDetails.name}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Employee ID / कर्मचारी आईडी</p>
+                <p className="text-gray-500 text-sm">Employee ID / एम्प्लॉई आईडी</p>
                 <p>{employeeDetails.employeeId}</p>
               </div>
               <div>
@@ -251,11 +251,11 @@ const MobileIssues = () => {
                 <p>{employeeDetails.manager || "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Date of Joining / नियुक्ति तिथि</p>
+                <p className="text-gray-500 text-sm">Date of Joining / जॉइनिंग डेट</p>
                 <p>{employeeDetails.dateOfJoining ? formatShortDate(employeeDetails.dateOfJoining) : "N/A"}</p>
               </div>
               <div>
-                <p className="text-gray-500 text-sm">Date of Birth / जन्म तिथि</p>
+                <p className="text-gray-500 text-sm">Date of Birth / जनम दिनांक</p>
                 <p>{employeeDetails.dateOfBirth ? formatShortDate(employeeDetails.dateOfBirth) : "N/A"}</p>
               </div>
               <div>

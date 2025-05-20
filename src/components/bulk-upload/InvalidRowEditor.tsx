@@ -71,7 +71,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Employee ID *</label>
+            <label className="text-xs font-medium text-gray-500">Employee ID / एम्प्लॉई आईडी *</label>
             <Input 
               value={getRowValue(rowKey, 'emp_id', item.rowData.emp_id)}
               onChange={(e) => handleFieldEdit(rowKey, 'emp_id', e.target.value)}
@@ -173,7 +173,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Date of Joining (DD-MM-YYYY)</label>
+            <label className="text-xs font-medium text-gray-500">Date of Joining / जॉइनिंग डेट (DD-MM-YYYY)</label>
             <Input 
               value={getRowValue(rowKey, 'date_of_joining', item.rowData.date_of_joining)}
               onChange={(e) => handleFieldEdit(rowKey, 'date_of_joining', e.target.value)}
@@ -183,7 +183,7 @@ const InvalidRowEditor = ({
           </div>
           
           <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-500">Date of Birth (DD-MM-YYYY)</label>
+            <label className="text-xs font-medium text-gray-500">Date of Birth / जनम दिनांक (DD-MM-YYYY)</label>
             <Input 
               value={getRowValue(rowKey, 'date_of_birth', item.rowData.date_of_birth)}
               onChange={(e) => handleFieldEdit(rowKey, 'date_of_birth', e.target.value)}
