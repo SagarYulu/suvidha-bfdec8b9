@@ -31,49 +31,49 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
   if (category === 'agent') {
     if (isVeryUnhappy) {
       return [
-        { id: 'was_extremely_rude', label: 'Agent was extremely rude / एजेंट ने बहुत गलत व्यवहार किया' },
-        { id: 'completely_ignored', label: 'Completely ignored me / मुझे पूरी तरह नज़रअंदाज़ कर दिया' },
-        { id: 'provided_wrong_info', label: 'Provided wrong information / गलत जानकारी दी' }
+        { id: 'was_rude', label: 'Agent was rude / एजेंट ने गलत व्यवहार किया' },
+        { id: 'no_response', label: 'No response / कोई जवाब नहीं' },
+        { id: 'wrong_info', label: 'Wrong information / गलत जानकारी' }
       ];
     } else if (isPositive) {
       return rating === 5 ? 
         [
-          { id: 'exceptional_service', label: 'Exceptional service / उत्कृष्ट सेवा' },
-          { id: 'went_above_beyond', label: 'Went above and beyond / अपेक्षा से अधिक मदद की' },
+          { id: 'helpful', label: 'Very helpful / बहुत मददगार' },
+          { id: 'friendly', label: 'Friendly behavior / दोस्ताना व्यवहार' },
         ] : 
         [
-          { id: 'spoke_nicely', label: 'Agent spoke nicely / एजेंट ने अच्छे से बात की' },
-          { id: 'helped_quickly', label: 'Helped quickly / जल्दी मदद की' },
+          { id: 'good', label: 'Good service / अच्छी सेवा' },
+          { id: 'quick', label: 'Quick response / जल्दी जवाब' },
         ];
     } else {
       return [
-        { id: 'was_rude', label: 'Agent was rude / एजेंट ने गलत तरीके से बात की' },
-        { id: 'didnt_respond', label: 'Didn\'t respond / कोई जवाब नहीं मिला' },
-        { id: 'didnt_help', label: 'Didn\'t help / मदद नहीं की' },
+        { id: 'slow', label: 'Slow response / धीमा जवाब' },
+        { id: 'unhelpful', label: 'Not helpful / मददगार नहीं' },
+        { id: 'confusing', label: 'Confusing replies / भ्रमित जवाब' },
       ];
     }
   } else { // Resolution options
     if (isVeryUnhappy) {
       return [
-        { id: 'made_worse', label: 'Made issue worse / समस्या और बिगड़ गई' },
-        { id: 'completely_unresolved', label: 'Completely unresolved / बिलकुल हल नहीं हुई' },
-        { id: 'need_urgent_help', label: 'Need urgent help / तत्काल सहायता चाहिए' },
+        { id: 'no_fix', label: 'Problem not fixed / समस्या हल नहीं हुई' },
+        { id: 'worse', label: 'Made things worse / और बिगाड़ दिया' },
+        { id: 'need_help', label: 'Still need help / अभी भी मदद चाहिए' },
       ];
     } else if (isPositive) {
       return rating === 5 ? 
         [
-          { id: 'perfectly_solved', label: 'Perfectly solved / बिलकुल सही तरीके से हल किया' },
-          { id: 'very_clear_process', label: 'Very clear process / बहुत स्पष्ट प्रक्रिया' },
+          { id: 'fixed', label: 'Issue fixed / समस्या हल हो गई' },
+          { id: 'fast', label: 'Fixed quickly / जल्दी ठीक हुआ' },
         ] : 
         [
-          { id: 'problem_solved', label: 'Problem solved / समस्या हल हुई' },
-          { id: 'easy_to_understand', label: 'Easy to understand / समझ में आ गया' },
+          { id: 'helped', label: 'Issue helped / मदद मिली' },
+          { id: 'clear', label: 'Clear solution / साफ़ समाधान' },
         ];
     } else {
       return [
-        { id: 'took_too_long', label: 'Took too long / बहुत समय लगा' },
-        { id: 'still_not_resolved', label: 'Still not resolved / समस्या अब भी बाकी है' },
-        { id: 'confusing_process', label: 'Confusing process / समझ में नहीं आया' },
+        { id: 'slow_fix', label: 'Took too long / बहुत समय लगा' },
+        { id: 'not_fixed', label: 'Not fully fixed / पूरी तरह हल नहीं हुआ' },
+        { id: 'unclear', label: 'Solution unclear / समाधान स्पष्ट नहीं था' },
       ];
     }
   }
@@ -244,8 +244,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
         return (
           <div className="flex flex-col items-center text-center space-y-6">
             <h3 className="text-lg font-medium">
-              What is this feedback about?<br />
-              <span className="text-sm font-normal">यह प्रतिक्रिया किस बारे में है?</span>
+              What is this about?<br />
+              <span className="text-sm font-normal">यह किस बारे में है?</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
               <Button
@@ -253,14 +253,14 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 className="flex items-center justify-center px-4 py-6 w-full"
                 style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
               >
-                Agent / एजेंट के बारे में
+                About the agent / एजेंट के बारे में
               </Button>
               <Button
                 onClick={() => handleCategorySelect('resolution')}
                 className="flex items-center justify-center px-4 py-6 w-full"
                 style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
               >
-                Resolution / समस्या के हल के बारे में
+                About the solution / समाधान के बारे में
               </Button>
             </div>
           </div>
@@ -270,8 +270,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
         return (
           <div className="flex flex-col items-center text-center space-y-6">
             <h3 className="text-lg font-medium">
-              What best describes it?<br />
-              <span className="text-sm font-normal">कृपया कारण चुनें</span>
+              Tell us more<br />
+              <span className="text-sm font-normal">और बताएं</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
               {getReasonOptions(category, rating).map((option) => (
@@ -292,8 +292,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
         return (
           <div className="flex flex-col items-center text-center space-y-6">
             <h3 className="text-lg font-medium">
-              Anything else you'd like to share?<br />
-              <span className="text-sm font-normal">कुछ और बताना चाहेंगे?</span>
+              Anything else?<br />
+              <span className="text-sm font-normal">कुछ और?</span>
             </h3>
             <Textarea
               placeholder="Your comments (optional) / आपकी टिप्पणियां (वैकल्पिक)"
