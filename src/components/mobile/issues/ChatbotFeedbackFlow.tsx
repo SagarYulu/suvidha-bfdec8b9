@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -48,13 +47,13 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, isPositive: b
   }
 };
 
-// Define the rating options with proper star configurations
+// Define the rating options with mood labels and emojis only (no stars)
 const ratingOptions = [
-  { value: 5, emoji: '🤩', label: 'Very Happy', stars: 5, filled: 5, color: '#FFC300' },
-  { value: 4, emoji: '🙂', label: 'Happy', stars: 5, filled: 4, color: '#FFD700' },
-  { value: 3, emoji: '😐', label: 'Neutral', stars: 5, filled: 3, color: '#FFA500' },
-  { value: 2, emoji: '😕', label: 'Unhappy', stars: 5, filled: 2, color: '#FF6A33' },
-  { value: 1, emoji: '😠', label: 'Very Unhappy', stars: 5, filled: 1, color: '#FF3B30' },
+  { value: 5, emoji: '🤩', label: 'Very Happy', color: '#FFC300' },
+  { value: 4, emoji: '🙂', label: 'Happy', color: '#FFD700' },
+  { value: 3, emoji: '😐', label: 'Neutral', color: '#FFA500' },
+  { value: 2, emoji: '😕', label: 'Unhappy', color: '#FF6A33' },
+  { value: 1, emoji: '😠', label: 'Very Unhappy', color: '#FF3B30' },
 ];
 
 // StarRating component - completely rewritten to properly show filled/unfilled stars
@@ -206,7 +205,6 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                     <span className="text-lg">{option.emoji}</span>
                     <span>{option.label}</span>
                   </div>
-                  <StarRating filled={option.filled} color={option.color} />
                 </Button>
               ))}
             </div>
