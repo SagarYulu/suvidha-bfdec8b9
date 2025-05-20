@@ -45,7 +45,6 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
     } else if (isNeutral) {
       return [
         { id: 'slow', label: 'Slow response' },
-        { id: 'average', label: 'Average service' },
       ];
     } else if (rating === 4) { // Happy
       return [
@@ -73,12 +72,10 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
     } else if (isNeutral) {
       return [
         { id: 'slow_fix', label: 'Took too long' },
-        { id: 'partial', label: 'Partially resolved' },
       ];
     } else if (rating === 4) { // Happy
       return [
         { id: 'clear_solution', label: 'Clear solution' },
-        { id: 'good_help', label: 'Helpful solution' },
       ];
     } else { // Very Happy (5)
       return [
@@ -91,11 +88,16 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
 
 // Define the rating options with mood labels and emojis
 const ratingOptions = [
-  { value: 5, emoji: '🤩', label: 'Very Happy', color: '#0F52BA' }, // Royal blue
-  { value: 4, emoji: '🙂', label: 'Happy', color: '#1E90FF' }, // Dodger blue
-  { value: 3, emoji: '😐', label: 'Neutral', color: '#4682B4' }, // Steel blue
-  { value: 2, emoji: '😕', label: 'Unhappy', color: '#6495ED' }, // Cornflower blue
-  { value: 1, emoji: '😠', label: 'Very Unhappy', color: '#7B68EE' }, // Medium slate blue
+  { value: 5, emoji: '🤩', label: 'Very Happy', 
+    gradient: 'bg-gradient-to-r from-blue-500 to-blue-700' }, 
+  { value: 4, emoji: '🙂', label: 'Happy', 
+    gradient: 'bg-gradient-to-r from-blue-400 to-blue-600' },
+  { value: 3, emoji: '😐', label: 'Neutral', 
+    gradient: 'bg-gradient-to-r from-blue-300 to-blue-500' },
+  { value: 2, emoji: '😕', label: 'Unhappy', 
+    gradient: 'bg-gradient-to-r from-blue-200 to-blue-400' },
+  { value: 1, emoji: '😠', label: 'Very Unhappy', 
+    gradient: 'bg-gradient-to-r from-blue-100 to-blue-300' },
 ];
 
 const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
@@ -202,10 +204,10 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
     }
   }, [rating, category, reason, comment, ticketId, employeeUuid, resolverUuid, onFeedbackSubmitted, handleClose]);
   
-  // Get the selected rating color
-  const getRatingColor = () => {
-    if (rating === null) return '#1E40AF'; // Default Yulu blue
-    return ratingOptions.find(opt => opt.value === rating)?.color || '#1E40AF';
+  // Get the selected rating gradient
+  const getRatingGradient = () => {
+    if (rating === null) return 'bg-gradient-to-r from-blue-500 to-blue-700'; // Default gradient
+    return ratingOptions.find(opt => opt.value === rating)?.gradient || 'bg-gradient-to-r from-blue-500 to-blue-700';
   };
 
   // Render the current step content
@@ -223,8 +225,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 <Button
                   key={option.value}
                   onClick={() => handleRatingSelect(option.value)}
-                  style={{ backgroundColor: option.color }}
-                  className="flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90 transition-all duration-200 shadow-md"
+                  className={`${option.gradient} flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90 transition-all duration-200 shadow-md`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{option.emoji}</span>
@@ -246,15 +247,13 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             <div className="flex flex-col space-y-3 w-full">
               <Button
                 onClick={() => handleCategorySelect('agent')}
-                className="flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200"
-                style={{ backgroundColor: getRatingColor() }}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
               >
                 About the agent / एजेंट के बारे में
               </Button>
               <Button
                 onClick={() => handleCategorySelect('resolution')}
-                className="flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200"
-                style={{ backgroundColor: getRatingColor() }}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
               >
                 About the solution / समाधान के बारे में
               </Button>
@@ -274,8 +273,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 <Button
                   key={option.id}
                   onClick={() => handleReasonSelect(option.id)}
-                  className="flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 shadow-md transition-all duration-200"
-                  style={{ backgroundColor: getRatingColor() }}
+                  className={`${getRatingGradient()} flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 shadow-md transition-all duration-200`}
                 >
                   {option.label}
                 </Button>
@@ -299,9 +297,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             />
             <Button
               onClick={handleSubmit}
-              className="w-full py-6 shadow-md text-white hover:opacity-90 transition-all duration-200"
+              className={`${getRatingGradient()} w-full py-6 shadow-md text-white hover:opacity-90 transition-all duration-200`}
               disabled={isSubmitting}
-              style={{ backgroundColor: getRatingColor() }}
             >
               {isSubmitting ? (
                 <>
