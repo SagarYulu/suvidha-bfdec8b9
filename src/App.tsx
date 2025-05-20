@@ -17,19 +17,24 @@ import { ToastAction } from "@/components/ui/toast";
 import Index from "./pages/Index";
 
 const App: React.FC = () => {
-  const { authState } = useAuth();
+  const { authState, refreshSession } = useAuth();
   const { toast } = useToast();
   const [isSessionChecked, setIsSessionChecked] = useState(false);
 
   useEffect(() => {
-    // Simulate checking session since checkSession doesn't exist
+    // Use the refreshSession function from AuthContext instead
     const checkAuthSession = async () => {
-      // We'll just set session checked to true for now
-      setIsSessionChecked(true);
+      try {
+        await refreshSession();
+        setIsSessionChecked(true);
+      } catch (error) {
+        console.error("Error checking session:", error);
+        setIsSessionChecked(true);
+      }
     };
 
     checkAuthSession();
-  }, [toast]);
+  }, [toast, refreshSession]);
 
   // Define a function to check if the user is an admin
   const isAdmin = authState?.role === "admin";
