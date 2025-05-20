@@ -75,7 +75,9 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{overview.averageRating.toFixed(1)}</div>
-          <FeedbackStars rating={Math.round(overview.averageRating)} readOnly size={16} className="mt-1" />
+          <div className="mt-1">
+            <FeedbackStars rating={Math.round(overview.averageRating)} readOnly size={16} />
+          </div>
           <div className="flex items-center text-xs mt-2">
             {overview.changePercentage > 0 ? (
               <>
@@ -201,11 +203,13 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
                 <TableCell>
                   <div className="flex items-center">
                     {resolver.avgRating.toFixed(1)}
-                    <FeedbackStars rating={Math.round(resolver.avgRating)} readOnly size={14} className="ml-2" />
+                    <div className="ml-2">
+                      <FeedbackStars rating={Math.round(resolver.avgRating)} readOnly size={14} />
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={resolver.changePercentage > 0 ? "success" : "destructive"} className="text-xs">
+                  <Badge variant={resolver.changePercentage > 0 ? "default" : "destructive"} className="text-xs">
                     {resolver.changePercentage > 0 ? '+' : ''}{resolver.changePercentage.toFixed(1)}%
                   </Badge>
                 </TableCell>
@@ -272,11 +276,13 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
                 <TableCell>
                   <div className="flex items-center">
                     {category.rating.toFixed(1)}
-                    <FeedbackStars rating={Math.round(category.rating)} readOnly size={14} className="ml-2" />
+                    <div className="ml-2">
+                      <FeedbackStars rating={Math.round(category.rating)} readOnly size={14} />
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={category.changePercentage > 0 ? "success" : "destructive"} className="text-xs">
+                  <Badge variant={category.changePercentage > 0 ? "default" : "destructive"} className="text-xs">
                     {category.changePercentage > 0 ? '+' : ''}{category.changePercentage.toFixed(1)}%
                   </Badge>
                 </TableCell>

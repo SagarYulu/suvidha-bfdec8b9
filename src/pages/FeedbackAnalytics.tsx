@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Filter } from "lucide-react";
 import FeedbackAnalyticsContent from "@/components/feedback/FeedbackAnalyticsContent";
+import { FeedbackFilters } from "@/services/feedbackAnalyticsService";
 
-// Comparison modes
-const COMPARISON_MODES = [
+// Properly typed comparison modes
+const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; label: string}[] = [
   { value: "day", label: "Day-on-Day" },
   { value: "week", label: "Week-on-Week" },
   { value: "month", label: "Month-on-Month" },
@@ -28,20 +29,20 @@ const TICKET_CATEGORIES = [
   { id: "leave", name: "Leave" },
   { id: "other", name: "Other" }
 ];
-const FEEDBACK_TYPES = [
+const FEEDBACK_TYPES: {value: "agent" | "solution" | "both"; label: string}[] = [
   { value: "agent", label: "Agent" },
   { value: "solution", label: "Solution" },
   { value: "both", label: "Both" }
 ];
 
 const FeedbackAnalytics = () => {
-  // Filters state
+  // Filters state with proper types
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [selectedCluster, setSelectedCluster] = useState<string>("");
   const [selectedResolver, setSelectedResolver] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>("both");
-  const [selectedComparisonMode, setSelectedComparisonMode] = useState<string>("day");
+  const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "solution" | "both">("both");
+  const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
   const [dateRange, setDateRange] = useState<{start?: string; end?: string}>({});
 
   // Active tab state
@@ -126,7 +127,10 @@ const FeedbackAnalytics = () => {
               {/* Feedback type filter */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Feedback Type</label>
-                <Select value={selectedFeedbackType} onValueChange={setSelectedFeedbackType}>
+                <Select 
+                  value={selectedFeedbackType} 
+                  onValueChange={(value: "agent" | "solution" | "both") => setSelectedFeedbackType(value)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -171,7 +175,7 @@ const FeedbackAnalytics = () => {
         </Card>
 
         {/* Analytics Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "agent" | "solution")}>
           <TabsList className="grid grid-cols-3 w-[400px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
