@@ -12,6 +12,7 @@ interface IssueTimelineProps {
     createdAt: string;
     previousStatus?: string;
     newStatus?: string;
+    details?: any;
   }>;
   commenterNames: Record<string, string>;
 }
@@ -27,6 +28,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
     timestamp: string;
     employeeUuid: string;
     content: string;
+    actor?: string;
   };
   
   type StatusEvent = TimelineEventBase & {
@@ -46,10 +48,14 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
   
   type AssignmentEvent = TimelineEventBase & {
     type: 'assignment';
+    assigneeName?: string;
   };
   
   type TimelineEvent = StatusEvent | CommentEvent | CreationEvent | AssignmentEvent;
 
+  // Get creator name for the issue
+  const creatorName = commenterNames[issue.employeeUuid] || 'Unknown User';
+  
   // Combine comments and status changes for timeline
   const timelineEvents: TimelineEvent[] = [
     // Creation event
@@ -58,37 +64,61 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
       type: 'creation' as const,
       timestamp: issue.createdAt,
       employeeUuid: issue.employeeUuid,
-      content: 'Ticket created'
+      content: `${creatorName} created this ticket`,
+      actor: creatorName
     },
-    // Assignment event if assigned
-    ...(issue.assignedTo ? [{
-      id: 'assignment',
-      type: 'assignment' as const,
-      timestamp: issue.createdAt, // We don't have assignment time, using creation time
-      employeeUuid: issue.assignedTo,
-      content: 'Ticket assigned'
-    }] : []),
+    
+    // Extract assignment events from audit trail
+    ...auditTrail
+      .filter(event => event.action === 'assignment')
+      .map(event => {
+        // Get assignee name from audit log details or from commenters list
+        const assigneeId = event.details?.assigneeId || '';
+        const assigneeName = event.details?.assigneeName || commenterNames[assigneeId] || 'Unknown User';
+        
+        return {
+          id: event.id,
+          type: 'assignment' as const,
+          timestamp: event.createdAt,
+          employeeUuid: event.employeeUuid,
+          content: `Ticket assigned to ${assigneeName}`,
+          actor: commenterNames[event.employeeUuid] || 'Unknown User',
+          assigneeName
+        };
+      }),
+      
     // Status change events
     ...auditTrail
-      .filter(event => event.action === 'status_changed')
-      .map(event => ({
-        id: event.id,
-        type: 'status' as const,
-        timestamp: event.createdAt,
-        employeeUuid: event.employeeUuid,
-        content: `Status changed from ${event.previousStatus} to ${event.newStatus}`,
-        previousStatus: event.previousStatus,
-        newStatus: event.newStatus
-      })),
+      .filter(event => event.action === 'status_change')
+      .map(event => {
+        const actorName = commenterNames[event.employeeUuid] || 'Unknown User';
+        
+        return {
+          id: event.id,
+          type: 'status' as const,
+          timestamp: event.createdAt,
+          employeeUuid: event.employeeUuid,
+          content: `${actorName} changed status from ${event.previousStatus?.replace('_', ' ')} to ${event.newStatus?.replace('_', ' ')}`,
+          actor: actorName,
+          previousStatus: event.previousStatus,
+          newStatus: event.newStatus
+        };
+      }),
+      
     // Comment events
-    ...issue.comments.map(comment => ({
-      id: comment.id,
-      type: 'comment' as const,
-      timestamp: comment.createdAt,
-      employeeUuid: comment.employeeUuid,
-      content: comment.content,
-      isPrivate: false // Regular comments are not private
-    }))
+    ...issue.comments.map(comment => {
+      const commenterName = commenterNames[comment.employeeUuid] || 'Unknown User';
+      
+      return {
+        id: comment.id,
+        type: 'comment' as const,
+        timestamp: comment.createdAt,
+        employeeUuid: comment.employeeUuid,
+        content: comment.content,
+        actor: commenterName,
+        isPrivate: false
+      };
+    })
   ];
 
   // Sort events by timestamp (newest first)
@@ -103,7 +133,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
       {sortedEvents.length > 0 ? (
         <div className="space-y-3">
           {sortedEvents.map(event => {
-            const name = commenterNames[event.employeeUuid] || 'Unknown User';
+            const name = event.actor || commenterNames[event.employeeUuid] || 'Unknown User';
             const timeAgo = formatDistanceToNow(new Date(event.timestamp), { addSuffix: true });
             
             return (
@@ -117,12 +147,12 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
                 
                 {event.type === 'status' && (
                   <div className="mt-1 text-sm">
-                    {`Changed status from `}
-                    <span className={`font-medium`}>
+                    Changed status from 
+                    <span className="font-medium mx-1">
                       {event.previousStatus?.replace('_', ' ')}
                     </span>
-                    {` to `}
-                    <span className={`font-medium`}>
+                    to
+                    <span className="font-medium mx-1">
                       {event.newStatus?.replace('_', ' ')}
                     </span>
                   </div>
@@ -136,7 +166,10 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
                 
                 {event.type === 'assignment' && (
                   <div className="mt-1 text-sm">
-                    Assigned to resolver
+                    Assigned ticket to 
+                    <span className="font-medium ml-1">
+                      {event.assigneeName || 'resolver'}
+                    </span>
                   </div>
                 )}
                 

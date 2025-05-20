@@ -37,7 +37,7 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
             // Fall back to lookup if not in dropdown
             const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
             console.log("Resolved assignee name via lookup:", assigneeName);
-            setCurrentAssigneeName(assigneeName || "Unknown");
+            setCurrentAssigneeName(assigneeName || "Unknown User");
           }
         } else {
           console.log("Issue has no assignee");
@@ -46,6 +46,7 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
         }
       } catch (error) {
         console.error("Error fetching assignee information:", error);
+        setCurrentAssigneeName("Error retrieving assignee");
       }
     };
 
@@ -76,7 +77,7 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
         } else {
           // Fallback to lookup
           const assigneeName = await getEmployeeNameByUuid(selectedAssignee);
-          setCurrentAssigneeName(assigneeName || "Unknown");
+          setCurrentAssigneeName(assigneeName || "Unknown User");
           console.log("Lookup assignee name:", assigneeName);
         }
         

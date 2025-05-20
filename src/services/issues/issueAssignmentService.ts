@@ -20,6 +20,10 @@ export const assignIssueToUser = async (
     const assigneeName = await getEmployeeNameByUuid(assigneeId);
     console.log(`Assigning to: ${assigneeName}`);
     
+    // Get the name of the person doing the assignment (usually an admin)
+    const assignerName = await getEmployeeNameByUuid(currentUserId);
+    console.log(`Assignment performed by: ${assignerName}`);
+    
     const { data, error } = await supabase
       .from('issues')
       .update({
@@ -38,16 +42,18 @@ export const assignIssueToUser = async (
     
     console.log('Assignment database update successful');
     
-    // Create audit log entry for assignment
+    // Create audit log entry for assignment with detailed information
     await createAuditLog(
       issueId,
       currentUserId,
       'assignment',
       { 
         assigneeId,
-        assigneeName, // Include name in the audit log
+        assigneeName, // Include assignee name in the audit log
+        assignerId: currentUserId,
+        assignerName // Include assigner name in the audit log
       },
-      `Issue assigned to ${assigneeName}`
+      `Issue assigned to ${assigneeName} by ${assignerName}`
     );
     
     console.log('Assignment audit log created');
