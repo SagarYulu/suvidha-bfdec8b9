@@ -35,11 +35,13 @@ const IssueTypeSelector = ({
           {showHindi ? "Ticket Type / टिकट का प्रकार" : "Ticket Type"}
         </Label>
         <Select
-          value={selectedType}
+          value={selectedType || "placeholder"}
           onValueChange={(value) => {
-            setSelectedType(value);
-            setSelectedSubType("");
-            if (resetForm) resetForm();
+            if (value !== "placeholder") {
+              setSelectedType(value);
+              setSelectedSubType("");
+              if (resetForm) resetForm();
+            }
           }}
         >
           <SelectTrigger id="issue-type">
@@ -67,8 +69,12 @@ const IssueTypeSelector = ({
             {showHindi ? "Ticket Subtype / टिकट का उप-प्रकार" : "Ticket Subtype"}
           </Label>
           <Select
-            value={selectedSubType}
-            onValueChange={setSelectedSubType}
+            value={selectedSubType || "placeholder"}
+            onValueChange={(value) => {
+              if (value !== "placeholder") {
+                setSelectedSubType(value);
+              }
+            }}
           >
             <SelectTrigger id="issue-subtype">
               <SelectValue placeholder={showHindi 
