@@ -55,7 +55,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
     // Creation event
     {
       id: 'creation',
-      type: 'creation',
+      type: 'creation' as const,
       timestamp: issue.createdAt,
       employeeUuid: issue.employeeUuid,
       content: 'Ticket created'
@@ -63,7 +63,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
     // Assignment event if assigned
     ...(issue.assignedTo ? [{
       id: 'assignment',
-      type: 'assignment',
+      type: 'assignment' as const,
       timestamp: issue.createdAt, // We don't have assignment time, using creation time
       employeeUuid: issue.assignedTo,
       content: 'Ticket assigned'
