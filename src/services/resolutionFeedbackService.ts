@@ -58,11 +58,11 @@ export const getFeedbackStats = async (filters: {
   ticketCategory?: string;
 }): Promise<FeedbackStats> => {
   try {
-    // First get all tickets that match the filters
+    // First get all closed tickets that match the filters
     let query = supabase
       .from('issues')
       .select('id, resolver_uuid:assigned_to')
-      .eq('status', 'closed');
+      .in('status', ['closed', 'resolved']);
     
     if (filters.city) {
       // Would need to join with employees table to filter by city
@@ -81,7 +81,7 @@ export const getFeedbackStats = async (filters: {
       query = query.lte('closed_at', filters.endDate);
     }
 
-    const { data: tickets, error: ticketsError } = await query;
+    const { data: tickets, error: ticketsError, count: totalClosedTickets } = await query.select('*', { count: 'exact' });
     
     if (ticketsError) {
       console.error("Error fetching tickets:", ticketsError);
@@ -95,7 +95,7 @@ export const getFeedbackStats = async (filters: {
     }
     
     // Get feedback for these tickets
-    const ticketIds = tickets.map(ticket => ticket.id);
+    const ticketIds = tickets?.map(ticket => ticket.id) || [];
     
     if (ticketIds.length === 0) {
       return {
@@ -107,9 +107,9 @@ export const getFeedbackStats = async (filters: {
       };
     }
     
-    const { data: feedbacks, error: feedbackError } = await supabase
+    const { data: feedbacks, error: feedbackError, count: feedbackCount } = await supabase
       .from('resolution_feedback')
-      .select('ticket_id, rating')
+      .select('ticket_id, rating', { count: 'exact' })
       .in('ticket_id', ticketIds);
     
     if (feedbackError) {
@@ -124,13 +124,13 @@ export const getFeedbackStats = async (filters: {
     }
     
     // Calculate stats
-    const totalTickets = tickets.length;
-    const feedbackCount = feedbacks?.length || 0;
-    const feedbackPercentage = totalTickets > 0 ? (feedbackCount / totalTickets) * 100 : 0;
+    const totalTickets = totalClosedTickets || 0;
+    const feedbackReceivedCount = feedbackCount || 0;
+    const feedbackPercentage = totalTickets > 0 ? (feedbackReceivedCount / totalTickets) * 100 : 0;
     
     // Calculate average rating
     const totalRating = feedbacks?.reduce((sum, feedback) => sum + feedback.rating, 0) || 0;
-    const averageRating = feedbackCount > 0 ? totalRating / feedbackCount : 0;
+    const averageRating = feedbackReceivedCount > 0 ? totalRating / feedbackReceivedCount : 0;
     
     // Count ratings
     const ratingCounts: { [key: number]: number } = {};
@@ -138,10 +138,16 @@ export const getFeedbackStats = async (filters: {
       ratingCounts[i] = feedbacks?.filter(f => f.rating === i).length || 0;
     }
     
+    console.log("Feedback stats:", {
+      totalTickets,
+      feedbackReceivedCount,
+      feedbackPercentage
+    });
+    
     return {
       averageRating,
       totalFeedback: totalTickets,
-      feedbackReceived: feedbackCount,
+      feedbackReceived: feedbackReceivedCount,
       feedbackPercentage,
       ratingCounts
     };
@@ -175,7 +181,7 @@ export const getResolverLeaderboard = async (filters: {
         assigned_to,
         closed_at
       `)
-      .eq('status', 'closed');
+      .in('status', ['closed', 'resolved']);
     
     if (filters.ticketCategory) {
       query = query.eq('type_id', filters.ticketCategory);

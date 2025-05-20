@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,12 @@ const CommentSection = ({
   formatDate,
   currentUser
 }: CommentSectionProps) => {
+  // Prevent default form submission to avoid page reloads
+  const onSubmitComment = (e: FormEvent) => {
+    e.preventDefault();
+    handleAddComment(e);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -90,7 +96,7 @@ const CommentSection = ({
         </div>
       </CardContent>
       <CardFooter className="border-t pt-4">
-        <form onSubmit={handleAddComment} className="w-full flex items-center">
+        <form onSubmit={onSubmitComment} className="w-full flex items-center">
           <div className="flex-grow mr-2">
             <Textarea
               placeholder="Add a comment..."
@@ -102,7 +108,13 @@ const CommentSection = ({
           <Button 
             type="submit" 
             className="bg-yulu-blue hover:bg-blue-700 h-[60px] px-4"
-            disabled={isSubmittingComment}
+            disabled={isSubmittingComment || !newComment.trim()}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!isSubmittingComment && newComment.trim()) {
+                handleAddComment(e);
+              }
+            }}
           >
             {isSubmittingComment ? (
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

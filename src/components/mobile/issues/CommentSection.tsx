@@ -117,6 +117,13 @@ const CommentSection = ({
           type="submit" 
           className="bg-yulu-blue hover:bg-blue-700 h-[60px] aspect-square flex items-center justify-center"
           disabled={disabled || isSubmitting || !newComment.trim()}
+          onClick={(e) => {
+            // Prevent default action to avoid full page reload
+            e.preventDefault();
+            if (!disabled && !isSubmitting && newComment.trim()) {
+              handleSubmitComment(e);
+            }
+          }}
         >
           {isSubmitting ? (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>

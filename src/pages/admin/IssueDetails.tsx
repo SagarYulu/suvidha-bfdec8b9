@@ -14,6 +14,8 @@ import CommentSection from "@/components/admin/issues/CommentSection";
 import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
 import IssueMappingSection from "@/components/admin/issues/IssueMappingSection";
+import IssueTimeline from "@/components/admin/issues/IssueTimeline";
+import AssigneeConversation from "@/components/admin/issues/AssigneeConversation";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,10 @@ const AdminIssueDetails = () => {
     handleAddComment,
     formatDate,
     currentUserId,
+    auditTrail,
+    handleAddPrivateComment,
+    isCurrentUserAssignee,
+    isCurrentUserAssigner
   } = useAdminIssue(id);
 
   if (isLoading) {
@@ -75,6 +81,21 @@ const AdminIssueDetails = () => {
               getIssueSubTypeLabel={getIssueSubTypeLabel}
             />
 
+            {/* Private conversation between assignee and assigner */}
+            {issue.assignedTo && (
+              <AssigneeConversation
+                comments={issue.comments}
+                assigneeId={issue.assignedTo}
+                assignerId={issue.employeeUuid}
+                isAssignee={isCurrentUserAssignee}
+                isAssigner={isCurrentUserAssigner}
+                commenterNames={commenterNames}
+                currentUserId={currentUserId}
+                formatDate={formatDate}
+                onSendPrivateMessage={handleAddPrivateComment}
+              />
+            )}
+
             <CommentSection
               issue={issue}
               newComment={newComment}
@@ -98,6 +119,12 @@ const AdminIssueDetails = () => {
               isAssigning={isAssigning}
               onAssigneeSelect={setSelectedAssignee}
               onAssign={handleAssignIssue}
+            />
+            
+            <IssueTimeline 
+              issue={issue}
+              auditTrail={auditTrail}
+              commenterNames={commenterNames}
             />
             
             <IssueActivity issue={issue} />

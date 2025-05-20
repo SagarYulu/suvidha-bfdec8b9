@@ -13,7 +13,8 @@ export const useIssueComments = (
   const [newComment, setNewComment] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
-  const handleAddComment = async () => {
+  const handleAddComment = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!issueId || !newComment.trim() || !currentUserId) return;
     
     setIsSubmittingComment(true);
@@ -50,10 +51,47 @@ export const useIssueComments = (
     }
   };
 
+  const handleAddPrivateComment = async (message: string) => {
+    if (!issueId || !message.trim() || !currentUserId) return;
+    
+    try {
+      // Create a comment object with the right structure
+      const commentData = {
+        employeeUuid: currentUserId,
+        content: message,
+        isPrivate: true // Mark this as a private message
+      };
+      
+      // Pass the correct arguments to addComment
+      await addComment(issueId, commentData);
+      
+      // Fetch the updated issue with the new comment
+      const updatedIssue = await getIssueById(issueId);
+      
+      if (updatedIssue) {
+        setIssue(updatedIssue);
+        toast({
+          title: "Success",
+          description: "Private message sent",
+        });
+        return true;
+      }
+    } catch (error) {
+      console.error("Error adding private comment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send private message",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   return {
     newComment,
     setNewComment,
     isSubmittingComment,
-    handleAddComment
+    handleAddComment,
+    handleAddPrivateComment
   };
 };

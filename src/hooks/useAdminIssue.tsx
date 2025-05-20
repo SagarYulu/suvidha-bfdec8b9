@@ -4,8 +4,12 @@ import { useIssueAssignment } from "./issues/useIssueAssignment";
 import { useIssueStatus } from "./issues/useIssueStatus";
 import { useIssueComments } from "./issues/useIssueComments";
 import { useIssueReopen } from "./issues/useIssueReopen";
+import { useState, useEffect } from "react";
+import { getIssueAuditTrail } from "@/services/issues/issueAuditService";
 
 export const useAdminIssue = (issueId?: string) => {
+  const [auditTrail, setAuditTrail] = useState<any[]>([]);
+
   // Get core issue details
   const {
     issue,
@@ -41,7 +45,8 @@ export const useAdminIssue = (issueId?: string) => {
     newComment,
     setNewComment,
     isSubmittingComment,
-    handleAddComment
+    handleAddComment,
+    handleAddPrivateComment
   } = useIssueComments(issueId, currentUserId, setIssue);
   
   // Handle issue reopening
@@ -61,15 +66,37 @@ export const useAdminIssue = (issueId?: string) => {
     DialogFooter
   } = useIssueReopen(issueId, currentUserId, setIssue, setStatus);
 
+  // Load audit trail
+  useEffect(() => {
+    const loadAuditTrail = async () => {
+      if (!issueId) return;
+      
+      try {
+        const trail = await getIssueAuditTrail(issueId);
+        setAuditTrail(trail);
+      } catch (error) {
+        console.error("Failed to load audit trail:", error);
+        setAuditTrail([]);
+      }
+    };
+    
+    loadAuditTrail();
+  }, [issueId]);
+
+  // Determine if current user is assignee or assigner
+  const isCurrentUserAssignee = issue?.assignedTo === currentUserId;
+  const isCurrentUserAssigner = issue?.employeeUuid === currentUserId;
+
   // Combine and return all the hooks' values and functions
   return {
     // Issue details
     issue,
-    setIssue,  // <-- Make sure we export setIssue for the mapping feature
+    setIssue,
     employee,
     isLoading,
     commenterNames,
     status,
+    auditTrail,
     
     // Comments
     newComment,
@@ -87,10 +114,15 @@ export const useAdminIssue = (issueId?: string) => {
     selectedAssignee,
     setSelectedAssignee,
     
+    // User roles
+    isCurrentUserAssignee,
+    isCurrentUserAssigner,
+    
     // Actions
     handleAssignIssue,
     handleStatusChange,
     handleAddComment,
+    handleAddPrivateComment,
     handleReopenTicket,
     formatDate,
     currentUserId,
