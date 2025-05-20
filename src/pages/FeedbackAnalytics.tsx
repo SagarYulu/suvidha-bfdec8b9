@@ -48,6 +48,20 @@ const FeedbackAnalytics = () => {
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "solution">("overview");
 
+  // Function to handle feedback type change with proper type checking
+  const handleFeedbackTypeChange = (value: string) => {
+    if (value === "agent" || value === "solution" || value === "both") {
+      setSelectedFeedbackType(value);
+    }
+  };
+
+  // Function to handle comparison mode change with proper type checking
+  const handleComparisonModeChange = (value: string) => {
+    if (value === "day" || value === "week" || value === "month" || value === "quarter" || value === "year") {
+      setSelectedComparisonMode(value);
+    }
+  };
+
   return (
     <AdminLayout title="Feedback Analytics" requiredPermission="view:dashboard">
       <div className="space-y-6">
@@ -129,7 +143,7 @@ const FeedbackAnalytics = () => {
                 <label className="text-sm font-medium">Feedback Type</label>
                 <Select 
                   value={selectedFeedbackType} 
-                  onValueChange={(value: "agent" | "solution" | "both") => setSelectedFeedbackType(value)}
+                  onValueChange={handleFeedbackTypeChange}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -164,7 +178,7 @@ const FeedbackAnalytics = () => {
                     key={mode.value}
                     variant={selectedComparisonMode === mode.value ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedComparisonMode(mode.value)}
+                    onClick={() => handleComparisonModeChange(mode.value)}
                   >
                     {mode.label}
                   </Button>

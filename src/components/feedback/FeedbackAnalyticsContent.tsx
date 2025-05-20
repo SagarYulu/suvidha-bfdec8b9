@@ -209,7 +209,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={resolver.changePercentage > 0 ? "default" : "destructive"} className="text-xs">
+                  <Badge variant={resolver.changePercentage > 0 ? "default" : "destructive"}>
                     {resolver.changePercentage > 0 ? '+' : ''}{resolver.changePercentage.toFixed(1)}%
                   </Badge>
                 </TableCell>
@@ -282,7 +282,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={category.changePercentage > 0 ? "default" : "destructive"} className="text-xs">
+                  <Badge variant={category.changePercentage > 0 ? "default" : "destructive"}>
                     {category.changePercentage > 0 ? '+' : ''}{category.changePercentage.toFixed(1)}%
                   </Badge>
                 </TableCell>

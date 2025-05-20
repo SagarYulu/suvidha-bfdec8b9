@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
@@ -11,6 +10,10 @@ export interface FeedbackFilters {
   startDate?: string;
   endDate?: string;
   comparisonMode?: 'day' | 'week' | 'month' | 'quarter' | 'year';
+  dateRange?: {
+    start?: string;
+    end?: string;
+  };
 }
 
 export interface RatingDistribution {

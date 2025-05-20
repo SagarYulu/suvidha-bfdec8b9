@@ -43,23 +43,30 @@ export const useFeedbackAnalytics = ({
       setError(null);
       
       try {
+        // Process dateRange into startDate and endDate if it exists
+        const processedFilters = { ...filters };
+        if (filters.dateRange) {
+          processedFilters.startDate = filters.dateRange.start;
+          processedFilters.endDate = filters.dateRange.end;
+        }
+        
         // Always fetch overview data
-        const overviewData = await getFeedbackOverview(filters);
+        const overviewData = await getFeedbackOverview(processedFilters);
         setOverview(overviewData);
         
         // Fetch trends data
-        const trendsData = await getFeedbackTrends(filters);
+        const trendsData = await getFeedbackTrends(processedFilters);
         setTrends(trendsData);
         
         // Fetch resolver data for overview and agent views
         if (view === 'overview' || view === 'agent') {
-          const resolverData = await getResolverLeaderboard(filters);
+          const resolverData = await getResolverLeaderboard(processedFilters);
           setResolvers(resolverData);
         }
         
         // Fetch category data for overview and solution views
         if (view === 'overview' || view === 'solution') {
-          const categoryData = await getCategoryAnalysis(filters);
+          const categoryData = await getCategoryAnalysis(processedFilters);
           setCategories(categoryData);
         }
         
