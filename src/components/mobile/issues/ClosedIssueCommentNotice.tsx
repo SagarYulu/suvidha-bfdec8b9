@@ -8,7 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface ClosedIssueCommentNoticeProps {
   isReopenable: boolean;
-  onReopen: () => void;
+  onReopen: (reason: string) => void;
   ticketId: string;
   resolverUuid?: string | null;
 }
@@ -50,7 +50,7 @@ const ClosedIssueCommentNotice: React.FC<ClosedIssueCommentNoticeProps> = ({
       <div className="mt-4 flex flex-col sm:flex-row gap-3">
         {isReopenable && (
           <Button
-            onClick={onReopen}
+            onClick={() => onReopen("Issue reopened from mobile app")}
             variant="outline"
             className="w-full sm:w-auto border-amber-500 text-amber-600 hover:bg-amber-50"
           >
