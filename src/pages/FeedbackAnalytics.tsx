@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Filter } from "lucide-react";
 import FeedbackAnalyticsContent from "@/components/feedback/FeedbackAnalyticsContent";
-import { FeedbackFilters } from "@/services/feedbackAnalyticsService";
+import { 
+  FeedbackFilters, 
+  getCities, 
+  getClusters 
+} from "@/services/feedbackAnalyticsService";
 
 // Properly typed comparison modes
 const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; label: string}[] = [
@@ -19,9 +23,7 @@ const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; l
   { value: "year", label: "Year-on-Year" }
 ];
 
-// Mock data (in production would come from API)
-const CITIES = ["Bangalore", "Delhi", "Mumbai", "Chennai", "Hyderabad"];
-const CLUSTERS = ["North", "South", "East", "West", "Central"];
+// Mock data for ticket categories (in production would come from API)
 const TICKET_CATEGORIES = [
   { id: "pf", name: "PF" },
   { id: "esi", name: "ESI" },
@@ -29,6 +31,7 @@ const TICKET_CATEGORIES = [
   { id: "leave", name: "Leave" },
   { id: "other", name: "Other" }
 ];
+
 const FEEDBACK_TYPES: {value: "agent" | "solution" | "both"; label: string}[] = [
   { value: "agent", label: "Agent" },
   { value: "solution", label: "Solution" },
@@ -45,8 +48,53 @@ const FeedbackAnalytics = () => {
   const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
   const [dateRange, setDateRange] = useState<{start?: string; end?: string}>({});
 
+  // State for city and cluster data
+  const [cities, setCities] = useState<string[]>([]);
+  const [clusters, setClusters] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "solution">("overview");
+
+  // Fetch cities and clusters from master data
+  useEffect(() => {
+    const fetchMasterData = async () => {
+      setLoading(true);
+      try {
+        const citiesData = await getCities();
+        setCities(citiesData);
+        
+        // Get all clusters initially
+        const clustersData = await getClusters();
+        setClusters(clustersData);
+      } catch (error) {
+        console.error("Error fetching master data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchMasterData();
+  }, []);
+
+  // Update clusters when city changes
+  useEffect(() => {
+    const updateClusters = async () => {
+      if (selectedCity === "all") {
+        const allClusters = await getClusters();
+        setClusters(allClusters);
+      } else {
+        const filteredClusters = await getClusters(selectedCity);
+        setClusters(filteredClusters);
+        // Reset cluster selection if the currently selected cluster is not in the new list
+        if (filteredClusters.length > 0 && !filteredClusters.includes(selectedCluster) && selectedCluster !== "all") {
+          setSelectedCluster("all");
+        }
+      }
+    };
+    
+    updateClusters();
+  }, [selectedCity]);
 
   // Function to handle feedback type change with proper type checking
   const handleFeedbackTypeChange = (value: string) => {
@@ -90,7 +138,7 @@ const FeedbackAnalytics = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Cities</SelectItem>
-                    {CITIES.map(city => (
+                    {cities.map(city => (
                       <SelectItem key={city} value={city}>{city}</SelectItem>
                     ))}
                   </SelectContent>
@@ -106,7 +154,7 @@ const FeedbackAnalytics = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Clusters</SelectItem>
-                    {CLUSTERS.map(cluster => (
+                    {clusters.map(cluster => (
                       <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                     ))}
                   </SelectContent>

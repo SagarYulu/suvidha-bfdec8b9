@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
@@ -70,6 +71,46 @@ export interface TrendPoint {
   rating: number;
   submissions: number;
 }
+
+// Fetch cities from master_cities table
+export const getCities = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('master_cities')
+      .select('name')
+      .order('name');
+      
+    if (error) throw error;
+    
+    return data.map(city => city.name);
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+    return [];
+  }
+};
+
+// Fetch clusters from master_clusters table
+export const getClusters = async (cityFilter?: string): Promise<string[]> => {
+  try {
+    let query = supabase
+      .from('master_clusters')
+      .select('name, master_cities!inner(name)')
+      .order('name');
+    
+    if (cityFilter) {
+      query = query.eq('master_cities.name', cityFilter);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    return data.map(cluster => cluster.name);
+  } catch (error) {
+    console.error("Error fetching clusters:", error);
+    return [];
+  }
+};
 
 // Main service functions
 export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<FeedbackOverview> => {
