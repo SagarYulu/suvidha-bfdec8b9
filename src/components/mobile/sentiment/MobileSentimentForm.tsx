@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -6,14 +5,8 @@ import { useSentiment } from '@/hooks/useSentiment';
 import { Loader2, Info, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 interface MobileSentimentFormProps {
   showTrendAnalysis?: boolean;
@@ -177,7 +170,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
         </div>
       )}
       
-      {/* New Emoji-based mood selector - Simple vertical list of buttons */}
+      {/* Emoji-based mood selector - Simple vertical list of buttons */}
       <div className="flex flex-col space-y-2 mt-2">
         {[5, 4, 3, 2, 1].map((value) => (
           <button
@@ -185,7 +178,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
             className={cn(
               "flex items-center py-3 px-4 rounded-lg transition-colors",
               rating === value 
-                ? "bg-amber-400 text-white" 
+                ? "bg-amber-400 text-gray-800 font-semibold" 
                 : "bg-amber-200 hover:bg-amber-300 text-gray-800"
             )}
             onClick={() => handleRatingChange(value)}
@@ -206,7 +199,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
             placeholder="Share your thoughts, concerns, or suggestions..."
             value={feedback}
             onChange={(e) => handleFeedbackChange(e.target.value)}
-            className="min-h-[100px] max-h-[150px] resize-none bg-white border-none"
+            className="min-h-[100px] max-h-[150px] resize-none bg-white border-none text-gray-800"
             disabled={isSubmitting}
           />
           {isAnalyzing && (
