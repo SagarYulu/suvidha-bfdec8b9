@@ -95,32 +95,32 @@ export default {
 					'0%': { opacity: '0' },
 					'100%': { opacity: '1' }
 				},
-				'pulse-slow': {
-					'0%, 100%': {
-						opacity: '1'
-					},
-					'50%': {
-						opacity: '0.85'
-					}
-				},
-				'sparkle-1': {
-					'0%, 100%': {
+				'pulse': {
+					'0%, 100%': { 
 						transform: 'scale(1)',
-						opacity: '0.7'
-					},
-					'50%': {
-						transform: 'scale(1.2)',
 						opacity: '1'
-					}
+					},
+					'50%': { 
+						transform: 'scale(1.05)',  
+						opacity: '0.8'
+					},
 				},
-				'sparkle-2': {
-					'0%, 100%': {
-						transform: 'scale(1.2)',
-						opacity: '1'
+				'fadeIn': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
+				},
+				'sparkle': {
+					'0%': { 
+						transform: 'scale(0)',
+						opacity: '0' 
 					},
-					'50%': {
+					'50%': { 
+						transform: 'scale(1.2)',
+						opacity: '1' 
+					},
+					'100%': { 
 						transform: 'scale(1)',
-						opacity: '0.7'
+						opacity: '0' 
 					}
 				}
 			},
@@ -128,9 +128,9 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.5s ease-out',
-				'pulse-slow': 'pulse-slow 2s infinite',
-				'sparkle-1': 'sparkle-1 3s infinite',
-				'sparkle-2': 'sparkle-2 3s infinite 1s'
+				'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'fadeIn': 'fadeIn 0.5s ease-in',
+				'sparkle': 'sparkle 1s ease-in-out'
 			}
 		}
 	},

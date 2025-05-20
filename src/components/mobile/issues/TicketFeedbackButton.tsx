@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, CheckCircle, Sparkles } from "lucide-react";
 import { useTicketFeedback } from "@/hooks/useTicketFeedback";
@@ -25,6 +25,32 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
     handleFeedbackSubmitted
   } = useTicketFeedback(ticketId);
 
+  // Animation state variables
+  const [pulse, setPulse] = useState(false);
+  const [sparkle, setSparkle] = useState(false);
+
+  // Set up the animation cycle
+  useEffect(() => {
+    if (hasFeedback || isCheckingFeedback) return;
+    
+    // Pulse animation every 3 seconds
+    const pulseInterval = setInterval(() => {
+      setPulse(true);
+      setTimeout(() => setPulse(false), 1000);
+    }, 3000);
+    
+    // Sparkle animation every 5 seconds
+    const sparkleInterval = setInterval(() => {
+      setSparkle(true);
+      setTimeout(() => setSparkle(false), 1500);
+    }, 5000);
+    
+    return () => {
+      clearInterval(pulseInterval);
+      clearInterval(sparkleInterval);
+    };
+  }, [hasFeedback, isCheckingFeedback]);
+
   if (isCheckingFeedback) {
     return (
       <Button
@@ -41,7 +67,7 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
     return (
       <Button
         variant="outline"
-        className="w-full mt-2 border-dashed border-amber-500 text-gray-800 hover:bg-amber-50 cursor-default"
+        className="w-full mt-2 border-dashed border-amber-500 text-amber-600 hover:bg-amber-50 cursor-default"
         disabled
       >
         <CheckCircle className="h-4 w-4 mr-2" />
@@ -55,23 +81,25 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
       <Button
         onClick={openFeedbackForm}
         variant="outline"
-        className="w-full mt-2 border-dashed border-amber-500 relative overflow-hidden group animate-pulse-slow"
-        style={{
-          background: "linear-gradient(135deg, #FFF3C4 0%, #F59E0B 100%)",
-        }}
+        className={`
+          w-full mt-2 border-amber-500 text-amber-600 hover:bg-amber-50
+          ${pulse ? 'animate-[pulse_1s_ease-in-out]' : ''}
+          relative overflow-hidden transition-all
+          bg-gradient-to-r from-amber-50 to-amber-100
+          hover:from-amber-100 hover:to-amber-200
+          border-2 border-dashed
+        `}
       >
-        <div className="absolute inset-0 bg-white/10 group-hover:bg-transparent transition-colors duration-300"></div>
-        
-        {/* Sparkle animations */}
-        <span className="absolute top-1 left-4 animate-sparkle-1 text-yellow-300">
-          <Sparkles className="h-3 w-3" />
+        {sparkle && (
+          <Sparkles className="absolute right-2 top-1 h-4 w-4 text-amber-400 animate-[fadeIn_0.5s_ease-out]" />
+        )}
+        <MessageSquare className={`h-4 w-4 mr-2 ${pulse ? 'text-amber-500' : 'text-amber-400'}`} />
+        <span className="font-medium relative">
+          Share Your Feedback / अपनी प्रतिक्रिया साझा करें
+          {sparkle && (
+            <span className="absolute -top-1 -right-1 text-amber-400">✨</span>
+          )}
         </span>
-        <span className="absolute bottom-1 right-4 animate-sparkle-2 text-yellow-300">
-          <Sparkles className="h-3 w-3" />
-        </span>
-        
-        <MessageSquare className="h-4 w-4 mr-2 text-gray-800" />
-        <span className="text-gray-800 font-medium">Share Your Feedback / अपनी प्रतिक्रिया साझा करें</span>
       </Button>
 
       <ChatbotFeedbackFlow
