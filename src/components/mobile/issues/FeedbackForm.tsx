@@ -23,8 +23,8 @@ const SuccessScreen = React.memo(() => (
     <div className="bg-green-100 rounded-full p-4 mb-4">
       <Check className="h-10 w-10 text-green-500" />
     </div>
-    <h3 className="text-lg font-medium text-center">Feedback Submitted!</h3>
-    <p className="text-sm text-gray-500 text-center mt-2">Thank you for sharing your experience.</p>
+    <h3 className="text-lg font-medium text-center text-gray-800">Feedback Submitted!</h3>
+    <p className="text-sm text-gray-600 text-center mt-2">Thank you for sharing your experience.</p>
   </div>
 ));
 
@@ -73,7 +73,7 @@ const FeedbackFormContent = React.memo(({
       placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
       value={comment}
       onChange={(e) => onCommentChange(e.target.value)}
-      className="w-full resize-none border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+      className="w-full resize-none border-gray-300 focus:border-gray-400 focus:ring-gray-400 text-gray-800"
     />
   ), [comment, onCommentChange]);
 
@@ -111,6 +111,7 @@ const FeedbackFormContent = React.memo(({
 
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
+      <div className="text-gray-700 font-medium">Please rate your experience / कृपया अपने अनुभव को रेट करें</div>
       {RatingStars}
       {CommentTextarea}
       {ActionButtons}
@@ -212,7 +213,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const dialogContent = useMemo(() => (
     <>
       <DialogHeader>
-        <DialogTitle className="text-center text-lg font-semibold">
+        <DialogTitle className="text-center text-lg font-semibold text-gray-800">
           Share Your Feedback / अपनी प्रतिक्रिया साझा करें
         </DialogTitle>
       </DialogHeader>
@@ -235,7 +236,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md p-6 rounded-lg">
+      <DialogContent className="sm:max-w-md p-6 rounded-lg bg-white">
         {dialogContent}
       </DialogContent>
     </Dialog>
