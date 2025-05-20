@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
@@ -72,6 +71,49 @@ export interface TrendPoint {
   submissions: number;
 }
 
+// Define types for Supabase query responses to avoid excessive type instantiation
+interface CityRecord {
+  name: string;
+}
+
+interface ClusterRecord {
+  name: string;
+  master_cities: { name: string };
+}
+
+interface FeedbackRecord {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  employee_uuid: string;
+  resolver_uuid: string | null;
+  ticket_id: string;
+  city?: string;
+  cluster?: string;
+  issues: {
+    type_id: string;
+    sub_type_id: string;
+    employee_uuid: string;
+  };
+}
+
+interface ResolverRecord {
+  resolver_uuid: string;
+  rating: number;
+  dashboard_users: {
+    id: string;
+    name: string;
+  } | Array<{ id: string; name: string }>;
+}
+
+interface CategoryRecord {
+  rating: number;
+  issues: {
+    type_id: string;
+  };
+}
+
 // Fetch cities from master_cities table
 export const getCities = async (): Promise<string[]> => {
   try {
@@ -82,7 +124,7 @@ export const getCities = async (): Promise<string[]> => {
       
     if (error) throw error;
     
-    return data.map(city => city.name);
+    return (data as CityRecord[]).map(city => city.name);
   } catch (error) {
     console.error("Error fetching cities:", error);
     return [];
@@ -105,7 +147,7 @@ export const getClusters = async (cityFilter?: string): Promise<string[]> => {
     
     if (error) throw error;
     
-    return data.map(cluster => cluster.name);
+    return (data as ClusterRecord[]).map(cluster => cluster.name);
   } catch (error) {
     console.error("Error fetching clusters:", error);
     return [];
@@ -126,6 +168,8 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
         employee_uuid, 
         resolver_uuid, 
         ticket_id,
+        city,
+        cluster,
         issues!inner(type_id, sub_type_id, employee_uuid)
       `);
     
@@ -161,8 +205,9 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
     if (error) throw error;
     
     // Calculate previous date range for comparison
-    let previousStartDate: Date | undefined, previousEndDate: Date | undefined;
-    let previousData: any[] = [];
+    let previousStartDate: Date | undefined;
+    let previousEndDate: Date | undefined;
+    let previousData: FeedbackRecord[] = [];
     
     if (filters.startDate && filters.endDate && filters.comparisonMode) {
       const startDate = new Date(filters.startDate);
@@ -219,6 +264,8 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
           employee_uuid, 
           resolver_uuid, 
           ticket_id,
+          city,
+          cluster,
           issues!inner(type_id, sub_type_id, employee_uuid)
         `)
         .gte('created_at', previousStartDate.toISOString())
@@ -243,12 +290,12 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
       const { data: prevData, error: prevError } = await previousQuery;
       
       if (!prevError && prevData) {
-        previousData = prevData;
+        previousData = prevData as FeedbackRecord[];
       }
     }
     
     // Process the data
-    const currentFeedback = currentData || [];
+    const currentFeedback = currentData as FeedbackRecord[] || [];
     const previousFeedback = previousData || [];
     
     // Calculate averages
@@ -397,7 +444,7 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
     // Group by resolver
     const resolverMap = new Map();
     
-    (data || []).forEach(item => {
+    (data as ResolverRecord[] || []).forEach(item => {
       if (!item.resolver_uuid || !item.dashboard_users) return;
       
       // Safe access to dashboard_users
@@ -436,9 +483,6 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
       else if (rating === 2) resolver.unhappy++;
       else if (rating === 1) resolver.veryUnhappy++;
     });
-    
-    // For previous period data, we'd ideally query with a date range
-    // As a simplification, we'll use slightly lower averages
     
     // Process the data
     const resolvers: ResolverStats[] = Array.from(resolverMap.values()).map(resolver => {
