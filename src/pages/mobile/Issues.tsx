@@ -39,38 +39,51 @@ const MobileIssues = () => {
       try {
         console.log("Fetching employee details for:", authState.user.id);
         setIsEmployeeLoading(true);
-        
-        // Look for employee by matching either id or user_id field to handle different ID formats
-        const { data: employees, error } = await supabase
+
+        // First, try direct ID match
+        let { data: employeeData, error: employeeError } = await supabase
           .from('employees')
           .select('*')
-          .or(`user_id.eq.${authState.user.id},id.eq.${authState.user.id}`);
-          
-        if (error) {
-          console.error("Error fetching employee details:", error);
+          .eq('id', authState.user.id)
+          .maybeSingle();
+
+        // If no match, try with user_id field
+        if (!employeeData && !employeeError) {
+          const { data: userIdMatch, error: userIdError } = await supabase
+            .from('employees')
+            .select('*')
+            .eq('user_id', authState.user.id)
+            .maybeSingle();
+            
+          if (userIdMatch) employeeData = userIdMatch;
+          if (userIdError) employeeError = userIdError;
+        }
+        
+        if (employeeError) {
+          console.error("Error fetching employee details:", employeeError);
           setLoadError("Could not load employee details. Please try again.");
           return;
         }
         
-        if (employees && employees.length > 0) {
+        if (employeeData) {
           // Map the employee data to User type
           const userData: User = {
-            id: String(employees[0].id),
-            name: employees[0].name,
-            email: employees[0].email,
-            phone: employees[0].phone || "",
-            employeeId: employees[0].emp_id,
-            city: employees[0].city || "",
-            cluster: employees[0].cluster || "",
-            manager: employees[0].manager || "",
-            role: employees[0].role || "",
-            password: employees[0].password,
-            dateOfJoining: employees[0].date_of_joining || "",
-            bloodGroup: employees[0].blood_group || "",
-            dateOfBirth: employees[0].date_of_birth || "",
-            accountNumber: employees[0].account_number || "",
-            ifscCode: employees[0].ifsc_code || "",
-            userId: employees[0].user_id || "",
+            id: String(employeeData.id),
+            name: employeeData.name,
+            email: employeeData.email,
+            phone: employeeData.phone || "",
+            employeeId: employeeData.emp_id,
+            city: employeeData.city || "",
+            cluster: employeeData.cluster || "",
+            manager: employeeData.manager || "",
+            role: employeeData.role || "",
+            password: employeeData.password,
+            dateOfJoining: employeeData.date_of_joining || "",
+            bloodGroup: employeeData.blood_group || "",
+            dateOfBirth: employeeData.date_of_birth || "",
+            accountNumber: employeeData.account_number || "",
+            ifscCode: employeeData.ifsc_code || "",
+            userId: employeeData.user_id || "",
           };
           
           setEmployeeDetails(userData);
@@ -193,6 +206,15 @@ const MobileIssues = () => {
                 </div>
                 <h2 className="text-lg font-medium">Employee Details / कर्मचारी विवरण</h2>
               </div>
+              
+              {/* My Tickets Button */}
+              <Button 
+                onClick={() => navigate("/mobile/my-tickets")}
+                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white flex items-center gap-2"
+                size="sm"
+              >
+                <span>My Tickets / मेरे टिकट</span>
+              </Button>
             </div>
             
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
@@ -263,108 +285,6 @@ const MobileIssues = () => {
             )}
           </div>
         ) : null}
-
-        {/* Tickets Section */}
-        <div>
-          <h2 className="text-lg font-medium mb-3">My Tickets / मेरे टिकट</h2>
-          
-          <div className="relative mb-4 bg-white rounded-lg">
-            <div className="flex items-center px-3">
-              <Search className="h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search tickets... / टिकट खोजें..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="border-none shadow-none focus-visible:ring-0 rounded-lg"
-              />
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue"></div>
-            </div>
-          ) : loadError ? (
-            <div className="text-center py-8 bg-white rounded-lg p-4">
-              <p className="text-red-500 mb-2">{loadError}</p>
-              <Button
-                onClick={handleRetry}
-                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
-              >
-                Retry / पुनः प्रयास करें
-              </Button>
-            </div>
-          ) : filteredIssues.length > 0 ? (
-            <div className="space-y-3">
-              {filteredIssues.map((issue) => {
-                const isClosedTicket = issue.status === "closed" || issue.status === "resolved";
-                
-                return (
-                  <div
-                    key={issue.id}
-                    className="bg-white rounded-lg p-4 active:bg-gray-50"
-                  >
-                    <div 
-                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">
-                          {getIssueTypeLabel(issue.typeId)}
-                        </h3>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
-                                        issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
-                                        "bg-green-500 text-white"}`}>
-                          {issue.status === "open" ? "Open / खुला" : 
-                          issue.status === "in_progress" ? "In progress / प्रगति पर" : 
-                          "Closed / बंद"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
-                      </p>
-                      <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatShortDate(issue.createdAt)}
-                        </span>
-                        <span className="flex items-center">
-                          {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Show feedback button only for closed tickets */}
-                    {isClosedTicket && authState.user?.id && (
-                      <TicketFeedbackButton
-                        ticketId={issue.id}
-                        resolverUuid={issue.assignedTo}
-                        employeeUuid={authState.user.id}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-white rounded-lg p-4">
-              <h3 className="mt-2 text-lg font-medium">No tickets found / कोई टिकट नहीं मिला</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchTerm ? "No tickets match your search / आपकी खोज से मेल खाने वाला कोई टिकट नहीं" : "You haven't raised any tickets yet / आपने अभी तक कोई टिकट नहीं बनाया है"}
-              </p>
-              <div className="mt-6">
-                <button
-                  onClick={() => navigate("/mobile/issues/new")}
-                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark"
-                >
-                  Raise a new ticket / नया टिकट बनाएँ
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </MobileLayout>
   );

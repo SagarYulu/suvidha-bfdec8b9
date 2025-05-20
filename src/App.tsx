@@ -1,163 +1,90 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { RBACProvider } from "./contexts/RBACContext";
-
-// Import all pages
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
-import AdminIssues from "./pages/admin/Issues";
-import AdminAssignedIssues from "./pages/admin/AssignedIssues";
-import AdminIssueDetails from "./pages/admin/IssueDetails";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminSettings from "./pages/admin/Settings";
-import AdminLogin from "./pages/admin/Login";
-import AdminAccessControl from "./pages/admin/AccessControl";
-import AdminResolutionFeedback from "./pages/admin/ResolutionFeedback";
-import MobileLogin from "./pages/mobile/Login";
-import MobileIssues from "./pages/mobile/Issues";
-import MobileNewIssue from "./pages/mobile/NewIssue";
-import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
-import TestDataGenerator from "./pages/admin/TestDataGenerator";
-
-// Import guards
+import React, { useEffect } from 'react';
 import {
-  DashboardGuard,
-  UserManagementGuard,
-  IssuesGuard,
-  AnalyticsGuard,
-  SettingsGuard,
-  SecurityGuard,
-  CreateDashboardUserGuard
-} from "./components/guards/PermissionGuards";
-import TicketAccessGuard from "./components/guards/TicketAccessGuard";
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigate,
+  useLocation,
+} from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import LoginPage from './pages/LoginPage';
+import MobileLoginPage from './pages/mobile/MobileLoginPage';
+import MobileIssues from './pages/mobile/Issues';
+import MobileIssueDetails from './pages/mobile/IssueDetails';
+import MobileNewIssue from './pages/mobile/NewIssue';
+import MobileSentiment from './pages/mobile/Sentiment';
+import { RoleAccessProvider } from './contexts/RoleAccessContext';
+import { Toast } from "@/components/ui/toast"
+import { Toaster } from "@/hooks/use-toast"
+import MyTickets from "./pages/mobile/MyTickets";
 
-// Create a new QueryClient instance with more relaxed defaults
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+function AppContent() {
+  const { authState } = useAuth();
+  const location = useLocation();
 
-const App = () => {
-  console.log("App rendering - setting up providers");
-  
+  useEffect(() => {
+    // Log the current route whenever it changes
+    console.log(`Route changed to: ${location.pathname}`);
+  }, [location]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RBACProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                
-                {/* Protected Admin Routes with Guards */}
-                <Route path="/admin/dashboard" element={
-                  <DashboardGuard redirectTo="/admin/login">
-                    <AdminDashboard />
-                  </DashboardGuard>
-                } />
-                
-                <Route path="/admin/users" element={
-                  <UserManagementGuard>
-                    <AdminUsers />
-                  </UserManagementGuard>
-                } />
-                
-                <Route path="/admin/issues" element={
-                  <IssuesGuard>
-                    <TicketAccessGuard onlyForAssigned={false}>
-                      <AdminIssues />
-                    </TicketAccessGuard>
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/assigned-issues" element={
-                  <IssuesGuard>
-                    <TicketAccessGuard onlyForAssigned={true}>
-                      <AdminAssignedIssues />
-                    </TicketAccessGuard>
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/issues/:id" element={
-                  <IssuesGuard>
-                    <AdminIssueDetails />
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/analytics" element={
-                  <AnalyticsGuard>
-                    <AdminAnalytics />
-                  </AnalyticsGuard>
-                } />
+    <>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
 
-                <Route path="/admin/resolution-feedback" element={
-                  <AnalyticsGuard>
-                    <AdminResolutionFeedback />
-                  </AnalyticsGuard>
-                } />
-                
-                <Route path="/admin/settings" element={
-                  <SettingsGuard>
-                    <AdminSettings />
-                  </SettingsGuard>
-                } />
-                
-                <Route path="/admin/access-control" element={
-                  <SecurityGuard>
-                    <AdminAccessControl />
-                  </SecurityGuard>
-                } />
-                
-                <Route path="/admin/test-data-generator" element={
-                  <AnalyticsGuard>
-                    <TestDataGenerator />
-                  </AnalyticsGuard>
-                } />
-                
-                {/* Dashboard Users Routes */}
-                <Route path="/admin/dashboard-users/add" element={
-                  <CreateDashboardUserGuard>
-                    <AddDashboardUser />
-                  </CreateDashboardUserGuard>
-                } />
-                
-                {/* Mobile Routes */}
-                <Route path="/mobile/login" element={<MobileLogin />} />
-                <Route path="/mobile/issues" element={<MobileIssues />} />
-                <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
-                <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-                
-                {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
-                <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="/mobile/sentiment" element={<Navigate to="/mobile/issues" replace />} />
-                
-                {/* Fallback route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </RBACProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+        {/* Admin routes */}
+        <Route path="/admin">
+          {/* Redirect to admin login if not authenticated */}
+          <Route index element={
+            !authState.isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <AdminDashboard />
+            )
+          } />
+          {/* Add more admin routes here if needed */}
+        </Route>
+
+        {/* Mobile routes */}
+        <Route path="/mobile">
+          <Route index element={<Navigate to="/mobile/issues" replace />} />
+          <Route path="login" element={<MobileLoginPage />} />
+          <Route path="issues" element={<MobileIssues />} />
+          <Route path="my-tickets" element={<MyTickets />} /> {/* Add this line */}
+          <Route path="issues/:id" element={<MobileIssueDetails />} />
+          <Route path="issues/new" element={<MobileNewIssue />} />
+          <Route path="sentiment" element={<MobileSentiment />} />
+        </Route>
+
+        {/* Fallback route - redirect to login if not authenticated */}
+        <Route
+          path="/"
+          element={
+            !authState.isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <Navigate to="/admin" replace />
+            )
+          }
+        />
+      </Routes>
+      <Toaster />
+    </>
   );
-};
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <RoleAccessProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </RoleAccessProvider>
+    </AuthProvider>
+  );
+}
 
 export default App;
