@@ -22,10 +22,10 @@ const FeedbackStars: React.FC<FeedbackStarsProps> = ({
     if (starPosition <= currentRating) {
       switch(currentRating) {
         case 1: return "#ea384c"; // Red
-        case 2: return "#FEC6A1"; // Orange
+        case 2: return "#F97316"; // Orange 
         case 3: return "#FEF7CD"; // Yellow
         case 4: return "#F2FCE2"; // Light Green
-        case 5: return "#8B5CF6"; // Green
+        case 5: return "#FFD700"; // Golden
         default: return "#8E9196"; // Gray
       }
     }
@@ -44,31 +44,51 @@ const FeedbackStars: React.FC<FeedbackStarsProps> = ({
     }
   };
 
+  // Get mood label based on rating
+  const getMoodLabel = (rating: number) => {
+    switch(rating) {
+      case 1: return "Very Unhappy / बहुत नाखुश";
+      case 2: return "Unhappy / नाखुश";
+      case 3: return "Not Sure / अनिश्चित";
+      case 4: return "Happy / खुश";
+      case 5: return "Very Happy / बहुत खुश";
+      default: return "";
+    }
+  };
+
+  const activeRating = hoverRating || rating;
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center space-y-2">
+      {activeRating > 0 && (
+        <div className="flex flex-col items-center animate-fade-in">
+          <div className="text-2xl mb-1">
+            {getEmoji(activeRating)}
+          </div>
+          <div className="text-sm text-center font-medium">
+            {getMoodLabel(activeRating)}
+          </div>
+        </div>
+      )}
+      
       <div className="flex">
         {[1, 2, 3, 4, 5].map((starPosition) => (
           <div 
             key={starPosition}
-            className="cursor-pointer p-1"
+            className={`cursor-pointer p-1 transition-transform duration-200 ${!readOnly && activeRating >= starPosition ? 'scale-110' : ''}`}
             onMouseEnter={() => !readOnly && setHoverRating(starPosition)}
             onMouseLeave={() => !readOnly && setHoverRating(0)}
             onClick={() => !readOnly && onChange && onChange(starPosition)}
           >
             <Star
               size={size}
-              fill={getStarColor(starPosition, hoverRating || rating)}
-              stroke={getStarColor(starPosition, hoverRating || rating)}
-              className={`transition-colors ${!readOnly ? "hover:scale-110" : ""}`}
+              fill={getStarColor(starPosition, activeRating)}
+              stroke={getStarColor(starPosition, activeRating)}
+              className="transition-colors"
             />
           </div>
         ))}
       </div>
-      {rating > 0 && (
-        <div className="mt-1 text-center text-lg">
-          {getEmoji(rating)}
-        </div>
-      )}
     </div>
   );
 };

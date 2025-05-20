@@ -78,8 +78,16 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     }
   };
 
+  const handleDialogClose = () => {
+    if (!isSubmitting) {
+      setRating(0);
+      setComment("");
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
@@ -88,7 +96,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
         </DialogHeader>
 
         <div className="flex flex-col items-center space-y-6 py-4">
-          <FeedbackStars rating={rating} onChange={setRating} />
+          <FeedbackStars rating={rating} onChange={setRating} size={28} />
           
           <Textarea
             placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
@@ -100,7 +108,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
           <div className="flex w-full justify-end space-x-2">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={handleDialogClose}
               disabled={isSubmitting}
             >
               Cancel / रद्द करें
