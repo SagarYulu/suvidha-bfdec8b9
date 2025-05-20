@@ -94,7 +94,9 @@ export const useDashboardData = () => {
       };
       
       console.log("Using analytics filters:", analyticsFilters);
-      return getAnalytics(analyticsFilters);
+      const result = await getAnalytics(analyticsFilters);
+      console.log("Analytics result:", result);
+      return result;
     },
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,

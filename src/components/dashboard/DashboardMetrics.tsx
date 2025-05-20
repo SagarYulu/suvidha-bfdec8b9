@@ -13,6 +13,9 @@ type DashboardMetricsProps = {
 const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMetricsProps) => {
   if (isLoading) return null;
 
+  // Total resolved issues should include both 'resolved' and 'closed' status
+  const resolvedTickets = analytics ? (analytics.resolvedIssues + analytics.closedIssues) : 0;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card>
@@ -32,7 +35,7 @@ const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMet
           <CheckCircle className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{analytics?.resolvedIssues || 0}</div>
+          <div className="text-2xl font-bold">{resolvedTickets}</div>
           <p className="text-xs text-muted-foreground">
             {analytics ? (analytics.resolutionRate.toFixed(1) + '% resolution rate') : '0% resolution rate'}
           </p>

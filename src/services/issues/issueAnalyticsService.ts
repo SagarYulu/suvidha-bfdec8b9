@@ -50,9 +50,32 @@ export const getAnalytics = async (filters: AnalyticsFilters = {}) => {
     }
     
     console.log(`Retrieved ${data?.length || 0} issues for analytics`);
+
+    // Get employee data to map to cities, clusters, and managers
+    const { data: employeeData, error: employeeError } = await supabase
+      .from('employees')
+      .select('id, city, cluster, manager');
+
+    if (employeeError) {
+      console.error("Error fetching employee data for analytics:", employeeError);
+    }
+
+    // Create a mapping of employee IDs to their city, cluster and manager info
+    const employeeMap = {};
+    if (employeeData) {
+      employeeData.forEach(emp => {
+        employeeMap[emp.id] = {
+          city: emp.city || 'Unknown',
+          cluster: emp.cluster || 'Unknown',
+          manager: emp.manager || 'Unknown'
+        };
+      });
+    }
     
     // Process the data to derive insights
     const totalIssues = data.length;
+    
+    // Use consistent status counting - ensure we're counting the same way across the app
     const openIssues = data.filter(issue => issue.status === 'open').length;
     const inProgressIssues = data.filter(issue => issue.status === 'in_progress').length;
     const resolvedIssues = data.filter(issue => issue.status === 'resolved').length;
@@ -65,30 +88,33 @@ export const getAnalytics = async (filters: AnalyticsFilters = {}) => {
       return acc;
     }, {});
     
-    // Example: Issues by type - map using the correct property name (type_id)
+    // Issues by type - map using the correct property name (type_id)
     const issuesByType = data.reduce((acc, issue) => {
       acc[issue.type_id] = (acc[issue.type_id] || 0) + 1;
       return acc;
     }, {});
     
-    // Group issues by city - use employee data to get city 
-    // This is a simplified approach since we don't have direct city info on issues
+    // Group issues by city using employee data
     const cityCounts = data.reduce((acc, issue) => {
-      // Default to 'Unknown' since we can't directly access city
-      const city = 'Unknown';
+      // Get employee data or default to Unknown
+      const employeeInfo = employeeMap[issue.employee_uuid] || { city: 'Unknown' };
+      const city = employeeInfo.city;
       acc[city] = (acc[city] || 0) + 1;
       return acc;
     }, {});
     
-    // Add cluster and manager counts to analytics
+    // Add cluster counts to analytics using employee data
     const clusterCounts = data.reduce((acc, issue) => {
-      const cluster = 'Unknown';
+      const employeeInfo = employeeMap[issue.employee_uuid] || { cluster: 'Unknown' };
+      const cluster = employeeInfo.cluster;
       acc[cluster] = (acc[cluster] || 0) + 1;
       return acc;
     }, {});
     
+    // Add manager counts to analytics using employee data
     const managerCounts = data.reduce((acc, issue) => {
-      const manager = 'Unknown';
+      const employeeInfo = employeeMap[issue.employee_uuid] || { manager: 'Unknown' };
+      const manager = employeeInfo.manager;
       acc[manager] = (acc[manager] || 0) + 1;
       return acc;
     }, {});
