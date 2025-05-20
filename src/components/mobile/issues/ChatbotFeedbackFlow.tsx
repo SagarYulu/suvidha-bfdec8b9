@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -19,31 +20,62 @@ interface ChatbotFeedbackFlowProps {
 type FeedbackStep = 'rating' | 'category' | 'reason' | 'comment' | 'completed';
 
 // Define reason options based on category and rating
-const getReasonOptions = (category: 'agent' | 'resolution' | null, isPositive: boolean) => {
-  if (!category) return [];
+const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: number | null) => {
+  if (!category || rating === null) return [];
+  
+  // Very happy (5) and happy (4) are considered positive
+  const isPositive = rating >= 4;
+  // Very unhappy (1) gets special options
+  const isVeryUnhappy = rating === 1;
   
   if (category === 'agent') {
-    return isPositive 
-      ? [
+    if (isVeryUnhappy) {
+      return [
+        { id: 'was_extremely_rude', label: 'Agent was extremely rude / एजेंट ने बहुत गलत व्यवहार किया' },
+        { id: 'completely_ignored', label: 'Completely ignored me / मुझे पूरी तरह नज़रअंदाज़ कर दिया' },
+        { id: 'provided_wrong_info', label: 'Provided wrong information / गलत जानकारी दी' }
+      ];
+    } else if (isPositive) {
+      return rating === 5 ? 
+        [
+          { id: 'exceptional_service', label: 'Exceptional service / उत्कृष्ट सेवा' },
+          { id: 'went_above_beyond', label: 'Went above and beyond / अपेक्षा से अधिक मदद की' },
+        ] : 
+        [
           { id: 'spoke_nicely', label: 'Agent spoke nicely / एजेंट ने अच्छे से बात की' },
           { id: 'helped_quickly', label: 'Helped quickly / जल्दी मदद की' },
-        ]
-      : [
-          { id: 'was_rude', label: 'Agent was rude / एजेंट ने गलत तरीके से बात की' },
-          { id: 'didnt_respond', label: 'Didn\'t respond / कोई जवाब नहीं मिला' },
-          { id: 'didnt_help', label: 'Didn\'t help / मदद नहीं की' },
         ];
-  } else {
-    return isPositive
-      ? [
+    } else {
+      return [
+        { id: 'was_rude', label: 'Agent was rude / एजेंट ने गलत तरीके से बात की' },
+        { id: 'didnt_respond', label: 'Didn\'t respond / कोई जवाब नहीं मिला' },
+        { id: 'didnt_help', label: 'Didn\'t help / मदद नहीं की' },
+      ];
+    }
+  } else { // Resolution options
+    if (isVeryUnhappy) {
+      return [
+        { id: 'made_worse', label: 'Made issue worse / समस्या और बिगड़ गई' },
+        { id: 'completely_unresolved', label: 'Completely unresolved / बिलकुल हल नहीं हुई' },
+        { id: 'need_urgent_help', label: 'Need urgent help / तत्काल सहायता चाहिए' },
+      ];
+    } else if (isPositive) {
+      return rating === 5 ? 
+        [
+          { id: 'perfectly_solved', label: 'Perfectly solved / बिलकुल सही तरीके से हल किया' },
+          { id: 'very_clear_process', label: 'Very clear process / बहुत स्पष्ट प्रक्रिया' },
+        ] : 
+        [
           { id: 'problem_solved', label: 'Problem solved / समस्या हल हुई' },
           { id: 'easy_to_understand', label: 'Easy to understand / समझ में आ गया' },
-        ]
-      : [
-          { id: 'took_too_long', label: 'Took too long / बहुत समय लगा' },
-          { id: 'still_not_resolved', label: 'Still not resolved / समस्या अब भी बाकी है' },
-          { id: 'confusing_process', label: 'Confusing process / समझ में नहीं आया' },
         ];
+    } else {
+      return [
+        { id: 'took_too_long', label: 'Took too long / बहुत समय लगा' },
+        { id: 'still_not_resolved', label: 'Still not resolved / समस्या अब भी बाकी है' },
+        { id: 'confusing_process', label: 'Confusing process / समझ में नहीं आया' },
+      ];
+    }
   }
 };
 
@@ -179,9 +211,6 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       setIsSubmitting(false);
     }
   }, [rating, category, reason, comment, ticketId, employeeUuid, resolverUuid, onFeedbackSubmitted, handleClose]);
-
-  // Check if the rating is positive (4-5) or not (1-3)
-  const isPositiveRating = rating !== null && rating >= 4;
   
   // Render the current step content
   const renderStepContent = () => {
@@ -245,7 +274,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
               <span className="text-sm font-normal">कृपया कारण चुनें</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
-              {category && getReasonOptions(category, isPositiveRating).map((option) => (
+              {getReasonOptions(category, rating).map((option) => (
                 <Button
                   key={option.id}
                   onClick={() => handleReasonSelect(option.id)}
@@ -310,7 +339,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
     <DialogContent className="sm:max-w-md p-6 rounded-lg">
       {renderStepContent()}
     </DialogContent>
-  ), [currentStep, rating, category, comment, isSubmitting, isPositiveRating]);
+  ), [currentStep, rating, category, comment, isSubmitting]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
