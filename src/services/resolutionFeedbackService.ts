@@ -27,18 +27,21 @@ export interface FeedbackMetadata {
 // Check if feedback exists for a ticket
 export const checkFeedbackExists = async (ticketId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('resolution_feedback')
-      .select('id')
-      .eq('ticket_id', ticketId)
-      .single();
+    console.log("Checking if feedback exists for ticket:", ticketId);
     
-    if (error && error.code !== 'PGRST116') {
+    const { data, error, count } = await supabase
+      .from('resolution_feedback')
+      .select('id', { count: 'exact' })
+      .eq('ticket_id', ticketId);
+    
+    if (error) {
       console.error("Error checking feedback:", error);
       return false;
     }
     
-    return !!data;
+    const exists = !!count && count > 0;
+    console.log(`Feedback ${exists ? 'exists' : 'does not exist'} for ticket ${ticketId}`);
+    return exists;
   } catch (error) {
     console.error("Error checking feedback existence:", error);
     return false;

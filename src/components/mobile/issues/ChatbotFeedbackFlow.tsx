@@ -159,15 +159,22 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Prepare the metadata object
+      // Prepare the metadata object 
       const metadataObj = {
         category,
         reason
       };
-
-      console.log("Submitting feedback with metadata:", metadataObj);
       
-      const { error } = await supabase
+      console.log("Submitting feedback with:", { 
+        ticketId, 
+        employeeUuid, 
+        resolverUuid, 
+        rating, 
+        comment: comment.trim() || null,
+        metadata: metadataObj 
+      });
+      
+      const { data, error } = await supabase
         .from("resolution_feedback")
         .insert({
           ticket_id: ticketId,
@@ -175,8 +182,9 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
           resolver_uuid: resolverUuid || null,
           rating: rating,
           comment: comment.trim() || null,
-          metadata: metadataObj  // Store as a proper JSON object
-        });
+          metadata: metadataObj
+        })
+        .select();
 
       if (error) {
         console.error("Error submitting feedback:", error);
@@ -186,6 +194,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
           variant: "destructive",
         });
       } else {
+        console.log("Feedback submitted successfully:", data);
         setCurrentStep('completed');
         setTimeout(() => {
           toast({

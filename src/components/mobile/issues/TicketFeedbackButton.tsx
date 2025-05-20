@@ -50,6 +50,8 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
     );
   }
 
+  console.log("Rendering feedback button with props:", { ticketId, resolverUuid, employeeUuid });
+
   return (
     <>
       <Button
