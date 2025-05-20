@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import {
   BrowserRouter as Router,
@@ -7,17 +8,13 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import LoginPage from './pages/LoginPage';
-import MobileLoginPage from './pages/mobile/MobileLoginPage';
+import { Toast } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/toaster";
+import MyTickets from "./pages/mobile/MyTickets";
 import MobileIssues from './pages/mobile/Issues';
 import MobileIssueDetails from './pages/mobile/IssueDetails';
 import MobileNewIssue from './pages/mobile/NewIssue';
 import MobileSentiment from './pages/mobile/Sentiment';
-import { RoleAccessProvider } from './contexts/RoleAccessContext';
-import { Toast } from "@/components/ui/toast"
-import { Toaster } from "@/hooks/use-toast"
-import MyTickets from "./pages/mobile/MyTickets";
 
 function AppContent() {
   const { authState } = useAuth();
@@ -32,7 +29,7 @@ function AppContent() {
     <>
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<div>Login Page</div>} />
 
         {/* Admin routes */}
         <Route path="/admin">
@@ -41,7 +38,7 @@ function AppContent() {
             !authState.isAuthenticated ? (
               <Navigate to="/login" replace />
             ) : (
-              <AdminDashboard />
+              <div>Admin Dashboard</div>
             )
           } />
           {/* Add more admin routes here if needed */}
@@ -50,9 +47,9 @@ function AppContent() {
         {/* Mobile routes */}
         <Route path="/mobile">
           <Route index element={<Navigate to="/mobile/issues" replace />} />
-          <Route path="login" element={<MobileLoginPage />} />
+          <Route path="login" element={<div>Mobile Login</div>} />
           <Route path="issues" element={<MobileIssues />} />
-          <Route path="my-tickets" element={<MyTickets />} /> {/* Add this line */}
+          <Route path="my-tickets" element={<MyTickets />} /> 
           <Route path="issues/:id" element={<MobileIssueDetails />} />
           <Route path="issues/new" element={<MobileNewIssue />} />
           <Route path="sentiment" element={<MobileSentiment />} />
@@ -78,11 +75,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <RoleAccessProvider>
-        <Router>
-          <AppContent />
-        </Router>
-      </RoleAccessProvider>
+      <Router>
+        <AppContent />
+      </Router>
     </AuthProvider>
   );
 }
