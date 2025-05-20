@@ -56,10 +56,11 @@ const FeedbackStars: React.FC<FeedbackStarsProps> = ({
     }
   }, []);
 
-  const activeRating = hoverRating || rating;
+  // Active rating is either the hover rating or the actual rating prop
+  const activeRating = useMemo(() => hoverRating || rating, [hoverRating, rating]);
   
   // Memoize the mood section to prevent re-renders
-  const moodSection = useMemo(() => {
+  const MoodSection = useMemo(() => {
     if (activeRating <= 0) return null;
     
     return (
@@ -74,45 +75,74 @@ const FeedbackStars: React.FC<FeedbackStarsProps> = ({
     );
   }, [activeRating, getEmoji, getMoodLabel]);
 
-  // Memoize the star rendering logic
-  const starsRow = useMemo(() => {
+  // Handle star hover
+  const handleStarHover = useCallback((position: number) => {
+    if (!readOnly) {
+      setHoverRating(position);
+    }
+  }, [readOnly]);
+
+  // Handle star click
+  const handleStarClick = useCallback((position: number) => {
+    if (!readOnly && onChange) {
+      onChange(position);
+    }
+  }, [readOnly, onChange]);
+
+  // Handle mouse leave
+  const handleMouseLeave = useCallback(() => {
+    if (!readOnly) {
+      setHoverRating(0);
+    }
+  }, [readOnly]);
+
+  // Memoize individual star to prevent re-renders
+  const StarItem = useCallback(({ position }: { position: number }) => {
+    const color = getStarColor(position, activeRating);
+    
     return (
-      <div className="flex justify-center">
-        {[1, 2, 3, 4, 5].map((position) => {
-          const color = getStarColor(position, activeRating);
-          
-          return (
-            <div 
-              key={position}
-              className={`cursor-pointer p-1 transition-transform duration-150 ${!readOnly && activeRating >= position ? 'scale-105' : ''}`}
-              onMouseEnter={() => !readOnly && setHoverRating(position)}
-              onMouseLeave={() => !readOnly && setHoverRating(0)}
-              onClick={() => !readOnly && onChange && onChange(position)}
-            >
-              <Star
-                size={size}
-                fill={color}
-                stroke={color}
-                strokeWidth={1.5}
-                className="transition-colors"
-                style={{ 
-                  shapeRendering: "geometricPrecision",
-                  transform: "scale(1)",
-                }}
-              />
-            </div>
-          );
-        })}
+      <div 
+        key={position}
+        className={`cursor-pointer p-1 transition-transform duration-150 ${!readOnly && activeRating >= position ? 'scale-105' : ''}`}
+        onMouseEnter={() => handleStarHover(position)}
+        onClick={() => handleStarClick(position)}
+      >
+        <Star
+          size={size}
+          fill={color}
+          stroke={color}
+          strokeWidth={1.5}
+          className="transition-colors"
+          style={{ 
+            shapeRendering: "geometricPrecision",
+            transform: "scale(1)",
+          }}
+        />
       </div>
     );
-  }, [activeRating, getStarColor, onChange, readOnly, size]);
+  }, [activeRating, getStarColor, handleStarClick, handleStarHover, readOnly, size]);
+
+  // Memoize the star row to prevent re-renders
+  const StarsRow = useMemo(() => {
+    return (
+      <div 
+        className="flex justify-center"
+        onMouseLeave={handleMouseLeave}
+      >
+        {[1, 2, 3, 4, 5].map((position) => (
+          <StarItem key={position} position={position} />
+        ))}
+      </div>
+    );
+  }, [StarItem, handleMouseLeave]);
 
   return (
     <div className="flex flex-col items-center space-y-3">
-      {moodSection}
-      {starsRow}
+      {MoodSection}
+      {StarsRow}
     </div>
   );
 };
 
+// Use React.memo to prevent unnecessary re-renders
 export default React.memo(FeedbackStars);

@@ -28,7 +28,7 @@ const SuccessScreen = React.memo(() => (
   </div>
 ));
 
-// Separate component for the form content to avoid unnecessary re-renders
+// Component for the feedback form content
 const FeedbackFormContent = React.memo(({ 
   rating, 
   comment, 
@@ -46,7 +46,7 @@ const FeedbackFormContent = React.memo(({
   onSubmit: () => void;
   onCancel: () => void;
 }) => {
-  // Get button color based on current rating
+  // Memoize the button color to prevent unnecessary calculations
   const buttonColor = useMemo(() => {
     switch(rating) {
       case 1: return "#FF3B30"; // Red
@@ -58,56 +58,71 @@ const FeedbackFormContent = React.memo(({
     }
   }, [rating]);
 
+  // Memoize the stars component to prevent re-renders
+  const RatingStars = useMemo(() => (
+    <FeedbackStars 
+      rating={rating} 
+      onChange={onRatingChange} 
+      size={32} 
+    />
+  ), [rating, onRatingChange]);
+
+  // Memoize the textarea to prevent re-renders
+  const CommentTextarea = useMemo(() => (
+    <Textarea
+      placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
+      value={comment}
+      onChange={(e) => onCommentChange(e.target.value)}
+      className="w-full resize-none border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+    />
+  ), [comment, onCommentChange]);
+
+  // Memoize the buttons to prevent re-renders
+  const ActionButtons = useMemo(() => (
+    <div className="flex w-full justify-end space-x-3">
+      <Button
+        variant="outline"
+        onClick={onCancel}
+        disabled={isSubmitting}
+        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+      >
+        Cancel / रद्द करें
+      </Button>
+      <Button
+        onClick={onSubmit}
+        disabled={rating === 0 || isSubmitting}
+        style={{ 
+          backgroundColor: rating > 0 ? buttonColor : undefined,
+          opacity: rating === 0 ? 0.7 : 1,
+        }}
+        className="text-white hover:opacity-90 transition-opacity"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Submitting...
+          </>
+        ) : (
+          "Submit / जमा करें"
+        )}
+      </Button>
+    </div>
+  ), [buttonColor, isSubmitting, onCancel, onSubmit, rating]);
+
   return (
     <div className="flex flex-col items-center space-y-6 py-4">
-      <FeedbackStars 
-        rating={rating} 
-        onChange={onRatingChange} 
-        size={32} 
-      />
-      
-      <Textarea
-        placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
-        value={comment}
-        onChange={(e) => onCommentChange(e.target.value)}
-        className="w-full resize-none border-gray-300 focus:border-gray-400 focus:ring-gray-400"
-      />
-
-      <div className="flex w-full justify-end space-x-3">
-        <Button
-          variant="outline"
-          onClick={onCancel}
-          disabled={isSubmitting}
-          className="border-gray-300 text-gray-700 hover:bg-gray-50"
-        >
-          Cancel / रद्द करें
-        </Button>
-        <Button
-          onClick={onSubmit}
-          disabled={rating === 0 || isSubmitting}
-          style={{ 
-            backgroundColor: rating > 0 ? buttonColor : undefined,
-            opacity: rating === 0 ? 0.7 : 1,
-          }}
-          className="text-white hover:opacity-90 transition-opacity"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            "Submit / जमा करें"
-          )}
-        </Button>
-      </div>
+      {RatingStars}
+      {CommentTextarea}
+      {ActionButtons}
     </div>
   );
 });
 
+// Set display names for memo components
 FeedbackFormContent.displayName = "FeedbackFormContent";
 SuccessScreen.displayName = "SuccessScreen";
 
+// Main FeedbackForm component
 const FeedbackForm: React.FC<FeedbackFormProps> = ({
   isOpen,
   onClose,
@@ -121,6 +136,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // Callbacks for handling rating and comment changes
   const handleRatingChange = useCallback((newRating: number) => {
     setRating(newRating);
   }, []);
@@ -129,6 +145,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     setComment(newComment);
   }, []);
 
+  // Submit handler
   const handleSubmit = useCallback(async () => {
     if (rating === 0) {
       toast({
@@ -181,6 +198,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     }
   }, [rating, comment, ticketId, employeeUuid, resolverUuid, onFeedbackSubmitted, onClose]);
 
+  // Dialog close handler
   const handleDialogClose = useCallback(() => {
     if (!isSubmitting) {
       setRating(0);
@@ -190,31 +208,39 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     }
   }, [isSubmitting, onClose]);
 
+  // Memoize dialog content to prevent unnecessary re-renders
+  const dialogContent = useMemo(() => (
+    <>
+      <DialogHeader>
+        <DialogTitle className="text-center text-lg font-semibold">
+          Share Your Feedback / अपनी प्रतिक्रिया साझा करें
+        </DialogTitle>
+      </DialogHeader>
+
+      {isSubmitted ? (
+        <SuccessScreen />
+      ) : (
+        <FeedbackFormContent
+          rating={rating}
+          comment={comment}
+          isSubmitting={isSubmitting}
+          onRatingChange={handleRatingChange}
+          onCommentChange={handleCommentChange}
+          onSubmit={handleSubmit}
+          onCancel={handleDialogClose}
+        />
+      )}
+    </>
+  ), [isSubmitted, rating, comment, isSubmitting, handleRatingChange, handleCommentChange, handleSubmit, handleDialogClose]);
+
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
       <DialogContent className="sm:max-w-md p-6 rounded-lg">
-        <DialogHeader>
-          <DialogTitle className="text-center text-lg font-semibold">
-            Share Your Feedback / अपनी प्रतिक्रिया साझा करें
-          </DialogTitle>
-        </DialogHeader>
-
-        {isSubmitted ? (
-          <SuccessScreen />
-        ) : (
-          <FeedbackFormContent
-            rating={rating}
-            comment={comment}
-            isSubmitting={isSubmitting}
-            onRatingChange={handleRatingChange}
-            onCommentChange={handleCommentChange}
-            onSubmit={handleSubmit}
-            onCancel={handleDialogClose}
-          />
-        )}
+        {dialogContent}
       </DialogContent>
     </Dialog>
   );
 };
 
-export default FeedbackForm;
+// Use React.memo on the main component to prevent unnecessary re-renders
+export default React.memo(FeedbackForm);
