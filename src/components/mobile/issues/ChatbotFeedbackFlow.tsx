@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -89,15 +88,15 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
 // Define the rating options with mood labels and emojis
 const ratingOptions = [
   { value: 5, emoji: '🤩', label: 'Very Happy', 
-    gradient: 'bg-gradient-to-r from-blue-500 to-blue-700' }, 
+    gradient: 'bg-gradient-to-r from-amber-300 to-yellow-600' }, 
   { value: 4, emoji: '🙂', label: 'Happy', 
-    gradient: 'bg-gradient-to-r from-blue-400 to-blue-600' },
+    gradient: 'bg-gradient-to-r from-amber-200 to-yellow-500' },
   { value: 3, emoji: '😐', label: 'Neutral', 
-    gradient: 'bg-gradient-to-r from-blue-300 to-blue-500' },
+    gradient: 'bg-gradient-to-r from-amber-100 to-yellow-400' },
   { value: 2, emoji: '😕', label: 'Unhappy', 
-    gradient: 'bg-gradient-to-r from-blue-200 to-blue-400' },
+    gradient: 'bg-gradient-to-r from-amber-100 to-yellow-300' },
   { value: 1, emoji: '😠', label: 'Very Unhappy', 
-    gradient: 'bg-gradient-to-r from-blue-100 to-blue-300' },
+    gradient: 'bg-gradient-to-r from-amber-50 to-yellow-200' },
 ];
 
 const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
@@ -206,8 +205,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
   
   // Get the selected rating gradient
   const getRatingGradient = () => {
-    if (rating === null) return 'bg-gradient-to-r from-blue-500 to-blue-700'; // Default gradient
-    return ratingOptions.find(opt => opt.value === rating)?.gradient || 'bg-gradient-to-r from-blue-500 to-blue-700';
+    if (rating === null) return 'bg-gradient-to-r from-amber-300 to-yellow-600'; // Default golden gradient
+    return ratingOptions.find(opt => opt.value === rating)?.gradient || 'bg-gradient-to-r from-amber-300 to-yellow-600';
   };
 
   // Render the current step content
@@ -293,7 +292,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
               placeholder="Your comments (optional) / आपकी टिप्पणियां (वैकल्पिक)"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full resize-none h-32 border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all duration-200"
+              className="w-full resize-none h-32 border-amber-300 focus:border-amber-500 focus:ring focus:ring-amber-200 transition-all duration-200"
             />
             <Button
               onClick={handleSubmit}
@@ -315,8 +314,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'completed':
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="bg-blue-100 rounded-full p-4">
-              <CheckCircle className="h-10 w-10 text-blue-500" />
+            <div className="bg-amber-100 rounded-full p-4">
+              <CheckCircle className="h-10 w-10 text-amber-500" />
             </div>
             <h3 className="text-lg font-medium text-center">
               Thanks for your feedback!<br />
@@ -329,7 +328,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
 
   // Memoize the dialog content
   const dialogContent = React.useMemo(() => (
-    <DialogContent className="sm:max-w-md p-6 rounded-2xl border-blue-100 shadow-lg">
+    <DialogContent className="sm:max-w-md p-6 rounded-2xl border-amber-100 shadow-lg">
       {renderStepContent()}
     </DialogContent>
   ), [currentStep, rating, category, comment, isSubmitting]);

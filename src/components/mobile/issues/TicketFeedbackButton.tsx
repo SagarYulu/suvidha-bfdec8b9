@@ -41,7 +41,7 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
     return (
       <Button
         variant="outline"
-        className="w-full mt-2 border-dashed border-green-500 text-green-600 hover:bg-green-50 cursor-default"
+        className="w-full mt-2 border-dashed border-amber-500 text-amber-600 hover:bg-amber-50 cursor-default"
         disabled
       >
         <CheckCircle className="h-4 w-4 mr-2" />
@@ -55,7 +55,7 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
       <Button
         onClick={openFeedbackForm}
         variant="outline"
-        className="w-full mt-2 border-dashed border-yulu-dashboard-blue text-yulu-dashboard-blue hover:bg-blue-50"
+        className="w-full mt-2 border-dashed border-amber-500 text-amber-600 hover:bg-amber-50"
       >
         <MessageSquare className="h-4 w-4 mr-2" />
         Share Your Feedback / अपनी प्रतिक्रिया साझा करें
