@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -158,6 +159,14 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
 
     setIsSubmitting(true);
     try {
+      // Prepare the metadata object
+      const metadataObj = {
+        category,
+        reason
+      };
+
+      console.log("Submitting feedback with metadata:", metadataObj);
+      
       const { error } = await supabase
         .from("resolution_feedback")
         .insert({
@@ -166,11 +175,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
           resolver_uuid: resolverUuid || null,
           rating: rating,
           comment: comment.trim() || null,
-          // Store additional feedback data in metadata
-          metadata: {
-            category,
-            reason
-          }
+          metadata: metadataObj  // Store as a proper JSON object
         });
 
       if (error) {

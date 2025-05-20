@@ -555,6 +555,7 @@ export type Database = {
           created_at: string
           employee_uuid: string
           id: string
+          metadata: Json | null
           rating: number
           resolver_uuid: string | null
           ticket_id: string
@@ -564,6 +565,7 @@ export type Database = {
           created_at?: string
           employee_uuid: string
           id?: string
+          metadata?: Json | null
           rating: number
           resolver_uuid?: string | null
           ticket_id: string
@@ -573,6 +575,7 @@ export type Database = {
           created_at?: string
           employee_uuid?: string
           id?: string
+          metadata?: Json | null
           rating?: number
           resolver_uuid?: string | null
           ticket_id?: string
