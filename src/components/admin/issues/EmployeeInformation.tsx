@@ -42,7 +42,7 @@ const EmployeeInformation = ({ employee }: EmployeeInformationProps) => {
             
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <p className="text-sm text-gray-500">Employee ID / एम्प्लॉई आईडी</p>
+                <p className="text-sm text-gray-500">Employee ID</p>
                 <p className="font-medium">{employee.employeeId}</p>
               </div>
               <div>
@@ -56,14 +56,6 @@ const EmployeeInformation = ({ employee }: EmployeeInformationProps) => {
               <div>
                 <p className="text-sm text-gray-500">Manager</p>
                 <p className="font-medium">{employee.manager || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Date of Joining / जॉइनिंग डेट</p>
-                <p className="font-medium">{employee.dateOfJoining || "N/A"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Date of Birth / जनम दिनांक</p>
-                <p className="font-medium">{employee.dateOfBirth || "N/A"}</p>
               </div>
             </div>
           </div>
