@@ -1,7 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
 import { useSentiment } from '@/hooks/useSentiment';
 import { Loader2, Info, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -86,20 +86,11 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
 
   // Mood text based on rating
   const getMoodText = (currentRating: number) => {
-    if (currentRating === 1) return "Angry";
-    if (currentRating === 2) return "Frustrated";
+    if (currentRating === 1) return "Very Unhappy";
+    if (currentRating === 2) return "Unhappy";
     if (currentRating === 3) return "Neutral";
     if (currentRating === 4) return "Happy";
-    return "Motivated";
-  };
-
-  // Emotion description based on rating
-  const getEmotionDescription = (currentRating: number) => {
-    if (currentRating === 1) return "Angry, disrespected, anxious";
-    if (currentRating === 2) return "Frustrated, unsatisfied, unacknowledged";
-    if (currentRating === 3) return "Indifferent, routine, no specific highs/lows";
-    if (currentRating === 4) return "Happy, content, comfortable";
-    return "Excited, satisfied, motivated";
+    return "Very Happy";
   };
 
   // Extract user metadata for display
@@ -111,19 +102,15 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
     let cluster = "Unknown";
     let role = authState.role || "Unknown";
     
-    // Try to extract from different possible locations
     if (typeof user === 'object') {
-      // Direct properties
       if ('city' in user) city = (user as any).city || city;
       if ('cluster' in user) cluster = (user as any).cluster || cluster;
       
-      // User metadata
       if ('user_metadata' in user && user.user_metadata) {
         city = (user.user_metadata as any).city || city;
         cluster = (user.user_metadata as any).cluster || cluster;
       }
       
-      // App metadata
       if ('app_metadata' in user && user.app_metadata) {
         city = (user.app_metadata as any).city || city;
         cluster = (user.app_metadata as any).cluster || cluster;
@@ -142,12 +129,12 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
           "text-2xl font-semibold mb-2 text-gray-800",
           animateHeading && "animate-pulse"
         )}>
-          How are you feeling today?
+          How was your experience?
         </h2>
-        <p className="text-gray-700 text-sm">Your feedback helps improve our workplace</p>
+        <p className="text-gray-700 text-sm">आपका अनुभव कैसा रहा?</p>
       </div>
 
-      {/* User Metadata Info */}
+      {/* User Metadata Info Button */}
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -189,46 +176,28 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
           </p>
         </div>
       )}
-
-      {/* Emoji Selection */}
-      <div className="flex flex-col items-center gap-2 mt-1 bg-white/25 rounded-xl p-5 backdrop-blur-sm">
-        <div className="text-6xl mb-2">{getEmoji(rating)}</div>
-        <p className="text-lg font-medium text-gray-800">{getMoodText(rating)}</p>
-        <p className="text-sm text-gray-700 text-center">{getEmotionDescription(rating)}</p>
-      </div>
       
-      {/* Emoji Selector (Horizontal Row) */}
-      <div className="grid grid-cols-5 gap-2 mt-1">
+      {/* New Emoji-based mood selector - Simple vertical list of buttons */}
+      <div className="flex flex-col space-y-2 mt-2">
         {[5, 4, 3, 2, 1].map((value) => (
           <button
             key={value}
             className={cn(
-              "flex flex-col items-center p-2 rounded-lg transition-all",
+              "flex items-center py-3 px-4 rounded-lg transition-colors",
               rating === value 
-                ? "bg-white/30 border-2 border-white shadow-lg transform scale-105" 
-                : "hover:bg-white/20"
+                ? "bg-amber-400 text-white" 
+                : "bg-amber-200 hover:bg-amber-300 text-gray-800"
             )}
             onClick={() => handleRatingChange(value)}
           >
-            <span className="text-2xl">{getEmoji(value)}</span>
-            <span className="text-xs mt-1 text-gray-800">{getMoodText(value)}</span>
+            <span className="text-xl mr-3">{getEmoji(value)}</span>
+            <span className="font-medium">{getMoodText(value)}</span>
           </button>
         ))}
       </div>
       
-      {/* Hidden slider but keeping it for accessibility */}
-      <div className="hidden">
-        <Slider
-          value={[rating]}
-          min={1}
-          max={5}
-          step={1}
-          onValueChange={(values) => handleRatingChange(values[0])}
-        />
-      </div>
-      
-      {/* Feedback Input */}
-      <div className="bg-white/25 p-3 rounded-xl backdrop-blur-sm">
+      {/* Feedback Input - Optional */}
+      <div className="bg-white/25 p-3 rounded-xl backdrop-blur-sm mt-4">
         <label className="block text-sm font-medium mb-2 text-gray-800">
           Tell us more about your experience (optional)
         </label>
@@ -246,75 +215,17 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
             </div>
           )}
         </div>
-        
-        {/* Word count */}
-        <div className="text-right text-xs text-gray-700 mt-1">
-          {feedback.length} characters
-        </div>
       </div>
       
-      {/* Tags Section - Improved UI */}
-      <div className="bg-white/25 rounded-xl p-4 mt-1 backdrop-blur-sm">
-        <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-800">
-            Select topics related to your feedback:
-          </label>
-        </div>
-        
-        {tags && tags.length > 0 ? (
-          <div className="flex flex-col gap-2.5 max-h-[40vh] overflow-y-auto pr-1 mobile-scrollbar">
-            {tags.map((tag) => {
-              const isSelected = selectedTags.includes(tag.name);
-              
-              return (
-                <div
-                  key={tag.id}
-                  className={cn(
-                    "flex items-center rounded-lg py-3 px-3 transition-all",
-                    isSelected ? "bg-yulu-dashboard-blue/20 border border-yulu-dashboard-blue" : "bg-white/90 border border-transparent"
-                  )}
-                >
-                  <div className="mr-3">
-                    <Checkbox
-                      id={`tag-${tag.id}`}
-                      checked={isSelected}
-                      onCheckedChange={() => handleTagToggle(tag.name)}
-                      className={cn(
-                        "h-5 w-5 border-2",
-                        isSelected ? "bg-yulu-dashboard-blue border-yulu-dashboard-blue" : "border-gray-400"
-                      )}
-                    />
-                  </div>
-                  <div 
-                    className="flex-1 cursor-pointer"
-                    onClick={() => handleTagToggle(tag.name)}
-                  >
-                    <label
-                      htmlFor={`tag-${tag.id}`}
-                      className="text-gray-900 font-medium text-sm cursor-pointer block"
-                    >
-                      {tag.name}
-                    </label>
-                    {tag.category && (
-                      <span className="text-xs text-gray-600 block mt-0.5">
-                        {tag.category}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+      {/* Selected Tags Summary - Only shown if tags are selected */}
+      {selectedTags.length > 0 && (
+        <div className="bg-white/25 rounded-xl p-4 backdrop-blur-sm">
+          <div className="mb-2">
+            <label className="block text-sm font-medium text-gray-800">
+              Selected topics:
+            </label>
           </div>
-        ) : (
-          <div className="bg-white/10 rounded-lg p-4 text-center">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-gray-700" />
-            <p className="text-gray-800 text-sm">Loading available topics...</p>
-          </div>
-        )}
-        
-        {/* Selected Tags Summary */}
-        {selectedTags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {selectedTags.map(tag => (
               <div key={tag} className="bg-yulu-dashboard-blue text-white text-xs rounded-full px-3 py-1 flex items-center">
                 {tag}
@@ -327,8 +238,8 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
       
       {/* Fixed Submit Button at bottom */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
