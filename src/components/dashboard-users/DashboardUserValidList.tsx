@@ -15,7 +15,7 @@ const DashboardUserValidList: React.FC<DashboardUserValidListProps> = ({ users }
             <TableHead>User ID</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead>Employee ID / एम्प्लॉई आईडी</TableHead>
+            <TableHead>Employee ID</TableHead>
             <TableHead>Phone</TableHead>
             <TableHead>City</TableHead>
             <TableHead>Cluster</TableHead>
