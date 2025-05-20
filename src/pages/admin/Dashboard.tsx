@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import StatsCard from "@/components/admin/dashboard/StatsCard";
 import { useQuery } from "@tanstack/react-query";
-import { getIssueStats } from "@/services/issues/issueStatsService";
+import { getIssueStats, IssueStats } from "@/services/issues/issueStatsService";
 import { getUsers } from "@/services/userService";
 import { 
   Users, Settings, BarChart3, MessageSquare, ClipboardList, 
@@ -102,8 +102,6 @@ const AdminDashboard = () => {
           icon={<Settings className="h-10 w-10 text-gray-500" />}
           link="/admin/settings"
         />
-        
-        {/* Removing the Sentiment Analysis quick link */}
       </div>
     </AdminLayout>
   );
