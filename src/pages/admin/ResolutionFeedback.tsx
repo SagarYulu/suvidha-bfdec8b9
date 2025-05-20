@@ -16,7 +16,7 @@ const ResolutionFeedback = () => {
   ];
 
   return (
-    <AdminLayout title="Resolution Feedback" requiredPermission="view:analytics">
+    <AdminLayout title="Resolution Feedback" requiredPermission="manage:analytics">
       <div className="space-y-6">
         <Tabs defaultValue="analytics" className="w-full">
           <TabsList>

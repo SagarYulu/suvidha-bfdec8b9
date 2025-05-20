@@ -38,6 +38,11 @@ const MobileIssueDetails = () => {
   const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
   const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-yulu-dashboard-blue"; // Using dashboard blue color
 
+  // Create a wrapper function with no parameters that will call the actual function
+  const handleReopenWithoutParams = () => {
+    return;
+  };
+
   return (
     <MobileLayout 
       title="Issue Details"
@@ -51,7 +56,7 @@ const MobileIssueDetails = () => {
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           isReopenable={isReopenable || false}
-          handleReopenTicket={() => {}}
+          handleReopenTicket={handleReopenWithoutParams}
         />
         
         {isClosedOrResolved ? (

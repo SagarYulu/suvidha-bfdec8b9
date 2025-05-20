@@ -158,23 +158,93 @@ export const getResolverLeaderboard = async (filters: {
   ticketCategory?: string;
 }): Promise<ResolverStats[]> => {
   try {
-    // This is a complex query that would require joining multiple tables
-    // This is a simplified version
-    const { data: resolvers, error: resolversError } = await supabase.rpc(
-      'get_resolver_feedback_stats',
-      { 
-        start_date: filters.startDate,
-        end_date: filters.endDate,
-        ticket_type: filters.ticketCategory 
-      }
-    );
+    // Since we don't have the stored procedure available, let's implement a direct query approach
+    // First, get closed tickets that match the filters
+    let query = supabase
+      .from('issues')
+      .select(`
+        id, 
+        assigned_to,
+        closed_at
+      `)
+      .eq('status', 'closed');
     
-    if (resolversError) {
-      console.error("Error fetching resolver stats:", resolversError);
+    if (filters.ticketCategory) {
+      query = query.eq('type_id', filters.ticketCategory);
+    }
+    
+    if (filters.startDate) {
+      query = query.gte('closed_at', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      query = query.lte('closed_at', filters.endDate);
+    }
+
+    const { data: tickets, error: ticketsError } = await query;
+    
+    if (ticketsError || !tickets) {
+      console.error("Error fetching tickets:", ticketsError);
       return [];
     }
     
-    return resolvers || [];
+    // Group tickets by resolver
+    const resolverMap: Record<string, { tickets: string[], name: string }> = {};
+    
+    for (const ticket of tickets) {
+      if (ticket.assigned_to) {
+        if (!resolverMap[ticket.assigned_to]) {
+          resolverMap[ticket.assigned_to] = {
+            tickets: [],
+            name: "Resolver " + ticket.assigned_to.substring(0, 5) // Placeholder name
+          };
+        }
+        resolverMap[ticket.assigned_to].tickets.push(ticket.id);
+      }
+    }
+    
+    // Get feedback for these tickets
+    const allTicketIds = tickets.map(ticket => ticket.id);
+    
+    if (allTicketIds.length === 0) {
+      return [];
+    }
+    
+    const { data: feedbacks, error: feedbackError } = await supabase
+      .from('resolution_feedback')
+      .select('ticket_id, rating')
+      .in('ticket_id', allTicketIds);
+    
+    if (feedbackError) {
+      console.error("Error fetching feedback:", feedbackError);
+      return [];
+    }
+    
+    // Calculate stats for each resolver
+    const resolverStats: ResolverStats[] = [];
+    
+    for (const [resolverUuid, info] of Object.entries(resolverMap)) {
+      const resolverTickets = info.tickets;
+      const resolverFeedbacks = feedbacks?.filter(f => resolverTickets.includes(f.ticket_id)) || [];
+      
+      const totalTickets = resolverTickets.length;
+      const feedbackReceived = resolverFeedbacks.length;
+      
+      // Calculate average rating
+      const totalRating = resolverFeedbacks.reduce((sum, feedback) => sum + feedback.rating, 0);
+      const averageRating = feedbackReceived > 0 ? totalRating / feedbackReceived : 0;
+      
+      resolverStats.push({
+        resolverUuid,
+        resolverName: info.name,
+        averageRating,
+        totalTickets,
+        feedbackReceived
+      });
+    }
+    
+    // Sort by average rating (highest first)
+    return resolverStats.sort((a, b) => b.averageRating - a.averageRating);
   } catch (error) {
     console.error("Error getting resolver leaderboard:", error);
     return [];
