@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,10 +9,9 @@ import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Search, User as UserIcon, CreditCard, Smile, MessageSquare } from "lucide-react";
+import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
-import MobileSentiment from "./Sentiment";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,8 +24,6 @@ const MobileIssues = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmployeeLoading, setIsEmployeeLoading] = useState(true);
   const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
-  const [isSentimentDialogOpen, setSentimentDialogOpen] = useState(false);
-  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -135,26 +133,6 @@ const MobileIssues = () => {
     }
   }, [searchTerm, issues]);
 
-  // Show feedback prompt after a delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowFeedbackPrompt(true);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Hide feedback prompt after some time
-  useEffect(() => {
-    if (showFeedbackPrompt) {
-      const timer = setTimeout(() => {
-        setShowFeedbackPrompt(false);
-      }, 10000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [showFeedbackPrompt]);
-
   const handleRetry = () => {
     setLoadError(null);
     setIsEmployeeLoading(true);
@@ -214,25 +192,7 @@ const MobileIssues = () => {
                 </div>
                 <h2 className="text-lg font-medium">Employee Details / कर्मचारी विवरण</h2>
               </div>
-              
-              <Button 
-                onClick={() => setSentimentDialogOpen(true)}
-                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white flex items-center gap-2 relative animate-pulse"
-              >
-                <MessageSquare className="h-4 w-4" />
-                How are you feeling today? / आज आप कैसा महसूस कर रहे हैं?
-              </Button>
             </div>
-            
-            {showFeedbackPrompt && (
-              <div className="absolute -top-12 right-0 bg-yulu-dashboard-blue text-white p-2 rounded-t-lg shadow-lg animate-bounce">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Smile className="h-4 w-4" />
-                  Share your feedback! / अपनी प्रतिक्रिया साझा करें!
-                  <div className="absolute h-3 w-3 bg-yulu-dashboard-blue rotate-45 -bottom-1.5 right-10"></div>
-                </div>
-              </div>
-            )}
             
             <div className="grid grid-cols-2 gap-x-8 gap-y-3">
               <div>
@@ -388,12 +348,6 @@ const MobileIssues = () => {
           )}
         </div>
       </div>
-      
-      {/* Sentiment Dialog */}
-      <MobileSentiment 
-        isOpen={isSentimentDialogOpen}
-        onClose={() => setSentimentDialogOpen(false)}
-      />
     </MobileLayout>
   );
 };
