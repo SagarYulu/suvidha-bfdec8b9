@@ -17,7 +17,7 @@ interface MobileLayoutProps {
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({ 
   children, 
-  title,
+  title = "Dashboard", // Adding a default title to prevent errors
   className,
   bgColor = "bg-yulu-dashboard-blue" // Using dashboard blue color
 }) => {

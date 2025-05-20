@@ -23,8 +23,28 @@ export const DEFAULT_ADMIN_USER: User = {
   ifscCode: ""
 };
 
-// Security user removed from demo credentials and will be authenticated normally through database
+// New function to check if a session exists
+export const checkSession = async (): Promise<{ user: User; role: string } | null> => {
+  // Check localStorage for saved user data
+  const userDataString = localStorage.getItem("mockUser");
+  if (!userDataString) return null;
+  
+  try {
+    const userData = JSON.parse(userDataString);
+    if (userData && userData.id) {
+      return {
+        user: userData,
+        role: userData.role || "employee"
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error parsing stored session:", error);
+    return null;
+  }
+};
 
+// Security user removed from demo credentials and will be authenticated normally through database
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
 
