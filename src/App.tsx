@@ -15,6 +15,9 @@ import MobileIssues from './pages/mobile/Issues';
 import MobileIssueDetails from './pages/mobile/IssueDetails';
 import MobileNewIssue from './pages/mobile/NewIssue';
 import MobileSentiment from './pages/mobile/Sentiment';
+import AdminDashboard from './pages/admin/Dashboard';
+import AccessControl from './pages/admin/AccessControl';
+import { RBACProvider } from './contexts/RBACContext';
 
 function AppContent() {
   const { authState } = useAuth();
@@ -33,12 +36,25 @@ function AppContent() {
 
         {/* Admin routes */}
         <Route path="/admin">
-          {/* Redirect to admin login if not authenticated */}
           <Route index element={
             !authState.isAuthenticated ? (
               <Navigate to="/login" replace />
             ) : (
-              <div>Admin Dashboard</div>
+              <AdminDashboard />
+            )
+          } />
+          <Route path="access-control" element={
+            !authState.isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <AccessControl />
+            )
+          } />
+          <Route path="dashboard" element={
+            !authState.isAuthenticated ? (
+              <Navigate to="/login" replace />
+            ) : (
+              <AdminDashboard />
             )
           } />
           {/* Add more admin routes here if needed */}
@@ -75,9 +91,11 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <RBACProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </RBACProvider>
     </AuthProvider>
   );
 }
