@@ -40,7 +40,7 @@ const MobileIssueDetails = () => {
 
   // Create a wrapper function that matches the expected function signature (no parameters)
   // This is needed because IssueHeader expects a function with no parameters
-  const handleReopenTicketWrapper = () => {
+  const handleReopenTicket = () => {
     // This function deliberately doesn't do anything
     // The actual reopen functionality is handled by the ClosedIssueCommentNotice component
   };
@@ -58,7 +58,7 @@ const MobileIssueDetails = () => {
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           isReopenable={isReopenable || false}
-          handleReopenTicket={handleReopenTicketWrapper}
+          handleReopenTicket={handleReopenTicket}
         />
         
         {isClosedOrResolved ? (
