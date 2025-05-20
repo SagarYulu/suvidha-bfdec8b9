@@ -224,7 +224,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 <Button
                   key={option.value}
                   onClick={() => handleRatingSelect(option.value)}
-                  className={`${option.gradient} flex items-center justify-between px-4 py-6 w-full text-gray-800 hover:opacity-90 transition-all duration-200 shadow-md`}
+                  className={`${option.gradient} flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90 transition-all duration-200 shadow-md`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{option.emoji}</span>
@@ -246,13 +246,13 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             <div className="flex flex-col space-y-3 w-full">
               <Button
                 onClick={() => handleCategorySelect('agent')}
-                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
               >
                 About the agent / एजेंट के बारे में
               </Button>
               <Button
                 onClick={() => handleCategorySelect('resolution')}
-                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
               >
                 About the solution / समाधान के बारे में
               </Button>
@@ -272,7 +272,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 <Button
                   key={option.id}
                   onClick={() => handleReasonSelect(option.id)}
-                  className={`${getRatingGradient()} flex items-center justify-center px-4 py-4 w-full text-sm text-gray-800 hover:opacity-90 shadow-md transition-all duration-200`}
+                  className={`${getRatingGradient()} flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 shadow-md transition-all duration-200`}
                 >
                   {option.label}
                 </Button>
@@ -296,7 +296,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             />
             <Button
               onClick={handleSubmit}
-              className={`${getRatingGradient()} w-full py-6 shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
+              className={`${getRatingGradient()} w-full py-6 shadow-md text-white hover:opacity-90 transition-all duration-200`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
