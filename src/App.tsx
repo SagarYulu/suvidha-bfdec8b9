@@ -19,7 +19,6 @@ import AdminAnalytics from "./pages/admin/Analytics";
 import AdminSettings from "./pages/admin/Settings";
 import AdminLogin from "./pages/admin/Login";
 import AdminAccessControl from "./pages/admin/AccessControl";
-import AdminSentimentAnalysis from "./pages/admin/SentimentAnalysis";
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
@@ -109,12 +108,6 @@ const App = () => {
                   </AnalyticsGuard>
                 } />
                 
-                <Route path="/admin/sentiment" element={
-                  <AnalyticsGuard>
-                    <AdminSentimentAnalysis />
-                  </AnalyticsGuard>
-                } />
-                
                 <Route path="/admin/settings" element={
                   <SettingsGuard>
                     <AdminSettings />
@@ -146,6 +139,9 @@ const App = () => {
                 <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
                 <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
                 <Route path="/mobile/sentiment" element={<MobileSentiment />} />
+                
+                {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
+                <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
                 
                 {/* Fallback route */}
                 <Route path="*" element={<NotFound />} />
