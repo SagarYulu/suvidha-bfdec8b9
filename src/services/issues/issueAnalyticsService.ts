@@ -1,8 +1,17 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getIssueAuditTrail } from "./issueAuditService";
 
-export const getAnalytics = async (filters = {}) => {
+// Define an interface for analytics filters
+export interface AnalyticsFilters {
+  employeeUuids?: string[];
+  issueType?: string;
+  dateRange?: {
+    start?: string;
+    end?: string;
+  };
+}
+
+export const getAnalytics = async (filters: AnalyticsFilters = {}) => {
   try {
     console.log("Analytics filters received:", filters);
     
@@ -19,6 +28,16 @@ export const getAnalytics = async (filters = {}) => {
       // Apply issue type filter
       if (filters.issueType) {
         query = query.eq('type_id', filters.issueType);
+      }
+
+      // Apply date range filter if provided
+      if (filters.dateRange) {
+        if (filters.dateRange.start) {
+          query = query.gte('created_at', filters.dateRange.start);
+        }
+        if (filters.dateRange.end) {
+          query = query.lte('created_at', filters.dateRange.end);
+        }
       }
     }
     

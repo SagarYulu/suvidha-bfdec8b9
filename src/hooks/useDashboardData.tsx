@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAnalytics } from "@/services/issues/issueAnalyticsService";
+import { getAnalytics, AnalyticsFilters } from "@/services/issues/issueAnalyticsService";
 import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
 import { toast } from "sonner";
@@ -87,9 +87,9 @@ export const useDashboardData = () => {
     queryFn: async () => {
       console.log("Fetching analytics with filters:", filters);
       
-      // Prepare analytics filters
-      const analyticsFilters = {
-        issueType: filters.issueType,
+      // Prepare analytics filters using our new interface
+      const analyticsFilters: AnalyticsFilters = {
+        issueType: filters.issueType || undefined,
         employeeUuids: employeeUuidsByFilter.length > 0 ? employeeUuidsByFilter : undefined
       };
       
