@@ -32,8 +32,8 @@ const TicketAssignment = ({
         <div className="space-y-4">
           <div>
             <h3 className="font-medium mb-1">Currently Assigned To:</h3>
-            <p className="text-gray-800">
-              {currentAssigneeName ? currentAssigneeName : "Not assigned"}
+            <p className={`text-gray-800 ${currentAssigneeName.includes("Unknown") ? "text-amber-600" : ""}`}>
+              {currentAssigneeName}
             </p>
           </div>
           
@@ -47,7 +47,7 @@ const TicketAssignment = ({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {availableAssignees.map((assignee) => (
                   <SelectItem key={assignee.value} value={assignee.value}>
                     {assignee.label}

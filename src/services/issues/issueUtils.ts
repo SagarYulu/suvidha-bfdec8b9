@@ -45,8 +45,11 @@ const userNameCache: Record<string, string> = {};
  * Provides caching to reduce API calls
  */
 export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<string> => {
+  console.log("Looking up name for employee UUID:", employeeUuid);
+  
   // Return from cache if available
   if (userNameCache[employeeUuid]) {
+    console.log("Found in cache:", userNameCache[employeeUuid]);
     return userNameCache[employeeUuid];
   }
   
@@ -63,11 +66,32 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
   }
   
   try {
+    // IMPORTANT: First try to get from dashboard_users table
+    // This is the fix for assigned agents not showing their names
+    const { data: dashboardUser, error: dashboardError } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', employeeUuid)
+      .single();
+      
+    if (!dashboardError && dashboardUser) {
+      console.log("Found dashboard user:", dashboardUser);
+      const nameWithRole = `${dashboardUser.name} (${dashboardUser.role})`;
+      userNameCache[employeeUuid] = nameWithRole;
+      return nameWithRole;
+    } else {
+      console.log("Not found in dashboard_users, trying employees table");
+    }
+    
+    // Try regular employees table
     const user = await getUserById(employeeUuid);
     if (user) {
       // Store in cache for future use
       userNameCache[employeeUuid] = user.name;
+      console.log("Found in employees:", user.name);
       return user.name;
+    } else {
+      console.log("User not found in employees either");
     }
   } catch (error) {
     console.error(`Error fetching user name for UUID ${employeeUuid}:`, error);

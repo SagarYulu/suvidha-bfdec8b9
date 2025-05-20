@@ -13,6 +13,8 @@ export const assignIssueToUser = async (
   currentUserId: string
 ): Promise<Issue | null> => {
   try {
+    console.log(`Assigning issue ${issueId} to user ${assigneeId} by ${currentUserId}`);
+    
     const { data, error } = await supabase
       .from('issues')
       .update({
@@ -29,6 +31,8 @@ export const assignIssueToUser = async (
       throw error;
     }
     
+    console.log('Assignment database update successful');
+    
     // Create audit log entry for assignment
     await createAuditLog(
       issueId,
@@ -37,6 +41,8 @@ export const assignIssueToUser = async (
       { assigneeId },
       'Issue assigned to user'
     );
+    
+    console.log('Assignment audit log created');
     
     // Return the complete updated issue
     return await getIssueById(issueId);
