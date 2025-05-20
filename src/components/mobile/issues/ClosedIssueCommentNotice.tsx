@@ -10,13 +10,15 @@ interface ClosedIssueCommentNoticeProps {
   onReopen: (reason: string) => void;
   ticketId: string;
   resolverUuid?: string | null;
+  employeeUuid?: string;
 }
 
 const ClosedIssueCommentNotice: React.FC<ClosedIssueCommentNoticeProps> = ({
   isReopenable,
   onReopen,
   ticketId,
-  resolverUuid
+  resolverUuid,
+  employeeUuid = "" // Default to empty string if not provided
 }) => {
   const [reopenReason, setReopenReason] = useState("");
   const [showReopenForm, setShowReopenForm] = useState(false);
@@ -87,7 +89,7 @@ const ClosedIssueCommentNotice: React.FC<ClosedIssueCommentNoticeProps> = ({
           <TicketFeedbackButton 
             ticketId={ticketId} 
             resolverUuid={resolverUuid}
-            employeeUuid={""} // This will be filled from the context in the actual usage
+            employeeUuid={employeeUuid} 
           />
         )}
       </div>
