@@ -139,12 +139,12 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
     <div className="p-4 flex flex-col gap-4 pb-32 max-h-[90vh] overflow-y-auto">
       <div className="text-center">
         <h2 className={cn(
-          "text-2xl font-semibold mb-2 text-white",
+          "text-2xl font-semibold mb-2 text-gray-800",
           animateHeading && "animate-pulse"
         )}>
           How are you feeling today?
         </h2>
-        <p className="text-white/90 text-sm">Your feedback helps improve our workplace</p>
+        <p className="text-gray-700 text-sm">Your feedback helps improve our workplace</p>
       </div>
 
       {/* User Metadata Info */}
@@ -154,7 +154,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
             <Button 
               variant="ghost" 
               size="sm"
-              className="self-end text-white/90 hover:bg-white hover:bg-opacity-15"
+              className="self-end text-gray-700 hover:bg-white hover:bg-opacity-15"
               onClick={() => setShowUserMetadata(!showUserMetadata)}
             >
               <Info className="h-4 w-4 mr-1" />
@@ -169,13 +169,13 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
 
       {showUserMetadata && (
         <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-          <h3 className="text-sm font-medium text-white mb-2">Your Information</h3>
-          <div className="text-xs text-white">
-            <div className="flex justify-between py-1 border-b border-white/20">
+          <h3 className="text-sm font-medium text-gray-800 mb-2">Your Information</h3>
+          <div className="text-xs text-gray-800">
+            <div className="flex justify-between py-1 border-b border-gray-700/20">
               <span>City:</span>
               <span className="font-medium">{metadata.city}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-white/20">
+            <div className="flex justify-between py-1 border-b border-gray-700/20">
               <span>Cluster:</span>
               <span className="font-medium">{metadata.cluster}</span>
             </div>
@@ -184,7 +184,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
               <span className="font-medium">{metadata.role}</span>
             </div>
           </div>
-          <p className="text-xs text-white/80 mt-2">
+          <p className="text-xs text-gray-700 mt-2">
             This information helps us categorize feedback appropriately.
           </p>
         </div>
@@ -193,8 +193,8 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
       {/* Emoji Selection */}
       <div className="flex flex-col items-center gap-2 mt-1 bg-white/25 rounded-xl p-5 backdrop-blur-sm">
         <div className="text-6xl mb-2">{getEmoji(rating)}</div>
-        <p className="text-lg font-medium text-white">{getMoodText(rating)}</p>
-        <p className="text-sm text-white/90 text-center">{getEmotionDescription(rating)}</p>
+        <p className="text-lg font-medium text-gray-800">{getMoodText(rating)}</p>
+        <p className="text-sm text-gray-700 text-center">{getEmotionDescription(rating)}</p>
       </div>
       
       {/* Emoji Selector (Horizontal Row) */}
@@ -211,7 +211,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
             onClick={() => handleRatingChange(value)}
           >
             <span className="text-2xl">{getEmoji(value)}</span>
-            <span className="text-xs mt-1 text-white">{getMoodText(value)}</span>
+            <span className="text-xs mt-1 text-gray-800">{getMoodText(value)}</span>
           </button>
         ))}
       </div>
@@ -229,7 +229,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
       
       {/* Feedback Input */}
       <div className="bg-white/25 p-3 rounded-xl backdrop-blur-sm">
-        <label className="block text-sm font-medium mb-2 text-white">
+        <label className="block text-sm font-medium mb-2 text-gray-800">
           Tell us more about your experience (optional)
         </label>
         <div className="relative">
@@ -248,7 +248,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
         </div>
         
         {/* Word count */}
-        <div className="text-right text-xs text-white/90 mt-1">
+        <div className="text-right text-xs text-gray-700 mt-1">
           {feedback.length} characters
         </div>
       </div>
@@ -256,7 +256,7 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
       {/* Tags Section - Improved UI */}
       <div className="bg-white/25 rounded-xl p-4 mt-1 backdrop-blur-sm">
         <div className="mb-3">
-          <label className="block text-sm font-medium text-white">
+          <label className="block text-sm font-medium text-gray-800">
             Select topics related to your feedback:
           </label>
         </div>
@@ -307,8 +307,8 @@ const MobileSentimentForm: React.FC<MobileSentimentFormProps> = ({ showTrendAnal
           </div>
         ) : (
           <div className="bg-white/10 rounded-lg p-4 text-center">
-            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-white" />
-            <p className="text-white text-sm">Loading available topics...</p>
+            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2 text-gray-700" />
+            <p className="text-gray-800 text-sm">Loading available topics...</p>
           </div>
         )}
         
