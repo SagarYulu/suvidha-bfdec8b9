@@ -1,0 +1,231 @@
+
+import React, { useState } from "react";
+import AdminLayout from "@/components/AdminLayout";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon, Filter } from "lucide-react";
+import FeedbackAnalyticsContent from "@/components/feedback/FeedbackAnalyticsContent";
+
+// Comparison modes
+const COMPARISON_MODES = [
+  { value: "day", label: "Day-on-Day" },
+  { value: "week", label: "Week-on-Week" },
+  { value: "month", label: "Month-on-Month" },
+  { value: "quarter", label: "Quarter-on-Quarter" },
+  { value: "year", label: "Year-on-Year" }
+];
+
+// Mock data (in production would come from API)
+const CITIES = ["Bangalore", "Delhi", "Mumbai", "Chennai", "Hyderabad"];
+const CLUSTERS = ["North", "South", "East", "West", "Central"];
+const TICKET_CATEGORIES = [
+  { id: "pf", name: "PF" },
+  { id: "esi", name: "ESI" },
+  { id: "salary", name: "Salary" },
+  { id: "leave", name: "Leave" },
+  { id: "other", name: "Other" }
+];
+const FEEDBACK_TYPES = [
+  { value: "agent", label: "Agent" },
+  { value: "solution", label: "Solution" },
+  { value: "both", label: "Both" }
+];
+
+const FeedbackAnalytics = () => {
+  // Filters state
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCluster, setSelectedCluster] = useState<string>("");
+  const [selectedResolver, setSelectedResolver] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedFeedbackType, setSelectedFeedbackType] = useState<string>("both");
+  const [selectedComparisonMode, setSelectedComparisonMode] = useState<string>("day");
+  const [dateRange, setDateRange] = useState<{start?: string; end?: string}>({});
+
+  // Active tab state
+  const [activeTab, setActiveTab] = useState<"overview" | "agent" | "solution">("overview");
+
+  return (
+    <AdminLayout title="Feedback Analytics" requiredPermission="view:dashboard">
+      <div className="space-y-6">
+        {/* Filters */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center">
+              <Filter className="h-5 w-5 mr-2" />
+              Filters
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {/* City filter */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">City</label>
+                <Select value={selectedCity} onValueChange={setSelectedCity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Cities" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Cities</SelectItem>
+                    {CITIES.map(city => (
+                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Cluster filter */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Cluster</label>
+                <Select value={selectedCluster} onValueChange={setSelectedCluster}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Clusters" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Clusters</SelectItem>
+                    {CLUSTERS.map(cluster => (
+                      <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Resolver filter */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Resolver</label>
+                <Select value={selectedResolver} onValueChange={setSelectedResolver}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Resolvers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Resolvers</SelectItem>
+                    <SelectItem value="resolver1">Resolver 1</SelectItem>
+                    <SelectItem value="resolver2">Resolver 2</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Ticket category filter */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Ticket Category</label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Categories" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All Categories</SelectItem>
+                    {TICKET_CATEGORIES.map(category => (
+                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Feedback type filter */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Feedback Type</label>
+                <Select value={selectedFeedbackType} onValueChange={setSelectedFeedbackType}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FEEDBACK_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date range picker placeholder */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Date Range</label>
+                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  <span>{dateRange.start && dateRange.end ? 
+                    `${format(new Date(dateRange.start), "PP")} - ${format(new Date(dateRange.end), "PP")}` : 
+                    "Select dates"}
+                  </span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Comparison mode selector */}
+            <div className="mt-4">
+              <label className="text-sm font-medium mb-1.5 block">Comparison Mode</label>
+              <div className="flex flex-wrap gap-2">
+                {COMPARISON_MODES.map(mode => (
+                  <Button 
+                    key={mode.value}
+                    variant={selectedComparisonMode === mode.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedComparisonMode(mode.value)}
+                  >
+                    {mode.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Analytics Tabs */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)}>
+          <TabsList className="grid grid-cols-3 w-[400px]">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
+            <TabsTrigger value="solution">Solution Feedback</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-6">
+            <FeedbackAnalyticsContent 
+              view="overview"
+              filters={{
+                city: selectedCity,
+                cluster: selectedCluster,
+                resolver: selectedResolver,
+                category: selectedCategory,
+                feedbackType: selectedFeedbackType,
+                comparisonMode: selectedComparisonMode,
+                dateRange
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="agent" className="mt-6">
+            <FeedbackAnalyticsContent 
+              view="agent"
+              filters={{
+                city: selectedCity,
+                cluster: selectedCluster,
+                resolver: selectedResolver,
+                category: selectedCategory,
+                feedbackType: "agent",
+                comparisonMode: selectedComparisonMode,
+                dateRange
+              }}
+            />
+          </TabsContent>
+
+          <TabsContent value="solution" className="mt-6">
+            <FeedbackAnalyticsContent 
+              view="solution"
+              filters={{
+                city: selectedCity,
+                cluster: selectedCluster,
+                resolver: selectedResolver,
+                category: selectedCategory,
+                feedbackType: "solution",
+                comparisonMode: selectedComparisonMode,
+                dateRange
+              }}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default FeedbackAnalytics;

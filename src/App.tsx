@@ -26,6 +26,7 @@ import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
 import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 import TestDataGenerator from "./pages/admin/TestDataGenerator";
+import FeedbackAnalytics from "./pages/FeedbackAnalytics";
 
 // Import guards
 import {
@@ -144,6 +145,13 @@ const App = () => {
                 <Route path="/mobile/issues" element={<MobileIssues />} />
                 <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
                 <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
+                
+                {/* New Feedback Analytics Route */}
+                <Route path="/feedback-analytics" element={
+                  <DashboardGuard redirectTo="/admin/login">
+                    <FeedbackAnalytics />
+                  </DashboardGuard>
+                } />
                 
                 {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
                 <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
