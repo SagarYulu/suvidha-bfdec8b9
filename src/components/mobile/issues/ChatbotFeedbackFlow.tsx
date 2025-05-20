@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Smile, Meh, Frown, CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -215,20 +215,20 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'rating':
         return (
           <div className="flex flex-col items-center text-center space-y-6">
-            <h3 className="text-lg font-medium">
+            <h3 className="text-lg font-medium text-gray-800">
               How was your experience?<br />
-              <span className="text-sm font-normal">आपका अनुभव कैसा रहा?</span>
+              <span className="text-sm font-normal text-gray-600">आपका अनुभव कैसा रहा?</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
               {ratingOptions.map((option) => (
                 <Button
                   key={option.value}
                   onClick={() => handleRatingSelect(option.value)}
-                  className={`${option.gradient} flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90 transition-all duration-200 shadow-md`}
+                  className={`${option.gradient} flex items-center justify-between px-4 py-6 w-full text-gray-800 hover:opacity-90 transition-all duration-200 shadow-md`}
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{option.emoji}</span>
-                    <span>{option.label}</span>
+                    <span className="text-gray-800 font-medium">{option.label}</span>
                   </div>
                 </Button>
               ))}
@@ -239,20 +239,20 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'category':
         return (
           <div className="flex flex-col items-center text-center space-y-6">
-            <h3 className="text-lg font-medium">
+            <h3 className="text-lg font-medium text-gray-800">
               What is this about?<br />
-              <span className="text-sm font-normal">यह किस बारे में है?</span>
+              <span className="text-sm font-normal text-gray-600">यह किस बारे में है?</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
               <Button
                 onClick={() => handleCategorySelect('agent')}
-                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
               >
                 About the agent / एजेंट के बारे में
               </Button>
               <Button
                 onClick={() => handleCategorySelect('resolution')}
-                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200`}
+                className={`${getRatingGradient()} flex items-center justify-center px-4 py-6 w-full shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
               >
                 About the solution / समाधान के बारे में
               </Button>
@@ -263,16 +263,16 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'reason':
         return (
           <div className="flex flex-col items-center text-center space-y-6">
-            <h3 className="text-lg font-medium">
+            <h3 className="text-lg font-medium text-gray-800">
               Tell us more<br />
-              <span className="text-sm font-normal">और बताएं</span>
+              <span className="text-sm font-normal text-gray-600">और बताएं</span>
             </h3>
             <div className="flex flex-col space-y-3 w-full">
               {getReasonOptions(category, rating).map((option) => (
                 <Button
                   key={option.id}
                   onClick={() => handleReasonSelect(option.id)}
-                  className={`${getRatingGradient()} flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 shadow-md transition-all duration-200`}
+                  className={`${getRatingGradient()} flex items-center justify-center px-4 py-4 w-full text-sm text-gray-800 hover:opacity-90 shadow-md transition-all duration-200`}
                 >
                   {option.label}
                 </Button>
@@ -284,19 +284,19 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'comment':
         return (
           <div className="flex flex-col items-center text-center space-y-6">
-            <h3 className="text-lg font-medium">
+            <h3 className="text-lg font-medium text-gray-800">
               Anything else?<br />
-              <span className="text-sm font-normal">कुछ और?</span>
+              <span className="text-sm font-normal text-gray-600">कुछ और?</span>
             </h3>
             <Textarea
               placeholder="Your comments (optional) / आपकी टिप्पणियां (वैकल्पिक)"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full resize-none h-32 border-amber-300 focus:border-amber-500 focus:ring focus:ring-amber-200 transition-all duration-200"
+              className="w-full resize-none h-32 border-amber-300 focus:border-amber-500 focus:ring focus:ring-amber-200 transition-all duration-200 text-gray-800"
             />
             <Button
               onClick={handleSubmit}
-              className={`${getRatingGradient()} w-full py-6 shadow-md text-white hover:opacity-90 transition-all duration-200`}
+              className={`${getRatingGradient()} w-full py-6 shadow-md text-gray-800 hover:opacity-90 transition-all duration-200`}
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -317,9 +317,9 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             <div className="bg-amber-100 rounded-full p-4">
               <CheckCircle className="h-10 w-10 text-amber-500" />
             </div>
-            <h3 className="text-lg font-medium text-center">
+            <h3 className="text-lg font-medium text-center text-gray-800">
               Thanks for your feedback!<br />
-              <span className="text-sm font-normal">आपकी प्रतिक्रिया के लिए धन्यवाद!</span>
+              <span className="text-sm font-normal text-gray-600">आपकी प्रतिक्रिया के लिए धन्यवाद!</span>
             </h3>
           </div>
         );
@@ -328,7 +328,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
 
   // Memoize the dialog content
   const dialogContent = React.useMemo(() => (
-    <DialogContent className="sm:max-w-md p-6 rounded-2xl border-amber-100 shadow-lg">
+    <DialogContent className="sm:max-w-md p-6 rounded-2xl border-amber-100 shadow-lg bg-white">
       {renderStepContent()}
     </DialogContent>
   ), [currentStep, rating, category, comment, isSubmitting]);
