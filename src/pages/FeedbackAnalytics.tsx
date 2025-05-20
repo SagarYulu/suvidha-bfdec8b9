@@ -37,10 +37,10 @@ const FEEDBACK_TYPES: {value: "agent" | "solution" | "both"; label: string}[] = 
 
 const FeedbackAnalytics = () => {
   // Filters state with proper types
-  const [selectedCity, setSelectedCity] = useState<string>("");
-  const [selectedCluster, setSelectedCluster] = useState<string>("");
-  const [selectedResolver, setSelectedResolver] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("all");
+  const [selectedCluster, setSelectedCluster] = useState<string>("all");
+  const [selectedResolver, setSelectedResolver] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "solution" | "both">("both");
   const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
   const [dateRange, setDateRange] = useState<{start?: string; end?: string}>({});
@@ -61,6 +61,12 @@ const FeedbackAnalytics = () => {
       setSelectedComparisonMode(value);
     }
   };
+
+  // Helper functions to convert the "all" values to empty strings for the filter object
+  const getCityFilter = () => selectedCity === "all" ? "" : selectedCity;
+  const getClusterFilter = () => selectedCluster === "all" ? "" : selectedCluster;
+  const getResolverFilter = () => selectedResolver === "all" ? "" : selectedResolver;
+  const getCategoryFilter = () => selectedCategory === "all" ? "" : selectedCategory;
 
   return (
     <AdminLayout title="Feedback Analytics" requiredPermission="view:dashboard">
@@ -83,7 +89,7 @@ const FeedbackAnalytics = () => {
                     <SelectValue placeholder="All Cities" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Cities</SelectItem>
+                    <SelectItem value="all">All Cities</SelectItem>
                     {CITIES.map(city => (
                       <SelectItem key={city} value={city}>{city}</SelectItem>
                     ))}
@@ -99,7 +105,7 @@ const FeedbackAnalytics = () => {
                     <SelectValue placeholder="All Clusters" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Clusters</SelectItem>
+                    <SelectItem value="all">All Clusters</SelectItem>
                     {CLUSTERS.map(cluster => (
                       <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                     ))}
@@ -115,7 +121,7 @@ const FeedbackAnalytics = () => {
                     <SelectValue placeholder="All Resolvers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Resolvers</SelectItem>
+                    <SelectItem value="all">All Resolvers</SelectItem>
                     <SelectItem value="resolver1">Resolver 1</SelectItem>
                     <SelectItem value="resolver2">Resolver 2</SelectItem>
                   </SelectContent>
@@ -130,7 +136,7 @@ const FeedbackAnalytics = () => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     {TICKET_CATEGORIES.map(category => (
                       <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                     ))}
@@ -200,10 +206,10 @@ const FeedbackAnalytics = () => {
             <FeedbackAnalyticsContent 
               view="overview"
               filters={{
-                city: selectedCity,
-                cluster: selectedCluster,
-                resolver: selectedResolver,
-                category: selectedCategory,
+                city: getCityFilter(),
+                cluster: getClusterFilter(),
+                resolver: getResolverFilter(),
+                category: getCategoryFilter(),
                 feedbackType: selectedFeedbackType,
                 comparisonMode: selectedComparisonMode,
                 dateRange
@@ -215,10 +221,10 @@ const FeedbackAnalytics = () => {
             <FeedbackAnalyticsContent 
               view="agent"
               filters={{
-                city: selectedCity,
-                cluster: selectedCluster,
-                resolver: selectedResolver,
-                category: selectedCategory,
+                city: getCityFilter(),
+                cluster: getClusterFilter(),
+                resolver: getResolverFilter(),
+                category: getCategoryFilter(),
                 feedbackType: "agent",
                 comparisonMode: selectedComparisonMode,
                 dateRange
@@ -230,10 +236,10 @@ const FeedbackAnalytics = () => {
             <FeedbackAnalyticsContent 
               view="solution"
               filters={{
-                city: selectedCity,
-                cluster: selectedCluster,
-                resolver: selectedResolver,
-                category: selectedCategory,
+                city: getCityFilter(),
+                cluster: getClusterFilter(),
+                resolver: getResolverFilter(),
+                category: getCategoryFilter(),
                 feedbackType: "solution",
                 comparisonMode: selectedComparisonMode,
                 dateRange
