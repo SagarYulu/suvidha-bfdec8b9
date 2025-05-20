@@ -14,7 +14,6 @@ import {
   ChevronDown,
   UserPlus,
   Ticket,
-  Smile
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -152,7 +151,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
     }
     
     // Check if we're in analytics pages
-    if (location.pathname.includes('/admin/analytics') || location.pathname.includes('/admin/sentiment')) {
+    if (location.pathname.includes('/admin/analytics')) {
       setOpenMenus(prev => ({
         ...prev,
         analytics: true
@@ -239,12 +238,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
               icon={BarChart3} 
               label="Issue Analytics" 
               isActive={location.pathname === "/admin/analytics"}
-            />
-            <SidebarLink 
-              href="/admin/sentiment" 
-              icon={Smile} 
-              label="Sentiment Analysis" 
-              isActive={location.pathname === "/admin/sentiment"}
             />
           </DropdownMenu>
         )}

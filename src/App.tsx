@@ -23,7 +23,6 @@ import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import MobileSentiment from "./pages/mobile/Sentiment";
 import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 import TestDataGenerator from "./pages/admin/TestDataGenerator";
 
@@ -138,10 +137,10 @@ const App = () => {
                 <Route path="/mobile/issues" element={<MobileIssues />} />
                 <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
                 <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-                <Route path="/mobile/sentiment" element={<MobileSentiment />} />
                 
                 {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
                 <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
+                <Route path="/mobile/sentiment" element={<Navigate to="/mobile/issues" replace />} />
                 
                 {/* Fallback route */}
                 <Route path="*" element={<NotFound />} />
