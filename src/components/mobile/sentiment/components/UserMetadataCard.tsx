@@ -1,17 +1,14 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Info } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-interface UserMetadata {
-  city: string;
-  cluster: string;
-  role: string;
-}
+import { InfoIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface UserMetadataCardProps {
-  metadata: UserMetadata;
+  metadata: {
+    city: string;
+    cluster: string;
+    role: string;
+  };
   showMetadata: boolean;
   toggleMetadata: () => void;
 }
@@ -23,46 +20,38 @@ const UserMetadataCard: React.FC<UserMetadataCardProps> = ({
 }) => {
   return (
     <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="self-end text-gray-700 hover:bg-white hover:bg-opacity-15"
-              onClick={toggleMetadata}
-            >
-              <Info className="h-4 w-4 mr-1" />
-              Your Info
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Click to view what information will be sent with your feedback</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-
+      <button
+        onClick={toggleMetadata}
+        className="flex items-center justify-center mx-auto px-4 py-2 bg-white/50 hover:bg-white/60 rounded-full text-gray-800 text-sm transition-colors"
+      >
+        <InfoIcon className="w-4 h-4 mr-1" />
+        {showMetadata ? "Hide Details" : "Review Your Details"}
+        {showMetadata ? (
+          <ChevronUp className="ml-1 h-4 w-4" />
+        ) : (
+          <ChevronDown className="ml-1 h-4 w-4" />
+        )}
+      </button>
+      
       {showMetadata && (
-        <div className="bg-white/20 rounded-lg p-3 backdrop-blur-sm">
-          <h3 className="text-sm font-medium text-gray-800 mb-2">Your Information</h3>
-          <div className="text-xs text-gray-800">
-            <div className="flex justify-between py-1 border-b border-gray-700/20">
-              <span>City:</span>
-              <span className="font-medium">{metadata.city}</span>
-            </div>
-            <div className="flex justify-between py-1 border-b border-gray-700/20">
-              <span>Cluster:</span>
-              <span className="font-medium">{metadata.cluster}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span>Role:</span>
-              <span className="font-medium">{metadata.role}</span>
-            </div>
-          </div>
-          <p className="text-xs text-gray-700 mt-2">
-            This information helps us categorize feedback appropriately.
-          </p>
-        </div>
+        <Card className="bg-white/70 border-amber-200">
+          <CardContent className="pt-4 pb-2 px-4">
+            <dl className="space-y-1 text-sm">
+              <div className="flex items-center justify-between">
+                <dt className="font-medium text-gray-800">City:</dt>
+                <dd className="text-gray-700">{metadata.city}</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="font-medium text-gray-800">Cluster:</dt>
+                <dd className="text-gray-700">{metadata.cluster}</dd>
+              </div>
+              <div className="flex items-center justify-between">
+                <dt className="font-medium text-gray-800">Role:</dt>
+                <dd className="text-gray-700">{metadata.role}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
       )}
     </>
   );

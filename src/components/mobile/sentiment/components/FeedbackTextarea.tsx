@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 interface FeedbackTextareaProps {
@@ -17,24 +18,32 @@ const FeedbackTextarea: React.FC<FeedbackTextareaProps> = ({
   onFeedbackChange
 }) => {
   return (
-    <div className="bg-white/25 p-3 rounded-xl backdrop-blur-sm mt-4">
-      <label className="block text-sm font-medium mb-2 text-gray-800">
-        Tell us more about your experience (optional)
+    <div className="relative mt-2">
+      <label 
+        htmlFor="feedback" 
+        className="block text-sm font-medium text-gray-800 mb-2"
+      >
+        Your Feedback
       </label>
-      <div className="relative">
-        <Textarea
-          placeholder="Share your thoughts, concerns, or suggestions..."
-          value={feedback}
-          onChange={(e) => onFeedbackChange(e.target.value)}
-          className="min-h-[100px] max-h-[150px] resize-none bg-white border-none text-gray-800"
-          disabled={isSubmitting}
-        />
-        {isAnalyzing && (
-          <div className="absolute top-2 right-2">
-            <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-          </div>
+      <Textarea
+        id="feedback"
+        value={feedback}
+        onChange={(e) => onFeedbackChange(e.target.value)}
+        placeholder="Tell us about your experience..."
+        disabled={isSubmitting}
+        className={cn(
+          "min-h-[100px] resize-none border border-amber-300 bg-white/80 text-gray-800 focus-visible:ring-amber-500",
+          isAnalyzing ? "pr-10" : ""
         )}
-      </div>
+      />
+      {isAnalyzing && (
+        <div className="absolute right-3 top-9">
+          <Loader2 className="h-5 w-5 animate-spin text-amber-500" />
+        </div>
+      )}
+      <p className="text-xs text-gray-700 mt-1">
+        Share your thoughts (optional)
+      </p>
     </div>
   );
 };

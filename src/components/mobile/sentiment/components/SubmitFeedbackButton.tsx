@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
 interface SubmitFeedbackButtonProps {
   isSubmitting: boolean;
@@ -13,22 +13,19 @@ const SubmitFeedbackButton: React.FC<SubmitFeedbackButtonProps> = ({
   onSubmit
 }) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-yulu-dashboard-blue to-yulu-dashboard-blue/90">
-      <Button 
-        className="w-full bg-white hover:bg-white/90 text-yulu-dashboard-blue hover:text-yulu-dashboard-blue text-lg font-medium py-6 rounded-xl shadow-lg"
+    <div className="mt-6 sticky bottom-0 pb-4">
+      <Button
         onClick={onSubmit}
         disabled={isSubmitting}
+        className="w-full bg-amber-500 hover:bg-amber-600 text-gray-800 font-medium rounded-full py-6"
       >
         {isSubmitting ? (
           <>
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Submitting...
           </>
         ) : (
-          <>
-            <CheckCircle className="mr-2 h-5 w-5" />
-            Submit Feedback
-          </>
+          "Submit Feedback"
         )}
       </Button>
     </div>

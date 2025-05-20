@@ -38,7 +38,7 @@ export const useSentiment = () => {
   };
   
   const handleFeedbackChangeWrapper = (value: string) => {
-    handleFeedbackChange(value, setAnalysisResult as any, setSuggestedTags);
+    handleFeedbackChange(value, analysisResult, setSuggestedTags);
   };
   
   // Auto-analyze feedback when the user stops typing

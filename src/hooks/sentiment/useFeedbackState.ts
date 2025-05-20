@@ -7,14 +7,17 @@ export const useFeedbackState = () => {
 
   const handleFeedbackChange = (
     value: string,
-    setAnalysisResult: React.Dispatch<React.SetStateAction<any | null>>,
+    analysisResult: any | null,
     setSuggestedTags: React.Dispatch<React.SetStateAction<string[]>>
   ) => {
     setFeedback(value);
     
     // Reset analysis if feedback is cleared
     if (!value.trim()) {
-      setAnalysisResult(null);
+      // If analysisResult is passed in correctly, reset it using null
+      if (analysisResult !== undefined) {
+        analysisResult = null;
+      }
       setSuggestedTags([]);
     }
   };
