@@ -51,7 +51,7 @@ export const useIssueComments = (
     }
   };
 
-  const handleAddPrivateComment = async (message: string) => {
+  const handleAddPrivateComment = async (message: string): Promise<void> => {
     if (!issueId || !message.trim() || !currentUserId) return;
     
     try {
@@ -74,7 +74,6 @@ export const useIssueComments = (
           title: "Success",
           description: "Private message sent",
         });
-        return true;
       }
     } catch (error) {
       console.error("Error adding private comment:", error);
@@ -83,7 +82,6 @@ export const useIssueComments = (
         description: "Failed to send private message",
         variant: "destructive",
       });
-      return false;
     }
   };
 

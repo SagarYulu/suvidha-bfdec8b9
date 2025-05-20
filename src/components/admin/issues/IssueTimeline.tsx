@@ -21,8 +21,22 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
   auditTrail = [],
   commenterNames 
 }) => {
+  // Define event types for better type checking
+  type TimelineEvent = {
+    id: string;
+    type: 'creation' | 'assignment' | 'status' | 'comment';
+    timestamp: string;
+    employeeUuid: string;
+    content: string;
+  } & (
+    | { type: 'status'; previousStatus?: string; newStatus?: string }
+    | { type: 'comment'; isPrivate: boolean }
+    | { type: 'creation' }
+    | { type: 'assignment' }
+  );
+
   // Combine comments and status changes for timeline
-  const timelineEvents = [
+  const timelineEvents: TimelineEvent[] = [
     // Creation event
     {
       id: 'creation',
@@ -44,7 +58,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
       .filter(event => event.action === 'status_changed')
       .map(event => ({
         id: event.id,
-        type: 'status',
+        type: 'status' as const,
         timestamp: event.createdAt,
         employeeUuid: event.employeeUuid,
         content: `Status changed from ${event.previousStatus} to ${event.newStatus}`,
@@ -54,7 +68,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
     // Comment events
     ...issue.comments.map(comment => ({
       id: comment.id,
-      type: 'comment',
+      type: 'comment' as const,
       timestamp: comment.createdAt,
       employeeUuid: comment.employeeUuid,
       content: comment.content,

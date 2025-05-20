@@ -30,6 +30,43 @@ export const getIssueAuditTrail = async (issueId: string) => {
   }
 };
 
+// Adding a new export for the function referenced in other files
+export const createAuditLog = async (
+  issueId: string,
+  employeeUuid: string,
+  action: string,
+  details?: Record<string, any>,
+  description?: string
+) => {
+  try {
+    // Extract previous and new status from details if status_change action
+    const previousStatus = action === 'status_change' ? details?.previousStatus : null;
+    const newStatus = action === 'status_change' ? details?.newStatus : null;
+
+    const { data, error } = await supabase
+      .from('issue_audit_trail')
+      .insert({
+        issue_id: issueId,
+        employee_uuid: employeeUuid,
+        action,
+        previous_status: previousStatus,
+        new_status: newStatus,
+        details
+      });
+    
+    if (error) {
+      console.error("Error creating audit log:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error in createAuditLog:", error);
+    return false;
+  }
+};
+
+// Re-export logAuditTrail for backward compatibility
 export const logAuditTrail = async (
   issueId: string,
   employeeUuid: string,
@@ -61,3 +98,6 @@ export const logAuditTrail = async (
     return false;
   }
 };
+
+// Alias for getIssueAuditTrail to fix import errors
+export const getAuditTrail = getIssueAuditTrail;

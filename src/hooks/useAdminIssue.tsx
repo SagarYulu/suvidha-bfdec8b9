@@ -87,6 +87,11 @@ export const useAdminIssue = (issueId?: string) => {
   const isCurrentUserAssignee = issue?.assignedTo === currentUserId;
   const isCurrentUserAssigner = issue?.employeeUuid === currentUserId;
 
+  // Create a wrapper for the private comment handler that returns void instead of boolean
+  const handleAddPrivateCommentVoid = async (message: string): Promise<void> => {
+    await handleAddPrivateComment(message);
+  };
+
   // Combine and return all the hooks' values and functions
   return {
     // Issue details
@@ -122,7 +127,7 @@ export const useAdminIssue = (issueId?: string) => {
     handleAssignIssue,
     handleStatusChange,
     handleAddComment,
-    handleAddPrivateComment,
+    handleAddPrivateComment: handleAddPrivateCommentVoid,
     handleReopenTicket,
     formatDate,
     currentUserId,

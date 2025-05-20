@@ -47,6 +47,12 @@ const AdminIssueDetails = () => {
     isCurrentUserAssigner
   } = useAdminIssue(id);
 
+  // Create a wrapper function to handle the Promise<boolean> to Promise<void> conversion
+  const handlePrivateMessage = async (message: string): Promise<void> => {
+    await handleAddPrivateComment(message);
+    return;
+  };
+
   if (isLoading) {
     return <IssueLoading />;
   }
@@ -92,7 +98,7 @@ const AdminIssueDetails = () => {
                 commenterNames={commenterNames}
                 currentUserId={currentUserId}
                 formatDate={formatDate}
-                onSendPrivateMessage={handleAddPrivateComment}
+                onSendPrivateMessage={handlePrivateMessage}
               />
             )}
 

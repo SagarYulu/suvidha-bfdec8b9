@@ -81,7 +81,8 @@ export const getFeedbackStats = async (filters: {
       query = query.lte('closed_at', filters.endDate);
     }
 
-    const { data: tickets, error: ticketsError, count: totalClosedTickets } = await query.select('*', { count: 'exact' });
+    const { data: tickets, error: ticketsError } = await query.select('*', { count: 'exact' });
+    const totalClosedTickets = tickets?.length || 0;
     
     if (ticketsError) {
       console.error("Error fetching tickets:", ticketsError);
@@ -107,11 +108,11 @@ export const getFeedbackStats = async (filters: {
       };
     }
     
-    const { data: feedbacks, error: feedbackError, count: feedbackCount } = await supabase
+    const { data: feedbacks, error: feedbackError } = await supabase
       .from('resolution_feedback')
-      .select('ticket_id, rating', { count: 'exact' })
+      .select('ticket_id, rating')
       .in('ticket_id', ticketIds);
-    
+
     if (feedbackError) {
       console.error("Error fetching feedback:", feedbackError);
       return {
@@ -124,8 +125,8 @@ export const getFeedbackStats = async (filters: {
     }
     
     // Calculate stats
-    const totalTickets = totalClosedTickets || 0;
-    const feedbackReceivedCount = feedbackCount || 0;
+    const totalTickets = totalClosedTickets;
+    const feedbackReceivedCount = feedbacks?.length || 0;
     const feedbackPercentage = totalTickets > 0 ? (feedbackReceivedCount / totalTickets) * 100 : 0;
     
     // Calculate average rating
