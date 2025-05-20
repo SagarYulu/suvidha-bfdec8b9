@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface FeedbackStats {
@@ -81,7 +80,8 @@ export const getFeedbackStats = async (filters: {
       query = query.lte('closed_at', filters.endDate);
     }
 
-    const { data: tickets, error: ticketsError } = await query.select('*', { count: 'exact' });
+    // Fix: Include only one argument in count() - either 'exact' or 'planned'
+    const { data: tickets, error: ticketsError } = await query;
     const totalClosedTickets = tickets?.length || 0;
     
     if (ticketsError) {
