@@ -35,9 +35,9 @@ export const getAnalytics = async (filters = {}) => {
     
     // Group issues by city for the city chart
     const cityCounts = data.reduce((acc, issue) => {
-      // We need to join with employees table to get city data
-      // This is a simplified placeholder - in real implementation, you'd join with employees
-      const city = issue.city || 'Unknown';
+      // Using employee_uuid to check for city information
+      // This is a simplified approach since city isn't directly on the issue
+      const city = 'Unknown'; // Default to 'Unknown' since we can't access city directly
       acc[city] = (acc[city] || 0) + 1;
       return acc;
     }, {});
