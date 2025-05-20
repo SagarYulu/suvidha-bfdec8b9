@@ -160,6 +160,18 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           for (const perm of allPermissions) {
             cache[perm.name] = true;
           }
+        } else if (authState.role === 'HR Admin') {
+          // HR Admin specific permissions
+          console.log('HR Admin role detected - granting specific permissions');
+          cache['view:dashboard'] = true;
+          cache['manage:users'] = true;
+          cache['manage:issues'] = true; // Added issues permission for HR Admin
+        } else if (authState.role === 'Payroll Ops') {
+          // Payroll Ops specific permissions
+          console.log('Payroll Ops role detected - granting specific permissions');
+          cache['view:dashboard'] = true;
+          cache['manage:settings'] = true;
+          cache['manage:issues'] = true; // Added issues permission for Payroll Ops
         } else if (authState.role === 'security-admin') {
           console.log('Security admin role detected - granting specific permissions');
           cache['view:dashboard'] = true;
@@ -168,9 +180,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         } else if (authState.role === 'City Head' || 
                    authState.role === 'Revenue and Ops Head' || 
                    authState.role === 'CRM' || 
-                   authState.role === 'Cluster Head' || 
-                   authState.role === 'Payroll Ops' || 
-                   authState.role === 'HR Admin') {
+                   authState.role === 'Cluster Head') {
           console.log('Management role detected - granting dashboard access');
           cache['view:dashboard'] = true;
           cache['manage:issues'] = true;
@@ -223,14 +233,26 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return true;
       }
       
-      // For management roles, grant specific dashboard permissions
+      // HR Admin specific permissions
+      if (authState.role === 'HR Admin' && 
+          (permission === 'view:dashboard' || permission === 'manage:users' || permission === 'manage:issues')) {
+        console.log('HR Admin role - granting permission:', permission);
+        return true;
+      }
+      
+      // Payroll Ops specific permissions
+      if (authState.role === 'Payroll Ops' && 
+          (permission === 'view:dashboard' || permission === 'manage:settings' || permission === 'manage:issues')) {
+        console.log('Payroll Ops role - granting permission:', permission);
+        return true;
+      }
+      
+      // For other management roles
       if ((permission === 'view:dashboard' || permission === 'manage:issues') && 
           (authState.role === 'City Head' || 
            authState.role === 'Revenue and Ops Head' || 
            authState.role === 'CRM' || 
-           authState.role === 'Cluster Head' || 
-           authState.role === 'Payroll Ops' || 
-           authState.role === 'HR Admin')) {
+           authState.role === 'Cluster Head')) {
         console.log('Management role - granting permission:', permission);
         return true;
       }

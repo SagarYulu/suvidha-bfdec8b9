@@ -19,7 +19,7 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
   onlyForAssigned = false,
   redirectTo = '/admin/dashboard'
 }) => {
-  const { checkAccess, isAuthenticated } = useRoleAccess();
+  const { checkAccess, hasPermission, isAuthenticated } = useRoleAccess();
   const { authState } = useAuth();
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
@@ -36,29 +36,33 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
       let hasTicketAccess = false;
       
       if (hasIssuePermission) {
+        // For "Assigned to Me" section - allow access to all users with issue management permission
         if (onlyForAssigned) {
-          // For "Assigned to Me" - always allow access if user has issue management permission
           hasTicketAccess = true;
+          console.log("Access granted to assigned tickets for user with issue management permission");
         } else {
-          // For "All Tickets" - only HR Admin and Super Admin roles can access
-          const isHrAdmin = authState.role === 'HR Admin';
-          const isSuperAdmin = authState.role === 'Super Admin' || authState.role === 'admin';
+          // For "All Tickets" section - only specific roles can access
+          // HR Admin, Super Admin, and Payroll Ops can view all tickets
+          const hasAllTicketsAccess = 
+            authState.role === 'HR Admin' || 
+            authState.role === 'Super Admin' || 
+            authState.role === 'admin' ||
+            authState.role === 'Payroll Ops';
           
-          hasTicketAccess = isHrAdmin || isSuperAdmin;
-          
-          if (!hasTicketAccess && authState.user?.email === 'sagar.km@yulu.bike') {
-            // Developer account exception
+          if (hasAllTicketsAccess) {
+            console.log(`Role ${authState.role} granted access to all tickets`);
             hasTicketAccess = true;
-          }
-          
-          if (!hasTicketAccess) {
+          } else {
+            console.log(`Role ${authState.role} denied access to all tickets - can only see assigned tickets`);
             toast({
-              title: "Access Denied",
-              description: "Only HR Admin and Super Admin can access all tickets",
+              title: "Access Restricted",
+              description: "You can only view tickets assigned to you",
               variant: "destructive"
             });
           }
         }
+      } else {
+        console.log("User does not have basic issue management permission");
       }
       
       setHasAccess(hasTicketAccess);
@@ -77,10 +81,12 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
 
   // If no access, redirect
   if (!hasAccess) {
+    console.log(`Access denied, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 
   // If has access, render children
+  console.log("Access granted, rendering protected content");
   return <>{children}</>;
 };
 

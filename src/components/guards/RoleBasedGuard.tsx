@@ -25,7 +25,7 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
   useEffect(() => {
     // Only check access once authentication state is known and stable
     if (isAuthenticated !== undefined) {
-      console.log(`RoleBasedGuard: Checking permission: ${permission}`);
+      console.log(`RoleBasedGuard: Checking permission: ${permission} for authenticated status: ${isAuthenticated}`);
       
       // Directly use the hasPermission function from useRoleAccess
       const access = hasPermission(permission);
