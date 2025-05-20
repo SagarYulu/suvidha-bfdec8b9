@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
+import { IssueFilters } from "@/services/issues/issueFilters";
 
 // Define the type for our issue stats
 export interface IssueStats {
@@ -15,9 +16,16 @@ export interface IssueStats {
 // Function to get issue stats
 export const getIssueStats = async (): Promise<IssueStats> => {
   try {
+    // Create properly typed empty filters
+    const filters: IssueFilters = {
+      city: null,
+      cluster: null,
+      issueType: null
+    };
+    
     // Fetch issues and analytics from existing services
-    const issues = await getIssues({});
-    const analytics = await getAnalytics({});
+    const issues = await getIssues(filters);
+    const analytics = await getAnalytics(filters);
     
     // Calculate open issues
     const open = issues.filter(issue => 
@@ -28,7 +36,8 @@ export const getIssueStats = async (): Promise<IssueStats> => {
     return {
       totalIssues: issues.length,
       openIssues: open,
-      avgFirstResponseTime: analytics?.averageFRT || 0,
+      // Convert the string value to a number
+      avgFirstResponseTime: parseFloat(analytics?.avgFirstResponseTime || "0"),
       resolvedIssues: issues.filter(issue => issue.status === "closed").length,
       highPriorityIssues: issues.filter(issue => issue.priority === "high").length
     };
