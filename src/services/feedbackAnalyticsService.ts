@@ -161,8 +161,8 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
     if (error) throw error;
     
     // Calculate previous date range for comparison
-    let previousStartDate, previousEndDate;
-    let previousData = [];
+    let previousStartDate: Date | undefined, previousEndDate: Date | undefined;
+    let previousData: any[] = [];
     
     if (filters.startDate && filters.endDate && filters.comparisonMode) {
       const startDate = new Date(filters.startDate);
@@ -360,7 +360,7 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
       .select(`
         resolver_uuid,
         rating,
-        dashboard_users!inner(id, name)
+        dashboard_users(id, name)
       `);
     
     // Apply filters
@@ -400,8 +400,16 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
     (data || []).forEach(item => {
       if (!item.resolver_uuid || !item.dashboard_users) return;
       
+      // Safe access to dashboard_users
       const resolverUuid = item.resolver_uuid;
-      const resolverName = item.dashboard_users.name;
+      const resolverData = Array.isArray(item.dashboard_users) 
+        ? item.dashboard_users[0] 
+        : item.dashboard_users;
+      
+      // Skip if we don't have resolver data
+      if (!resolverData || !resolverData.name) return;
+      
+      const resolverName = resolverData.name;
       const rating = item.rating;
       
       if (!resolverMap.has(resolverUuid)) {
