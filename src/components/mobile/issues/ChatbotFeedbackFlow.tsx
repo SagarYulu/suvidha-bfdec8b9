@@ -3,7 +3,7 @@ import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Smile, Meh, Frown, CheckCircle, Star, Loader2 } from "lucide-react";
+import { Smile, Meh, Frown, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -27,86 +27,76 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, rating: numbe
   const isPositive = rating >= 4;
   // Very unhappy (1) gets special options
   const isVeryUnhappy = rating === 1;
+  const isNeutral = rating === 3;
+  const isUnhappy = rating === 2;
   
   if (category === 'agent') {
     if (isVeryUnhappy) {
       return [
-        { id: 'was_rude', label: 'Agent was rude / एजेंट ने गलत व्यवहार किया' },
-        { id: 'no_response', label: 'No response / कोई जवाब नहीं' },
-        { id: 'wrong_info', label: 'Wrong information / गलत जानकारी' }
+        { id: 'was_rude', label: 'Agent was rude' },
+        { id: 'no_response', label: 'No response' },
+        { id: 'wrong_info', label: 'Wrong information' }
       ];
-    } else if (isPositive) {
-      return rating === 5 ? 
-        [
-          { id: 'helpful', label: 'Very helpful / बहुत मददगार' },
-          { id: 'friendly', label: 'Friendly behavior / दोस्ताना व्यवहार' },
-        ] : 
-        [
-          { id: 'good', label: 'Good service / अच्छी सेवा' },
-          { id: 'quick', label: 'Quick response / जल्दी जवाब' },
-        ];
-    } else {
+    } else if (isUnhappy) {
       return [
-        { id: 'slow', label: 'Slow response / धीमा जवाब' },
-        { id: 'unhelpful', label: 'Not helpful / मददगार नहीं' },
-        { id: 'confusing', label: 'Confusing replies / भ्रमित जवाब' },
+        { id: 'not_helpful', label: 'Not helpful' },
+        { id: 'confusing', label: 'Confusing replies' },
+      ];
+    } else if (isNeutral) {
+      return [
+        { id: 'slow', label: 'Slow response' },
+        { id: 'average', label: 'Average service' },
+      ];
+    } else if (rating === 4) { // Happy
+      return [
+        { id: 'good', label: 'Good response' },
+        { id: 'clear', label: 'Clear resolution' },
+      ];
+    } else { // Very Happy (5)
+      return [
+        { id: 'very_helpful', label: 'Very helpful' },
+        { id: 'quick', label: 'Quick resolution' },
       ];
     }
   } else { // Resolution options
     if (isVeryUnhappy) {
       return [
-        { id: 'no_fix', label: 'Problem not fixed / समस्या हल नहीं हुई' },
-        { id: 'worse', label: 'Made things worse / और बिगाड़ दिया' },
-        { id: 'need_help', label: 'Still need help / अभी भी मदद चाहिए' },
+        { id: 'no_fix', label: 'Problem not fixed' },
+        { id: 'worse', label: 'Made things worse' },
+        { id: 'need_help', label: 'Still need help' },
       ];
-    } else if (isPositive) {
-      return rating === 5 ? 
-        [
-          { id: 'fixed', label: 'Issue fixed / समस्या हल हो गई' },
-          { id: 'fast', label: 'Fixed quickly / जल्दी ठीक हुआ' },
-        ] : 
-        [
-          { id: 'helped', label: 'Issue helped / मदद मिली' },
-          { id: 'clear', label: 'Clear solution / साफ़ समाधान' },
-        ];
-    } else {
+    } else if (isUnhappy) {
       return [
-        { id: 'slow_fix', label: 'Took too long / बहुत समय लगा' },
-        { id: 'not_fixed', label: 'Not fully fixed / पूरी तरह हल नहीं हुआ' },
-        { id: 'unclear', label: 'Solution unclear / समाधान स्पष्ट नहीं था' },
+        { id: 'not_fixed', label: 'Not fully fixed' },
+        { id: 'unclear', label: 'Solution unclear' },
+      ];
+    } else if (isNeutral) {
+      return [
+        { id: 'slow_fix', label: 'Took too long' },
+        { id: 'partial', label: 'Partially resolved' },
+      ];
+    } else if (rating === 4) { // Happy
+      return [
+        { id: 'clear_solution', label: 'Clear solution' },
+        { id: 'good_help', label: 'Helpful solution' },
+      ];
+    } else { // Very Happy (5)
+      return [
+        { id: 'fixed', label: 'Issue fixed' },
+        { id: 'fast', label: 'Fixed quickly' },
       ];
     }
   }
 };
 
-// Define the rating options with mood labels and emojis only (no stars)
+// Define the rating options with mood labels and emojis
 const ratingOptions = [
-  { value: 5, emoji: '🤩', label: 'Very Happy', color: '#FFC300' },
-  { value: 4, emoji: '🙂', label: 'Happy', color: '#FFD700' },
-  { value: 3, emoji: '😐', label: 'Neutral', color: '#FFA500' },
-  { value: 2, emoji: '😕', label: 'Unhappy', color: '#FF6A33' },
-  { value: 1, emoji: '😠', label: 'Very Unhappy', color: '#FF3B30' },
+  { value: 5, emoji: '🤩', label: 'Very Happy', color: '#0F52BA' }, // Royal blue
+  { value: 4, emoji: '🙂', label: 'Happy', color: '#1E90FF' }, // Dodger blue
+  { value: 3, emoji: '😐', label: 'Neutral', color: '#4682B4' }, // Steel blue
+  { value: 2, emoji: '😕', label: 'Unhappy', color: '#6495ED' }, // Cornflower blue
+  { value: 1, emoji: '😠', label: 'Very Unhappy', color: '#7B68EE' }, // Medium slate blue
 ];
-
-// StarRating component - completely rewritten to properly show filled/unfilled stars
-const StarRating = React.memo(({ filled, color }: { filled: number, color: string }) => {
-  return (
-    <div className="flex items-center justify-end space-x-0.5">
-      {[...Array(5)].map((_, i) => (
-        <Star
-          key={i}
-          size={16}
-          fill={i < filled ? color : 'transparent'}
-          stroke={i < filled ? color : '#8E9196'}
-          strokeWidth={1.5}
-          className="inline-block"
-        />
-      ))}
-    </div>
-  );
-});
-
-StarRating.displayName = "StarRating";
 
 const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
   isOpen,
@@ -212,6 +202,12 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
     }
   }, [rating, category, reason, comment, ticketId, employeeUuid, resolverUuid, onFeedbackSubmitted, handleClose]);
   
+  // Get the selected rating color
+  const getRatingColor = () => {
+    if (rating === null) return '#1E40AF'; // Default Yulu blue
+    return ratingOptions.find(opt => opt.value === rating)?.color || '#1E40AF';
+  };
+
   // Render the current step content
   const renderStepContent = () => {
     switch (currentStep) {
@@ -228,7 +224,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                   key={option.value}
                   onClick={() => handleRatingSelect(option.value)}
                   style={{ backgroundColor: option.color }}
-                  className="flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90"
+                  className="flex items-center justify-between px-4 py-6 w-full text-white hover:opacity-90 transition-all duration-200 shadow-md"
                 >
                   <div className="flex items-center space-x-3">
                     <span className="text-lg">{option.emoji}</span>
@@ -250,15 +246,15 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
             <div className="flex flex-col space-y-3 w-full">
               <Button
                 onClick={() => handleCategorySelect('agent')}
-                className="flex items-center justify-center px-4 py-6 w-full"
-                style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
+                className="flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200"
+                style={{ backgroundColor: getRatingColor() }}
               >
                 About the agent / एजेंट के बारे में
               </Button>
               <Button
                 onClick={() => handleCategorySelect('resolution')}
-                className="flex items-center justify-center px-4 py-6 w-full"
-                style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
+                className="flex items-center justify-center px-4 py-6 w-full shadow-md text-white hover:opacity-90 transition-all duration-200"
+                style={{ backgroundColor: getRatingColor() }}
               >
                 About the solution / समाधान के बारे में
               </Button>
@@ -278,8 +274,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                 <Button
                   key={option.id}
                   onClick={() => handleReasonSelect(option.id)}
-                  className="flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 text-wrap"
-                  style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
+                  className="flex items-center justify-center px-4 py-4 w-full text-sm text-white hover:opacity-90 shadow-md transition-all duration-200"
+                  style={{ backgroundColor: getRatingColor() }}
                 >
                   {option.label}
                 </Button>
@@ -299,13 +295,13 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
               placeholder="Your comments (optional) / आपकी टिप्पणियां (वैकल्पिक)"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full resize-none h-32"
+              className="w-full resize-none h-32 border-blue-300 focus:border-blue-500 focus:ring focus:ring-blue-200 transition-all duration-200"
             />
             <Button
               onClick={handleSubmit}
-              className="w-full py-6"
+              className="w-full py-6 shadow-md text-white hover:opacity-90 transition-all duration-200"
               disabled={isSubmitting}
-              style={{ backgroundColor: rating ? ratingOptions.find(opt => opt.value === rating)?.color : undefined }}
+              style={{ backgroundColor: getRatingColor() }}
             >
               {isSubmitting ? (
                 <>
@@ -322,8 +318,8 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
       case 'completed':
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <div className="bg-green-100 rounded-full p-4">
-              <CheckCircle className="h-10 w-10 text-green-500" />
+            <div className="bg-blue-100 rounded-full p-4">
+              <CheckCircle className="h-10 w-10 text-blue-500" />
             </div>
             <h3 className="text-lg font-medium text-center">
               Thanks for your feedback!<br />
@@ -336,7 +332,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
 
   // Memoize the dialog content
   const dialogContent = React.useMemo(() => (
-    <DialogContent className="sm:max-w-md p-6 rounded-lg">
+    <DialogContent className="sm:max-w-md p-6 rounded-2xl border-blue-100 shadow-lg">
       {renderStepContent()}
     </DialogContent>
   ), [currentStep, rating, category, comment, isSubmitting]);
