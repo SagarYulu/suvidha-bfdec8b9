@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -56,16 +57,18 @@ const ratingOptions = [
   { value: 1, emoji: '😠', label: 'Very Unhappy', stars: 5, filled: 1, color: '#FF3B30' },
 ];
 
-// StarRating component - fixed to properly show filled/unfilled stars
+// StarRating component - completely rewritten to properly show filled/unfilled stars
 const StarRating = React.memo(({ filled, color }: { filled: number, color: string }) => {
   return (
-    <div className="flex">
+    <div className="flex items-center justify-end space-x-0.5">
       {[...Array(5)].map((_, i) => (
         <Star
           key={i}
+          size={16}
           fill={i < filled ? color : 'transparent'}
           stroke={i < filled ? color : '#8E9196'}
-          size={16}
+          strokeWidth={1.5}
+          className="inline-block"
         />
       ))}
     </div>
