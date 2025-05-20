@@ -4,14 +4,33 @@ import { getIssueAuditTrail } from "./issueAuditService";
 
 export const getAnalytics = async (filters = {}) => {
   try {
-    const { data, error } = await supabase
-      .from('issues')
-      .select('*');
+    console.log("Analytics filters received:", filters);
+    
+    // Build the query with filters
+    let query = supabase.from('issues').select('*');
+    
+    // Apply filters if provided
+    if (filters) {
+      // Apply employee_uuid filter if there's city/cluster filtering
+      if (filters.employeeUuids && filters.employeeUuids.length > 0) {
+        query = query.in('employee_uuid', filters.employeeUuids);
+      }
+      
+      // Apply issue type filter
+      if (filters.issueType) {
+        query = query.eq('type_id', filters.issueType);
+      }
+    }
+    
+    // Execute the query
+    const { data, error } = await query;
     
     if (error) {
       console.error("Error fetching issues:", error);
       return null;
     }
+    
+    console.log(`Retrieved ${data?.length || 0} issues for analytics`);
     
     // Process the data to derive insights
     const totalIssues = data.length;
@@ -27,25 +46,38 @@ export const getAnalytics = async (filters = {}) => {
       return acc;
     }, {});
     
-    // Example: Issues by type
+    // Example: Issues by type - map using the correct property name (type_id)
     const issuesByType = data.reduce((acc, issue) => {
       acc[issue.type_id] = (acc[issue.type_id] || 0) + 1;
       return acc;
     }, {});
     
-    // Group issues by city for the city chart
+    // Group issues by city - use employee data to get city 
+    // This is a simplified approach since we don't have direct city info on issues
     const cityCounts = data.reduce((acc, issue) => {
-      // Using employee_uuid to check for city information
-      // This is a simplified approach since city isn't directly on the issue
-      const city = 'Unknown'; // Default to 'Unknown' since we can't access city directly
+      // Default to 'Unknown' since we can't directly access city
+      const city = 'Unknown';
       acc[city] = (acc[city] || 0) + 1;
       return acc;
     }, {});
     
-    // Process issues by type for the type chart
+    // Add cluster and manager counts to analytics
+    const clusterCounts = data.reduce((acc, issue) => {
+      const cluster = 'Unknown';
+      acc[cluster] = (acc[cluster] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const managerCounts = data.reduce((acc, issue) => {
+      const manager = 'Unknown';
+      acc[manager] = (acc[manager] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Ensure type counts match the issues by type data 
     const typeCounts = {...issuesByType};
     
-    // Calculate resolution rate
+    // Calculate resolution rate - include both resolved and closed issues
     const resolutionRate = totalIssues > 0 
       ? ((resolvedIssues + closedIssues) / totalIssues) * 100 
       : 0;
@@ -64,6 +96,8 @@ export const getAnalytics = async (filters = {}) => {
       issuesByType,
       cityCounts,
       typeCounts,
+      clusterCounts,
+      managerCounts,
       resolutionRate,
       avgResolutionTime,
       avgFirstResponseTime
