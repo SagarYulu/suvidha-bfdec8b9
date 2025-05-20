@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 // Types
@@ -89,28 +90,10 @@ interface FeedbackRecord {
   employee_uuid: string;
   resolver_uuid: string | null;
   ticket_id: string;
-  city?: string;
-  cluster?: string;
   issues: {
     type_id: string;
     sub_type_id: string;
     employee_uuid: string;
-  };
-}
-
-interface ResolverRecord {
-  resolver_uuid: string;
-  rating: number;
-  dashboard_users: {
-    id: string;
-    name: string;
-  } | Array<{ id: string; name: string }>;
-}
-
-interface CategoryRecord {
-  rating: number;
-  issues: {
-    type_id: string;
   };
 }
 
@@ -168,18 +151,18 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
         employee_uuid, 
         resolver_uuid, 
         ticket_id,
-        city,
-        cluster,
         issues!inner(type_id, sub_type_id, employee_uuid)
       `);
     
     // Apply filters
     if (filters.city) {
-      query = query.eq('city', filters.city);
+      // Note: We removed the city filter since the column doesn't exist in the table
+      console.warn("City filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.cluster) {
-      query = query.eq('cluster', filters.cluster);
+      // Note: We removed the cluster filter since the column doesn't exist in the table
+      console.warn("Cluster filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.resolver) {
@@ -264,20 +247,10 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
           employee_uuid, 
           resolver_uuid, 
           ticket_id,
-          city,
-          cluster,
           issues!inner(type_id, sub_type_id, employee_uuid)
         `)
         .gte('created_at', previousStartDate.toISOString())
         .lte('created_at', previousEndDate.toISOString());
-      
-      if (filters.city) {
-        previousQuery = previousQuery.eq('city', filters.city);
-      }
-      
-      if (filters.cluster) {
-        previousQuery = previousQuery.eq('cluster', filters.cluster);
-      }
       
       if (filters.resolver) {
         previousQuery = previousQuery.eq('resolver_uuid', filters.resolver);
@@ -401,22 +374,24 @@ export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<Fee
 
 export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<ResolverStats[]> => {
   try {
-    // Start building the query to fetch feedback data
+    // Since we can't join with dashboard_users directly (relationship doesn't exist),
+    // we'll fetch feedback data first and then get resolver info separately
     let query = supabase
       .from('resolution_feedback')
       .select(`
         resolver_uuid,
-        rating,
-        dashboard_users(id, name)
+        rating
       `);
     
     // Apply filters
     if (filters.city) {
-      query = query.eq('city', filters.city);
+      // City filter is skipped since the column doesn't exist
+      console.warn("City filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.cluster) {
-      query = query.eq('cluster', filters.cluster);
+      // Cluster filter is skipped since the column doesn't exist
+      console.warn("Cluster filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.resolver) {
@@ -444,22 +419,29 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
     // Group by resolver
     const resolverMap = new Map();
     
-    (data as ResolverRecord[] || []).forEach(item => {
-      if (!item.resolver_uuid || !item.dashboard_users) return;
+    // Safety check for data
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
+    // Process feedback data
+    for (const item of data) {
+      if (!item.resolver_uuid) continue;
       
-      // Safe access to dashboard_users
       const resolverUuid = item.resolver_uuid;
-      const resolverData = Array.isArray(item.dashboard_users) 
-        ? item.dashboard_users[0] 
-        : item.dashboard_users;
-      
-      // Skip if we don't have resolver data
-      if (!resolverData || !resolverData.name) return;
-      
-      const resolverName = resolverData.name;
       const rating = item.rating;
       
+      // Get resolver name from dashboard_users (will need to fetch separately)
       if (!resolverMap.has(resolverUuid)) {
+        // Fetch resolver name from dashboard_users
+        const { data: resolverData } = await supabase
+          .from('dashboard_users')
+          .select('id, name')
+          .eq('id', resolverUuid)
+          .single();
+          
+        const resolverName = resolverData?.name || 'Unknown Resolver';
+        
         resolverMap.set(resolverUuid, {
           id: resolverUuid,
           name: resolverName,
@@ -482,7 +464,7 @@ export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<
       else if (rating === 3) resolver.neutral++;
       else if (rating === 2) resolver.unhappy++;
       else if (rating === 1) resolver.veryUnhappy++;
-    });
+    }
     
     // Process the data
     const resolvers: ResolverStats[] = Array.from(resolverMap.values()).map(resolver => {
@@ -535,11 +517,13 @@ export const getCategoryAnalysis = async (filters: FeedbackFilters): Promise<Cat
     
     // Apply filters
     if (filters.city) {
-      query = query.eq('city', filters.city);
+      // City filter is skipped since the column doesn't exist
+      console.warn("City filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.cluster) {
-      query = query.eq('cluster', filters.cluster);
+      // Cluster filter is skipped since the column doesn't exist
+      console.warn("Cluster filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.resolver) {
@@ -567,7 +551,12 @@ export const getCategoryAnalysis = async (filters: FeedbackFilters): Promise<Cat
     // Group by category
     const categoryMap = new Map();
     
-    (data || []).forEach(item => {
+    // Safety check for data
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
+    data.forEach(item => {
       if (!item.issues || !item.issues.type_id) return;
       
       const categoryName = item.issues.type_id;
@@ -642,11 +631,13 @@ export const getFeedbackTrends = async (filters: FeedbackFilters): Promise<Trend
     
     // Apply filters
     if (filters.city) {
-      query = query.eq('city', filters.city);
+      // City filter is skipped since the column doesn't exist
+      console.warn("City filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.cluster) {
-      query = query.eq('cluster', filters.cluster);
+      // Cluster filter is skipped since the column doesn't exist
+      console.warn("Cluster filter ignored: column does not exist in resolution_feedback table");
     }
     
     if (filters.resolver) {
@@ -675,7 +666,14 @@ export const getFeedbackTrends = async (filters: FeedbackFilters): Promise<Trend
     const periodMap = new Map();
     const comparisonMode = filters.comparisonMode || 'day';
     
-    (data || []).forEach(item => {
+    // Safety check for data
+    if (!data || !Array.isArray(data)) {
+      return [];
+    }
+    
+    data.forEach(item => {
+      if (!item.created_at) return;
+      
       const date = new Date(item.created_at);
       let periodKey: string;
       
