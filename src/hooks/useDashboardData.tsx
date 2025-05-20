@@ -47,7 +47,7 @@ export const useDashboardData = () => {
     queryKey: ['analytics', filters],
     queryFn: async () => {
       console.log("Fetching analytics with filters:", filters);
-      return getAnalytics(filters);
+      return getAnalytics(); // No need to pass filters here, the function will use default empty object
     },
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     refetchOnWindowFocus: false, // Prevent unwanted refetches

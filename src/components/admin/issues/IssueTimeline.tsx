@@ -22,25 +22,40 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
   commenterNames 
 }) => {
   // Define event types for better type checking
-  type TimelineEvent = {
+  type TimelineEventBase = {
     id: string;
-    type: 'creation' | 'assignment' | 'status' | 'comment';
     timestamp: string;
     employeeUuid: string;
     content: string;
-  } & (
-    | { type: 'status'; previousStatus?: string; newStatus?: string }
-    | { type: 'comment'; isPrivate: boolean }
-    | { type: 'creation' }
-    | { type: 'assignment' }
-  );
+  };
+  
+  type StatusEvent = TimelineEventBase & {
+    type: 'status';
+    previousStatus?: string;
+    newStatus?: string;
+  };
+  
+  type CommentEvent = TimelineEventBase & {
+    type: 'comment';
+    isPrivate: boolean;
+  };
+  
+  type CreationEvent = TimelineEventBase & {
+    type: 'creation';
+  };
+  
+  type AssignmentEvent = TimelineEventBase & {
+    type: 'assignment';
+  };
+  
+  type TimelineEvent = StatusEvent | CommentEvent | CreationEvent | AssignmentEvent;
 
   // Combine comments and status changes for timeline
   const timelineEvents: TimelineEvent[] = [
     // Creation event
     {
       id: 'creation',
-      type: 'creation' as const,
+      type: 'creation',
       timestamp: issue.createdAt,
       employeeUuid: issue.employeeUuid,
       content: 'Ticket created'
@@ -48,7 +63,7 @@ const IssueTimeline: React.FC<IssueTimelineProps> = ({
     // Assignment event if assigned
     ...(issue.assignedTo ? [{
       id: 'assignment',
-      type: 'assignment' as const,
+      type: 'assignment',
       timestamp: issue.createdAt, // We don't have assignment time, using creation time
       employeeUuid: issue.assignedTo,
       content: 'Ticket assigned'

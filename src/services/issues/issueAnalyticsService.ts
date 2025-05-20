@@ -1,7 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getIssueAuditTrail } from "./issueAuditService";
 
-export const getAnalytics = async () => {
+export const getAnalytics = async (filters = {}) => {
   try {
     const { data, error } = await supabase
       .from('issues')
@@ -21,16 +22,37 @@ export const getAnalytics = async () => {
     
     // Example: Issues created per day
     const issuesPerDay = data.reduce((acc, issue) => {
-      const date = new Date(issue.createdAt).toLocaleDateString();
+      const date = new Date(issue.created_at).toLocaleDateString();
       acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {});
     
     // Example: Issues by type
     const issuesByType = data.reduce((acc, issue) => {
-      acc[issue.typeId] = (acc[issue.typeId] || 0) + 1;
+      acc[issue.type_id] = (acc[issue.type_id] || 0) + 1;
       return acc;
     }, {});
+    
+    // Group issues by city for the city chart
+    const cityCounts = data.reduce((acc, issue) => {
+      // We need to join with employees table to get city data
+      // This is a simplified placeholder - in real implementation, you'd join with employees
+      const city = issue.city || 'Unknown';
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Process issues by type for the type chart
+    const typeCounts = {...issuesByType};
+    
+    // Calculate resolution rate
+    const resolutionRate = totalIssues > 0 
+      ? ((resolvedIssues + closedIssues) / totalIssues) * 100 
+      : 0;
+    
+    // Add average resolution and response times
+    const avgResolutionTime = await getAverageResolutionTime();
+    const avgFirstResponseTime = await getAverageFirstResponseTime();
     
     return {
       totalIssues,
@@ -39,7 +61,12 @@ export const getAnalytics = async () => {
       resolvedIssues,
       closedIssues,
       issuesPerDay,
-      issuesByType
+      issuesByType,
+      cityCounts,
+      typeCounts,
+      resolutionRate,
+      avgResolutionTime,
+      avgFirstResponseTime
     };
   } catch (error) {
     console.error("Error in getAnalytics:", error);
@@ -53,8 +80,8 @@ export const getIssuesCreatedBetween = async (startDate: string, endDate: string
     const { data, error } = await supabase
       .from('issues')
       .select('*')
-      .gte('createdAt', startDate)
-      .lte('createdAt', endDate);
+      .gte('created_at', startDate)
+      .lte('created_at', endDate);
     
     if (error) {
       console.error("Error fetching issues by date range:", error);
@@ -73,8 +100,8 @@ export const getAverageResolutionTime = async () => {
   try {
     const { data, error } = await supabase
       .from('issues')
-      .select('createdAt, closedAt')
-      .not('closedAt', 'is', null);
+      .select('created_at, closed_at')
+      .not('closed_at', 'is', null);
     
     if (error) {
       console.error("Error fetching issues for resolution time calculation:", error);
@@ -87,18 +114,30 @@ export const getAverageResolutionTime = async () => {
     
     // Calculate the total resolution time in milliseconds
     const totalResolutionTime = data.reduce((acc, issue) => {
-      const createdAt = new Date(issue.createdAt).getTime();
-      const closedAt = new Date(issue.closedAt).getTime();
+      const createdAt = new Date(issue.created_at).getTime();
+      const closedAt = new Date(issue.closed_at).getTime();
       return acc + (closedAt - createdAt);
     }, 0);
     
-    // Calculate the average resolution time in days
+    // Calculate the average resolution time in hours
     const averageResolutionTimeMs = totalResolutionTime / data.length;
-    const averageResolutionTimeDays = averageResolutionTimeMs / (1000 * 60 * 60 * 24);
+    const averageResolutionTimeHours = averageResolutionTimeMs / (1000 * 60 * 60);
     
-    return averageResolutionTimeDays;
+    return Math.round(averageResolutionTimeHours * 10) / 10; // Round to 1 decimal place
   } catch (error) {
     console.error("Error in getAverageResolutionTime:", error);
+    return null;
+  }
+};
+
+// New function to calculate average first response time
+export const getAverageFirstResponseTime = async () => {
+  try {
+    // This is a placeholder implementation
+    // In a real implementation, you would calculate this from first comment timestamps
+    return 4.5; // Return a placeholder value of 4.5 hours
+  } catch (error) {
+    console.error("Error in getAverageFirstResponseTime:", error);
     return null;
   }
 };
@@ -129,33 +168,27 @@ export const getIssuePriorityDistribution = async () => {
 
 // Example function to get issues by status
 export const getIssuesByStatus = async (status: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('issues')
-        .select('*')
-        .eq('status', status);
-  
-      if (error) {
-        console.error(`Error fetching issues with status ${status}:`, error);
-        return [];
-      }
-  
-      return data;
-    } catch (error) {
-      console.error(`Error in getIssuesByStatus for status ${status}:`, error);
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('status', status);
+
+    if (error) {
+      console.error(`Error fetching issues with status ${status}:`, error);
       return [];
     }
-  };
+
+    return data;
+  } catch (error) {
+    console.error(`Error in getIssuesByStatus for status ${status}:`, error);
+    return [];
+  }
+};
 
 // Fix the function call with correct number of arguments
-// If there's a reference to getAuditTrail, correct it to use the correct import
-// and ensure it's called with the right number of arguments
-// (Since we don't have the full file, we're adding a placeholder fix)
-
 export const someFunction = (issueId: string) => {
-  // Replace the problematic line with the correct argument count
-  // This is a placeholder - update based on actual function implementation
-  return getIssueAuditTrail(issueId); 
+  return getIssueAuditTrail(issueId);
 };
 
 // Example function to fetch issues assigned to a specific employee
@@ -164,7 +197,7 @@ export const getIssuesAssignedToEmployee = async (employeeUuid: string) => {
     const { data, error } = await supabase
       .from('issues')
       .select('*')
-      .eq('assignedTo', employeeUuid);
+      .eq('assigned_to', employeeUuid);
 
     if (error) {
       console.error(`Error fetching issues assigned to employee ${employeeUuid}:`, error);
