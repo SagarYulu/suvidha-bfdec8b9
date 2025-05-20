@@ -2,7 +2,7 @@
 import React from 'react';
 import MobileLayout from '@/components/MobileLayout';
 import MobileSentimentForm from '@/components/mobile/sentiment/MobileSentimentForm';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { X } from 'lucide-react';
 
 interface MobileSentimentProps {
@@ -38,6 +38,7 @@ const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClo
         className="sm:max-w-md p-0 border-0 overflow-hidden h-[90vh] max-h-[90vh]" 
         style={{ background: bgGradient }}
       >
+        <DialogTitle className="sr-only">Feedback Form</DialogTitle>
         <div className="relative h-full">
           <button 
             onClick={onClose}
