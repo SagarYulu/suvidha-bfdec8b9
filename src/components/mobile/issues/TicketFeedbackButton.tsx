@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, CheckCircle } from "lucide-react";
 import { useTicketFeedback } from "@/hooks/useTicketFeedback";
 import FeedbackForm from "./FeedbackForm";
 
@@ -26,11 +26,28 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
   } = useTicketFeedback(ticketId);
 
   if (isCheckingFeedback) {
-    return null; // Don't show anything while checking
+    return (
+      <Button
+        variant="outline"
+        className="w-full mt-2 border-dashed border-gray-300 text-gray-400 hover:bg-transparent cursor-default"
+        disabled
+      >
+        <div className="animate-pulse h-4 w-32 bg-gray-200 rounded"></div>
+      </Button>
+    );
   }
 
   if (hasFeedback) {
-    return null; // Don't show if feedback already submitted
+    return (
+      <Button
+        variant="outline"
+        className="w-full mt-2 border-dashed border-green-500 text-green-600 hover:bg-green-50 cursor-default"
+        disabled
+      >
+        <CheckCircle className="h-4 w-4 mr-2" />
+        Feedback Submitted / प्रतिक्रिया दी गई
+      </Button>
+    );
   }
 
   return (
@@ -38,7 +55,7 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
       <Button
         onClick={openFeedbackForm}
         variant="outline"
-        className="w-full mt-2 border-dashed border-yulu-dashboard-blue text-yulu-dashboard-blue hover:bg-yulu-dashboard-blue/10"
+        className="w-full mt-2 border-dashed border-yulu-dashboard-blue text-yulu-dashboard-blue hover:bg-blue-50"
       >
         <MessageSquare className="h-4 w-4 mr-2" />
         Share Your Feedback / अपनी प्रतिक्रिया साझा करें

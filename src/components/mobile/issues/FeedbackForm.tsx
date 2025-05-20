@@ -1,12 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import FeedbackStars from "./FeedbackStars";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Check } from "lucide-react";
 
 interface FeedbackFormProps {
   isOpen: boolean;
@@ -28,6 +28,23 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Get button color based on current rating
+  const getButtonColor = (rating: number) => {
+    switch(rating) {
+      case 1: return "#FF3B30"; // Red
+      case 2: return "#FF6A33"; // Orange-Red
+      case 3: return "#FFA500"; // Orange
+      case 4: return "#FFD700"; // Yellow-Orange
+      case 5: return "#FFC300"; // Golden
+      default: return "#1E40AF"; // Default Yulu blue
+    }
+  };
+
+  const handleRatingChange = useCallback((newRating: number) => {
+    setRating(newRating);
+  }, []);
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -59,12 +76,15 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
           variant: "destructive",
         });
       } else {
-        toast({
-          title: "Success",
-          description: "Thank you for your feedback!",
-        });
-        onFeedbackSubmitted();
-        onClose();
+        setIsSubmitted(true);
+        setTimeout(() => {
+          toast({
+            title: "Success",
+            description: "Thank you for your feedback!",
+          });
+          onFeedbackSubmitted();
+          onClose();
+        }, 1000);
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
@@ -82,53 +102,73 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({
     if (!isSubmitting) {
       setRating(0);
       setComment("");
+      setIsSubmitted(false);
       onClose();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleDialogClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md p-6 rounded-lg">
         <DialogHeader>
-          <DialogTitle className="text-center">
+          <DialogTitle className="text-center text-lg font-semibold">
             Share Your Feedback / अपनी प्रतिक्रिया साझा करें
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center space-y-6 py-4">
-          <FeedbackStars rating={rating} onChange={setRating} size={28} />
-          
-          <Textarea
-            placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            className="w-full"
-          />
-
-          <div className="flex w-full justify-end space-x-2">
-            <Button
-              variant="outline"
-              onClick={handleDialogClose}
-              disabled={isSubmitting}
-            >
-              Cancel / रद्द करें
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={rating === 0 || isSubmitting}
-              className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                "Submit / जमा करें"
-              )}
-            </Button>
+        {isSubmitted ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <div className="bg-green-100 rounded-full p-4 mb-4">
+              <Check className="h-10 w-10 text-green-500" />
+            </div>
+            <h3 className="text-lg font-medium text-center">Feedback Submitted!</h3>
+            <p className="text-sm text-gray-500 text-center mt-2">Thank you for sharing your experience.</p>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-col items-center space-y-6 py-4">
+            <FeedbackStars 
+              rating={rating} 
+              onChange={handleRatingChange} 
+              size={32} 
+            />
+            
+            <Textarea
+              placeholder="Tell us what could have been better (optional) / हमें बताएं कि क्या बेहतर हो सकता था (वैकल्पिक)"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="w-full resize-none border-gray-300 focus:border-gray-400 focus:ring-gray-400"
+            />
+
+            <div className="flex w-full justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={handleDialogClose}
+                disabled={isSubmitting}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Cancel / रद्द करें
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={rating === 0 || isSubmitting}
+                style={{ 
+                  backgroundColor: rating > 0 ? getButtonColor(rating) : undefined,
+                  opacity: rating === 0 ? 0.7 : 1,
+                }}
+                className="text-white hover:opacity-90 transition-opacity"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit / जमा करें"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

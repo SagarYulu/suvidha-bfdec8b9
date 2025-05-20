@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, MessageSquare } from "lucide-react";
+import { AlertCircle, MessageSquare, CheckCircle } from "lucide-react";
 import { useTicketFeedback } from "@/hooks/useTicketFeedback";
 import FeedbackForm from "./FeedbackForm";
 import { useAuth } from "@/contexts/AuthContext";
@@ -66,6 +66,17 @@ const ClosedIssueCommentNotice: React.FC<ClosedIssueCommentNoticeProps> = ({
           >
             <MessageSquare className="h-4 w-4" />
             Share Your Feedback / अपनी प्रतिक्रिया साझा करें
+          </Button>
+        )}
+        
+        {hasFeedback && (
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto border-green-500 text-green-600 hover:bg-green-50 cursor-default"
+            disabled
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Feedback Submitted / प्रतिक्रिया दी गई
           </Button>
         )}
         
