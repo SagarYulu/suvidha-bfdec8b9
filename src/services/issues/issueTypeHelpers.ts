@@ -18,6 +18,8 @@ export const getIssueSubTypeLabel = (typeId: string, subTypeId: string, showHind
  * Gets the effective type ID for an issue, considering mapped values
  */
 export const getEffectiveIssueType = (issue: any): string => {
+  if (!issue) return '';
+  
   // If the issue has been mapped, use the mapped type
   if (issue.mappedTypeId) {
     return issue.mappedTypeId;
@@ -26,13 +28,15 @@ export const getEffectiveIssueType = (issue: any): string => {
   if (issue.mapped_type_id) {
     return issue.mapped_type_id;
   }
-  return issue.typeId || issue.type_id;
+  return issue.typeId || issue.type_id || '';
 };
 
 /**
  * Gets the effective subtype ID for an issue, considering mapped values
  */
 export const getEffectiveIssueSubType = (issue: any): string => {
+  if (!issue) return '';
+  
   // If the issue has been mapped, use the mapped subtype
   if (issue.mappedSubTypeId) {
     return issue.mappedSubTypeId;
@@ -41,5 +45,5 @@ export const getEffectiveIssueSubType = (issue: any): string => {
   if (issue.mapped_sub_type_id) {
     return issue.mapped_sub_type_id;
   }
-  return issue.subTypeId || issue.sub_type_id;
+  return issue.subTypeId || issue.sub_type_id || '';
 };
