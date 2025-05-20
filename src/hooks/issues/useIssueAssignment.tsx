@@ -16,23 +16,34 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
     const fetchAssigneeInfo = async () => {
       try {
         console.log("Fetching assignee info for issue:", issue?.id);
+        
+        // Fetch available assignees first to ensure we have the dropdown data
+        const assignees = await getAvailableAssignees();
+        console.log("Available assignees:", assignees);
+        setAvailableAssignees(assignees);
+        
         // Fetch assignee information if issue has one
         if (issue?.assignedTo) {
           setCurrentAssigneeId(issue.assignedTo);
           console.log("Issue is assigned to:", issue.assignedTo);
-          const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
-          console.log("Resolved assignee name:", assigneeName);
-          setCurrentAssigneeName(assigneeName || "Unknown");
+          
+          // Try to find assignee in dropdown first for immediate display
+          const matchedAssignee = assignees.find(a => a.value === issue.assignedTo);
+          
+          if (matchedAssignee) {
+            console.log("Found assignee in dropdown:", matchedAssignee.label);
+            setCurrentAssigneeName(matchedAssignee.label);
+          } else {
+            // Fall back to lookup if not in dropdown
+            const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
+            console.log("Resolved assignee name via lookup:", assigneeName);
+            setCurrentAssigneeName(assigneeName || "Unknown");
+          }
         } else {
           console.log("Issue has no assignee");
           setCurrentAssigneeId(null);
           setCurrentAssigneeName("Not assigned");
         }
-        
-        // Fetch available assignees
-        const assignees = await getAvailableAssignees();
-        console.log("Available assignees:", assignees);
-        setAvailableAssignees(assignees);
       } catch (error) {
         console.error("Error fetching assignee information:", error);
       }
@@ -49,13 +60,15 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
     setIsAssigning(true);
     try {
       console.log(`Assigning issue ${issue.id} to ${selectedAssignee}`);
+      
+      // Find the assignee name from our dropdown options for immediate UI update
+      const selectedAssigneeName = availableAssignees.find(a => a.value === selectedAssignee)?.label;
+      console.log("Selected assignee name from dropdown:", selectedAssigneeName);
+        
       const updatedIssue = await assignIssueToUser(issue.id, selectedAssignee, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
         setCurrentAssigneeId(selectedAssignee);
-        
-        // Find the assignee name from our dropdown options for immediate UI update
-        const selectedAssigneeName = availableAssignees.find(a => a.value === selectedAssignee)?.label;
         
         if (selectedAssigneeName) {
           setCurrentAssigneeName(selectedAssigneeName);

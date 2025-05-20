@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
 import { createAuditLog } from "./issueAuditService";
+import { getEmployeeNameByUuid } from "./issueUtils";
 
 /**
  * Assign an issue to a user
@@ -14,6 +15,10 @@ export const assignIssueToUser = async (
 ): Promise<Issue | null> => {
   try {
     console.log(`Assigning issue ${issueId} to user ${assigneeId} by ${currentUserId}`);
+    
+    // First, get the assignee name to include in the audit log
+    const assigneeName = await getEmployeeNameByUuid(assigneeId);
+    console.log(`Assigning to: ${assigneeName}`);
     
     const { data, error } = await supabase
       .from('issues')
@@ -38,8 +43,11 @@ export const assignIssueToUser = async (
       issueId,
       currentUserId,
       'assignment',
-      { assigneeId },
-      'Issue assigned to user'
+      { 
+        assigneeId,
+        assigneeName, // Include name in the audit log
+      },
+      `Issue assigned to ${assigneeName}`
     );
     
     console.log('Assignment audit log created');

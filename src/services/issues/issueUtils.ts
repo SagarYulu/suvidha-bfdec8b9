@@ -60,14 +60,18 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
   }
   
   // Handle security-user IDs - including when they have numbers after
-  if (employeeUuid.startsWith("security-user")) {
+  if (employeeUuid && typeof employeeUuid === 'string' && employeeUuid.startsWith("security-user")) {
     userNameCache[employeeUuid] = "Security Team";
     return "Security Team";
   }
   
+  // If user ID is null or undefined, return early
+  if (!employeeUuid) {
+    return "Not assigned";
+  }
+  
   try {
     // IMPORTANT: First try to get from dashboard_users table
-    // This is the fix for assigned agents not showing their names
     const { data: dashboardUser, error: dashboardError } = await supabase
       .from('dashboard_users')
       .select('name, role')
@@ -105,7 +109,7 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
  * Maps employee UUIDs to names in a batch for better performance
  */
 export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = [...new Set(employeeUuids)];
+  const uniqueIds = [...new Set(employeeUuids.filter(id => id))]; // Filter out null/undefined
   const result: Record<string, string> = {};
   
   await Promise.all(uniqueIds.map(async (uuid) => {
