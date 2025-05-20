@@ -38,9 +38,11 @@ const MobileIssueDetails = () => {
   const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
   const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-yulu-dashboard-blue"; // Using dashboard blue color
 
-  // Create a wrapper function with no parameters that will call the actual function
-  const handleReopenWithoutParams = () => {
-    return;
+  // Create a wrapper function that matches the expected function signature (no parameters)
+  // This is needed because IssueHeader expects a function with no parameters
+  const handleReopenTicketWrapper = () => {
+    // This function deliberately doesn't do anything
+    // The actual reopen functionality is handled by the ClosedIssueCommentNotice component
   };
 
   return (
@@ -56,7 +58,7 @@ const MobileIssueDetails = () => {
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           isReopenable={isReopenable || false}
-          handleReopenTicket={handleReopenWithoutParams}
+          handleReopenTicket={handleReopenTicketWrapper}
         />
         
         {isClosedOrResolved ? (
