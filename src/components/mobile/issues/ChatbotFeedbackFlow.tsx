@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -48,24 +47,24 @@ const getReasonOptions = (category: 'agent' | 'resolution' | null, isPositive: b
   }
 };
 
-// Define the rating options
+// Define the rating options with proper star configurations
 const ratingOptions = [
-  { value: 5, emoji: '🤩', label: 'Very Happy', stars: 5, color: '#FFC300' },
-  { value: 4, emoji: '🙂', label: 'Happy', stars: 4, color: '#FFD700' },
-  { value: 3, emoji: '😐', label: 'Neutral', stars: 3, color: '#FFA500' },
-  { value: 2, emoji: '😕', label: 'Unhappy', stars: 2, color: '#FF6A33' },
-  { value: 1, emoji: '😠', label: 'Very Unhappy', stars: 1, color: '#FF3B30' },
+  { value: 5, emoji: '🤩', label: 'Very Happy', stars: 5, filled: 5, color: '#FFC300' },
+  { value: 4, emoji: '🙂', label: 'Happy', stars: 5, filled: 4, color: '#FFD700' },
+  { value: 3, emoji: '😐', label: 'Neutral', stars: 5, filled: 3, color: '#FFA500' },
+  { value: 2, emoji: '😕', label: 'Unhappy', stars: 5, filled: 2, color: '#FF6A33' },
+  { value: 1, emoji: '😠', label: 'Very Unhappy', stars: 5, filled: 1, color: '#FF3B30' },
 ];
 
-// StarRating component
-const StarRating = React.memo(({ rating, color }: { rating: number, color: string }) => {
+// StarRating component - fixed to properly show filled/unfilled stars
+const StarRating = React.memo(({ filled, color }: { filled: number, color: string }) => {
   return (
     <div className="flex">
       {[...Array(5)].map((_, i) => (
         <Star
           key={i}
-          fill={i < rating ? color : '#8E9196'}
-          stroke={i < rating ? color : '#8E9196'}
+          fill={i < filled ? color : 'transparent'}
+          stroke={i < filled ? color : '#8E9196'}
           size={16}
         />
       ))}
@@ -204,7 +203,7 @@ const ChatbotFeedbackFlow: React.FC<ChatbotFeedbackFlowProps> = ({
                     <span className="text-lg">{option.emoji}</span>
                     <span>{option.label}</span>
                   </div>
-                  <StarRating rating={option.stars} color={option.color} />
+                  <StarRating filled={option.filled} color={option.color} />
                 </Button>
               ))}
             </div>
