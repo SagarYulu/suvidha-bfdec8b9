@@ -19,6 +19,11 @@ export interface ResolverStats {
   feedbackReceived: number;
 }
 
+export interface FeedbackMetadata {
+  category?: 'agent' | 'resolution' | null;
+  reason?: string | null;
+}
+
 // Check if feedback exists for a ticket
 export const checkFeedbackExists = async (ticketId: string): Promise<boolean> => {
   try {

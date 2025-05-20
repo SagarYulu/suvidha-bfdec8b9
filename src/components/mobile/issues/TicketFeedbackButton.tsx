@@ -3,7 +3,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, CheckCircle } from "lucide-react";
 import { useTicketFeedback } from "@/hooks/useTicketFeedback";
-import FeedbackForm from "./FeedbackForm";
+import ChatbotFeedbackFlow from "./ChatbotFeedbackFlow";
 
 interface TicketFeedbackButtonProps {
   ticketId: string;
@@ -61,7 +61,7 @@ const TicketFeedbackButton: React.FC<TicketFeedbackButtonProps> = ({
         Share Your Feedback / अपनी प्रतिक्रिया साझा करें
       </Button>
 
-      <FeedbackForm
+      <ChatbotFeedbackFlow
         isOpen={showFeedbackForm}
         onClose={closeFeedbackForm}
         ticketId={ticketId}
