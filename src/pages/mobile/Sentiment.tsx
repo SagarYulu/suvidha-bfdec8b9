@@ -11,8 +11,8 @@ interface MobileSentimentProps {
 }
 
 const MobileSentiment: React.FC<MobileSentimentProps> = ({ isOpen = false, onClose }) => {
-  // Updated to use golden gradient colors
-  const bgGradient = "linear-gradient(135deg, #FEF3C7 0%, #F59E0B 100%)";
+  // Updated to use golden gradient colors matching the feedback buttons
+  const bgGradient = "linear-gradient(135deg, #FFF3C4 0%, #F59E0B 100%)";
   
   // When used as a standalone page
   if (!isOpen && !onClose) {
