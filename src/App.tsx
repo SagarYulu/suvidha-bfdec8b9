@@ -8,7 +8,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Toast } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import MyTickets from "./pages/mobile/MyTickets";
 import MobileIssues from './pages/mobile/Issues';

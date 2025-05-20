@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
 import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export interface DateRange {
   from?: Date;
@@ -85,12 +85,20 @@ export const useDashboardData = () => {
   useEffect(() => {
     if (issuesError) {
       console.error("Error fetching issues:", issuesError);
-      toast.error("Failed to load issues data");
+      toast({
+        title: "Error",
+        description: "Failed to load issues data",
+        variant: "destructive",
+      });
     }
     
     if (analyticsError) {
       console.error("Error fetching analytics:", analyticsError);
-      toast.error("Failed to load analytics data");
+      toast({
+        title: "Error",
+        description: "Failed to load analytics data",
+        variant: "destructive",
+      });
     }
   }, [issuesError, analyticsError]);
   
