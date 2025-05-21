@@ -7,7 +7,6 @@ import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { SLADashboard } from "./SLADashboard";
-import { TicketTrendAnalysis } from "./TicketTrendAnalysis";
 
 // Re-export AdvancedFilters type so imports don't break elsewhere
 export type { AdvancedFilters } from "./types";
@@ -59,8 +58,7 @@ export const AdvancedAnalyticsSection = () => {
         <SLADashboard filters={filters} />
       </div>
 
-      {/* Add the Ticket Trend Analysis section */}
-      <TicketTrendAnalysis filters={filters} />
+      <AnalyticsPlaceholder />
     </div>
   );
 };

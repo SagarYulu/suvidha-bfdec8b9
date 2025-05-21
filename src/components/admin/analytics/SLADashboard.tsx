@@ -1,12 +1,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { DownloadIcon } from "lucide-react";
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { calculateWorkingHours, determinePriority } from "@/utils/workingTimeUtils";
-import { exportSLAPerformanceToCSV } from "@/utils/csvExportUtils";
 
 interface SLAMetricProps {
   icon: React.ReactNode;
@@ -238,51 +235,33 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
   const closedBreachedPercentage = getPercentage(slaBreaches.closedResolved.breached, slaBreaches.closedResolved.total);
   const closedWithinSLAPercentage = getPercentage(slaBreaches.closedResolved.withinSLA, slaBreaches.closedResolved.total);
 
-  const handleExportData = () => {
-    exportSLAPerformanceToCSV(slaBreaches);
-  };
-
   // Display the dashboard with the updated metrics showing both counts and percentages
   return (
-    <div>
-      <div className="flex justify-between items-center mb-2">
-        <div></div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="ml-auto"
-          onClick={handleExportData}
-        >
-          <DownloadIcon className="h-4 w-4 mr-2" />
-          Export SLA Data
-        </Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <SLACard
-          title="Open & In Progress Tickets"
-          totalCount={slaBreaches.openInProgress.total}
-          withinSLACount={slaBreaches.openInProgress.withinSLA}
-          withinSLAPercentage={openInProgressWithinSLAPercentage}
-          breachedCount={slaBreaches.openInProgress.breached}
-          breachedPercentage={openInProgressBreachedPercentage}
-        />
-        <SLACard
-          title="First Response Time SLA"
-          totalCount={slaBreaches.firstResponse.total}
-          withinSLACount={slaBreaches.firstResponse.withinSLA}
-          withinSLAPercentage={firstResponseWithinSLAPercentage}
-          breachedCount={slaBreaches.firstResponse.breached}
-          breachedPercentage={firstResponseBreachedPercentage}
-        />
-        <SLACard
-          title="Closed & Resolved Tickets"
-          totalCount={slaBreaches.closedResolved.total}
-          withinSLACount={slaBreaches.closedResolved.withinSLA}
-          withinSLAPercentage={closedWithinSLAPercentage}
-          breachedCount={slaBreaches.closedResolved.breached}
-          breachedPercentage={closedBreachedPercentage}
-        />
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <SLACard
+        title="Open & In Progress Tickets"
+        totalCount={slaBreaches.openInProgress.total}
+        withinSLACount={slaBreaches.openInProgress.withinSLA}
+        withinSLAPercentage={openInProgressWithinSLAPercentage}
+        breachedCount={slaBreaches.openInProgress.breached}
+        breachedPercentage={openInProgressBreachedPercentage}
+      />
+      <SLACard
+        title="First Response Time SLA"
+        totalCount={slaBreaches.firstResponse.total}
+        withinSLACount={slaBreaches.firstResponse.withinSLA}
+        withinSLAPercentage={firstResponseWithinSLAPercentage}
+        breachedCount={slaBreaches.firstResponse.breached}
+        breachedPercentage={firstResponseBreachedPercentage}
+      />
+      <SLACard
+        title="Closed & Resolved Tickets"
+        totalCount={slaBreaches.closedResolved.total}
+        withinSLACount={slaBreaches.closedResolved.withinSLA}
+        withinSLAPercentage={closedWithinSLAPercentage}
+        breachedCount={slaBreaches.closedResolved.breached}
+        breachedPercentage={closedBreachedPercentage}
+      />
     </div>
   );
 };
