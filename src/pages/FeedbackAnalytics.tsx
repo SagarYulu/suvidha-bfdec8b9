@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -17,6 +16,7 @@ import {
   getCities, 
   getClusters 
 } from "@/services/feedbackAnalyticsService";
+import { useToast } from "@/components/ui/use-toast";
 
 // Properly typed comparison modes
 const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; label: string}[] = [
@@ -43,6 +43,8 @@ const FEEDBACK_TYPES: {value: "agent" | "resolution" | "both"; label: string}[] 
 ];
 
 const FeedbackAnalytics = () => {
+  const { toast } = useToast();
+  
   // Filters state with proper types
   const [selectedCity, setSelectedCity] = useState<string>("all");
   const [selectedCluster, setSelectedCluster] = useState<string>("all");
@@ -59,6 +61,7 @@ const FeedbackAnalytics = () => {
   const [cities, setCities] = useState<string[]>([]);
   const [clusters, setClusters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "resolution">("overview");
@@ -67,6 +70,7 @@ const FeedbackAnalytics = () => {
   useEffect(() => {
     const fetchMasterData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const citiesData = await getCities();
         setCities(citiesData);
@@ -74,34 +78,66 @@ const FeedbackAnalytics = () => {
         // Get all clusters initially
         const clustersData = await getClusters();
         setClusters(clustersData);
-      } catch (error) {
-        console.error("Error fetching master data:", error);
+      } catch (err) {
+        console.error("Error fetching master data:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
+        toast({
+          title: "Error",
+          description: "Failed to load filter options. Please try again later.",
+          variant: "destructive"
+        });
       } finally {
         setLoading(false);
       }
     };
     
     fetchMasterData();
-  }, []);
+  }, [toast]);
 
   // Update clusters when city changes
   useEffect(() => {
     const updateClusters = async () => {
-      if (selectedCity === "all") {
-        const allClusters = await getClusters();
-        setClusters(allClusters);
-      } else {
-        const filteredClusters = await getClusters(selectedCity);
-        setClusters(filteredClusters);
-        // Reset cluster selection if the currently selected cluster is not in the new list
-        if (filteredClusters.length > 0 && !filteredClusters.includes(selectedCluster) && selectedCluster !== "all") {
-          setSelectedCluster("all");
+      setError(null);
+      try {
+        if (selectedCity === "all") {
+          const allClusters = await getClusters();
+          setClusters(allClusters);
+        } else {
+          const filteredClusters = await getClusters(selectedCity);
+          setClusters(filteredClusters);
+          // Reset cluster selection if the currently selected cluster is not in the new list
+          if (filteredClusters.length > 0 && !filteredClusters.includes(selectedCluster) && selectedCluster !== "all") {
+            setSelectedCluster("all");
+          }
         }
+      } catch (err) {
+        console.error("Error fetching clusters:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch clusters");
+        toast({
+          title: "Error",
+          description: "Failed to load clusters. Please try again later.",
+          variant: "destructive"
+        });
       }
     };
     
     updateClusters();
-  }, [selectedCity]);
+  }, [selectedCity, toast]);
+
+  // Update active tab when feedback type changes
+  useEffect(() => {
+    // When feedback type changes, update the active tab accordingly
+    if (selectedFeedbackType === "agent") {
+      setActiveTab("agent");
+    } else if (selectedFeedbackType === "resolution") {
+      setActiveTab("resolution");
+    } else {
+      // For "both", keep current tab or default to overview
+      setActiveTab(prevTab => 
+        prevTab === "agent" || prevTab === "resolution" ? prevTab : "overview"
+      );
+    }
+  }, [selectedFeedbackType]);
 
   // Function to handle feedback type change with proper type checking
   const handleFeedbackTypeChange = (value: string) => {
@@ -120,7 +156,6 @@ const FeedbackAnalytics = () => {
   // Handle date range change
   const handleDateRangeChange = (range: DateRange | undefined) => {
     setDateRange(range);
-    console.log("Date range changed:", range);
   };
 
   // Helper function to format date range for display
@@ -233,7 +268,7 @@ const FeedbackAnalytics = () => {
                 </Select>
               </div>
 
-              {/* Feedback type filter - Updated to match backend terminology */}
+              {/* Feedback type filter */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Feedback Type</label>
                 <Select 

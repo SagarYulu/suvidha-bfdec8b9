@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useToast } from "@/components/ui/use-toast";
 import { 
   FeedbackFilters, 
   FeedbackOverview, 
@@ -30,6 +31,7 @@ export const useFeedbackAnalytics = ({
   filters, 
   view 
 }: UseFeedbackAnalyticsProps): UseFeedbackAnalyticsResult => {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [overview, setOverview] = useState<FeedbackOverview | null>(null);
   const [resolvers, setResolvers] = useState<ResolverStats[]>([]);
@@ -59,7 +61,6 @@ export const useFeedbackAnalytics = ({
           processedFilters.feedbackType = 'agent';
         } else if (view === 'resolution') {
           // For resolution view, we use 'resolution' type feedback
-          // to match backend terminology
           processedFilters.feedbackType = 'resolution';
         } else if (view === 'overview') {
           // In overview, we respect the user's selected feedbackType
@@ -93,14 +94,21 @@ export const useFeedbackAnalytics = ({
         
       } catch (err) {
         console.error('Error fetching feedback analytics data:', err);
-        setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        setError(err instanceof Error ? err : new Error(errorMessage));
+        
+        toast({
+          title: "Data Loading Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchData();
-  }, [filters, view]);
+  }, [filters, view, toast]);
 
   return {
     isLoading,
