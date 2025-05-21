@@ -27,7 +27,7 @@ const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; l
   { value: "year", label: "Year-on-Year" }
 ];
 
-// Mock data for ticket categories (in production would come from API)
+// Ticket categories (will fetch from API in production)
 const TICKET_CATEGORIES = [
   { id: "pf", name: "PF" },
   { id: "esi", name: "ESI" },
@@ -316,12 +316,12 @@ const FeedbackAnalytics = () => {
           </CardContent>
         </Card>
 
-        {/* Analytics Tabs - Updated to use consistent naming */}
+        {/* Analytics Tabs - Fixed width to prevent overlap */}
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "agent" | "resolution")}>
-          <TabsList className="grid grid-cols-3 w-[400px]">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
-            <TabsTrigger value="resolution">Resolution Feedback</TabsTrigger>
+          <TabsList className="w-full">
+            <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+            <TabsTrigger value="agent" className="flex-1">Agent Feedback</TabsTrigger>
+            <TabsTrigger value="resolution" className="flex-1">Resolution Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">

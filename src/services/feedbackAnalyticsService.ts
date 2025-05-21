@@ -1,4 +1,3 @@
-
 import { DateRange } from "react-day-picker";
 
 // Types for filter parameters
@@ -7,7 +6,7 @@ export interface FeedbackFilters {
   cluster?: string;
   resolver?: string;
   category?: string;
-  feedbackType?: "agent" | "solution" | "resolution" | "both";
+  feedbackType?: "agent" | "resolution" | "both";
   comparisonMode?: "day" | "week" | "month" | "quarter" | "year";
   dateRange?: {
     start: string;
@@ -66,14 +65,35 @@ export interface TrendPoint {
 
 // Mocked API functions
 export const getCities = async (): Promise<string[]> => {
-  // Mock implementation - would be replaced with actual API call
+  try {
+    // Attempt to fetch real data from API
+    const response = await fetch('/api/analytics/cities');
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error("Error fetching cities, falling back to mock data:", error);
+  }
+  
+  // Fallback to mock data
   return ["Bangalore", "Mumbai", "Delhi", "Chennai", "Hyderabad"];
 };
 
 export const getClusters = async (city?: string): Promise<string[]> => {
-  // Mock implementation - would be replaced with actual API call
+  try {
+    // Attempt to fetch real data from API
+    const url = city ? `/api/analytics/clusters?city=${encodeURIComponent(city)}` : '/api/analytics/clusters';
+    const response = await fetch(url);
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error("Error fetching clusters, falling back to mock data:", error);
+  }
+  
+  // Fallback to mock data based on city
   if (city === "Bangalore") {
-    return ["Electronic City", "Whitefield", "Koramangala"];
+    return ["Electronic City", "Whitefield", "Koramangala", "Indiranagar"];
   } else if (city === "Mumbai") {
     return ["Andheri", "Powai", "BKC"];
   } else {
@@ -82,12 +102,27 @@ export const getClusters = async (city?: string): Promise<string[]> => {
 };
 
 export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<FeedbackOverview> => {
-  // Simulate API delay
+  try {
+    // Attempt to fetch real data from API
+    const response = await fetch('/api/analytics/feedback/overview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    if (response.ok) {
+      return await response.json();
+    }
+  } catch (error) {
+    console.error("Error fetching feedback overview, falling back to mock data:", error);
+  }
+  
+  // Simulate API delay before returning mock data
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  console.log("Fetching feedback overview with filters:", filters);
+  console.log("Using mock data for feedback overview with filters:", filters);
   
-  // Mock implementation - would be replaced with actual API call
+  // Mock data
   return {
     averageRating: 4.2,
     changePercentage: 5.3,
