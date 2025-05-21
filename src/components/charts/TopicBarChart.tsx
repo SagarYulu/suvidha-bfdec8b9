@@ -17,11 +17,28 @@ interface TopicBarChartProps {
     name: string;
     count: number;
     previousCount?: number;
+    resolutionTime?: number;
   }>;
   showComparison?: boolean;
+  isResolutionTime?: boolean;
 }
 
-const TopicBarChart: React.FC<TopicBarChartProps> = ({ data, showComparison = false }) => {
+const TopicBarChart: React.FC<TopicBarChartProps> = ({ 
+  data, 
+  showComparison = false,
+  isResolutionTime = false
+}) => {
+  // Format resolution time for display (ensure it's in working hours)
+  const formatResolutionTime = (hours: number) => {
+    if (hours < 24) {
+      return `${hours.toFixed(1)} hrs`;
+    } else {
+      const days = Math.floor(hours / 8); // Convert to working days (8 hours per day)
+      const remainingHours = hours % 8;
+      return `${days}d ${remainingHours.toFixed(1)}h`;
+    }
+  };
+
   // Custom tooltip for bar chart
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -37,13 +54,24 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data, showComparison = fa
         <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
           <p className="font-medium text-gray-900">{label}</p>
           <div className="mt-2 space-y-1">
-            <p className="text-sm">
-              Current: <span className="font-medium">{item.count}</span> mentions
-            </p>
+            {isResolutionTime ? (
+              <p className="text-sm">
+                Resolution Time: <span className="font-medium">{formatResolutionTime(item.count)}</span>
+              </p>
+            ) : (
+              <p className="text-sm">
+                Current: <span className="font-medium">{item.count}</span> mentions
+              </p>
+            )}
             
             {showComparison && item.previousCount !== undefined && (
               <p className="text-sm">
-                Previous: <span className="font-medium">{item.previousCount}</span> mentions
+                Previous: <span className="font-medium">
+                  {isResolutionTime 
+                    ? formatResolutionTime(item.previousCount) 
+                    : item.previousCount}
+                </span>
+                {!isResolutionTime && " mentions"}
               </p>
             )}
             
@@ -53,24 +81,24 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data, showComparison = fa
                   Change: {" "}
                   <span className={
                     item.count > item.previousCount 
-                      ? "text-green-600 font-medium" 
+                      ? isResolutionTime ? "text-red-600 font-medium" : "text-green-600 font-medium" 
                       : item.count < item.previousCount 
-                        ? "text-red-600 font-medium" 
+                        ? isResolutionTime ? "text-green-600 font-medium" : "text-red-600 font-medium" 
                         : "text-gray-600"
                   }>
                     {item.count > item.previousCount ? '+' : ''}
-                    {item.count - item.previousCount} mentions
+                    {isResolutionTime 
+                      ? formatResolutionTime(Math.abs(item.count - item.previousCount))
+                      : `${item.count - item.previousCount} mentions`}
                   </span>
                 </p>
                 
                 {item.previousCount > 0 && (
                   <p className="text-sm">
                     <span className={
-                      changePercent > 0 
-                        ? "text-green-600 font-medium" 
-                        : changePercent < 0 
-                          ? "text-red-600 font-medium" 
-                          : "text-gray-600"
+                      isResolutionTime
+                        ? (changePercent > 0 ? "text-red-600 font-medium" : "text-green-600 font-medium")
+                        : (changePercent > 0 ? "text-green-600 font-medium" : "text-red-600 font-medium")
                     }>
                       {changePercent > 0 ? '+' : ''}
                       {changePercent.toFixed(1)}%
@@ -128,7 +156,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data, showComparison = fa
             tickLine={{ stroke: '#e5e7eb' }}
             axisLine={{ stroke: '#e5e7eb' }}
             label={{ 
-              value: 'Number of Mentions', 
+              value: isResolutionTime ? 'Resolution Time (hours)' : 'Number of Mentions', 
               position: 'insideLeft', 
               angle: -90, 
               dy: 50, 
@@ -140,8 +168,8 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({ data, showComparison = fa
           <Legend 
             wrapperStyle={{ paddingTop: '10px' }}
             formatter={(value) => {
-              if (value === "count") return "Current Period";
-              if (value === "previousCount") return "Previous Period";
+              if (value === "count") return isResolutionTime ? "Resolution Time" : "Current Period";
+              if (value === "previousCount") return isResolutionTime ? "Previous Period" : "Previous Period";
               return value;
             }}
           />

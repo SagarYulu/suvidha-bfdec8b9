@@ -3,13 +3,11 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
-interface TopicBarChartProps {
+interface MobileTopicBarChartProps {
   data: { name: string; count: number }[];
 }
 
-const MobileTopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#48C9B0', '#F4D03F'];
-  
+const MobileTopicBarChart: React.FC<MobileTopicBarChartProps> = ({ data }) => {
   if (!data || data.length === 0) {
     return (
       <Card className="bg-white/10 text-white">
@@ -22,32 +20,46 @@ const MobileTopicBarChart: React.FC<TopicBarChartProps> = ({ data }) => {
     );
   }
 
+  // Generate colors based on the index
+  const generateColor = (index: number) => {
+    const hue = 200 + (index * 30) % 150;
+    return `hsl(${hue}, 80%, 60%)`;
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-gray-800 text-white p-2 rounded shadow-lg text-sm">
+          <p className="font-medium">{label}</p>
+          <p>{`Count: ${payload[0].value}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <Card className="bg-white/10 text-white">
       <CardContent className="p-4">
-        <h3 className="text-lg font-medium mb-2">Top Topics</h3>
+        <h3 className="text-lg font-medium mb-2">Topic Distribution</h3>
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={data}
+              margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
               layout="vertical"
-              margin={{ top: 5, right: 5, bottom: 5, left: 5 }}
             >
-              <XAxis type="number" hide />
+              <XAxis type="number" tick={{ fill: 'white', fontSize: 10 }} />
               <YAxis 
-                type="category" 
                 dataKey="name" 
-                tick={{ fill: 'white', fontSize: 12 }} 
-                width={100}
+                type="category" 
+                tick={{ fill: 'white', fontSize: 10 }} 
+                width={80}
               />
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', color: 'white', border: 'none' }}
-                labelStyle={{ color: 'white' }}
-                formatter={(value) => [`${value} mentions`, '']}
-              />
-              <Bar dataKey="count" fill="#8884d8" radius={[0, 4, 4, 0]}>
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
                 {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell key={`cell-${index}`} fill={generateColor(index)} />
                 ))}
               </Bar>
             </BarChart>
