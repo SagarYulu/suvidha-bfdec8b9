@@ -22,72 +22,51 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       try {
         console.log("Fetching advanced analytics data with filters:", filters);
         
-        // Start building the base query - use type assertion to help TypeScript
-        let query = supabase
-          .from('issues')
-          .select(`
-            *,
-            issue_comments (*)
-          `);
+        // Create the base selection query string once
+        const selectQuery = `
+          *,
+          issue_comments (*)
+        `;
         
-        // Apply filters one by one, using a different approach to avoid deep type instantiation
+        // Instead of chaining, we'll construct filter objects and then apply them all at once
+        const filterConditions: Record<string, any> = {};
         
-        // Apply city filter
         if (filters.city) {
-          console.log("Applying city filter:", filters.city);
-          query = supabase
-            .from('issues')
-            .select(`
-              *,
-              issue_comments (*)
-            `)
-            .eq('city', filters.city);
-            
-          // Apply other filters to this new query instance
-          if (filters.cluster) {
-            console.log("Applying cluster filter:", filters.cluster);
-            query = query.eq('cluster', filters.cluster);
-          }
-          
-          if (filters.manager) {
-            console.log("Applying manager filter:", filters.manager);
-            query = query.eq('manager', filters.manager);
-          }
-          
-          if (filters.role) {
-            console.log("Applying role filter:", filters.role);
-            query = query.eq('role', filters.role);
-          }
-          
-          if (filters.issueType) {
-            console.log("Applying issue type filter:", filters.issueType);
-            query = query.eq('type_id', filters.issueType);
-          }
-        } 
-        // If no city filter, but other filters exist
-        else {
-          if (filters.cluster) {
-            console.log("Applying cluster filter:", filters.cluster);
-            query = query.eq('cluster', filters.cluster);
-          }
-          
-          if (filters.manager) {
-            console.log("Applying manager filter:", filters.manager);
-            query = query.eq('manager', filters.manager);
-          }
-          
-          if (filters.role) {
-            console.log("Applying role filter:", filters.role);
-            query = query.eq('role', filters.role);
-          }
-          
-          if (filters.issueType) {
-            console.log("Applying issue type filter:", filters.issueType);
-            query = query.eq('type_id', filters.issueType);
-          }
+          console.log("Adding city filter:", filters.city);
+          filterConditions['city'] = filters.city;
         }
         
-        // Apply date range filter (can be safely chained)
+        if (filters.cluster) {
+          console.log("Adding cluster filter:", filters.cluster);
+          filterConditions['cluster'] = filters.cluster;
+        }
+        
+        if (filters.manager) {
+          console.log("Adding manager filter:", filters.manager);
+          filterConditions['manager'] = filters.manager;
+        }
+        
+        if (filters.role) {
+          console.log("Adding role filter:", filters.role);
+          filterConditions['role'] = filters.role;
+        }
+        
+        if (filters.issueType) {
+          console.log("Adding issue type filter:", filters.issueType);
+          filterConditions['type_id'] = filters.issueType;
+        }
+        
+        // Start with a base query
+        let query = supabase
+          .from('issues')
+          .select(selectQuery);
+        
+        // Apply all collected filters at once
+        Object.entries(filterConditions).forEach(([key, value]) => {
+          query = query.eq(key, value);
+        });
+        
+        // Apply date range filter
         if (filters.dateRange) {
           if (filters.dateRange.from) {
             const fromDate = new Date(filters.dateRange.from);
@@ -105,10 +84,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
         
         console.log("Executing query with filters");
-        const { data: rawIssues, error } = await query;
+        const { data: rawIssues, error: queryError } = await query;
         
-        if (error) {
-          throw error;
+        if (queryError) {
+          throw queryError;
         }
         
         console.log(`Fetched ${rawIssues?.length || 0} issues with applied filters`);
