@@ -93,6 +93,59 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_sentiment: {
+        Row: {
+          city: string | null
+          cluster: string | null
+          created_at: string | null
+          employee_id: string
+          feedback: string | null
+          id: string
+          rating: number
+          role: string | null
+          sentiment_label: string | null
+          sentiment_score: number | null
+          tags: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          employee_id: string
+          feedback?: string | null
+          id?: string
+          rating: number
+          role?: string | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          employee_id?: string
+          feedback?: string | null
+          id?: string
+          rating?: number
+          role?: string | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          tags?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_sentiment_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           account_number: string | null
@@ -548,6 +601,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sentiment_alerts: {
+        Row: {
+          average_score: number
+          change_percentage: number | null
+          city: string | null
+          cluster: string | null
+          created_at: string | null
+          id: string
+          is_resolved: boolean | null
+          previous_average_score: number | null
+          role: string | null
+          trigger_reason: string
+          updated_at: string | null
+        }
+        Insert: {
+          average_score: number
+          change_percentage?: number | null
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          previous_average_score?: number | null
+          role?: string | null
+          trigger_reason: string
+          updated_at?: string | null
+        }
+        Update: {
+          average_score?: number
+          change_percentage?: number | null
+          city?: string | null
+          cluster?: string | null
+          created_at?: string | null
+          id?: string
+          is_resolved?: boolean | null
+          previous_average_score?: number | null
+          role?: string | null
+          trigger_reason?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sentiment_tags: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {

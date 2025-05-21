@@ -32,7 +32,7 @@ export const ISSUE_TYPES: IssueType[] = [
   {
     id: "pf",
     label: "PF",
-    labelHindi: "पीएफ",
+    labelHindi: "पीएफ की समस्या",
     subTypes: [
       { id: "bank-kyc", label: "Bank KYC approval", labelHindi: "बैंक केवाईसी अप्रूवल" },
       { id: "name-change", label: "Name change approval", labelHindi: "नाम बदलने का अप्रूवल" },
@@ -46,7 +46,7 @@ export const ISSUE_TYPES: IssueType[] = [
   {
     id: "esi",
     label: "ESI",
-    labelHindi: "ईएसआई",
+    labelHindi: "ईएसआई की समस्या",
     subTypes: [
       { id: "family-addition", label: "Family members addition", labelHindi: "परिवार के सदस्यों को जोड़ना" },
       { id: "nominee-change", label: "Need to change nominee", labelHindi: "नॉमिनी बदलना है" },
@@ -57,7 +57,7 @@ export const ISSUE_TYPES: IssueType[] = [
   {
     id: "leave",
     label: "Leave / Rest Days",
-    labelHindi: "छुट्टी",
+    labelHindi: "छुट्टी / आराम के दिन",
     subTypes: [
       { id: "manager-rejected", label: "Manager rejected leave / rest day", labelHindi: "मैनेजर ने छुट्टी / आराम का दिन रिजेक्ट कर दिया" },
       { id: "not-added", label: "Leave / rest day not added", labelHindi: "छुट्टी / आराम का दिन नहीं जोड़ा गया" },
