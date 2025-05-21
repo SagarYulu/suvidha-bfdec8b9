@@ -11,6 +11,7 @@ export interface AnalyticsData {
   firstResponseSLABreach: number;
   ftrRate: number;
   avgResolutionTime: number;
+  avgFirstResponseTime: number;
   resolutionSLABreach: number;
   reopenCount: number;
   reopenRate: number;
@@ -172,6 +173,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       
       const ftrsTime = ticketsWithResponse > 0 ? totalResponseTime / ticketsWithResponse : 0;
       const firstResponseSLABreach = ticketsWithResponse > 0 ? (slaBreachCount / ticketsWithResponse) * 100 : 0;
+      const avgFirstResponseTime = ftrsTime; // Set avgFirstResponseTime to ftrsTime
       
       // First time resolution rate - tickets resolved with just one response
       let ftrCount = 0;
@@ -425,6 +427,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         firstResponseSLABreach,
         ftrRate,
         avgResolutionTime,
+        avgFirstResponseTime,
         resolutionSLABreach,
         reopenCount,
         reopenRate,

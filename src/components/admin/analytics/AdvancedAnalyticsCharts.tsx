@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdvancedFilters } from "./types";
@@ -141,7 +140,7 @@ export const AdvancedAnalyticsCharts: React.FC<AdvancedAnalyticsChartsProps> = (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard 
           title="First Response Time" 
-          value={formatHours(analyticsData.avgFirstResponseTime || 0)} 
+          value={formatHours(analyticsData.avgFirstResponseTime)} 
           icon={<Clock className="h-5 w-5 text-blue-600" />}
           className="bg-blue-50" 
         />
