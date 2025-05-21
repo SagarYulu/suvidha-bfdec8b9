@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +21,8 @@ export interface AnalyticsData {
   overallSLABreach: number;
   openInProgressSLABreach: number;
   assigneeSLABreach: number;
+  // Raw issues data for accurate SLA calculations
+  rawIssues: any[];
   priorityDistribution: {
     priority: string;
     count: number;
@@ -114,20 +117,31 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         queryModifiers = queryModifiers.eq('type_id', filters.issueType);
       }
       
-      // Get all issues for analysis
-      const { data: allIssues } = await queryModifiers;
-      
       // Get total tickets count
       const { count: totalTickets } = await queryModifiers;
       
       // Get resolved tickets
       const { count: resolvedTickets } = await queryModifiers
-        .eq('status', 'closed');
+        .or('status.eq.closed,status.eq.resolved');
         
       // Get open tickets
       const { count: openTickets } = await queryModifiers
-        .neq('status', 'closed');
-        
+        .not('status', 'in', '("closed","resolved")');
+      
+      // Fetch raw issues with comments for SLA calculation
+      const { data: rawIssues } = await supabase
+        .from('issues')
+        .select(`
+          *,
+          issue_comments (
+            id,
+            content,
+            created_at,
+            employee_uuid
+          )
+        `)
+        .order('created_at', { ascending: false });
+      
       // Calculate resolution rate
       const resolutionRate = totalTickets > 0 ? (resolvedTickets / totalTickets) * 100 : 0;
       
@@ -189,7 +203,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       const { data: resolvedIssuesData } = await supabase
         .from('issues')
         .select('created_at, closed_at')
-        .eq('status', 'closed');
+        .or('status.eq.closed,status.eq.resolved');
         
       let totalResolutionTime = 0;
       let closedIssuesCount = 0;
@@ -244,20 +258,20 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       let openInProgressBreachCount = 0;
       const openInProgressSLABenchmark = 24; // 24 hours for open/in progress tickets
       
-      allIssues?.forEach(issue => {
-        if (issue.status === 'open' || issue.status === 'in_progress') {
-          const createdAt = new Date(issue.created_at);
-          const now = new Date();
-          const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-          
-          if (hoursElapsed > openInProgressSLABenchmark) {
-            openInProgressBreachCount++;
-          }
+      const openInProgressTickets = rawIssues?.filter(issue => 
+        issue.status === 'open' || issue.status === 'in_progress') || [];
+      
+      openInProgressTickets.forEach(issue => {
+        const createdAt = new Date(issue.created_at);
+        const now = new Date();
+        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursElapsed > openInProgressSLABenchmark) {
+          openInProgressBreachCount++;
         }
       });
       
-      const openInProgressCount = allIssues?.filter(issue => 
-        issue.status === 'open' || issue.status === 'in_progress').length || 0;
+      const openInProgressCount = openInProgressTickets.length;
       const openInProgressSLABreach = openInProgressCount > 0 ? 
         (openInProgressBreachCount / openInProgressCount) * 100 : 0;
       
@@ -266,7 +280,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       const assigneeSLABenchmark = 8; // 8 hours for assignee response
       
       // Filter for assigned tickets
-      const assignedTickets = allIssues?.filter(issue => issue.assigned_to) || [];
+      const assignedTickets = rawIssues?.filter(issue => issue.assigned_to) || [];
       
       assignedTickets.forEach(issue => {
         // For simplicity, we'll check if any assigned ticket has not been updated within the SLA timeframe
@@ -290,7 +304,6 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         assigneeSLABreach
       ) / 4;
       
-      // Other metrics and charts data
       // Priority distribution
       const { data: priorityResults } = await supabase
         .from('issues')
@@ -337,14 +350,14 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         .slice(0, 5);
       
       // Weekday vs Weekend volume
-      const weekdayCount = allIssues?.filter(issue => {
+      const weekdayCount = rawIssues?.filter(issue => {
         const date = new Date(issue.created_at);
         const day = date.getDay();
         // 0 is Sunday, 6 is Saturday
         return day > 0 && day < 6;
       }).length || 0;
       
-      const weekendCount = (allIssues?.length || 0) - weekdayCount;
+      const weekendCount = (rawIssues?.length || 0) - weekdayCount;
       
       const weekdayVsWeekend = [
         { dayType: 'Weekday', count: weekdayCount },
@@ -436,6 +449,8 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         overallSLABreach,
         openInProgressSLABreach,
         assigneeSLABreach,
+        // Raw data for SLA calculations
+        rawIssues: rawIssues || [],
         priorityDistribution,
         statusDistribution,
         topIssueTypes,
