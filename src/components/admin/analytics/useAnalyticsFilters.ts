@@ -38,6 +38,7 @@ export const useAnalyticsFilters = () => {
   }, [pendingFilters.city]);
 
   const handleCityChange = useCallback((city: string) => {
+    console.log("City changed to:", city);
     setPendingFilters(prev => ({ 
       ...prev, 
       city: city === "all-cities" ? null : city,
@@ -47,6 +48,7 @@ export const useAnalyticsFilters = () => {
   }, []);
 
   const handleClusterChange = useCallback((cluster: string) => {
+    console.log("Cluster changed to:", cluster);
     setPendingFilters(prev => ({ 
       ...prev, 
       cluster: cluster === "all-clusters" ? null : cluster 
@@ -54,6 +56,7 @@ export const useAnalyticsFilters = () => {
   }, []);
 
   const handleManagerChange = useCallback((manager: string) => {
+    console.log("Manager changed to:", manager);
     setPendingFilters(prev => ({ 
       ...prev, 
       manager: manager === "all-managers" ? null : manager 
@@ -61,6 +64,7 @@ export const useAnalyticsFilters = () => {
   }, []);
 
   const handleRoleChange = useCallback((role: string) => {
+    console.log("Role changed to:", role);
     setPendingFilters(prev => ({ 
       ...prev, 
       role: role === "all-roles" ? null : role 
@@ -68,6 +72,7 @@ export const useAnalyticsFilters = () => {
   }, []);
 
   const handleIssueTypeChange = useCallback((issueType: string) => {
+    console.log("Issue type changed to:", issueType);
     setPendingFilters(prev => ({ 
       ...prev, 
       issueType: issueType === "all-issues" ? null : issueType 
@@ -75,14 +80,17 @@ export const useAnalyticsFilters = () => {
   }, []);
 
   const handleDateRangeChange = useCallback((dateRange: DateRange) => {
+    console.log("Date range changed:", dateRange);
     setPendingFilters(prev => ({ ...prev, dateRange }));
   }, []);
 
   const handleComparisonModeToggle = useCallback((enabled: boolean) => {
+    console.log("Comparison mode toggled:", enabled);
     setPendingFilters(prev => ({ ...prev, isComparisonModeEnabled: enabled }));
   }, []);
 
   const handleComparisonModeChange = useCallback((mode: string) => {
+    console.log("Comparison mode changed:", mode);
     setPendingFilters(prev => ({ ...prev, comparisonMode: mode as ComparisonMode }));
   }, []);
 
@@ -98,6 +106,7 @@ export const useAnalyticsFilters = () => {
   }, [pendingFilters]);
 
   const clearFilters = useCallback(() => {
+    console.log("Clearing all filters");
     const clearedFilters: AdvancedFilters = {
       city: null,
       cluster: null,

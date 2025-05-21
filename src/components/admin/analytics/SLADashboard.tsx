@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button"; 
@@ -81,7 +80,7 @@ interface SLADashboardProps {
   filters: AdvancedFilters;
 }
 
-// SLA breach thresholds in hours - using the same values as in workingTimeUtils.ts
+// SLA breach thresholds in hours
 const SLA_THRESHOLDS = {
   firstResponse: 4,    // First response within 4 hours
   resolution: 48,      // Resolution within 48 hours
@@ -92,12 +91,13 @@ const SLA_THRESHOLDS = {
 export const SLADashboard = ({ filters }: SLADashboardProps) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
 
+  console.log("SLA Dashboard rendered with filters:", filters);
   console.log("SLA Dashboard Data:", { data, isLoading, error });
 
   if (isLoading) {
     return (
       <div className="py-8 flex justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
@@ -113,7 +113,7 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
   if (!data || !data.rawIssues || data.rawIssues.length === 0) {
     return (
       <div className="py-8 text-center text-gray-500">
-        <p>No SLA data available. Please adjust your filters and try again.</p>
+        <p>No SLA data available for the selected filters. Please adjust your filters and try again.</p>
       </div>
     );
   }
@@ -141,11 +141,10 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
       // Check SLA based on working hours elapsed
       const workingHoursElapsed = calculateWorkingHours(issue.created_at, now);
       
-      // Using the same threshold as in workingTimeUtils.ts determinePriority function
       if (workingHoursElapsed > SLA_THRESHOLDS.openInProgress) {
         slaBreaches.openInProgress.breached++;
       } else {
-        // Check additional SLA breach conditions matching the tickets page
+        // Check additional SLA breach conditions
         let isBreached = false;
         
         // Check if assigned but no update within threshold
@@ -158,7 +157,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
         
         // If not already marked as breached, check based on priority
         if (!isBreached) {
-          // Use the same priority determination logic as the tickets page
           const calculatedPriority = determinePriority(
             issue.created_at,
             issue.updated_at || issue.created_at,
@@ -167,7 +165,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
             issue.assigned_to
           );
           
-          // High or critical priority = SLA breached (matches ticket page logic)
           if (calculatedPriority === 'high' || calculatedPriority === 'critical') {
             isBreached = true;
           }
@@ -199,7 +196,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
       }
     } else if (!isClosed) {
       // No comments and ticket is not closed
-      // Check if past first response SLA
       const hoursElapsed = calculateWorkingHours(issue.created_at, now);
       if (hoursElapsed > SLA_THRESHOLDS.firstResponse) {
         slaBreaches.firstResponse.breached++;
@@ -212,7 +208,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
     if (isClosed) {
       slaBreaches.closedResolved.total++;
       
-      // Check if ticket was resolved within SLA
       if (issue.closed_at) {
         const resolutionTime = calculateWorkingHours(issue.created_at, issue.closed_at);
         
@@ -225,7 +220,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
         }
       } else {
         // If there's no close timestamp but status is closed (inconsistent data)
-        // Mark as breached for safety
         slaBreaches.closedResolved.breached++;
       }
     }
@@ -283,7 +277,6 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
     ], `closed-resolved-sla-${new Date().toISOString().split('T')[0]}.csv`);
   };
 
-  // Display the dashboard with the updated metrics showing both counts and percentages
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <SLACard
