@@ -6,18 +6,21 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface AdminHeaderProps {
   title: string;
+  userName?: string;
+  showBackButton?: boolean;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ title }) => {
+const AdminHeader: React.FC<AdminHeaderProps> = ({ title, userName, showBackButton }) => {
   const { authState } = useAuth();
-  const userInitial = authState.user?.name?.[0] || 'A';
+  const displayName = userName || authState.user?.name || 'Admin User';
+  const userInitial = displayName[0] || 'A';
   
   return (
     <header className="bg-white border-b border-gray-200 p-4 flex items-center justify-between">
       <h1 className="text-xl font-medium text-yulu-dashboard-blue">{title}</h1>
       
       <div className="flex items-center space-x-4">
-        <span className="text-sm text-gray-700">{authState.user?.name || 'Admin User'}</span>
+        <span className="text-sm text-gray-700">{displayName}</span>
         <Avatar className="h-8 w-8 bg-blue-600 text-white">
           <AvatarFallback>{userInitial}</AvatarFallback>
         </Avatar>
