@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
@@ -32,8 +33,16 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         // Gather all unique employee UUIDs that don't have performer info
         const employeeIdsNeedingNames = logs
           .filter(log => {
-            // Check if details is an object and if performer is missing or doesn't have a name
-            return !log.details?.performer?.name && log.employee_uuid;
+            // Safely check if details is an object and has performer property with name
+            const details = log.details;
+            const hasPerformerName = 
+              typeof details === 'object' && 
+              details !== null && 
+              details.performer && 
+              typeof details.performer === 'object' && 
+              details.performer.name;
+              
+            return !hasPerformerName && log.employee_uuid;
           })
           .map(log => log.employee_uuid);
 
@@ -92,9 +101,16 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   
   // Helper to get performer name from the log
   const getPerformerName = (log: any): string => {
-    // Check if details is an object and if performer info is available
-    if (typeof log.details === 'object' && log.details !== null && log.details.performer?.name) {
-      return log.details.performer.name;
+    // Safely check if details is an object and has performer property with name
+    const details = log.details;
+    if (
+      typeof details === 'object' && 
+      details !== null && 
+      details.performer && 
+      typeof details.performer === 'object' && 
+      details.performer.name
+    ) {
+      return details.performer.name;
     }
     
     // Fall back to our fetched names
@@ -111,8 +127,12 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         return `${actorName} changed status from ${log.previous_status || 'unknown'} to ${log.new_status}`;
       case 'ticket_assigned':
       case 'assignment':
-        const assigneeName = log.details?.assigneeName || 
-                            (log.details?.performer ? "an agent" : "an agent");
+        // Safely get assignee name from details
+        const details = log.details;
+        let assigneeName = "an agent";
+        if (typeof details === 'object' && details !== null) {
+          assigneeName = details.assigneeName || assigneeName;
+        }
         return `${actorName} assigned ticket to ${assigneeName}`;
       case 'comment_added':
         return `${actorName} added a comment`;
