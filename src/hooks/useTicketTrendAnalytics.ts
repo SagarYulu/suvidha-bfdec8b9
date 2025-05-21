@@ -70,20 +70,9 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
         if (data && data.kpis && data.statusDistribution) {
           // Move status distribution from analytics level to kpis level
           data.kpis.statusDistribution = data.statusDistribution;
-        } else if (data && data.kpis && !data.kpis.statusDistribution) {
-          // Create status distribution if not present at all
-          const openTicketsCount = Math.round(data.kpis.openTickets * 0.4);
-          const inProgressCount = Math.round(data.kpis.openTickets * 0.6);
-          
-          data.kpis.statusDistribution = {
-            open: openTicketsCount,
-            in_progress: inProgressCount,
-            resolved: Math.round(data.kpis.resolvedTickets * 0.7),
-            closed: Math.round(data.kpis.resolvedTickets * 0.3)
-          };
-        }
+        } 
         
-        // Enhance the data with additional SLA breach metrics if not already present
+        // Ensure SLA breach metrics are populated
         if (data && data.kpis) {
           if (data.kpis.openTicketsSLABreach === undefined) {
             data.kpis.openTicketsSLABreach = 18.7; // These are placeholder values
@@ -96,6 +85,19 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
           }
           if (data.kpis.assigneeSLABreach === undefined) {
             data.kpis.assigneeSLABreach = 15.2;
+          }
+          
+          // Create status distribution if not present at all
+          if (!data.kpis.statusDistribution) {
+            const openTicketsCount = Math.round(data.kpis.openTickets * 0.4);
+            const inProgressCount = Math.round(data.kpis.openTickets * 0.6);
+            
+            data.kpis.statusDistribution = {
+              open: openTicketsCount,
+              in_progress: inProgressCount,
+              resolved: Math.round(data.kpis.resolvedTickets * 0.7),
+              closed: Math.round(data.kpis.resolvedTickets * 0.3)
+            };
           }
         }
         
