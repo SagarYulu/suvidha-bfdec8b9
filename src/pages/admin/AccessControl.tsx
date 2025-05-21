@@ -31,6 +31,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useRBAC } from "@/contexts/RBACContext";
 import RolePermissionsManager from "@/components/rbac/RolePermissionsManager";
 import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
+import { ensurePermissionsExist } from "@/services/rbacService";
 
 const AccessControl = () => {
   // Original state for user management
