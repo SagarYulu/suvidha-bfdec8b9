@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { submitTicketFeedback, TicketFeedback } from "@/services/ticketFeedbackService";
 import { Smile, Meh, Frown } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface FeedbackOption {
   value: string;
@@ -36,6 +36,15 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   const [sentiment, setSentiment] = useState<"happy" | "neutral" | "sad" | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep("sentiment");
+      setSentiment(null);
+      setSelectedOption("");
+    }
+  }, [isOpen]);
 
   // Define feedback options based on sentiment
   const feedbackOptions: Record<string, FeedbackOption[]> = {
@@ -136,11 +145,16 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   };
 
   const handleClose = () => {
-    // Reset state when closing
+    // Reset state when closing and reload the page to update UI
     if (step === "submitted") {
       setSentiment(null);
       setSelectedOption("");
       setStep("sentiment");
+      
+      // Refresh the page to update feedback status
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     }
     onClose();
   };
