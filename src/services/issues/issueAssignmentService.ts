@@ -21,6 +21,19 @@ export const assignIssueToUser = async (
       .single();
     
     const assigneeName = assigneeData?.name || "Unknown User";
+    
+    // Get performer info (the person doing the assignment)
+    const { data: performerData } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', currentUserId)
+      .single();
+    
+    const performerInfo = {
+      name: performerData?.name || "Unknown User",
+      role: performerData?.role,
+      id: currentUserId
+    };
 
     const { data, error } = await supabase
       .from('issues')
@@ -45,7 +58,8 @@ export const assignIssueToUser = async (
       'assignment',
       { 
         assigneeId,
-        assigneeName
+        assigneeName,
+        performer: performerInfo
       },
       'Issue assigned to user'
     );

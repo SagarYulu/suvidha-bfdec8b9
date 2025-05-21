@@ -28,6 +28,46 @@ export const getCommentsForIssue = async (issueId: string): Promise<IssueComment
   }
 };
 
+// Get user info for audit logs
+async function getUserInfoForComment(userUuid: string) {
+  try {
+    // Check dashboard users first
+    const { data: dashboardUser } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', userUuid)
+      .single();
+    
+    if (dashboardUser) {
+      return {
+        name: dashboardUser.name,
+        role: dashboardUser.role,
+        id: userUuid
+      };
+    }
+
+    // Then check employees
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('name, role')
+      .eq('id', userUuid)
+      .single();
+    
+    if (employee) {
+      return {
+        name: employee.name,
+        role: employee.role,
+        id: userUuid
+      };
+    }
+
+    return { name: "Unknown User", id: userUuid };
+  } catch (error) {
+    console.error('Error getting user info for comment:', error);
+    return { name: "Unknown User", id: userUuid };
+  }
+}
+
 export const addNewComment = async (
   issueId: string, 
   comment: { 
@@ -110,6 +150,9 @@ export const addNewComment = async (
     
     console.log('Final employeeUuid being used for comment:', validEmployeeUuid);
     
+    // Get user info for audit log
+    const userInfo = await getUserInfoForComment(validEmployeeUuid);
+    
     // Insert the comment with validated employee UUID
     const { data: dbComment, error } = await supabase
       .from('issue_comments')
@@ -134,7 +177,10 @@ export const addNewComment = async (
       'comment_added',
       undefined,
       undefined,
-      { comment_id: commentId }
+      { 
+        comment_id: commentId,
+        performer: userInfo
+      }
     );
     
     return {

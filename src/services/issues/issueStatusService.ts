@@ -15,6 +15,19 @@ export const updateIssueStatus = async (
   try {
     console.log(`Updating issue status. Issue ID: ${issueId}, New Status: ${newStatus}, Provided UserID: ${userId}`);
     
+    // Get performer info (the person changing the status)
+    const { data: performerData } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', userId)
+      .single();
+    
+    const performerInfo = {
+      name: performerData?.name || "Unknown User",
+      role: performerData?.role,
+      id: userId
+    };
+    
     // Prepare update data without the last_status_change_at field
     const updateData: Record<string, any> = {
       status: newStatus,
@@ -40,12 +53,15 @@ export const updateIssueStatus = async (
       throw error;
     }
     
-    // Create audit log entry
+    // Create audit log entry with performer info
     await createAuditLog(
       issueId,
       userId,
       'status_change',
-      { newStatus },
+      { 
+        newStatus,
+        performer: performerInfo
+      },
       'Issue status updated'
     );
     
