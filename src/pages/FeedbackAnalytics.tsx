@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,7 +16,7 @@ import {
   FeedbackFilters, 
   getCities, 
   getClusters 
-} from "@/services/feedbackAnalyticsService";
+} from '@/services/feedbackAnalyticsService';
 import { useToast } from "@/hooks/use-toast";
 
 // Properly typed comparison modes
@@ -67,10 +68,11 @@ const FeedbackAnalytics = () => {
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "resolution">("overview");
   
-  // Use this ref to prevent tab change triggered by the effect from triggering the feedback type change
+  // Ref to prevent infinite loops and handle synchronization between tab and feedback type
   const isTabChangingFromEffect = useRef(false);
+  const isFeedbackTypeChangingFromEffect = useRef(false);
 
-  // Fetch cities and clusters from master data
+  // Fetch cities and clusters from master data with mock data fallback
   useEffect(() => {
     const fetchMasterData = async () => {
       // Prevent duplicate fetches
@@ -81,20 +83,24 @@ const FeedbackAnalytics = () => {
       setError(null);
       
       try {
-        const citiesData = await getCities();
+        const citiesData = await getCities(true);  // Use mock data if API fails
         setCities(citiesData);
         
         // Get all clusters initially
-        const clustersData = await getClusters();
+        const clustersData = await getClusters(undefined, true);  // Use mock data if API fails
         setClusters(clustersData);
       } catch (err) {
         console.error("Error fetching master data:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch data");
         toast({
           title: "Error",
-          description: "Failed to load filter options. Please try again later.",
+          description: "Failed to load filter options. Using default values.",
           variant: "destructive"
         });
+        
+        // Set default values for cities and clusters
+        setCities(["New York", "San Francisco", "Chicago"]);
+        setClusters(["Downtown", "Midtown", "Uptown"]);
       } finally {
         setLoading(false);
         setFetchingMasterData(false);
@@ -104,57 +110,78 @@ const FeedbackAnalytics = () => {
     fetchMasterData();
   }, [toast]);
 
-  // Update clusters when city changes
+  // Update clusters when city changes with mock data fallback
   useEffect(() => {
-    if (selectedCity === "all") {
-      getClusters()
-        .then(allClusters => {
+    const updateClusters = async () => {
+      try {
+        if (selectedCity === "all") {
+          const allClusters = await getClusters(undefined, true);
           setClusters(allClusters);
-        })
-        .catch(err => {
-          console.error("Error fetching clusters:", err);
-          toast({
-            title: "Error",
-            description: "Failed to load clusters. Please try again later.",
-            variant: "destructive"
-          });
-        });
-    } else {
-      getClusters(selectedCity)
-        .then(filteredClusters => {
+        } else {
+          const filteredClusters = await getClusters(selectedCity, true);
           setClusters(filteredClusters);
           // Reset cluster selection if the currently selected cluster is not in the new list
           if (filteredClusters.length > 0 && !filteredClusters.includes(selectedCluster) && selectedCluster !== "all") {
             setSelectedCluster("all");
           }
-        })
-        .catch(err => {
-          console.error("Error fetching clusters:", err);
-          toast({
-            title: "Error",
-            description: "Failed to load clusters. Please try again later.",
-            variant: "destructive"
-          });
+        }
+      } catch (err) {
+        console.error("Error fetching clusters:", err);
+        toast({
+          title: "Error",
+          description: "Failed to load clusters. Using default values.",
+          variant: "destructive"
         });
-    }
+        
+        // Set default clusters
+        setClusters(["Downtown", "Midtown", "Uptown"]);
+      }
+    };
+    
+    updateClusters();
   }, [selectedCity, toast, selectedCluster]);
 
   // Update active tab when feedback type changes
   useEffect(() => {
-    // When feedback type changes, update the active tab accordingly
-    if (!isTabChangingFromEffect.current) {
+    if (!isTabChangingFromEffect.current && !isFeedbackTypeChangingFromEffect.current) {
+      isFeedbackTypeChangingFromEffect.current = true;
+      
+      // When feedback type changes, update the active tab accordingly
       if (selectedFeedbackType === "agent") {
         setActiveTab("agent");
       } else if (selectedFeedbackType === "resolution") {
         setActiveTab("resolution");
       } else {
-        // For "both", keep current tab or default to overview
-        setActiveTab(prevTab => 
-          prevTab === "agent" || prevTab === "resolution" ? prevTab : "overview"
-        );
+        // For "both", set to overview tab
+        setActiveTab("overview");
       }
+      
+      // Reset the flag after state update
+      setTimeout(() => {
+        isFeedbackTypeChangingFromEffect.current = false;
+      }, 100);
     }
   }, [selectedFeedbackType]);
+
+  // Update feedback type when tab changes
+  useEffect(() => {
+    if (!isTabChangingFromEffect.current && !isFeedbackTypeChangingFromEffect.current) {
+      isTabChangingFromEffect.current = true;
+      
+      if (activeTab === "agent") {
+        setSelectedFeedbackType("agent");
+      } else if (activeTab === "resolution") {
+        setSelectedFeedbackType("resolution");
+      } else if (activeTab === "overview" && selectedFeedbackType !== "both") {
+        setSelectedFeedbackType("both");
+      }
+      
+      // Reset the flag after state update
+      setTimeout(() => {
+        isTabChangingFromEffect.current = false;
+      }, 100);
+    }
+  }, [activeTab]);
 
   // Function to handle feedback type change with proper type checking
   const handleFeedbackTypeChange = (value: string) => {
@@ -209,26 +236,10 @@ const FeedbackAnalytics = () => {
     setDateRange({ from, to });
   };
 
-  // Handle tab change and update feedback type accordingly
+  // Handle tab change
   const handleTabChange = (value: string) => {
     if (value === "agent" || value === "resolution" || value === "overview") {
-      isTabChangingFromEffect.current = true;
       setActiveTab(value as "overview" | "agent" | "resolution");
-      
-      // Update the feedback type dropdown to match the selected tab
-      if (value === "agent") {
-        setSelectedFeedbackType("agent");
-      } else if (value === "resolution") {
-        setSelectedFeedbackType("resolution");
-      } else if (value === "overview" && selectedFeedbackType !== "both") {
-        // If we're going to overview and feedback type is specific, reset it to both
-        setSelectedFeedbackType("both");
-      }
-      
-      // Reset the flag after a small delay to allow the state to update
-      setTimeout(() => {
-        isTabChangingFromEffect.current = false;
-      }, 100);
     }
   };
 

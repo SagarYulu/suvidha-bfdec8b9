@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -50,7 +51,17 @@ export const useFeedbackAnalytics = ({
   const lastFiltersRef = useRef<string>("");
   const lastViewRef = useRef<string>("");
 
+  // Add a request counter to limit requests in case of errors
+  const requestCountRef = useRef<number>(0);
+  const MAX_REQUESTS = 3; // Maximum number of consecutive requests to attempt
+  
+  // Add a flag to use mock data after failed attempts
+  const useMockDataRef = useRef<boolean>(false);
+
   useEffect(() => {
+    // Reset the request counter when filters or view change
+    requestCountRef.current = 0;
+    
     // Create a string representation of the current filters for comparison
     const filtersString = JSON.stringify(filters) + view;
     
@@ -70,6 +81,21 @@ export const useFeedbackAnalytics = ({
       if (isFetchingRef.current) {
         console.log("Fetch already in progress, skipping");
         return;
+      }
+      
+      // Check if we've exceeded the maximum request attempts
+      if (requestCountRef.current >= MAX_REQUESTS && !useMockDataRef.current) {
+        console.log(`Exceeded maximum request attempts (${MAX_REQUESTS}), using mock data`);
+        useMockDataRef.current = true;
+        
+        if (!errorToastShown.current) {
+          toast({
+            title: "Using Demo Data",
+            description: "Unable to connect to the API server. Showing demo data instead.",
+            variant: "default",
+          });
+          errorToastShown.current = true;
+        }
       }
       
       isFetchingRef.current = true;
@@ -103,18 +129,19 @@ export const useFeedbackAnalytics = ({
         }
         
         console.log("Processed filters with corrected feedback type:", processedFilters);
+        requestCountRef.current += 1;
         
         // Always fetch overview data
-        const overviewData = await getFeedbackOverview(processedFilters);
+        const overviewData = await getFeedbackOverview(processedFilters, useMockDataRef.current);
         setOverview(overviewData);
         
         // Fetch trends data
-        const trendsData = await getFeedbackTrends(processedFilters);
+        const trendsData = await getFeedbackTrends(processedFilters, useMockDataRef.current);
         setTrends(trendsData);
         
         // Fetch resolver data for overview and agent views
         if (view === 'overview' || view === 'agent') {
-          const resolverData = await getResolverLeaderboard(processedFilters);
+          const resolverData = await getResolverLeaderboard(processedFilters, useMockDataRef.current);
           setResolvers(resolverData);
         } else {
           setResolvers([]);
@@ -122,11 +149,14 @@ export const useFeedbackAnalytics = ({
         
         // Fetch category data for overview and resolution views
         if (view === 'overview' || view === 'resolution') {
-          const categoryData = await getCategoryAnalysis(processedFilters);
+          const categoryData = await getCategoryAnalysis(processedFilters, useMockDataRef.current);
           setCategories(categoryData);
         } else {
           setCategories([]);
         }
+        
+        // Reset the request counter on successful fetch
+        requestCountRef.current = 0;
         
       } catch (err) {
         console.error('Error fetching feedback analytics data:', err);
@@ -154,7 +184,7 @@ export const useFeedbackAnalytics = ({
     return () => {
       isFetchingRef.current = false;
     };
-  }, [filters, view, toast]);
+  }, [filters, view, toast, overview]);
 
   return {
     isLoading,
