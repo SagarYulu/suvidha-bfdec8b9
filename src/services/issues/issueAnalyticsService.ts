@@ -1,5 +1,7 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getIssueAuditTrail } from "./issueAuditService";
+import { getIssues } from "./issueFilters"; // Make sure we're importing from the correct file
 
 // Define an interface for analytics filters
 export interface AnalyticsFilters {

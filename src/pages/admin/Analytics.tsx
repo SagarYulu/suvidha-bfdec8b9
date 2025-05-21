@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
@@ -11,6 +10,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { ISSUE_TYPES } from "@/config/issueTypes";
+import { AdvancedAnalyticsSection } from "@/components/admin/analytics/AdvancedAnalyticsSection";
 
 const AdminAnalytics = () => {
   const [analytics, setAnalytics] = useState<any>(null);
@@ -284,6 +284,9 @@ const AdminAnalytics = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Add the new advanced analytics section below the existing content */}
+          <AdvancedAnalyticsSection />
         </div>
       )}
     </AdminLayout>
