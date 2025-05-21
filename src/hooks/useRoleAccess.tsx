@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,6 +42,12 @@ export const useRoleAccess = () => {
     const permissions = authState.role ? getPermissionsForRole(authState.role) : [];
     if (permissions.includes(permission)) {
       console.log(`useRoleAccess: User has permission: ${permission}`);
+      return true;
+    }
+    
+    // Special check for assigned issues - all dashboard users can manage their assigned issues
+    if (permission === 'manage:issues' && authState.user?.id) {
+      console.log(`useRoleAccess: User can manage assigned issues: ${permission}`);
       return true;
     }
     
@@ -109,7 +116,7 @@ const getPermissionsForRole = (role: string): Permission[] => {
     case 'Payroll Ops':
       return ['view:dashboard', 'manage:settings'];
     case 'HR Admin':
-      return ['view:dashboard', 'manage:users'];
+      return ['view:dashboard', 'manage:users', 'manage:issues', 'create:dashboardUser'];
     case 'security-admin':
       return ['view:dashboard', 'access:security'];
     default:

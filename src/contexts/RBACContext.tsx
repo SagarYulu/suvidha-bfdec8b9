@@ -165,12 +165,17 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           cache['view:dashboard'] = true;
           cache['access:security'] = true;
           cache['manage:users'] = true;
+        } else if (authState.role === 'HR Admin') {
+          console.log('HR Admin role detected - granting specific permissions');
+          cache['view:dashboard'] = true;
+          cache['manage:users'] = true;
+          cache['manage:issues'] = true;
+          cache['create:dashboardUser'] = true;
         } else if (authState.role === 'City Head' || 
                    authState.role === 'Revenue and Ops Head' || 
                    authState.role === 'CRM' || 
                    authState.role === 'Cluster Head' || 
-                   authState.role === 'Payroll Ops' || 
-                   authState.role === 'HR Admin') {
+                   authState.role === 'Payroll Ops') {
           console.log('Management role detected - granting dashboard access');
           cache['view:dashboard'] = true;
           cache['manage:issues'] = true;
@@ -223,15 +228,31 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return true;
       }
       
+      // Special handling for HR Admin role
+      if (authState.role === 'HR Admin') {
+        console.log('HR Admin role checking permission:', permission);
+        if (permission === 'view:dashboard' || 
+            permission === 'manage:users' || 
+            permission === 'manage:issues' || 
+            permission === 'create:dashboardUser') {
+          return true;
+        }
+      }
+      
       // For management roles, grant specific dashboard permissions
       if ((permission === 'view:dashboard' || permission === 'manage:issues') && 
           (authState.role === 'City Head' || 
            authState.role === 'Revenue and Ops Head' || 
            authState.role === 'CRM' || 
            authState.role === 'Cluster Head' || 
-           authState.role === 'Payroll Ops' || 
-           authState.role === 'HR Admin')) {
+           authState.role === 'Payroll Ops')) {
         console.log('Management role - granting permission:', permission);
+        return true;
+      }
+      
+      // Special case for any authenticated user - can manage their assigned issues
+      if (permission === 'manage:issues' && authState.isAuthenticated) {
+        console.log('Authenticated user - granting access to manage assigned issues');
         return true;
       }
       
