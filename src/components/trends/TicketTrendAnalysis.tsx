@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { download } from "lucide-react";
+import { Download } from "lucide-react"; // Fixed from 'download' to 'Download'
 import { exportToCSV } from "@/utils/csvExportUtils";
 import { useTicketTrendAnalytics } from "@/hooks/useTicketTrendAnalytics";
 import TicketTrendFilterBar from "./TicketTrendFilterBar";
@@ -65,6 +65,7 @@ const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = () => {
                 className="flex items-center gap-1"
                 onClick={handleExportAllData}
               >
+                <Download className="h-4 w-4" />
                 Export All Data
               </Button>
             )}
