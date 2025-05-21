@@ -165,13 +165,13 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           console.log('HR Admin role detected - granting specific permissions');
           cache['view:dashboard'] = true;
           cache['manage:users'] = true;
-          cache['manage:issues'] = true; // Added issues permission for HR Admin
+          cache['manage:issues'] = true; // Explicitly grant issue management permission
         } else if (authState.role === 'Payroll Ops') {
           // Payroll Ops specific permissions
           console.log('Payroll Ops role detected - granting specific permissions');
           cache['view:dashboard'] = true;
           cache['manage:settings'] = true;
-          cache['manage:issues'] = true; // Added issues permission for Payroll Ops
+          cache['manage:issues'] = true; // Explicitly grant issue management permission
         } else if (authState.role === 'security-admin') {
           console.log('Security admin role detected - granting specific permissions');
           cache['view:dashboard'] = true;
@@ -233,14 +233,14 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return true;
       }
       
-      // HR Admin specific permissions
+      // HR Admin specific permissions - Explicitly grant manage:issues
       if (authState.role === 'HR Admin' && 
           (permission === 'view:dashboard' || permission === 'manage:users' || permission === 'manage:issues')) {
         console.log('HR Admin role - granting permission:', permission);
         return true;
       }
       
-      // Payroll Ops specific permissions
+      // Payroll Ops specific permissions - Explicitly grant manage:issues
       if (authState.role === 'Payroll Ops' && 
           (permission === 'view:dashboard' || permission === 'manage:settings' || permission === 'manage:issues')) {
         console.log('Payroll Ops role - granting permission:', permission);

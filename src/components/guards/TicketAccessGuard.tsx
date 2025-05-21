@@ -19,7 +19,7 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
   onlyForAssigned = false,
   redirectTo = '/admin/dashboard'
 }) => {
-  const { checkAccess, hasPermission, isAuthenticated } = useRoleAccess();
+  const { hasPermission, isAuthenticated } = useRoleAccess();
   const { authState } = useAuth();
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
@@ -27,11 +27,11 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
   useEffect(() => {
     // Only check access once authentication state is known
     if (isAuthenticated !== undefined) {
+      console.log(`TicketAccessGuard: Checking access for ${authState.role} user. onlyForAssigned=${onlyForAssigned}`);
+      
       // First, check if user has the basic issue management permission
-      const hasIssuePermission = checkAccess('manage:issues', { 
-        redirectTo, 
-        showToast: false 
-      });
+      const hasIssuePermission = hasPermission('manage:issues');
+      console.log(`TicketAccessGuard: User has manage:issues permission: ${hasIssuePermission}`);
 
       let hasTicketAccess = false;
       
@@ -41,7 +41,7 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
           hasTicketAccess = true;
           console.log("Access granted to assigned tickets for user with issue management permission");
         } else {
-          // For "All Tickets" section - only specific roles can access
+          // For "All Tickets" section - specific roles can access
           // HR Admin, Super Admin, and Payroll Ops can view all tickets
           const hasAllTicketsAccess = 
             authState.role === 'HR Admin' || 
@@ -68,7 +68,7 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
       setHasAccess(hasTicketAccess);
       setAccessChecked(true);
     }
-  }, [isAuthenticated, authState.role, authState.user, checkAccess, onlyForAssigned, redirectTo]);
+  }, [isAuthenticated, authState.role, authState.user, hasPermission, onlyForAssigned, redirectTo]);
 
   // Show loading indicator while checking access
   if (!accessChecked) {
@@ -79,14 +79,20 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
     );
   }
 
-  // If no access, redirect
+  // If not authenticated at all, redirect to login
+  if (isAuthenticated === false) {
+    console.log("TicketAccessGuard: User not authenticated, redirecting to login");
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  // If authenticated but no access, redirect 
   if (!hasAccess) {
-    console.log(`Access denied, redirecting to ${redirectTo}`);
+    console.log(`TicketAccessGuard: Access denied, redirecting to ${redirectTo}`);
     return <Navigate to={redirectTo} replace />;
   }
 
   // If has access, render children
-  console.log("Access granted, rendering protected content");
+  console.log("TicketAccessGuard: Access granted, rendering protected content");
   return <>{children}</>;
 };
 

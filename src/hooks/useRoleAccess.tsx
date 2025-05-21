@@ -117,9 +117,9 @@ const getPermissionsForRole = (role: string): Permission[] => {
     case 'Cluster Head':
       return ['view:dashboard', 'manage:issues'];
     case 'Payroll Ops':
-      return ['view:dashboard', 'manage:issues', 'manage:settings']; // Added manage:issues permission
+      return ['view:dashboard', 'manage:issues', 'manage:settings']; // Explicitly includes manage:issues
     case 'HR Admin':
-      return ['view:dashboard', 'manage:users', 'manage:issues']; // Added manage:issues permission
+      return ['view:dashboard', 'manage:users', 'manage:issues']; // Explicitly includes manage:issues
     case 'security-admin':
       return ['view:dashboard', 'access:security'];
     default:
