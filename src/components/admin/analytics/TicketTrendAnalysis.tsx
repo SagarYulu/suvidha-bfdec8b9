@@ -72,6 +72,22 @@ interface CommentsByWeekAcc {
   [key: string]: CommentVolumeData
 }
 
+// Define issue-related interfaces for better type safety
+interface IssueComment {
+  created_at: string;
+  created_by_admin?: boolean;
+}
+
+interface Issue {
+  type_id?: string;
+  status?: string;
+  created_at?: string;
+  closed_at?: string;
+  issue_comments?: IssueComment[];
+  priority?: string;
+  status_history?: any[];
+}
+
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
 
@@ -91,7 +107,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
     );
   }
 
-  const issues = data.rawIssues;
+  const issues = data.rawIssues as Issue[];
 
   // 1. Issue Resolution Time Trend (Line Chart)
   const getResolutionTimeTrend = (): ResolutionTimeData[] => {
