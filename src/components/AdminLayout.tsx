@@ -19,7 +19,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   const { authState, hasPermission } = useAuth();
   
   // Check if user is authenticated
-  if (authState.status === 'loading') {
+  if (authState.loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -28,7 +28,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
     );
   }
   
-  if (authState.status === 'unauthenticated') {
+  if (!authState.isAuthenticated) {
     return <Navigate to="/admin/login" />;
   }
 
