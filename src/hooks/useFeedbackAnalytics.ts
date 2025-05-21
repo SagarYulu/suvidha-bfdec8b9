@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -47,13 +46,31 @@ export const useFeedbackAnalytics = ({
   // This prevents redundant API calls
   const isFetchingRef = useRef(false);
 
+  // Keep track of the last filter set to avoid duplicate calls
+  const lastFiltersRef = useRef<string>("");
+  const lastViewRef = useRef<string>("");
+
   useEffect(() => {
+    // Create a string representation of the current filters for comparison
+    const filtersString = JSON.stringify(filters) + view;
+    
+    // If we're getting the same filters and view as before, don't refetch
+    if (filtersString === lastFiltersRef.current && lastViewRef.current === view && overview !== null) {
+      console.log("Skipping duplicate fetch with identical filters and view");
+      return;
+    }
+    
     // Reset error toast flag when filters or view change
     errorToastShown.current = false;
+    lastFiltersRef.current = filtersString;
+    lastViewRef.current = view;
     
     const fetchData = async () => {
       // Don't start a new fetch if one is already in progress
-      if (isFetchingRef.current) return;
+      if (isFetchingRef.current) {
+        console.log("Fetch already in progress, skipping");
+        return;
+      }
       
       isFetchingRef.current = true;
       setIsLoading(true);
@@ -78,10 +95,10 @@ export const useFeedbackAnalytics = ({
           // For resolution view, we use 'resolution' type feedback
           processedFilters.feedbackType = 'resolution';
         } else if (view === 'overview') {
-          // In overview, we respect the user's selected feedbackType
-          // If none selected, we don't filter by type
+          // In overview, respect the user's selected feedbackType
+          // If none selected, we default to 'both'
           if (!processedFilters.feedbackType) {
-            delete processedFilters.feedbackType;
+            processedFilters.feedbackType = 'both';
           }
         }
         
@@ -99,12 +116,16 @@ export const useFeedbackAnalytics = ({
         if (view === 'overview' || view === 'agent') {
           const resolverData = await getResolverLeaderboard(processedFilters);
           setResolvers(resolverData);
+        } else {
+          setResolvers([]);
         }
         
         // Fetch category data for overview and resolution views
         if (view === 'overview' || view === 'resolution') {
           const categoryData = await getCategoryAnalysis(processedFilters);
           setCategories(categoryData);
+        } else {
+          setCategories([]);
         }
         
       } catch (err) {

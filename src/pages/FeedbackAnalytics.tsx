@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,6 +66,9 @@ const FeedbackAnalytics = () => {
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "resolution">("overview");
+  
+  // Use this ref to prevent tab change triggered by the effect from triggering the feedback type change
+  const isTabChangingFromEffect = useRef(false);
 
   // Fetch cities and clusters from master data
   useEffect(() => {
@@ -140,15 +142,17 @@ const FeedbackAnalytics = () => {
   // Update active tab when feedback type changes
   useEffect(() => {
     // When feedback type changes, update the active tab accordingly
-    if (selectedFeedbackType === "agent") {
-      setActiveTab("agent");
-    } else if (selectedFeedbackType === "resolution") {
-      setActiveTab("resolution");
-    } else {
-      // For "both", keep current tab or default to overview
-      setActiveTab(prevTab => 
-        prevTab === "agent" || prevTab === "resolution" ? prevTab : "overview"
-      );
+    if (!isTabChangingFromEffect.current) {
+      if (selectedFeedbackType === "agent") {
+        setActiveTab("agent");
+      } else if (selectedFeedbackType === "resolution") {
+        setActiveTab("resolution");
+      } else {
+        // For "both", keep current tab or default to overview
+        setActiveTab(prevTab => 
+          prevTab === "agent" || prevTab === "resolution" ? prevTab : "overview"
+        );
+      }
     }
   }, [selectedFeedbackType]);
 
@@ -208,15 +212,23 @@ const FeedbackAnalytics = () => {
   // Handle tab change and update feedback type accordingly
   const handleTabChange = (value: string) => {
     if (value === "agent" || value === "resolution" || value === "overview") {
-      setActiveTab(value);
+      isTabChangingFromEffect.current = true;
+      setActiveTab(value as "overview" | "agent" | "resolution");
       
       // Update the feedback type dropdown to match the selected tab
       if (value === "agent") {
         setSelectedFeedbackType("agent");
       } else if (value === "resolution") {
         setSelectedFeedbackType("resolution");
+      } else if (value === "overview" && selectedFeedbackType !== "both") {
+        // If we're going to overview and feedback type is specific, reset it to both
+        setSelectedFeedbackType("both");
       }
-      // If overview, we don't need to change the feedback type
+      
+      // Reset the flag after a small delay to allow the state to update
+      setTimeout(() => {
+        isTabChangingFromEffect.current = false;
+      }, 100);
     }
   };
 
