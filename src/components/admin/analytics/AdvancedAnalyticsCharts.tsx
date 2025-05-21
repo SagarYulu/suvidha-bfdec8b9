@@ -10,7 +10,7 @@ import {
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { 
   ArrowUp, ArrowDown, ChartPie, ChartBar, 
-  ChartBarHorizontal, TrendingDown, TrendingUp, 
+  BarChartHorizontal, TrendingDown, TrendingUp, 
   Bell, Clock, Percent, Ticket, Users, Repeat 
 } from "lucide-react";
 import TopicRadarChart from "@/components/charts/TopicRadarChart";

@@ -227,39 +227,49 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       const reopenRate = resolvedTickets > 0 ? (reopenedTickets.size / resolvedTickets) * 100 : 0;
       
       // Priority distribution
-      const { data: priorityData } = await supabase
+      const { data: priorityResults } = await supabase
         .from('issues')
-        .select('priority, count')
-        .group('priority');
-        
-      const priorityDistribution = priorityData?.map(item => ({
-        priority: item.priority,
-        count: parseInt(item.count, 10)
-      })) || [];
+        .select('priority');
+      
+      const priorityCounts: Record<string, number> = {};
+      priorityResults?.forEach(issue => {
+        priorityCounts[issue.priority] = (priorityCounts[issue.priority] || 0) + 1;
+      });
+      
+      const priorityDistribution = Object.entries(priorityCounts).map(([priority, count]) => ({
+        priority,
+        count
+      }));
       
       // Status distribution
-      const { data: statusData } = await supabase
+      const { data: statusResults } = await supabase
         .from('issues')
-        .select('status, count')
-        .group('status');
+        .select('status');
         
-      const statusDistribution = statusData?.map(item => ({
-        status: item.status,
-        count: parseInt(item.count, 10)
-      })) || [];
+      const statusCounts: Record<string, number> = {};
+      statusResults?.forEach(issue => {
+        statusCounts[issue.status] = (statusCounts[issue.status] || 0) + 1;
+      });
+      
+      const statusDistribution = Object.entries(statusCounts).map(([status, count]) => ({
+        status,
+        count
+      }));
       
       // Top issue types
-      const { data: typeData } = await supabase
+      const { data: typeResults } = await supabase
         .from('issues')
-        .select('type_id, count')
-        .group('type_id')
-        .order('count', { ascending: false })
-        .limit(5);
+        .select('type_id');
         
-      const topIssueTypes = typeData?.map(item => ({
-        type: item.type_id,
-        count: parseInt(item.count, 10)
-      })) || [];
+      const typeCounts: Record<string, number> = {};
+      typeResults?.forEach(issue => {
+        typeCounts[issue.type_id] = (typeCounts[issue.type_id] || 0) + 1;
+      });
+      
+      const topIssueTypes = Object.entries(typeCounts)
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
       
       // Weekday vs Weekend volume
       const { data: allIssues } = await queryModifiers;
@@ -279,24 +289,30 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       ];
       
       // Assignee reply trend - count comments by assignee
-      const { data: commentsByAssignee } = await supabase
+      const { data: commentResults } = await supabase
         .from('issue_comments')
-        .select('employee_uuid, count')
-        .group('employee_uuid');
+        .select('employee_uuid');
         
-      const assigneeReplyTrend = await Promise.all((commentsByAssignee || []).map(async item => {
-        // Get employee name
-        const { data: employee } = await supabase
-          .from('employees')
-          .select('name')
-          .eq('id', item.employee_uuid)
-          .single();
-          
-        return {
-          assignee: employee?.name || item.employee_uuid,
-          replies: parseInt(item.count, 10)
-        };
-      }));
+      const assigneeReplyCounts: Record<string, number> = {};
+      commentResults?.forEach(comment => {
+        assigneeReplyCounts[comment.employee_uuid] = (assigneeReplyCounts[comment.employee_uuid] || 0) + 1;
+      });
+      
+      const assigneeReplyTrend = await Promise.all(
+        Object.entries(assigneeReplyCounts).map(async ([employeeUuid, replies]) => {
+          // Get employee name
+          const { data: employee } = await supabase
+            .from('employees')
+            .select('name')
+            .eq('id', employeeUuid)
+            .maybeSingle();
+            
+          return {
+            assignee: employee?.name || employeeUuid,
+            replies
+          };
+        })
+      );
       
       // Ticket spike alerts - compare with previous period
       const now = new Date();
