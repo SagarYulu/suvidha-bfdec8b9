@@ -30,9 +30,18 @@ const ClosedIssueCommentNotice = ({
     const checkForExistingFeedback = async () => {
       if (issueId && employeeUuid) {
         setCheckingFeedback(true);
+        console.log("Checking for existing feedback:", issueId, employeeUuid);
         const exists = await checkFeedbackExists(issueId, employeeUuid);
+        console.log("Has existing feedback:", exists);
         setHasFeedback(exists);
         setCheckingFeedback(false);
+        
+        // Auto-show feedback dialog if no feedback yet
+        if (!exists) {
+          setTimeout(() => {
+            setShowFeedbackDialog(true);
+          }, 500);
+        }
       }
     };
 
@@ -69,11 +78,17 @@ const ClosedIssueCommentNotice = ({
           <Button 
             variant="secondary"
             onClick={() => setShowFeedbackDialog(true)}
-            className="w-full flex items-center justify-center"
+            className="w-full flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-700"
           >
             <MessageCircle className="h-4 w-4 mr-2" />
             Share your feedback / अपनी प्रतिक्रिया साझा करें
           </Button>
+        </div>
+      )}
+      
+      {!checkingFeedback && hasFeedback && (
+        <div className="mt-4 text-center text-sm text-green-600">
+          Thank you for sharing your feedback! / आपकी प्रतिक्रिया के लिए धन्यवाद!
         </div>
       )}
 

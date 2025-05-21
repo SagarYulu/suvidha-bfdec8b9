@@ -54,38 +54,26 @@ const MobileIssueDetails = () => {
           handleReopenTicket={() => {}}
         />
         
-        {isClosedOrResolved ? (
-          <>
-            <ClosedIssueCommentNotice 
-              isReopenable={isReopenable || false}
-              onReopen={processReopenTicket}
-              issueId={issue.id}
-              employeeUuid={currentUserId}
-            />
-            <CommentSection
-              comments={issue.comments}
-              newComment=""
-              setNewComment={() => {}}
-              handleSubmitComment={() => {}}
-              isSubmitting={false}
-              commenterNames={commenterNames}
-              formatDate={formatDate}
-              currentUserId={currentUserId}
-              disabled={true}
-            />
-          </>
-        ) : (
-          <CommentSection
-            comments={issue.comments}
-            newComment={newComment}
-            setNewComment={setNewComment}
-            handleSubmitComment={handleSubmitComment}
-            isSubmitting={isSubmitting}
-            commenterNames={commenterNames}
-            formatDate={formatDate}
-            currentUserId={currentUserId}
+        {isClosedOrResolved && (
+          <ClosedIssueCommentNotice 
+            isReopenable={isReopenable || false}
+            onReopen={processReopenTicket}
+            issueId={issue.id}
+            employeeUuid={currentUserId}
           />
         )}
+        
+        <CommentSection
+          comments={issue.comments}
+          newComment={isClosedOrResolved ? "" : newComment}
+          setNewComment={isClosedOrResolved ? () => {} : setNewComment}
+          handleSubmitComment={isClosedOrResolved ? () => {} : handleSubmitComment}
+          isSubmitting={isSubmitting}
+          commenterNames={commenterNames}
+          formatDate={formatDate}
+          currentUserId={currentUserId}
+          disabled={isClosedOrResolved}
+        />
       </div>
     </MobileLayout>
   );

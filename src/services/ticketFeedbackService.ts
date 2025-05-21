@@ -14,6 +14,7 @@ export type TicketFeedback = {
 // Check if feedback already exists for a ticket
 export const checkFeedbackExists = async (issueId: string, employeeUuid: string): Promise<boolean> => {
   try {
+    console.log(`Checking feedback for issue: ${issueId}, employee: ${employeeUuid}`);
     const { data, error } = await supabase
       .from('ticket_feedback')
       .select('id')
@@ -36,6 +37,8 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 // Submit feedback for a ticket
 export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<boolean> => {
   try {
+    console.log("Submitting feedback:", feedback);
+    
     const { data, error } = await supabase
       .from('ticket_feedback')
       .insert([feedback])
@@ -51,6 +54,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       return false;
     }
     
+    console.log("Feedback submitted successfully:", data);
     toast({
       title: "Success",
       description: "Feedback submitted successfully.",
