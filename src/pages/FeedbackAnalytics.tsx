@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -233,7 +232,7 @@ const FeedbackAnalytics = () => {
                 </Select>
               </div>
 
-              {/* Feedback type filter */}
+              {/* Feedback type filter - Updated to match backend terminology */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Feedback Type</label>
                 <Select 
@@ -244,9 +243,9 @@ const FeedbackAnalytics = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {FEEDBACK_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
+                    <SelectItem value="both">Both</SelectItem>
+                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="resolution">Resolution</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
