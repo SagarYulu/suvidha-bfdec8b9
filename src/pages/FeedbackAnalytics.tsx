@@ -36,9 +36,9 @@ const TICKET_CATEGORIES = [
   { id: "other", name: "Other" }
 ];
 
-const FEEDBACK_TYPES: {value: "agent" | "resolution" | "both"; label: string}[] = [
+const FEEDBACK_TYPES: {value: "agent" | "solution" | "both"; label: string}[] = [
   { value: "agent", label: "Agent" },
-  { value: "resolution", label: "Resolution" },
+  { value: "solution", label: "Solution" },
   { value: "both", label: "Both" }
 ];
 
@@ -48,7 +48,7 @@ const FeedbackAnalytics = () => {
   const [selectedCluster, setSelectedCluster] = useState<string>("all");
   const [selectedResolver, setSelectedResolver] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "resolution" | "both">("both");
+  const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "solution" | "both">("both");
   const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
@@ -105,7 +105,7 @@ const FeedbackAnalytics = () => {
 
   // Function to handle feedback type change with proper type checking
   const handleFeedbackTypeChange = (value: string) => {
-    if (value === "agent" || value === "resolution" || value === "both") {
+    if (value === "agent" || value === "solution" || value === "both") {
       setSelectedFeedbackType(value);
     }
   };
@@ -233,7 +233,7 @@ const FeedbackAnalytics = () => {
                 </Select>
               </div>
 
-              {/* Feedback type filter - Updated to match backend terminology */}
+              {/* Feedback type filter */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Feedback Type</label>
                 <Select 
@@ -244,9 +244,9 @@ const FeedbackAnalytics = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="both">Both</SelectItem>
-                    <SelectItem value="agent">Agent</SelectItem>
-                    <SelectItem value="resolution">Resolution</SelectItem>
+                    {FEEDBACK_TYPES.map(type => (
+                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

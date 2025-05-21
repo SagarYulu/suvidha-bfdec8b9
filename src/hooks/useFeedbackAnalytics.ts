@@ -52,24 +52,16 @@ export const useFeedbackAnalytics = ({
           processedFilters.endDate = filters.dateRange.end;
         }
         
-        // IMPORTANT: Set the correct feedbackType based on the view
-        // This ensures data consistency between what's displayed and what's queried
+        // Add feedbackType based on view to the filters
+        // Use 'agent' for agent view, 'solution' for solution view
+        // For overview, we'll filter by the user's selected feedbackType
         if (view === 'agent') {
-          // For agent view, we always use 'agent' type feedback
           processedFilters.feedbackType = 'agent';
         } else if (view === 'solution') {
-          // For solution view, we use 'resolution' type feedback
-          // to match backend terminology
-          processedFilters.feedbackType = 'resolution';
-        } else if (view === 'overview') {
-          // In overview, we respect the user's selected feedbackType
-          // If none selected, we don't filter by type
-          if (!processedFilters.feedbackType) {
-            delete processedFilters.feedbackType;
-          }
+          processedFilters.feedbackType = 'solution';
         }
         
-        console.log("Processed filters with corrected feedback type:", processedFilters);
+        console.log("Processed filters:", processedFilters);
         
         // Always fetch overview data
         const overviewData = await getFeedbackOverview(processedFilters);
