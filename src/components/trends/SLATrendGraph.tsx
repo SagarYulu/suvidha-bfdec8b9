@@ -127,7 +127,11 @@ const SLATrendGraph: React.FC<SLATrendGraphProps> = ({ data, isLoading }) => {
         <YAxis />
         <Tooltip 
           labelFormatter={(label) => `Date: ${label}`}
-          formatter={(value, name) => [value, name.includes('Breached') ? 'SLA Breached' : 'SLA Compliant']}
+          formatter={(value, name) => {
+            // Fix: Check if name is a string before using includes
+            const nameStr = String(name);
+            return [value, nameStr.indexOf('Breached') >= 0 ? 'SLA Breached' : 'SLA Compliant'];
+          }}
         />
         <Legend />
         <Line 
