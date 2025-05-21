@@ -5,7 +5,7 @@ import MobileLayout from "@/components/MobileLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getIssuesByEmployeeId } from "@/services/issueService";
+import { getIssuesByUserId } from "@/services/issueService";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
 import MobileIssueStatus from "@/components/mobile/issues/MobileIssueStatus";
 import { Issue } from "@/types";
@@ -20,7 +20,7 @@ const MobileIssues = () => {
       if (authState.user?.id) {
         setIsLoading(true);
         try {
-          const fetchedIssues = await getIssuesByEmployeeId(authState.user.id);
+          const fetchedIssues = await getIssuesByUserId(authState.user.id);
           setIssues(fetchedIssues);
         } catch (error) {
           console.error("Error fetching issues:", error);
