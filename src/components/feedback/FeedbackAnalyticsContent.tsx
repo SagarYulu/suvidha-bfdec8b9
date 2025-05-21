@@ -24,6 +24,15 @@ const emojiMap: Record<number, string> = {
   5: "🤩",
 };
 
+// Sentiment label mapping
+const sentimentLabels: Record<number, string> = {
+  1: "Very Unhappy",
+  2: "Unhappy",
+  3: "Neutral",
+  4: "Happy", 
+  5: "Very Happy"
+};
+
 const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ view, filters }) => {
   // Use our custom hook to fetch the data
   const { isLoading, overview, resolvers, categories, trends, error } = useFeedbackAnalytics({ 
@@ -75,6 +84,14 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{overview.averageRating.toFixed(1)}</div>
+          <div className="flex items-center mt-1">
+            <div className="mr-2">
+              {emojiMap[Math.round(overview.averageRating)]}
+            </div>
+            <div className="text-sm text-gray-600">
+              {sentimentLabels[Math.round(overview.averageRating)]}
+            </div>
+          </div>
           <div className="mt-1">
             <FeedbackStars rating={Math.round(overview.averageRating)} readOnly size={16} />
           </div>
@@ -141,7 +158,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
               <div key={item.rating} className="space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="flex items-center gap-2">
-                    {emojiMap[item.rating]} {["Very Unhappy", "Unhappy", "Neutral", "Happy", "Very Happy"][item.rating - 1]}
+                    {emojiMap[item.rating]} {sentimentLabels[item.rating]}
                   </span>
                   <span>{item.count} ({item.percentage.toFixed(1)}%)</span>
                 </div>
@@ -180,7 +197,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderResolverLeaderboard = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Resolver Leaderboard</CardTitle>
+        <CardTitle>{view === "agent" ? "Agent Performance" : "Resolver Leaderboard"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -229,7 +246,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryAnalysis = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Category Analysis</CardTitle>
+        <CardTitle>{view === "solution" ? "Solution Category Analysis" : "Category Analysis"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -254,7 +271,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryTable = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>Category Ratings</CardTitle>
+        <CardTitle>{view === "solution" ? "Solution Category Ratings" : "Category Ratings"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

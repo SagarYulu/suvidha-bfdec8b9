@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Filter } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { Calendar, CalendarIcon, Filter } from "lucide-react";
 import FeedbackAnalyticsContent from "@/components/feedback/FeedbackAnalyticsContent";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
 import { 
   FeedbackFilters, 
   getCities, 
@@ -46,7 +50,10 @@ const FeedbackAnalytics = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "solution" | "both">("both");
   const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
-  const [dateRange, setDateRange] = useState<{start?: string; end?: string}>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
 
   // State for city and cluster data
   const [cities, setCities] = useState<string[]>([]);
@@ -110,11 +117,45 @@ const FeedbackAnalytics = () => {
     }
   };
 
-  // Helper functions to convert the "all" values to empty strings for the filter object
-  const getCityFilter = () => selectedCity === "all" ? "" : selectedCity;
-  const getClusterFilter = () => selectedCluster === "all" ? "" : selectedCluster;
-  const getResolverFilter = () => selectedResolver === "all" ? "" : selectedResolver;
-  const getCategoryFilter = () => selectedCategory === "all" ? "" : selectedCategory;
+  // Handle date range change
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    console.log("Date range changed:", range);
+  };
+
+  // Helper function to format date range for display
+  const formatDateRange = () => {
+    if (dateRange?.from) {
+      if (dateRange.to) {
+        return `${format(dateRange.from, "LLL dd, yyyy")} - ${format(dateRange.to, "LLL dd, yyyy")}`;
+      }
+      return format(dateRange.from, "LLL dd, yyyy");
+    }
+    return "Select dates";
+  };
+
+  // Create the filters object to pass to components
+  const getFilters = (): FeedbackFilters => {
+    return {
+      city: selectedCity === "all" ? "" : selectedCity,
+      cluster: selectedCluster === "all" ? "" : selectedCluster,
+      resolver: selectedResolver === "all" ? "" : selectedResolver,
+      category: selectedCategory === "all" ? "" : selectedCategory,
+      feedbackType: selectedFeedbackType,
+      comparisonMode: selectedComparisonMode,
+      dateRange: dateRange?.from ? {
+        start: format(dateRange.from, "yyyy-MM-dd"),
+        end: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : format(dateRange.from, "yyyy-MM-dd")
+      } : undefined
+    };
+  };
+
+  // Helper functions for selecting preset date ranges
+  const selectLastNDays = (days: number) => {
+    const to = new Date();
+    const from = addDays(to, -days + 1);
+    setDateRange({ from, to });
+  };
 
   return (
     <AdminLayout title="Feedback Analytics" requiredPermission="view:dashboard">
@@ -210,16 +251,49 @@ const FeedbackAnalytics = () => {
                 </Select>
               </div>
 
-              {/* Date range picker placeholder */}
+              {/* Date range picker */}
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Date Range</label>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <CalendarIcon className="h-4 w-4 mr-2" />
-                  <span>{dateRange.start && dateRange.end ? 
-                    `${format(new Date(dateRange.start), "PP")} - ${format(new Date(dateRange.end), "PP")}` : 
-                    "Select dates"}
-                  </span>
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      <span>{formatDateRange()}</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-2 border-b border-gray-200 flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => selectLastNDays(7)}
+                      >
+                        Last 7 days
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => selectLastNDays(30)}
+                      >
+                        Last 30 days
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setDateRange(undefined)}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    <CalendarComponent
+                      mode="range"
+                      selected={dateRange}
+                      onSelect={handleDateRangeChange}
+                      numberOfMonths={2}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
@@ -253,45 +327,21 @@ const FeedbackAnalytics = () => {
           <TabsContent value="overview" className="mt-6">
             <FeedbackAnalyticsContent 
               view="overview"
-              filters={{
-                city: getCityFilter(),
-                cluster: getClusterFilter(),
-                resolver: getResolverFilter(),
-                category: getCategoryFilter(),
-                feedbackType: selectedFeedbackType,
-                comparisonMode: selectedComparisonMode,
-                dateRange
-              }}
+              filters={getFilters()}
             />
           </TabsContent>
 
           <TabsContent value="agent" className="mt-6">
             <FeedbackAnalyticsContent 
               view="agent"
-              filters={{
-                city: getCityFilter(),
-                cluster: getClusterFilter(),
-                resolver: getResolverFilter(),
-                category: getCategoryFilter(),
-                feedbackType: "agent",
-                comparisonMode: selectedComparisonMode,
-                dateRange
-              }}
+              filters={getFilters()}
             />
           </TabsContent>
 
           <TabsContent value="solution" className="mt-6">
             <FeedbackAnalyticsContent 
               view="solution"
-              filters={{
-                city: getCityFilter(),
-                cluster: getClusterFilter(),
-                resolver: getResolverFilter(),
-                category: getCategoryFilter(),
-                feedbackType: "solution",
-                comparisonMode: selectedComparisonMode,
-                dateRange
-              }}
+              filters={getFilters()}
             />
           </TabsContent>
         </Tabs>

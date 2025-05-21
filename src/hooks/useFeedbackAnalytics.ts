@@ -43,12 +43,23 @@ export const useFeedbackAnalytics = ({
       setError(null);
       
       try {
+        console.log("Fetching feedback data with filters:", filters, "and view:", view);
+        
         // Process dateRange into startDate and endDate if it exists
         const processedFilters = { ...filters };
         if (filters.dateRange) {
           processedFilters.startDate = filters.dateRange.start;
           processedFilters.endDate = filters.dateRange.end;
         }
+        
+        // Add feedbackType based on view to the filters
+        if (view === 'agent') {
+          processedFilters.feedbackType = 'agent';
+        } else if (view === 'solution') {
+          processedFilters.feedbackType = 'solution';
+        }
+        
+        console.log("Processed filters:", processedFilters);
         
         // Always fetch overview data
         const overviewData = await getFeedbackOverview(processedFilters);
