@@ -18,7 +18,6 @@ export type { DateRange } from "./DateRangePicker";
 export const AdvancedAnalyticsSection = () => {
   const {
     filters,
-    setAppliedFilters,
     pendingFilters,
     managers,
     availableClusters,
@@ -31,14 +30,9 @@ export const AdvancedAnalyticsSection = () => {
     handleDateRangeChange,
     handleComparisonModeToggle,
     handleComparisonModeChange,
+    applyFilters,
     clearFilters,
   } = useAnalyticsFilters();
-
-  const applyFilters = () => {
-    console.log("Applying filters:", pendingFilters);
-    setAppliedFilters(pendingFilters);
-    toast.success("Filters applied successfully");
-  };
 
   const { isLoading, error, data } = useAdvancedAnalytics(filters);
 
@@ -59,7 +53,10 @@ export const AdvancedAnalyticsSection = () => {
         handleDateRangeChange={handleDateRangeChange}
         handleComparisonModeToggle={handleComparisonModeToggle}
         handleComparisonModeChange={handleComparisonModeChange}
-        applyFilters={applyFilters}
+        applyFilters={() => {
+          applyFilters();
+          toast.success("Filters applied successfully");
+        }}
         availableClusters={availableClusters}
         managers={managers}
         comparisonModes={COMPARISON_MODES}

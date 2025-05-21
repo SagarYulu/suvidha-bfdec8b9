@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,6 +9,7 @@ import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions"
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { DateRangePicker, DateRange } from "./DateRangePicker";
 import { ComparisonMode } from "./types";
+import { Filter } from "lucide-react";
 
 interface FilterCardProps {
   filters: any;
@@ -43,7 +45,10 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Filters</CardTitle>
+        <CardTitle className="text-lg flex items-center">
+          <Filter className="h-5 w-5 mr-2" />
+          Filters
+        </CardTitle>
         <CardDescription>
           Filter the data to analyze specific trends
         </CardDescription>

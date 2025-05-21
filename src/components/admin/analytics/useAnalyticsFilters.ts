@@ -17,7 +17,7 @@ export const useAnalyticsFilters = () => {
       to: new Date(),
     },
     isComparisonModeEnabled: false,
-    comparisonMode: "day-by-day",
+    comparisonMode: "day-by-day" as ComparisonMode,
   };
 
   // State for filters that are pending application
@@ -40,26 +40,38 @@ export const useAnalyticsFilters = () => {
   const handleCityChange = useCallback((city: string) => {
     setPendingFilters(prev => ({ 
       ...prev, 
-      city,
+      city: city === "all-cities" ? null : city,
       // Reset cluster when city changes
       cluster: null
     }));
   }, []);
 
   const handleClusterChange = useCallback((cluster: string) => {
-    setPendingFilters(prev => ({ ...prev, cluster }));
+    setPendingFilters(prev => ({ 
+      ...prev, 
+      cluster: cluster === "all-clusters" ? null : cluster 
+    }));
   }, []);
 
   const handleManagerChange = useCallback((manager: string) => {
-    setPendingFilters(prev => ({ ...prev, manager }));
+    setPendingFilters(prev => ({ 
+      ...prev, 
+      manager: manager === "all-managers" ? null : manager 
+    }));
   }, []);
 
   const handleRoleChange = useCallback((role: string) => {
-    setPendingFilters(prev => ({ ...prev, role }));
+    setPendingFilters(prev => ({ 
+      ...prev, 
+      role: role === "all-roles" ? null : role 
+    }));
   }, []);
 
   const handleIssueTypeChange = useCallback((issueType: string) => {
-    setPendingFilters(prev => ({ ...prev, issueType }));
+    setPendingFilters(prev => ({ 
+      ...prev, 
+      issueType: issueType === "all-issues" ? null : issueType 
+    }));
   }, []);
 
   const handleDateRangeChange = useCallback((dateRange: DateRange) => {
@@ -102,11 +114,18 @@ export const useAnalyticsFilters = () => {
     setPendingFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
   }, []);
+  
+  // Apply pending filters
+  const applyFilters = useCallback(() => {
+    console.log("Applying filters:", pendingFilters);
+    setAppliedFilters({ ...pendingFilters });
+  }, [pendingFilters]);
 
   return {
     filters,
     pendingFilters,
     setAppliedFilters,
+    applyFilters,
     managers,
     availableClusters,
     activeFiltersCount,
