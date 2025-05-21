@@ -5,6 +5,7 @@ import { SectionHeader } from "./SectionHeader";
 import { useAnalyticsFilters, COMPARISON_MODES } from "./useAnalyticsFilters";
 import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
 import { AdvancedFilters } from "./types";
+import { AdvancedAnalyticsCharts } from "./AdvancedAnalyticsCharts";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 
 // Re-export AdvancedFilters type so imports don't break elsewhere
@@ -63,9 +64,7 @@ export const AdvancedAnalyticsSection = () => {
       ) : !analyticsData ? (
         <AnalyticsPlaceholder />
       ) : (
-        <div className="py-8 text-center text-gray-500">
-          <p>Analytics data loaded successfully.</p>
-        </div>
+        <AdvancedAnalyticsCharts filters={filters} />
       )}
     </div>
   );
