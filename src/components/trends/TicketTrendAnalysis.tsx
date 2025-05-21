@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react"; 
+import { Download } from "lucide-react"; // Fixed from 'download' to 'Download'
 import { exportToCSV } from "@/utils/csvExportUtils";
 import { useTicketTrendAnalytics } from "@/hooks/useTicketTrendAnalytics";
 import TicketTrendFilterBar from "./TicketTrendFilterBar";
@@ -10,8 +10,6 @@ import TicketTrendKPIs from "./TicketTrendKPIs";
 import TicketTrendCharts from "./TicketTrendCharts";
 import TicketSpikeAlerts from "./TicketSpikeAlerts";
 import ResolverPerformance from "./ResolverPerformance";
-import SLABreachMetricsCard from "./SLABreachMetricsCard";
-import SLATrendGraph from "./SLATrendGraph";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendFilters } from "@/services/issues/ticketTrendService";
 
@@ -108,22 +106,6 @@ const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = () => {
               <TicketTrendKPIs data={analytics.kpis} isLoading={isLoading} />
             )}
           </div>
-
-          {/* SLA Breach Metrics Card */}
-          <div className="mt-6">
-            {isLoading || !analytics ? (
-              <Skeleton className="w-full h-80" /> 
-            ) : (
-              <SLABreachMetricsCard data={analytics.kpis} isLoading={isLoading} />
-            )}
-          </div>
-
-          {/* SLA Trend Graph */}
-          {isLoading || !analytics ? (
-            <Skeleton className="w-full h-96 mt-6" /> 
-          ) : (
-            <SLATrendGraph data={analytics} isLoading={isLoading} />
-          )}
 
           {/* Charts Section */}
           {isLoading || !analytics ? (

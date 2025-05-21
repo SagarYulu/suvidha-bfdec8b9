@@ -66,41 +66,6 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
           }));
         }
         
-        // Add status distribution directly to the kpis object
-        if (data && data.kpis && data.statusDistribution) {
-          // Move status distribution from analytics level to kpis level
-          data.kpis.statusDistribution = data.statusDistribution;
-        } 
-        
-        // Ensure SLA breach metrics are populated
-        if (data && data.kpis) {
-          if (data.kpis.openTicketsSLABreach === undefined) {
-            data.kpis.openTicketsSLABreach = 18.7; // These are placeholder values
-          }
-          if (data.kpis.closedTicketsSLABreach === undefined) {
-            data.kpis.closedTicketsSLABreach = 10.3;
-          }
-          if (data.kpis.inProgressSLABreach === undefined) {
-            data.kpis.inProgressSLABreach = 24.5;
-          }
-          if (data.kpis.assigneeSLABreach === undefined) {
-            data.kpis.assigneeSLABreach = 15.2;
-          }
-          
-          // Create status distribution if not present at all
-          if (!data.kpis.statusDistribution) {
-            const openTicketsCount = Math.round(data.kpis.openTickets * 0.4);
-            const inProgressCount = Math.round(data.kpis.openTickets * 0.6);
-            
-            data.kpis.statusDistribution = {
-              open: openTicketsCount,
-              in_progress: inProgressCount,
-              resolved: Math.round(data.kpis.resolvedTickets * 0.7),
-              closed: Math.round(data.kpis.resolvedTickets * 0.3)
-            };
-          }
-        }
-        
         setAnalytics(data);
       } catch (err) {
         console.error("Error fetching ticket trend analytics:", err);
