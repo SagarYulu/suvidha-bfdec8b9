@@ -14,7 +14,7 @@ import {
 
 interface UseFeedbackAnalyticsProps {
   filters: FeedbackFilters;
-  view: 'overview' | 'agent' | 'solution';
+  view: 'overview' | 'agent' | 'resolution';
 }
 
 interface UseFeedbackAnalyticsResult {
@@ -57,8 +57,8 @@ export const useFeedbackAnalytics = ({
         if (view === 'agent') {
           // For agent view, we always use 'agent' type feedback
           processedFilters.feedbackType = 'agent';
-        } else if (view === 'solution') {
-          // For solution view, we use 'resolution' type feedback
+        } else if (view === 'resolution') {
+          // For resolution view, we use 'resolution' type feedback
           // to match backend terminology
           processedFilters.feedbackType = 'resolution';
         } else if (view === 'overview') {
@@ -85,8 +85,8 @@ export const useFeedbackAnalytics = ({
           setResolvers(resolverData);
         }
         
-        // Fetch category data for overview and solution views
-        if (view === 'overview' || view === 'solution') {
+        // Fetch category data for overview and resolution views
+        if (view === 'overview' || view === 'resolution') {
           const categoryData = await getCategoryAnalysis(processedFilters);
           setCategories(categoryData);
         }
