@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
@@ -263,7 +262,7 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
-          {/* Add the new advanced analytics section below the existing content */}
+          {/* Advanced analytics section */}
           <AdvancedAnalyticsSection />
         </div>
       )}
