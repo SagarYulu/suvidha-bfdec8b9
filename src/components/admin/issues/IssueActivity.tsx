@@ -35,14 +35,20 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
           .filter(log => {
             // Safely check if details is an object and has performer property with name
             const details = log.details;
-            const hasPerformerName = 
-              typeof details === 'object' && 
-              details !== null && 
-              details.performer && 
-              typeof details.performer === 'object' && 
-              details.performer.name;
-              
-            return !hasPerformerName && log.employee_uuid;
+            
+            // First check if details exists and is an object
+            if (!details || typeof details !== 'object' || Array.isArray(details)) {
+              return log.employee_uuid; // Need to fetch name if details is missing or not an object
+            }
+            
+            // Now check if performer exists, is an object, and has a name
+            const performer = details.performer;
+            if (!performer || typeof performer !== 'object' || Array.isArray(performer)) {
+              return log.employee_uuid; // Need to fetch name if performer is missing or not an object
+            }
+            
+            // Finally check if name exists
+            return !performer.name && log.employee_uuid;
           })
           .map(log => log.employee_uuid);
 
@@ -103,14 +109,14 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   const getPerformerName = (log: any): string => {
     // Safely check if details is an object and has performer property with name
     const details = log.details;
-    if (
-      typeof details === 'object' && 
-      details !== null && 
-      details.performer && 
-      typeof details.performer === 'object' && 
-      details.performer.name
-    ) {
-      return details.performer.name;
+    
+    // First check if details exists and is an object
+    if (details && typeof details === 'object' && !Array.isArray(details)) {
+      // Now check if performer exists, is an object, and has a name
+      const performer = details.performer;
+      if (performer && typeof performer === 'object' && !Array.isArray(performer) && performer.name) {
+        return performer.name;
+      }
     }
     
     // Fall back to our fetched names
@@ -128,11 +134,13 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       case 'ticket_assigned':
       case 'assignment':
         // Safely get assignee name from details
-        const details = log.details;
         let assigneeName = "an agent";
-        if (typeof details === 'object' && details !== null) {
+        const details = log.details;
+        
+        if (details && typeof details === 'object' && !Array.isArray(details)) {
           assigneeName = details.assigneeName || assigneeName;
         }
+        
         return `${actorName} assigned ticket to ${assigneeName}`;
       case 'comment_added':
         return `${actorName} added a comment`;
