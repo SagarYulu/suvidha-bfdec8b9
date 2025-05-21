@@ -7,6 +7,7 @@ import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Json } from "@/integrations/supabase/types";
 
 interface IssueActivityProps {
   issue: Issue;
@@ -17,6 +18,32 @@ interface PerformerInfo {
   role?: string;
   id: string;
 }
+
+// Helper function to safely access performer data from Json type
+const getPerformerFromJson = (details: Json | null): PerformerInfo | null => {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return null;
+  }
+
+  const detailsObj = details as Record<string, Json>;
+  const performer = detailsObj.performer;
+  
+  if (!performer || typeof performer !== 'object' || Array.isArray(performer)) {
+    return null;
+  }
+  
+  const performerObj = performer as Record<string, Json>;
+  
+  if (typeof performerObj.name !== 'string') {
+    return null;
+  }
+  
+  return {
+    name: performerObj.name,
+    role: typeof performerObj.role === 'string' ? performerObj.role : undefined,
+    id: typeof performerObj.id === 'string' ? performerObj.id : 'unknown'
+  };
+};
 
 const IssueActivity = ({ issue }: IssueActivityProps) => {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
@@ -33,22 +60,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         // Gather all unique employee UUIDs that don't have performer info
         const employeeIdsNeedingNames = logs
           .filter(log => {
-            // Safely check if details is an object and has performer property with name
-            const details = log.details;
-            
-            // First check if details exists and is an object
-            if (!details || typeof details !== 'object' || Array.isArray(details)) {
-              return log.employee_uuid; // Need to fetch name if details is missing or not an object
-            }
-            
-            // Now check if performer exists, is an object, and has a name
-            const performer = details.performer;
-            if (!performer || typeof performer !== 'object' || Array.isArray(performer)) {
-              return log.employee_uuid; // Need to fetch name if performer is missing or not an object
-            }
-            
-            // Finally check if name exists
-            return !performer.name && log.employee_uuid;
+            const performer = getPerformerFromJson(log.details);
+            return !performer && log.employee_uuid;
           })
           .map(log => log.employee_uuid);
 
@@ -107,16 +120,9 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   
   // Helper to get performer name from the log
   const getPerformerName = (log: any): string => {
-    // Safely check if details is an object and has performer property with name
-    const details = log.details;
-    
-    // First check if details exists and is an object
-    if (details && typeof details === 'object' && !Array.isArray(details)) {
-      // Now check if performer exists, is an object, and has a name
-      const performer = details.performer;
-      if (performer && typeof performer === 'object' && !Array.isArray(performer) && performer.name) {
-        return performer.name;
-      }
+    const performer = getPerformerFromJson(log.details);
+    if (performer && performer.name) {
+      return performer.name;
     }
     
     // Fall back to our fetched names
@@ -135,10 +141,12 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       case 'assignment':
         // Safely get assignee name from details
         let assigneeName = "an agent";
-        const details = log.details;
         
-        if (details && typeof details === 'object' && !Array.isArray(details)) {
-          assigneeName = details.assigneeName || assigneeName;
+        if (log.details && typeof log.details === 'object' && !Array.isArray(log.details)) {
+          const detailsObj = log.details as Record<string, Json>;
+          assigneeName = typeof detailsObj.assigneeName === 'string' 
+            ? detailsObj.assigneeName 
+            : assigneeName;
         }
         
         return `${actorName} assigned ticket to ${assigneeName}`;
