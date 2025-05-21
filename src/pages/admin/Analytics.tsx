@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
@@ -15,13 +16,30 @@ import { AdvancedAnalyticsSection } from "@/components/admin/analytics/AdvancedA
 const AdminAnalytics = () => {
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    city: null,
+    cluster: null,
+    issueType: null,
+    dateRange: {
+      start: null,
+      end: null
+    }
+  });
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
       setIsLoading(true);
       try {
-        console.log("Fetching analytics data...");
-        const analyticsData = await getAnalytics();
+        console.log("Fetching analytics data with filters:", filters);
+        // Pass filters to getAnalytics
+        const analyticsData = await getAnalytics({
+          employeeUuids: [], // This would be populated based on city/cluster filters
+          issueType: filters.issueType,
+          dateRange: {
+            start: filters.dateRange.start,
+            end: filters.dateRange.end
+          }
+        });
         console.log("Analytics data received:", analyticsData);
         setAnalytics(analyticsData);
       } catch (error) {
@@ -32,7 +50,12 @@ const AdminAnalytics = () => {
     };
 
     fetchAnalyticsData();
-  }, []);
+  }, [filters]); // This will re-fetch data whenever filters change
+
+  const handleFilterChange = (newFilters) => {
+    console.log("Filters updated:", newFilters);
+    setFilters(newFilters);
+  };
 
   const COLORS = [
     '#1E40AF', '#3B82F6', '#93C5FD', '#BFDBFE', 
@@ -262,8 +285,8 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
-          {/* Advanced analytics section */}
-          <AdvancedAnalyticsSection />
+          {/* Advanced analytics section with filter passing */}
+          <AdvancedAnalyticsSection onFilterChange={handleFilterChange} />
         </div>
       )}
     </AdminLayout>
