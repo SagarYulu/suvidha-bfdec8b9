@@ -1,11 +1,12 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { AdvancedFilters, ComparisonMode } from "./types";
 import { CLUSTER_OPTIONS } from "@/data/formOptions";
 import { DateRange } from "./DateRangePicker";
 
 export const useAnalyticsFilters = () => {
-  const [filters, setFilters] = useState<AdvancedFilters>({
+  // Initial filters state
+  const defaultFilters: AdvancedFilters = {
     city: null,
     cluster: null,
     manager: null,
@@ -17,78 +18,91 @@ export const useAnalyticsFilters = () => {
     },
     isComparisonModeEnabled: false,
     comparisonMode: "day-by-day",
-  });
+  };
+
+  // State for filters that are pending application
+  const [pendingFilters, setPendingFilters] = useState<AdvancedFilters>(defaultFilters);
+  
+  // State for filters that are currently applied
+  const [appliedFilters, setAppliedFilters] = useState<AdvancedFilters>(defaultFilters);
 
   const [managers, setManagers] = useState<string[]>(["All Managers"]);
 
+  // Use the applied filters for data queries
+  const filters = appliedFilters;
+
   // Available clusters based on selected city
   const availableClusters = useMemo(() => {
-    if (!filters.city) return [];
-    return CLUSTER_OPTIONS[filters.city] || [];
-  }, [filters.city]);
+    if (!pendingFilters.city) return [];
+    return CLUSTER_OPTIONS[pendingFilters.city] || [];
+  }, [pendingFilters.city]);
 
-  const handleCityChange = (city: string) => {
-    setFilters(prev => ({ 
+  const handleCityChange = useCallback((city: string) => {
+    setPendingFilters(prev => ({ 
       ...prev, 
       city,
       // Reset cluster when city changes
       cluster: null
     }));
-  };
+  }, []);
 
-  const handleClusterChange = (cluster: string) => {
-    setFilters(prev => ({ ...prev, cluster }));
-  };
+  const handleClusterChange = useCallback((cluster: string) => {
+    setPendingFilters(prev => ({ ...prev, cluster }));
+  }, []);
 
-  const handleManagerChange = (manager: string) => {
-    setFilters(prev => ({ ...prev, manager }));
-  };
+  const handleManagerChange = useCallback((manager: string) => {
+    setPendingFilters(prev => ({ ...prev, manager }));
+  }, []);
 
-  const handleRoleChange = (role: string) => {
-    setFilters(prev => ({ ...prev, role }));
-  };
+  const handleRoleChange = useCallback((role: string) => {
+    setPendingFilters(prev => ({ ...prev, role }));
+  }, []);
 
-  const handleIssueTypeChange = (issueType: string) => {
-    setFilters(prev => ({ ...prev, issueType }));
-  };
+  const handleIssueTypeChange = useCallback((issueType: string) => {
+    setPendingFilters(prev => ({ ...prev, issueType }));
+  }, []);
 
-  const handleDateRangeChange = (dateRange: DateRange) => {
-    setFilters(prev => ({ ...prev, dateRange }));
-  };
+  const handleDateRangeChange = useCallback((dateRange: DateRange) => {
+    setPendingFilters(prev => ({ ...prev, dateRange }));
+  }, []);
 
-  const handleComparisonModeToggle = (enabled: boolean) => {
-    setFilters(prev => ({ ...prev, isComparisonModeEnabled: enabled }));
-  };
+  const handleComparisonModeToggle = useCallback((enabled: boolean) => {
+    setPendingFilters(prev => ({ ...prev, isComparisonModeEnabled: enabled }));
+  }, []);
 
-  const handleComparisonModeChange = (mode: string) => {
-    setFilters(prev => ({ ...prev, comparisonMode: mode as ComparisonMode }));
-  };
+  const handleComparisonModeChange = useCallback((mode: string) => {
+    setPendingFilters(prev => ({ ...prev, comparisonMode: mode as ComparisonMode }));
+  }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (filters.city) count++;
-    if (filters.cluster) count++;
-    if (filters.manager) count++;
-    if (filters.role) count++;
-    if (filters.issueType) count++;
+    if (pendingFilters.city) count++;
+    if (pendingFilters.cluster) count++;
+    if (pendingFilters.manager) count++;
+    if (pendingFilters.role) count++;
+    if (pendingFilters.issueType) count++;
     return count;
-  }, [filters]);
+  }, [pendingFilters]);
 
-  const clearFilters = () => {
-    setFilters({
+  const clearFilters = useCallback(() => {
+    const clearedFilters = {
       city: null,
       cluster: null,
       manager: null,
       role: null,
       issueType: null,
-      dateRange: filters.dateRange,
-      isComparisonModeEnabled: filters.isComparisonModeEnabled,
-      comparisonMode: filters.comparisonMode,
-    });
-  };
+      dateRange: pendingFilters.dateRange,
+      isComparisonModeEnabled: pendingFilters.isComparisonModeEnabled,
+      comparisonMode: pendingFilters.comparisonMode,
+    };
+    setPendingFilters(clearedFilters);
+    setAppliedFilters(clearedFilters);
+  }, [pendingFilters.dateRange, pendingFilters.isComparisonModeEnabled, pendingFilters.comparisonMode]);
 
   return {
     filters,
+    pendingFilters,
+    setAppliedFilters,
     managers,
     availableClusters,
     activeFiltersCount,

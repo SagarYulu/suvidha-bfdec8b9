@@ -30,12 +30,14 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({
 }) => {
   // Format resolution time for display (ensure it's in working hours)
   const formatResolutionTime = (hours: number) => {
-    if (hours < 24) {
+    if (hours < 8) {
       return `${hours.toFixed(1)} hrs`;
     } else {
       const days = Math.floor(hours / 8); // Convert to working days (8 hours per day)
       const remainingHours = hours % 8;
-      return `${days}d ${remainingHours.toFixed(1)}h`;
+      return remainingHours > 0 ? 
+        `${days}d ${remainingHours.toFixed(1)}h` : 
+        `${days}d`;
     }
   };
 
@@ -56,7 +58,8 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({
           <div className="mt-2 space-y-1">
             {isResolutionTime ? (
               <p className="text-sm">
-                Resolution Time: <span className="font-medium">{formatResolutionTime(item.count)}</span>
+                Current Resolution Time: <span className="font-medium">{formatResolutionTime(item.count)}</span>
+                <span className="text-xs ml-1 text-gray-500">(working hours)</span>
               </p>
             ) : (
               <p className="text-sm">
@@ -156,7 +159,7 @@ const TopicBarChart: React.FC<TopicBarChartProps> = ({
             tickLine={{ stroke: '#e5e7eb' }}
             axisLine={{ stroke: '#e5e7eb' }}
             label={{ 
-              value: isResolutionTime ? 'Resolution Time (hours)' : 'Number of Mentions', 
+              value: isResolutionTime ? 'Resolution Time (working hours)' : 'Number of Mentions', 
               position: 'insideLeft', 
               angle: -90, 
               dy: 50, 

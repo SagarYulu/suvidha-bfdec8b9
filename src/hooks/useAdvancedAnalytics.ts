@@ -1,7 +1,7 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 export interface AnalyticsData {
   totalTickets: number;
@@ -56,9 +56,22 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   return useQuery({
     queryKey: ['advancedAnalytics', filters],
     queryFn: async (): Promise<AnalyticsData> => {
-      // Create a date range filter for Supabase queries
-      const startDate = filters.dateRange.from?.toISOString();
-      const endDate = filters.dateRange.to?.toISOString();
+      // Format dates correctly for API requests
+      const startDate = filters.dateRange?.from ? 
+        format(filters.dateRange.from, 'yyyy-MM-dd') : 
+        undefined;
+      
+      const endDate = filters.dateRange?.to ? 
+        format(filters.dateRange.to, 'yyyy-MM-dd') : 
+        undefined;
+      
+      console.log("Fetching analytics with filters:", {
+        ...filters,
+        dateRange: {
+          startDate,
+          endDate
+        }
+      });
       
       // Base query modifiers for all queries
       let queryModifiers = supabase
@@ -66,15 +79,15 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         .select('*', { count: 'exact' });
         
       if (startDate) {
-        queryModifiers = queryModifiers.gte('created_at', startDate);
+        queryModifiers = queryModifiers.gte('created_at', `${startDate}T00:00:00`);
       }
       
       if (endDate) {
-        queryModifiers = queryModifiers.lte('created_at', endDate);
+        queryModifiers = queryModifiers.lte('created_at', `${endDate}T23:59:59`);
       }
       
       // Apply filters
-      if (filters.city) {
+      if (filters.city && filters.city !== 'all-cities') {
         // Assuming issues are linked to employees and employees have city
         const { data: employeeIds } = await supabase
           .from('employees')
@@ -87,7 +100,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
       }
       
-      if (filters.cluster) {
+      if (filters.cluster && filters.cluster !== 'all-clusters') {
         // Similar approach for cluster filter
         const { data: employeeIds } = await supabase
           .from('employees')
@@ -100,7 +113,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
       }
       
-      if (filters.manager) {
+      if (filters.manager && filters.manager !== 'all-managers') {
         // For manager filter
         const { data: employeeIds } = await supabase
           .from('employees')
@@ -113,23 +126,51 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
       }
       
-      if (filters.issueType) {
+      if (filters.role && filters.role !== 'all-roles') {
+        // For role filter
+        const { data: employeeIds } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('role', filters.role);
+          
+        if (employeeIds && employeeIds.length > 0) {
+          const empIds = employeeIds.map(e => e.id);
+          queryModifiers = queryModifiers.in('employee_uuid', empIds);
+        }
+      }
+      
+      if (filters.issueType && filters.issueType !== 'all-issues') {
         queryModifiers = queryModifiers.eq('type_id', filters.issueType);
       }
       
       // Get total tickets count
-      const { count: totalTickets } = await queryModifiers;
+      const { count: totalTickets, error: countError } = await queryModifiers;
+      
+      if (countError) {
+        console.error("Error fetching total tickets count:", countError);
+        throw countError;
+      }
       
       // Get resolved tickets
-      const { count: resolvedTickets } = await queryModifiers
+      const { count: resolvedTickets, error: resolvedError } = await queryModifiers
         .or('status.eq.closed,status.eq.resolved');
         
+      if (resolvedError) {
+        console.error("Error fetching resolved tickets count:", resolvedError);
+        throw resolvedError;
+      }
+      
       // Get open tickets
-      const { count: openTickets } = await queryModifiers
+      const { count: openTickets, error: openError } = await queryModifiers
         .not('status', 'in', '("closed","resolved")');
       
+      if (openError) {
+        console.error("Error fetching open tickets count:", openError);
+        throw openError;
+      }
+      
       // Fetch raw issues with comments for SLA calculation
-      const { data: rawIssues } = await supabase
+      const { data: rawIssues, error: rawIssuesError } = await supabase
         .from('issues')
         .select(`
           *,
@@ -142,11 +183,16 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         `)
         .order('created_at', { ascending: false });
       
+      if (rawIssuesError) {
+        console.error("Error fetching raw issues:", rawIssuesError);
+        throw rawIssuesError;
+      }
+      
       // Calculate resolution rate
       const resolutionRate = totalTickets > 0 ? (resolvedTickets / totalTickets) * 100 : 0;
       
       // Get FTRS data by analyzing comments
-      const { data: issuesWithComments } = await supabase
+      const { data: issuesWithComments, error: issuesWithCommentsError } = await supabase
         .from('issues')
         .select(`
           id, 
@@ -158,6 +204,11 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
           )
         `);
         
+      if (issuesWithCommentsError) {
+        console.error("Error fetching issues with comments:", issuesWithCommentsError);
+        throw issuesWithCommentsError;
+      }
+      
       let totalResponseTime = 0;
       let ticketsWithResponse = 0;
       let slaBreachCount = 0;
@@ -173,8 +224,8 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
           const issueCreatedAt = new Date(issue.created_at);
           const firstCommentCreatedAt = new Date(sortedComments[0].created_at);
           
-          // Calculate response time in hours
-          const responseTimeHours = (firstCommentCreatedAt.getTime() - issueCreatedAt.getTime()) / (1000 * 60 * 60);
+          // Calculate response time in hours - working hours only (8hr workday)
+          const responseTimeHours = calculateWorkingHours(issueCreatedAt, firstCommentCreatedAt);
           
           totalResponseTime += responseTimeHours;
           ticketsWithResponse++;
@@ -187,7 +238,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       
       const ftrsTime = ticketsWithResponse > 0 ? totalResponseTime / ticketsWithResponse : 0;
       const firstResponseSLABreach = ticketsWithResponse > 0 ? (slaBreachCount / ticketsWithResponse) * 100 : 0;
-      const avgFirstResponseTime = ftrsTime; // Set avgFirstResponseTime to ftrsTime
+      const avgFirstResponseTime = ftrsTime;
       
       // First time resolution rate - tickets resolved with just one response
       let ftrCount = 0;
@@ -200,11 +251,16 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       const ftrRate = resolvedTickets > 0 ? (ftrCount / resolvedTickets) * 100 : 0;
       
       // Average resolution time
-      const { data: resolvedIssuesData } = await supabase
+      const { data: resolvedIssuesData, error: resolvedIssuesError } = await supabase
         .from('issues')
         .select('created_at, closed_at')
         .or('status.eq.closed,status.eq.resolved');
         
+      if (resolvedIssuesError) {
+        console.error("Error fetching resolved issues:", resolvedIssuesError);
+        throw resolvedIssuesError;
+      }
+      
       let totalResolutionTime = 0;
       let closedIssuesCount = 0;
       let resolutionSLABreachCount = 0;
@@ -215,8 +271,8 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
           const createdAt = new Date(issue.created_at);
           const closedAt = new Date(issue.closed_at);
           
-          // Calculate resolution time in hours
-          const resolutionTimeHours = (closedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+          // Calculate resolution time in hours - working hours only
+          const resolutionTimeHours = calculateWorkingHours(createdAt, closedAt);
           
           totalResolutionTime += resolutionTimeHours;
           closedIssuesCount++;
@@ -264,7 +320,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       openInProgressTickets.forEach(issue => {
         const createdAt = new Date(issue.created_at);
         const now = new Date();
-        const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        const hoursElapsed = calculateWorkingHours(createdAt, now);
         
         if (hoursElapsed > openInProgressSLABenchmark) {
           openInProgressBreachCount++;
@@ -286,7 +342,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         // For simplicity, we'll check if any assigned ticket has not been updated within the SLA timeframe
         const updatedAt = new Date(issue.updated_at);
         const now = new Date();
-        const hoursElapsed = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+        const hoursElapsed = calculateWorkingHours(updatedAt, now);
         
         if (hoursElapsed > assigneeSLABenchmark) {
           assigneeBreachCount++;
@@ -465,6 +521,64 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       };
     },
     enabled: !!filters.dateRange.from && !!filters.dateRange.to,
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1
   });
 };
+
+// Helper function to calculate working hours between two dates
+// Working hours are 9 AM - 5 PM on weekdays (8 hour workday)
+function calculateWorkingHours(startDate: Date, endDate: Date): number {
+  // Ensure startDate is before endDate
+  if (startDate > endDate) return 0;
+  
+  let totalHours = 0;
+  const millisecondsPerHour = 60 * 60 * 1000;
+  const millisecondsPerWorkingDay = 8 * millisecondsPerHour; // 8 working hours per day
+  
+  // Clone dates to avoid modifying the originals
+  const currentDate = new Date(startDate);
+  const endDateTime = endDate.getTime();
+  
+  while (currentDate.getTime() < endDateTime) {
+    // Get day of the week (0 = Sunday, 6 = Saturday)
+    const dayOfWeek = currentDate.getDay();
+    
+    // Skip weekends
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      // Set to start of workday (9 AM) if it's earlier
+      if (currentDate.getHours() < 9) {
+        currentDate.setHours(9, 0, 0, 0);
+      }
+      
+      // If we're beyond end of workday (5 PM), move to next day
+      if (currentDate.getHours() >= 17) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setHours(9, 0, 0, 0);
+        continue;
+      }
+      
+      // Calculate time until end of current day's work hours or until endDate
+      let endOfDay = new Date(currentDate);
+      endOfDay.setHours(17, 0, 0, 0);
+      
+      // If endDate is earlier than end of workday, use endDate instead
+      if (endDateTime < endOfDay.getTime()) {
+        endOfDay = new Date(endDateTime);
+      }
+      
+      // Add hours for this work period
+      const hoursWorked = (endOfDay.getTime() - currentDate.getTime()) / millisecondsPerHour;
+      totalHours += hoursWorked;
+      
+      // Move to next work period
+      currentDate.setTime(endOfDay.getTime());
+    } else {
+      // Skip to next day at 9 AM
+      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setHours(9, 0, 0, 0);
+    }
+  }
+  
+  return Math.max(0, totalHours);
+}

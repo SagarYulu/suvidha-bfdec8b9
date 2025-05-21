@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { DateRangePicker, DateRange } from "./DateRangePicker";
@@ -19,6 +20,7 @@ interface FilterCardProps {
   handleDateRangeChange: (dateRange: DateRange) => void;
   handleComparisonModeToggle: (enabled: boolean) => void;
   handleComparisonModeChange: (mode: string) => void;
+  applyFilters: () => void;
   availableClusters: string[];
   managers: string[];
   comparisonModes: Array<{ value: string, label: string }>;
@@ -34,6 +36,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   handleDateRangeChange,
   handleComparisonModeToggle,
   handleComparisonModeChange,
+  applyFilters,
   availableClusters,
   managers,
   comparisonModes
@@ -171,6 +174,16 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               </div>
             )}
           </div>
+        </div>
+        
+        {/* Add Apply Filters button */}
+        <div className="mt-4 flex justify-end">
+          <Button 
+            onClick={applyFilters}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            Apply Filters
+          </Button>
         </div>
       </CardContent>
     </Card>
