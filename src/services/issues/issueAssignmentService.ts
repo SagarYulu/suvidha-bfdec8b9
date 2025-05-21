@@ -13,6 +13,15 @@ export const assignIssueToUser = async (
   currentUserId: string
 ): Promise<Issue | null> => {
   try {
+    // Get assignee info for better audit logs
+    const { data: assigneeData } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', assigneeId)
+      .single();
+    
+    const assigneeName = assigneeData?.name || "Unknown User";
+
     const { data, error } = await supabase
       .from('issues')
       .update({
@@ -34,7 +43,10 @@ export const assignIssueToUser = async (
       issueId,
       currentUserId,
       'assignment',
-      { assigneeId },
+      { 
+        assigneeId,
+        assigneeName
+      },
       'Issue assigned to user'
     );
     

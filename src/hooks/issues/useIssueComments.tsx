@@ -4,6 +4,7 @@ import { Issue } from "@/types";
 import { addComment } from "@/services/issueService";
 import { getIssueById } from "@/services/issues/issueFetchService";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useIssueComments = (
   issueId: string | undefined,
@@ -18,6 +19,16 @@ export const useIssueComments = (
     
     setIsSubmittingComment(true);
     try {
+      // Get current user info for better audit logs
+      const { data: userData } = await supabase
+        .from('dashboard_users')
+        .select('name, role')
+        .eq('id', currentUserId)
+        .single();
+      
+      const userName = userData?.name || "Unknown User";
+      const userRole = userData?.role;
+      
       // Create a comment object with the right structure
       const commentData = {
         employeeUuid: currentUserId,
@@ -25,7 +36,11 @@ export const useIssueComments = (
       };
       
       // Pass the correct arguments to addComment
-      await addComment(issueId, commentData);
+      await addComment(issueId, commentData, {
+        name: userName,
+        role: userRole,
+        id: currentUserId
+      });
       
       // Fetch the updated issue with the new comment
       const updatedIssue = await getIssueById(issueId);

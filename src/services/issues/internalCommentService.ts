@@ -38,6 +38,46 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
   }
 };
 
+// Get user info for audit logs
+async function getUserInfo(userUuid: string) {
+  try {
+    // Check dashboard users first
+    const { data: dashboardUser } = await supabase
+      .from('dashboard_users')
+      .select('name, role')
+      .eq('id', userUuid)
+      .single();
+    
+    if (dashboardUser) {
+      return {
+        name: dashboardUser.name,
+        role: dashboardUser.role,
+        id: userUuid
+      };
+    }
+
+    // Then check employees
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('name, role')
+      .eq('id', userUuid)
+      .single();
+    
+    if (employee) {
+      return {
+        name: employee.name,
+        role: employee.role,
+        id: userUuid
+      };
+    }
+
+    return { name: "Unknown User", id: userUuid };
+  } catch (error) {
+    console.error('Error getting user info:', error);
+    return { name: "Unknown User", id: userUuid };
+  }
+}
+
 // Add a new internal comment to a ticket
 export const addInternalComment = async (
   issueId: string, 
@@ -58,12 +98,18 @@ export const addInternalComment = async (
       return null;
     }
     
+    // Get commenter info for audit log
+    const userInfo = await getUserInfo(employeeUuid);
+    
     // Create audit log entry
     await createAuditLog(
       issueId,
       employeeUuid,
       'internal_comment_added',
-      { commentId: data.id }
+      { 
+        commentId: data.id,
+        performer: userInfo
+      }
     );
     
     // Map the database response to our InternalComment interface

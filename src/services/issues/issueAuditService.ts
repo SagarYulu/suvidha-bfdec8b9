@@ -82,14 +82,20 @@ export const logAuditTrail = async (
     
     console.log(`Final employeeUuid being used for audit: ${validEmployeeUuid}`);
 
-    // Insert the audit trail entry with the validated employee UUID
+    // Get user information for the performer
+    const userInfo = await getUserInfoForAudit(validEmployeeUuid);
+
+    // Insert the audit trail entry with the validated employee UUID and user info
     const { data, error } = await supabase.from('issue_audit_trail').insert({
       issue_id: issueId,
       employee_uuid: validEmployeeUuid,
       action,
       previous_status: previousStatus,
       new_status: newStatus,
-      details
+      details: {
+        ...details || {},
+        performer: userInfo
+      }
     });
     
     if (error) {
@@ -97,11 +103,58 @@ export const logAuditTrail = async (
       return;
     }
     
-    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${validEmployeeUuid}`);
+    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${validEmployeeUuid}`, userInfo);
   } catch (error) {
     console.error('Error logging audit trail:', error);
   }
 };
+
+// Get detailed user information for the audit trail
+async function getUserInfoForAudit(userUuid: string): Promise<{name: string, role?: string, id: string}> {
+  try {
+    // First check dashboard users
+    const { data: dashboardUser } = await supabase
+      .from('dashboard_users')
+      .select('name, role, id')
+      .eq('id', userUuid)
+      .single();
+    
+    if (dashboardUser) {
+      return {
+        name: dashboardUser.name,
+        role: dashboardUser.role,
+        id: userUuid
+      };
+    }
+
+    // If not a dashboard user, check regular employee
+    const { data: employee } = await supabase
+      .from('employees')
+      .select('name, role, id')
+      .eq('id', userUuid)
+      .single();
+    
+    if (employee) {
+      return {
+        name: employee.name,
+        role: employee.role,
+        id: userUuid
+      };
+    }
+    
+    // If still no match, return a generic label
+    return {
+      name: "System User",
+      id: userUuid
+    };
+  } catch (error) {
+    console.error('Error getting user info for audit:', error);
+    return {
+      name: "Unknown User",
+      id: userUuid
+    };
+  }
+}
 
 export const getAuditTrail = async (issueId?: string, limit = 100) => {
   try {

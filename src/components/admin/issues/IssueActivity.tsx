@@ -12,6 +12,12 @@ interface IssueActivityProps {
   issue: Issue;
 }
 
+interface PerformerInfo {
+  name: string;
+  role?: string;
+  id: string;
+}
+
 const IssueActivity = ({ issue }: IssueActivityProps) => {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
@@ -24,12 +30,14 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         const logs = await getAuditTrail(issue.id, 20);
         setActivityLogs(logs);
         
-        // Gather all unique employee UUIDs
-        const uniqueEmployeeIds = Array.from(
-          new Set(logs.map(log => log.employee_uuid))
-        );
+        // Gather all unique employee UUIDs that don't have performer info
+        const employeeIdsNeedingNames = logs
+          .filter(log => !log.details?.performer?.name)
+          .map(log => log.employee_uuid);
+
+        const uniqueEmployeeIds = Array.from(new Set(employeeIdsNeedingNames));
         
-        // Get employee names
+        // Get employee names for those without performer info
         const names: Record<string, string> = {};
         for (const employeeId of uniqueEmployeeIds) {
           const name = await getEmployeeNameByUuid(employeeId);
@@ -64,8 +72,10 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   const getActivityIcon = (action: string) => {
     switch (action) {
       case 'ticket_status_changed':
+      case 'status_change':
         return <Clock className="h-4 w-4 text-blue-500" />;
       case 'ticket_assigned':
+      case 'assignment':
         return <UserPlus className="h-4 w-4 text-green-500" />;
       case 'comment_added':
         return <MessageSquare className="h-4 w-4 text-purple-500" />;
@@ -78,15 +88,29 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     }
   };
   
+  // Helper to get performer name from the log
+  const getPerformerName = (log: any): string => {
+    // Check if performer info is available in details
+    if (log.details?.performer?.name) {
+      return log.details.performer.name;
+    }
+    
+    // Fall back to our fetched names
+    return employeeNames[log.employee_uuid] || "Unknown User";
+  };
+  
   // Helper to get activity label
   const getActivityLabel = (log: any) => {
-    const actorName = employeeNames[log.employee_uuid] || "Unknown user";
+    const actorName = getPerformerName(log);
     
     switch (log.action) {
       case 'ticket_status_changed':
+      case 'status_change':
         return `${actorName} changed status from ${log.previous_status || 'unknown'} to ${log.new_status}`;
       case 'ticket_assigned':
-        const assigneeName = log.details?.assigneeName || "an agent";
+      case 'assignment':
+        const assigneeName = log.details?.assigneeName || 
+                            (log.details?.performer ? "an agent" : "an agent");
         return `${actorName} assigned ticket to ${assigneeName}`;
       case 'comment_added':
         return `${actorName} added a comment`;
@@ -103,8 +127,10 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   const getActivityBadge = (action: string) => {
     switch (action) {
       case 'ticket_status_changed':
+      case 'status_change':
         return "bg-blue-100 text-blue-800 border-blue-200";
       case 'ticket_assigned':
+      case 'assignment':
         return "bg-green-100 text-green-800 border-green-200";
       case 'comment_added':
         return "bg-purple-100 text-purple-800 border-purple-200";
@@ -115,6 +141,16 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
+  };
+  
+  // Helper to get simple action type for badge display
+  const getSimpleActionType = (action: string): string => {
+    if (action.includes('status')) return 'status change';
+    if (action.includes('assign')) return 'assignment';
+    if (action.includes('internal_comment')) return 'internal comment added';
+    if (action.includes('comment')) return 'comment added';
+    if (action.includes('reopen')) return 'ticket reopened';
+    return action.replace(/_/g, ' ');
   };
   
   return (
@@ -155,7 +191,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
                   variant="outline"
                   className={`text-xs ${getActivityBadge(log.action)}`}
                 >
-                  {log.action.replace(/_/g, ' ')}
+                  {getSimpleActionType(log.action)}
                 </Badge>
               </div>
             ))}
