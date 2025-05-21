@@ -1,170 +1,144 @@
-
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import { RBACProvider } from "./contexts/RBACContext";
-
-// Import all pages
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminUsers from "./pages/admin/Users";
-import AdminIssues from "./pages/admin/Issues";
-import AdminAssignedIssues from "./pages/admin/AssignedIssues";
-import AdminIssueDetails from "./pages/admin/IssueDetails";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminSettings from "./pages/admin/Settings";
-import AdminLogin from "./pages/admin/Login";
-import AdminAccessControl from "./pages/admin/AccessControl";
-import AdminResolutionFeedback from "./pages/admin/ResolutionFeedback";
-import MobileLogin from "./pages/mobile/Login";
-import MobileIssues from "./pages/mobile/Issues";
-import MobileNewIssue from "./pages/mobile/NewIssue";
-import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
-import TestDataGenerator from "./pages/admin/TestDataGenerator";
-import FeedbackAnalytics from "./pages/FeedbackAnalytics";
-
-// Import guards
+import React from "react";
 import {
-  DashboardGuard,
-  UserManagementGuard,
-  IssuesGuard,
-  AnalyticsGuard,
-  SettingsGuard,
-  SecurityGuard,
-  CreateDashboardUserGuard
-} from "./components/guards/PermissionGuards";
-import TicketAccessGuard from "./components/guards/TicketAccessGuard";
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
 
-// Create a new QueryClient instance with more relaxed defaults
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
+import Index from "./pages/Index";
+import Dashboard from "./pages/admin/Dashboard";
+import Issues from "./pages/admin/Issues";
+import IssueDetails from "./pages/admin/IssueDetails";
+import CreateIssue from "./pages/admin/CreateIssue";
+import EditIssue from "./pages/admin/EditIssue";
+import Users from "./pages/admin/Users";
+import AddUser from "./pages/admin/AddUser";
+import EditUser from "./pages/admin/EditUser";
+import Analytics from "./pages/admin/Analytics";
+import Settings from "./pages/admin/Settings";
+import AdminLogin from "./pages/admin/AdminLogin";
+import NotFound from "./pages/NotFound";
+import AccessControl from "./pages/admin/AccessControl";
+import TestDataGenerator from "./pages/admin/TestDataGenerator";
+import ResolutionFeedback from "./pages/admin/ResolutionFeedback";
+import SentimentAnalysis from "./pages/admin/SentimentAnalysis";
+import FeedbackAnalytics from "./pages/FeedbackAnalytics";
+import AddDashboardUser from "./pages/admin/AddDashboardUser";
+import AssignedIssues from "./pages/admin/AssignedIssues";
+// Include our new TicketTrendAnalysis page in imports
+import TicketTrendAnalysis from "./pages/TicketTrendAnalysis";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ToastProvider } from "@/hooks/use-toast";
+import { PermissionProvider } from "./contexts/PermissionContext";
 
 const App = () => {
-  console.log("App rendering - setting up providers");
-  
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RBACProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                
-                {/* Protected Admin Routes with Guards */}
-                <Route path="/admin/dashboard" element={
-                  <DashboardGuard redirectTo="/admin/login">
-                    <AdminDashboard />
-                  </DashboardGuard>
-                } />
-                
-                <Route path="/admin/users" element={
-                  <UserManagementGuard>
-                    <AdminUsers />
-                  </UserManagementGuard>
-                } />
-                
-                <Route path="/admin/issues" element={
-                  <IssuesGuard>
-                    <TicketAccessGuard onlyForAssigned={false}>
-                      <AdminIssues />
-                    </TicketAccessGuard>
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/assigned-issues" element={
-                  <IssuesGuard>
-                    <TicketAccessGuard onlyForAssigned={true}>
-                      <AdminAssignedIssues />
-                    </TicketAccessGuard>
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/issues/:id" element={
-                  <IssuesGuard>
-                    <AdminIssueDetails />
-                  </IssuesGuard>
-                } />
-                
-                <Route path="/admin/analytics" element={
-                  <AnalyticsGuard>
-                    <AdminAnalytics />
-                  </AnalyticsGuard>
-                } />
+  // Check if the current environment is the client-side
+  const isClient = typeof window !== 'undefined';
 
-                <Route path="/admin/resolution-feedback" element={
-                  <AnalyticsGuard>
-                    <AdminResolutionFeedback />
-                  </AnalyticsGuard>
-                } />
-                
-                <Route path="/admin/settings" element={
-                  <SettingsGuard>
-                    <AdminSettings />
-                  </SettingsGuard>
-                } />
-                
-                <Route path="/admin/access-control" element={
-                  <SecurityGuard>
-                    <AdminAccessControl />
-                  </SecurityGuard>
-                } />
-                
-                <Route path="/admin/test-data-generator" element={
-                  <AnalyticsGuard>
-                    <TestDataGenerator />
-                  </AnalyticsGuard>
-                } />
-                
-                {/* Dashboard Users Routes */}
-                <Route path="/admin/dashboard-users/add" element={
-                  <CreateDashboardUserGuard>
-                    <AddDashboardUser />
-                  </CreateDashboardUserGuard>
-                } />
-                
-                {/* Mobile Routes */}
-                <Route path="/mobile/login" element={<MobileLogin />} />
-                <Route path="/mobile/issues" element={<MobileIssues />} />
-                <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
-                <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-                
-                {/* New Feedback Analytics Route */}
-                <Route path="/feedback-analytics" element={
-                  <DashboardGuard redirectTo="/admin/login">
-                    <FeedbackAnalytics />
-                  </DashboardGuard>
-                } />
-                
-                {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
-                <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="/mobile/sentiment" element={<Navigate to="/mobile/issues" replace />} />
-                
-                {/* Fallback route */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </RBACProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+  // Function to determine the initial authentication state
+  const getInitialAuthState = () => {
+    if (isClient) {
+      const storedAuth = localStorage.getItem('auth');
+      return storedAuth ? JSON.parse(storedAuth) : { isAuthenticated: false, user: null, role: null };
+    }
+    return { isAuthenticated: false, user: null, role: null };
+  };
+
+  // Use the initial auth state
+  const initialAuthState = React.useMemo(() => getInitialAuthState(), [isClient]);
+
+  // Update your router configuration to include the new route
+  const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <Index />,
+      errorElement: <NotFound />,
+    },
+    {
+      path: "/admin/login",
+      element: <AdminLogin />,
+    },
+    {
+      path: "/admin/dashboard",
+      element: <Dashboard />,
+    },
+    {
+      path: "/admin/ticket-trends",
+      element: <TicketTrendAnalysis />,
+    },
+    {
+      path: "/admin/issues",
+      element: <Issues />,
+    },
+    {
+      path: "/admin/issues/:id",
+      element: <IssueDetails />,
+    },
+    {
+      path: "/admin/issues/create",
+      element: <CreateIssue />,
+    },
+    {
+      path: "/admin/issues/edit/:id",
+      element: <EditIssue />,
+    },
+    {
+      path: "/admin/users",
+      element: <Users />,
+    },
+    {
+      path: "/admin/users/add",
+      element: <AddUser />,
+    },
+    {
+      path: "/admin/users/edit/:id",
+      element: <EditUser />,
+    },
+    {
+      path: "/admin/analytics",
+      element: <Analytics />,
+    },
+    {
+      path: "/admin/settings",
+      element: <Settings />,
+    },
+    {
+      path: "/admin/access-control",
+      element: <AccessControl />,
+    },
+    {
+      path: "/admin/test-data-generator",
+      element: <TestDataGenerator />,
+    },
+    {
+      path: "/admin/resolution-feedback",
+      element: <ResolutionFeedback />,
+    },
+    {
+      path: "/admin/sentiment-analysis",
+      element: <SentimentAnalysis />,
+    },
+    {
+      path: "/admin/feedback-analytics",
+      element: <FeedbackAnalytics />,
+    },
+    {
+      path: "/admin/dashboard-users/add",
+      element: <AddDashboardUser />,
+    },
+    {
+      path: "/admin/assigned-issues",
+      element: <AssignedIssues />,
+    },
+  ]);
+
+  return (
+    <AuthProvider initialAuthState={initialAuthState}>
+      <PermissionProvider>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </PermissionProvider>
+    </AuthProvider>
   );
 };
 
