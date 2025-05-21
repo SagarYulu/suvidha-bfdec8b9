@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,9 +14,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const username = authState.user?.name || "Administrator";
   
   return (
-    <div className="h-full flex flex-col bg-gray-900 text-white w-64">
-      <div className="p-4 border-b border-gray-800">
-        <div className="font-medium text-lg text-gray-100">Yulu HR Portal</div>
+    <div className="h-full flex flex-col bg-yulu-dashboard-blue text-white w-64">
+      <div className="p-4 border-b border-blue-800">
+        <div className="font-medium text-lg text-gray-100">Yullu Suvisha Management</div>
         <div className="text-sm text-gray-400 mt-1">{username}</div>
       </div>
       
@@ -28,8 +27,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Dashboard
@@ -42,8 +41,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Ticket Trend Analysis
@@ -56,8 +55,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             All Tickets
@@ -70,8 +69,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Assigned to Me
@@ -84,8 +83,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Users
@@ -98,8 +97,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Analytics
@@ -112,8 +111,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Feedback Analytics
@@ -126,8 +125,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Resolution Feedback
@@ -140,8 +139,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Sentiment Analysis
@@ -154,8 +153,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Admin Users
@@ -168,8 +167,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Access Control
@@ -182,8 +181,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Settings
@@ -196,8 +195,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-gray-800 text-white font-medium" 
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
+                ? "bg-blue-800 text-white font-medium" 
+                : "text-blue-100 hover:text-white hover:bg-blue-800"
             )}
           >
             Generate Test Data
@@ -205,10 +204,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         </PermissionGate>
       </nav>
       
-      <div className="p-4 border-t border-gray-800">
+      <div className="p-4 border-t border-blue-800">
         <button 
           onClick={onLogout}
-          className="flex w-full items-center px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition"
+          className="flex w-full items-center px-3 py-2 rounded-md text-blue-100 hover:text-white hover:bg-blue-800 transition"
         >
           <LogOut className="h-4 w-4 mr-2" />
           <span>Logout</span>
