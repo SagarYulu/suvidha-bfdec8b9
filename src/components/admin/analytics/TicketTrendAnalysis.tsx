@@ -137,7 +137,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
     
     return Object.entries(statusCounts).map(([status, count]) => ({
       name: status.charAt(0).toUpperCase() + status.slice(1),
-      value: count
+      value: count as number  // Explicitly cast to number
     }));
   };
   
@@ -223,7 +223,11 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const getReopenedTicketsTrend = (): ReopenedTicketData[] => {
     // Sample implementation - in a real app, we'd use actual reopened data
     // Assumption: tickets with multiple status changes might be reopened
-    const issuesByIssueType = issues.reduce((acc, issue) => {
+    type IssuesByTypeAcc = {
+      [key: string]: { total: number; reopened: number }
+    };
+
+    const issuesByIssueType = issues.reduce((acc: IssuesByTypeAcc, issue) => {
       const typeId = issue.type_id || 'unknown';
       if (!acc[typeId]) {
         acc[typeId] = {
@@ -242,7 +246,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       }
       
       return acc;
-    }, {} as Record<string, { total: number; reopened: number }>);
+    }, {} as IssuesByTypeAcc);
     
     // Convert the accumulated data into the required format
     return Object.entries(issuesByIssueType).map(([type, counts]) => ({
@@ -256,11 +260,15 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   // 6. Resolution Time by Issue Type (Radial Bar Chart)
   const getResolutionTimeByType = (): ResolutionTimeByTypeData[] => {
+    type ResolutionByTypeAcc = {
+      [key: string]: { count: number; totalResolutionTime: number }
+    };
+
     const closedIssuesByType = issues.filter(issue => 
       (issue.status === 'closed' || issue.status === 'resolved') && 
       issue.created_at && 
       issue.closed_at
-    ).reduce((acc, issue) => {
+    ).reduce((acc: ResolutionByTypeAcc, issue) => {
       const typeId = issue.type_id || 'unknown';
       
       if (!acc[typeId]) {
@@ -278,7 +286,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       acc[typeId].totalResolutionTime += resolutionTime;
       
       return acc;
-    }, {} as Record<string, { count: number; totalResolutionTime: number }>);
+    }, {} as ResolutionByTypeAcc);
     
     // Convert the accumulated data into the required format
     return Object.entries(closedIssuesByType).map(([type, stats]) => ({
@@ -292,7 +300,11 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   // 7. Comment Volume Trend (Line Chart with Multiple Lines)
   const getCommentVolumeTrend = (): CommentVolumeData[] => {
-    const commentsByWeek = issues.reduce((acc, issue) => {
+    type CommentsByWeekAcc = {
+      [key: string]: CommentVolumeData
+    };
+    
+    const commentsByWeek = issues.reduce((acc: CommentsByWeekAcc, issue) => {
       if (!issue.created_at || !issue.issue_comments) return acc;
       
       const createdDate = new Date(issue.created_at);
@@ -319,7 +331,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       });
       
       return acc;
-    }, {} as Record<string, CommentVolumeData>);
+    }, {} as CommentsByWeekAcc);
     
     return Object.values(commentsByWeek)
       .sort((a, b) => a.week.localeCompare(b.week))
@@ -511,6 +523,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 <RadialBar
                   background
                   dataKey="value"
+                  cornerRadius={5}
                 />
                 <Legend 
                   iconSize={10} 
