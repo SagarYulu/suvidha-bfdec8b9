@@ -1,72 +1,39 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/hooks/use-toast";
+import React from 'react';
 import AdminLayout from "@/components/AdminLayout";
-import { generateTestSentimentData } from "@/services/sentimentService";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const TestDataGenerator = () => {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [results, setResults] = useState<{
-    employeesProcessed: number;
-    totalEntriesCreated: number;
-    success: boolean;
-  } | null>(null);
-
-  const handleGenerateData = async () => {
-    try {
-      setIsGenerating(true);
-      const result = await generateTestSentimentData();
-      setResults(result);
-      toast({
-        variant: "default",
-        title: "Test Data Generated",
-        description: `Created ${result.totalEntriesCreated} sentiment entries for ${result.employeesProcessed} employees.`,
-      });
-    } catch (error) {
-      console.error("Error generating test data:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to generate test data. Check console for details.",
-      });
-    } finally {
-      setIsGenerating(false);
-    }
+const TestDataGenerator: React.FC = () => {
+  // Mock function that would have generated test data
+  const handleGenerateTestData = () => {
+    console.log("Generate test data placeholder - sentiment functionality has been removed");
+    // This would be where test data generation logic would go
   };
 
   return (
     <AdminLayout title="Test Data Generator">
-      <div className="container mx-auto py-6">
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Generate Test Sentiment Data</CardTitle>
-            <CardDescription>
-              This will create test sentiment entries for a random subset of employees across multiple time periods.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button 
-              onClick={handleGenerateData} 
-              disabled={isGenerating} 
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isGenerating ? "Generating..." : "Generate Test Data"}
-            </Button>
-            
-            {results && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                <h3 className="font-medium text-blue-800">Results</h3>
-                <ul className="mt-2 list-disc pl-5 text-blue-700">
-                  <li>Employees processed: {results.employeesProcessed}</li>
-                  <li>Total sentiment entries created: {results.totalEntriesCreated}</li>
-                  <li>Status: {results.success ? "Success" : "Partial success"}</li>
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        <Alert variant="warning" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Limited Functionality</AlertTitle>
+          <AlertDescription>
+            The sentiment analysis feature has been removed. This test data generator 
+            has limited functionality as a result.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Generate Test Data</h2>
+          <p className="mb-4">
+            This tool allows you to generate sample data for testing purposes.
+          </p>
+          
+          <Button onClick={handleGenerateTestData}>
+            Generate Test Data
+          </Button>
+        </div>
       </div>
     </AdminLayout>
   );
