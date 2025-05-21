@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
+import { PostgrestFilterBuilder } from "@supabase/supabase-js";
 
 interface AdvancedAnalyticsData {
   rawIssues: any[];
@@ -22,56 +23,46 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       try {
         console.log("Fetching advanced analytics data with filters:", filters);
         
-        // Create the base selection query string once
-        const selectQuery = `
+        // Create the base query
+        const query = supabase.from('issues').select(`
           *,
           issue_comments (*)
-        `;
+        `);
         
-        // Instead of chaining, we'll construct filter objects and then apply them all at once
-        const filterConditions: Record<string, any> = {};
+        // Apply filters individually to avoid excessive chaining
+        let filteredQuery = query;
         
         if (filters.city) {
           console.log("Adding city filter:", filters.city);
-          filterConditions['city'] = filters.city;
+          filteredQuery = filteredQuery.eq('city', filters.city);
         }
         
         if (filters.cluster) {
           console.log("Adding cluster filter:", filters.cluster);
-          filterConditions['cluster'] = filters.cluster;
+          filteredQuery = filteredQuery.eq('cluster', filters.cluster);
         }
         
         if (filters.manager) {
           console.log("Adding manager filter:", filters.manager);
-          filterConditions['manager'] = filters.manager;
+          filteredQuery = filteredQuery.eq('manager', filters.manager);
         }
         
         if (filters.role) {
           console.log("Adding role filter:", filters.role);
-          filterConditions['role'] = filters.role;
+          filteredQuery = filteredQuery.eq('role', filters.role);
         }
         
         if (filters.issueType) {
           console.log("Adding issue type filter:", filters.issueType);
-          filterConditions['type_id'] = filters.issueType;
+          filteredQuery = filteredQuery.eq('type_id', filters.issueType);
         }
         
-        // Start with a base query
-        let query = supabase
-          .from('issues')
-          .select(selectQuery);
-        
-        // Apply all collected filters at once
-        Object.entries(filterConditions).forEach(([key, value]) => {
-          query = query.eq(key, value);
-        });
-        
-        // Apply date range filter
+        // Apply date range filter 
         if (filters.dateRange) {
           if (filters.dateRange.from) {
             const fromDate = new Date(filters.dateRange.from);
             console.log("Applying from date filter:", fromDate.toISOString());
-            query = query.gte('created_at', fromDate.toISOString());
+            filteredQuery = filteredQuery.gte('created_at', fromDate.toISOString());
           }
           
           if (filters.dateRange.to) {
@@ -79,12 +70,12 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             // Set time to end of day for the "to" date
             toDate.setHours(23, 59, 59, 999);
             console.log("Applying to date filter:", toDate.toISOString());
-            query = query.lte('created_at', toDate.toISOString());
+            filteredQuery = filteredQuery.lte('created_at', toDate.toISOString());
           }
         }
         
         console.log("Executing query with filters");
-        const { data: rawIssues, error: queryError } = await query;
+        const { data: rawIssues, error: queryError } = await filteredQuery;
         
         if (queryError) {
           throw queryError;
@@ -95,9 +86,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         // Process the data
         const processedData: AdvancedAnalyticsData = {
           rawIssues: rawIssues || [],
-          // Add any additional processed metrics here
           totalIssues: rawIssues?.length || 0,
-          // Calculate other metrics as needed
         };
         
         setData(processedData);
