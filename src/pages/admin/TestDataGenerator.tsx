@@ -4,20 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/AdminLayout";
-
-// Generate mock test data function since we've removed sentiment functionality
-const mockGenerateTestData = async (): Promise<{
-  employeesProcessed: number;
-  totalEntriesCreated: number;
-  success: boolean;
-}> => {
-  // This is a mock function that simulates the response structure
-  return {
-    employeesProcessed: 0,
-    totalEntriesCreated: 0,
-    success: true
-  };
-};
+import { generateTestSentimentData } from "@/services/sentimentService";
 
 const TestDataGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -30,7 +17,7 @@ const TestDataGenerator = () => {
   const handleGenerateData = async () => {
     try {
       setIsGenerating(true);
-      const result = await mockGenerateTestData();
+      const result = await generateTestSentimentData();
       setResults(result);
       toast({
         variant: "default",
