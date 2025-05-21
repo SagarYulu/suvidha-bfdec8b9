@@ -8,7 +8,7 @@ import {
   BarChart, Bar, LineChart as RechartsLineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, AreaChart, Area,
-  RadialBarChart, RadialBar
+  RadialBarChart, RadialBar, Cell, PieChart, Pie
 } from 'recharts';
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
@@ -88,6 +88,20 @@ interface Issue {
   status_history?: any[];
 }
 
+// Color palette for charts
+const CHART_COLORS = {
+  primary: '#8B5CF6',      // Vivid Purple
+  secondary: '#3B82F6',    // Blue
+  tertiary: '#F97316',     // Bright Orange
+  accent: '#D946EF',       // Magenta Pink
+  neutral: '#8E9196',      // Neutral Gray
+  success: '#10B981',      // Green
+  warning: '#F59E0B',      // Yellow
+  danger: '#EF4444',       // Red
+  info: '#0EA5E9',         // Ocean Blue
+  background: '#E5DEFF',   // Soft Purple
+};
+
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
 
@@ -166,7 +180,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
     
     return Object.entries(statusCounts).map(([status, count]) => ({
       name: status.charAt(0).toUpperCase() + status.slice(1),
-      value: count as number  // Explicitly cast to number
+      value: count
     }));
   };
   
@@ -445,12 +459,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       {/* First row of insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 1. Resolution Time Trend */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <LineChart className="h-5 w-5" /> Resolution Time Trend
+                  <LineChart className="h-5 w-5 text-blue-500" /> Resolution Time Trend
                 </CardTitle>
                 <CardDescription>Average time to resolve tickets (weekly)</CardDescription>
               </div>
@@ -465,7 +479,17 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 data={resolutionTimeTrend}
                 margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="resolutionTimeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.secondary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.secondary} stopOpacity={0.2}/>
+                  </linearGradient>
+                  <linearGradient id="volumeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.success} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.success} stopOpacity={0.2}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="name" 
                   angle={-45}
@@ -475,35 +499,44 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 />
                 <YAxis 
                   yAxisId="left"
-                  label={{ value: 'Hours', angle: -90, position: 'insideLeft' }}
+                  label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
                 />
                 <YAxis 
                   yAxisId="right" 
                   orientation="right" 
-                  label={{ value: 'Tickets', angle: 90, position: 'insideRight' }}
+                  label={{ value: 'Tickets', angle: 90, position: 'insideRight', style: { textAnchor: 'middle' } }}
                 />
-                <Tooltip formatter={(value, name) => {
-                  if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Resolution Time'];
-                  return [value, 'Ticket Volume'];
-                }} />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Resolution Time'];
+                    return [value, 'Ticket Volume'];
+                  }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
                 <Line 
                   yAxisId="left"
                   type="monotone" 
                   dataKey="time" 
                   name="Avg. Resolution Time" 
-                  stroke="#3B82F6" 
-                  dot={false} 
-                  activeDot={{ r: 5 }}
+                  stroke={CHART_COLORS.secondary} 
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                  activeDot={{ r: 6 }}
                 />
                 <Line 
                   yAxisId="right"
                   type="monotone" 
                   dataKey="volume" 
                   name="Ticket Volume" 
-                  stroke="#10B981" 
-                  dot={false} 
-                  strokeDasharray="5 5"
+                  stroke={CHART_COLORS.success} 
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: CHART_COLORS.success }}
                 />
               </RechartsLineChart>
             </ResponsiveContainer>
@@ -511,12 +544,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
         </Card>
 
         {/* 2. Ticket Status Distribution */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Donut className="h-5 w-5" /> Status Distribution
+                  <Donut className="h-5 w-5 text-purple-500" /> Status Distribution
                 </CardTitle>
                 <CardDescription>Current distribution of ticket statuses</CardDescription>
               </div>
@@ -527,31 +560,42 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <RadialBarChart 
-                innerRadius="30%" 
-                outerRadius="90%" 
-                data={statusDistribution.map((entry, index) => ({
-                  ...entry,
-                  fill: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][index % 5]
-                }))} 
-                startAngle={0} 
-                endAngle={360}
-              >
-                <RadialBar
-                  background
+              <PieChart>
+                <Pie
+                  data={statusDistribution}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  paddingAngle={2}
                   dataKey="value"
-                  cornerRadius={5}
-                />
-                <Legend 
-                  iconSize={10} 
-                  layout="vertical" 
-                  verticalAlign="middle" 
-                  align="right"
-                />
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                >
+                  {statusDistribution.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={[CHART_COLORS.secondary, CHART_COLORS.success, CHART_COLORS.warning, CHART_COLORS.danger, CHART_COLORS.primary][index % 5]} 
+                    />
+                  ))}
+                </Pie>
                 <Tooltip 
                   formatter={(value) => [`${value} tickets`, 'Count']}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }} 
                 />
-              </RadialBarChart>
+                <Legend 
+                  layout="vertical" 
+                  align="right" 
+                  verticalAlign="middle"
+                  iconType="circle"
+                />
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -560,12 +604,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       {/* Second row of insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 3. Priority Distribution */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartBar className="h-5 w-5" /> Ticket Priority
+                  <ChartBar className="h-5 w-5 text-yellow-500" /> Ticket Priority
                 </CardTitle>
                 <CardDescription>Distribution of tickets by priority level</CardDescription>
               </div>
@@ -580,30 +624,77 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 data={priorityDistribution} 
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`${value} tickets`, 'Count']} />
+                <Tooltip 
+                  formatter={(value) => [`${value} tickets`, 'Count']}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
+                <defs>
+                  {priorityDistribution.map((entry, index) => (
+                    <linearGradient 
+                      key={`gradient-${index}`}
+                      id={`priorityGradient-${index}`} 
+                      x1="0" 
+                      y1="0" 
+                      x2="0" 
+                      y2="1"
+                    >
+                      <stop 
+                        offset="5%" 
+                        stopColor={index === 3 ? CHART_COLORS.danger : 
+                                   index === 2 ? CHART_COLORS.warning :
+                                   index === 1 ? CHART_COLORS.info :
+                                   CHART_COLORS.success} 
+                        stopOpacity={0.8}
+                      />
+                      <stop 
+                        offset="95%" 
+                        stopColor={index === 3 ? CHART_COLORS.danger : 
+                                   index === 2 ? CHART_COLORS.warning :
+                                   index === 1 ? CHART_COLORS.info :
+                                   CHART_COLORS.success} 
+                        stopOpacity={0.2}
+                      />
+                    </linearGradient>
+                  ))}
+                </defs>
                 <Bar 
                   dataKey="count" 
                   name="Tickets" 
-                  fill="#3B82F6"
+                  fill={CHART_COLORS.info}
                   barSize={60}
+                  radius={[5, 5, 0, 0]}
                   label={{ position: 'top', formatter: (value) => value }}
-                />
+                  // Using different colors based on priority
+                  isAnimationActive={true}
+                >
+                  {priorityDistribution.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={`url(#priorityGradient-${index})`} 
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* 4. First Response Time Trend */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartArea className="h-5 w-5" /> First Response Time
+                  <ChartArea className="h-5 w-5 text-teal-500" /> First Response Time
                 </CardTitle>
                 <CardDescription>Average time to first response (monthly)</CardDescription>
               </div>
@@ -618,7 +709,13 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 data={firstResponseTrend}
                 margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="responseTimeGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="name" 
                   angle={-45}
@@ -627,18 +724,28 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   tick={{ fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip formatter={(value, name) => {
-                  if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Response Time'];
-                  return [value, 'Ticket Count'];
-                }} />
+                <Tooltip 
+                  formatter={(value, name) => {
+                    if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Response Time'];
+                    return [value, 'Ticket Count'];
+                  }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
                 <Area 
                   type="monotone" 
                   dataKey="time" 
                   name="Avg. Response Time" 
-                  fill="#8884d8" 
-                  stroke="#8884d8" 
-                  fillOpacity={0.3}
+                  stroke={CHART_COLORS.primary} 
+                  fillOpacity={1}
+                  fill="url(#responseTimeGradient)"
+                  activeDot={{ r: 6 }}
+                  strokeWidth={2}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -649,12 +756,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       {/* Third row of insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 5. Reopened Tickets Analysis */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartBar className="h-5 w-5" /> Reopened Tickets
+                  <ChartBar className="h-5 w-5 text-orange-500" /> Reopened Tickets
                 </CardTitle>
                 <CardDescription>Comparison of total vs. reopened tickets by type</CardDescription>
               </div>
@@ -670,25 +777,52 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 layout="vertical"
                 margin={{ top: 5, right: 30, left: 50, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="totalGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="5%" stopColor={CHART_COLORS.secondary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.secondary} stopOpacity={0.4}/>
+                  </linearGradient>
+                  <linearGradient id="reopenedGradient" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0.4}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontalPoints={[0]} />
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
-                <Bar dataKey="total" name="Total Tickets" fill="#3B82F6" />
-                <Bar dataKey="reopened" name="Reopened Tickets" fill="#F59E0B" />
+                <Bar 
+                  dataKey="total" 
+                  name="Total Tickets" 
+                  fill="url(#totalGradient)" 
+                  radius={[0, 5, 5, 0]}
+                />
+                <Bar 
+                  dataKey="reopened" 
+                  name="Reopened Tickets" 
+                  fill="url(#reopenedGradient)" 
+                  radius={[0, 5, 5, 0]}
+                />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         {/* 6. Resolution Time by Issue Type */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <Donut className="h-5 w-5" /> Resolution Time by Type
+                  <Donut className="h-5 w-5 text-pink-500" /> Resolution Time by Type
                 </CardTitle>
                 <CardDescription>Average hours to resolve by issue type</CardDescription>
               </div>
@@ -703,15 +837,31 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 data={resolutionTimeByType}
                 margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="resolutionBarGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.accent} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.accent} stopOpacity={0.2}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" />
-                <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
-                <Tooltip formatter={(value) => [`${value} hours`, 'Average Resolution Time']} />
+                <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} />
+                <Tooltip 
+                  formatter={(value) => [`${value} hours`, 'Average Resolution Time']}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
                 <Bar 
                   dataKey="value" 
                   name="Avg. Resolution Time" 
-                  fill="#8B5CF6"
+                  fill="url(#resolutionBarGradient)"
+                  radius={[5, 5, 0, 0]}
+                  barSize={40}
                   label={{ position: 'top', formatter: (value) => value }}
                 />
               </BarChart>
@@ -723,12 +873,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       {/* Fourth row of insights */}
       <div className="grid grid-cols-1 gap-6">
         {/* 7. Comment Volume Trend */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <LineChart className="h-5 w-5" /> Comment Activity Trend
+                  <LineChart className="h-5 w-5 text-green-500" /> Comment Activity Trend
                 </CardTitle>
                 <CardDescription>Weekly trend of user and admin comments</CardDescription>
               </div>
@@ -743,7 +893,17 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 data={commentVolumeTrend}
                 margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
               >
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="userCommentGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.warning} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.warning} stopOpacity={0.2}/>
+                  </linearGradient>
+                  <linearGradient id="adminCommentGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={CHART_COLORS.secondary} stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor={CHART_COLORS.secondary} stopOpacity={0.2}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="week" 
                   angle={-45}
@@ -752,25 +912,32 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   tick={{ fontSize: 12 }}
                 />
                 <YAxis />
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+                    border: '1px solid #eaeaea'
+                  }}
+                />
                 <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="userComments" 
                   name="User Comments" 
-                  stroke="#F59E0B" 
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
+                  stroke={CHART_COLORS.warning} 
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                  activeDot={{ r: 6 }}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="adminComments" 
                   name="Admin Comments" 
-                  stroke="#3B82F6" 
-                  strokeWidth={2}
-                  dot={{ r: 3 }}
-                  activeDot={{ r: 5 }}
+                  stroke={CHART_COLORS.secondary} 
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: 'white' }}
+                  activeDot={{ r: 6 }}
                 />
               </RechartsLineChart>
             </ResponsiveContainer>
