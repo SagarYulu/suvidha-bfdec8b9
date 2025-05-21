@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { submitTicketFeedback, TicketFeedback } from "@/services/ticketFeedbackService";
 import { Smile, Meh, Frown } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface FeedbackOption {
   value: string;
@@ -38,6 +39,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   const [sentiment, setSentiment] = useState<"happy" | "neutral" | "sad" | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Define feedback options based on sentiment
   const feedbackOptions: Record<string, FeedbackOption[]> = {
@@ -110,16 +112,19 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   const handleSentimentSelect = (value: "happy" | "neutral" | "sad") => {
     setSentiment(value);
     setStep("options");
+    setSubmitError(null); // Clear any previous errors
   };
 
   const handleOptionSelect = (value: string) => {
     setSelectedOption(value);
+    setSubmitError(null); // Clear any previous errors
   };
 
   const handleSubmit = async () => {
     if (!sentiment || !selectedOption) return;
-
+    
     setIsSubmitting(true);
+    setSubmitError(null);
     
     const feedback: TicketFeedback = {
       issue_id: issueId,
@@ -128,18 +133,30 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       feedback_option: selectedOption,
     };
 
-    const success = await submitTicketFeedback(feedback);
-    
-    if (success) {
-      setStep("submitted");
+    try {
+      const success = await submitTicketFeedback(feedback);
       
-      // Call the onFeedbackSubmitted callback if provided
-      if (onFeedbackSubmitted) {
-        onFeedbackSubmitted(issueId);
+      if (success) {
+        setStep("submitted");
+        
+        // Call the onFeedbackSubmitted callback if provided
+        if (onFeedbackSubmitted) {
+          onFeedbackSubmitted(issueId);
+        }
+      } else {
+        setSubmitError("Failed to submit feedback. Please try again.");
       }
+    } catch (error) {
+      console.error("Error in handleSubmit:", error);
+      setSubmitError("An unexpected error occurred. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   const handleClose = () => {
@@ -148,15 +165,19 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       setSentiment(null);
       setSelectedOption("");
       setStep("sentiment");
+      setSubmitError(null);
     }
     onClose();
   };
+
+  const sentimentButtonClass = "flex flex-col items-center gap-2 p-2 rounded-full transition-all duration-300";
+  const sentimentIconClass = "w-16 h-16 rounded-full flex items-center justify-center";
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center">{getHeaderText()}</DialogTitle>
+          <DialogTitle className="text-center text-lg">{getHeaderText()}</DialogTitle>
           {step === "sentiment" && (
             <DialogDescription className="text-center">
               Please select how you feel about the service
@@ -165,35 +186,35 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
         </DialogHeader>
 
         {step === "sentiment" && (
-          <div className="flex justify-center gap-8 py-6">
+          <div className="flex justify-center gap-6 py-6">
             <button
               onClick={() => handleSentimentSelect("happy")}
-              className="flex flex-col items-center gap-2 p-2 rounded-full hover:bg-gray-100"
+              className={`${sentimentButtonClass} hover:bg-green-50 hover:scale-105`}
             >
-              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center">
+              <div className={`${sentimentIconClass} bg-green-100`}>
                 <Smile className="h-10 w-10 text-green-500" />
               </div>
-              <span>Happy</span>
+              <span>Happy / खुश</span>
             </button>
             
             <button
               onClick={() => handleSentimentSelect("neutral")}
-              className="flex flex-col items-center gap-2 p-2 rounded-full hover:bg-gray-100"
+              className={`${sentimentButtonClass} hover:bg-yellow-50 hover:scale-105`}
             >
-              <div className="w-14 h-14 rounded-full bg-yellow-100 flex items-center justify-center">
+              <div className={`${sentimentIconClass} bg-yellow-100`}>
                 <Meh className="h-10 w-10 text-yellow-500" />
               </div>
-              <span>Neutral</span>
+              <span>Neutral / तटस्थ</span>
             </button>
             
             <button
               onClick={() => handleSentimentSelect("sad")}
-              className="flex flex-col items-center gap-2 p-2 rounded-full hover:bg-gray-100"
+              className={`${sentimentButtonClass} hover:bg-red-50 hover:scale-105`}
             >
-              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+              <div className={`${sentimentIconClass} bg-red-100`}>
                 <Frown className="h-10 w-10 text-red-500" />
               </div>
-              <span>Sad</span>
+              <span>Sad / दुखी</span>
             </button>
           </div>
         )}
@@ -206,7 +227,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
               className="space-y-4"
             >
               {feedbackOptions[sentiment].map((option) => (
-                <div key={option.value} className="flex items-start space-x-2">
+                <div key={option.value} className="flex items-start space-x-2 p-2 rounded-md hover:bg-gray-50">
                   <RadioGroupItem value={option.value} id={option.value} />
                   <Label htmlFor={option.value} className="text-sm">
                     {option.label}
@@ -217,12 +238,19 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
               ))}
             </RadioGroup>
             
+            {submitError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                {submitError}
+              </div>
+            )}
+            
             <div className="flex justify-end mt-6">
               <Button
                 onClick={handleSubmit}
                 disabled={!selectedOption || isSubmitting}
+                className="bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-medium"
               >
-                {isSubmitting ? "Submitting..." : "Submit"}
+                {isSubmitting ? "Submitting..." : "Submit / प्रस्तुत करें"}
               </Button>
             </div>
           </div>
@@ -230,15 +258,20 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
 
         {step === "submitted" && (
           <div className="py-8 text-center">
-            <div className="text-2xl mb-4">✅</div>
+            <div className="mx-auto mb-4 bg-gradient-to-r from-green-400 to-green-500 rounded-full h-16 w-16 flex items-center justify-center">
+              <span className="text-3xl">✓</span>
+            </div>
             <h3 className="text-lg font-medium">
               Feedback Submitted / प्रतिक्रिया दी गई
             </h3>
             <p className="text-gray-500 mt-2">
               Thank you for your valuable feedback!
             </p>
-            <Button onClick={handleClose} className="mt-4">
-              Close
+            <Button 
+              onClick={handleClose} 
+              className="mt-4 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-medium"
+            >
+              Close / बंद करें
             </Button>
           </div>
         )}

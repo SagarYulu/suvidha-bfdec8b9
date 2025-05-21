@@ -386,50 +386,27 @@ const MobileIssues = () => {
                         {formatShortDate(issue.createdAt)}
                       </span>
                       
-                      <div className="flex items-center gap-3">
-                        <span className="flex items-center">
-                          {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
-                        </span>
-                        
-                        {isClosedOrResolved && (
-                          <>
-                            {hasFeedback ? (
-                              <span className="text-green-600 text-xs flex items-center">
-                                <MessageSquare className="h-3 w-3 mr-1" />
-                                Feedback Submitted / प्रतिक्रिया दी गई
-                              </span>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-7 text-xs border-blue-300 text-blue-600"
-                                onClick={() => openFeedbackDialog(issue.id)}
-                              >
-                                <MessageSquare className="h-3 w-3 mr-1" />
-                                Share Feedback / अपनी प्रतिक्रिया साझा करें
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      <span className="flex items-center">
+                        {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
+                      </span>
                     </div>
                     
-                    {/* Feedback Section - More Prominent and Eye-catching */}
+                    {/* Feedback Section - Golden Flame Colored and Eye-catching */}
                     {isClosedOrResolved && (
                       <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
                         {hasFeedback ? (
-                          <div className="flex items-center justify-center text-green-600 bg-green-50 py-2 px-3 rounded-md w-full">
+                          <div className="flex items-center justify-center text-black bg-green-50 py-2 px-3 rounded-md w-full">
                             <MessageSquare className="h-4 w-4 mr-2" />
                             <span>Feedback Submitted / प्रतिक्रिया दी गई</span>
                           </div>
                         ) : (
                           <Button
                             variant="outline"
-                            className="w-full animate-pulse border-2 border-blue-400 bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 flex items-center justify-center"
+                            className="w-full animate-pulse border-2 border-amber-500 bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-medium hover:from-amber-600 hover:to-yellow-500 flex items-center justify-center transition-all shadow-md"
                             onClick={() => openFeedbackDialog(issue.id)}
                           >
-                            <MessageSquare className="h-4 w-4 mr-2" />
-                            Share Feedback / अपनी प्रतिक्रिया साझा करें
+                            <MessageSquare className="h-5 w-5 mr-2" />
+                            <span className="font-bold">Share Feedback / अपनी प्रतिक्रिया साझा करें</span>
                           </Button>
                         )}
                       </div>

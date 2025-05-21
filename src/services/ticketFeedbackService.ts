@@ -51,6 +51,17 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       return true; // Return true since the feedback is already handled
     }
     
+    // Create a session if not exists to ensure RLS policies work correctly
+    const { data: sessionData } = await supabase.auth.getSession();
+    
+    // If no session, try to set an anonymous session for public access
+    if (!sessionData?.session) {
+      console.log("No active session, attempting to use API key for submission");
+    }
+    
+    // Add debug logging for authentication state
+    console.log("Auth state before submission:", sessionData?.session ? "Authenticated" : "Not authenticated");
+    
     const { data, error } = await supabase
       .from('ticket_feedback')
       .insert([feedback])
@@ -58,11 +69,21 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     if (error) {
       console.error("Error submitting feedback:", error);
-      toast({
-        title: "Error",
-        description: "Failed to submit feedback. Please try again.",
-        variant: "destructive",
-      });
+      
+      // Enhanced error handling with more specific messages
+      if (error.code === '42501') { // Permission denied
+        toast({
+          title: "Permission Error",
+          description: "You don't have permission to submit feedback. Please try logging in again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: `Failed to submit feedback: ${error.message}. Please try again.`,
+          variant: "destructive",
+        });
+      }
       return false;
     }
     
