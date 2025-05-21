@@ -1,20 +1,19 @@
 
-import { useState, useEffect, memo, useMemo } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { FilterCard } from "./FilterCard";
-import { useAnalyticsFilters } from "./useAnalyticsFilters";
-import { TicketTrendAnalysis } from "./TicketTrendAnalysis";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SectionHeader } from "./SectionHeader";
+import { useAnalyticsFilters, COMPARISON_MODES } from "./useAnalyticsFilters";
+import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
+import { AdvancedFilters } from "./types";
+import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { SLADashboard } from "./SLADashboard";
-import { COMPARISON_MODES } from "./useAnalyticsFilters";
+import { TicketTrendAnalysis } from "./TicketTrendAnalysis";
 
-interface AdvancedAnalyticsSectionProps {
-  onFilterChange?: (filters: any) => void; // New prop to pass filters up to parent
-}
+// Re-export AdvancedFilters type so imports don't break elsewhere
+export type { AdvancedFilters } from "./types";
+export type { DateRange } from "./DateRangePicker";
 
-// Use memo to prevent unnecessary re-renders
-export const AdvancedAnalyticsSection = memo(({ onFilterChange }: AdvancedAnalyticsSectionProps) => {
-  const [activeTab, setActiveTab] = useState("trends");
+export const AdvancedAnalyticsSection = () => {
   const {
     filters,
     managers,
@@ -28,88 +27,43 @@ export const AdvancedAnalyticsSection = memo(({ onFilterChange }: AdvancedAnalyt
     handleDateRangeChange,
     handleComparisonModeToggle,
     handleComparisonModeChange,
-    clearFilters
+    clearFilters,
   } = useAnalyticsFilters();
 
-  // Effect to pass filters up to parent when they change
-  useEffect(() => {
-    if (onFilterChange) {
-      onFilterChange(filters);
-    }
-  }, [filters, onFilterChange]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
-
-  // Memoize FilterCard props to prevent unnecessary re-renders
-  const filterCardProps = useMemo(() => ({
-    filters,
-    availableClusters,
-    managers,
-    comparisonModes: COMPARISON_MODES,
-    activeFiltersCount,
-    onCityChange: handleCityChange,
-    onClusterChange: handleClusterChange,
-    onManagerChange: handleManagerChange,
-    onRoleChange: handleRoleChange,
-    onIssueTypeChange: handleIssueTypeChange,
-    onDateRangeChange: handleDateRangeChange,
-    onComparisonModeToggle: handleComparisonModeToggle,
-    onComparisonModeChange: handleComparisonModeChange,
-    onClearFilters: clearFilters
-  }), [
-    filters,
-    availableClusters,
-    managers,
-    activeFiltersCount,
-    handleCityChange,
-    handleClusterChange,
-    handleManagerChange,
-    handleRoleChange,
-    handleIssueTypeChange,
-    handleDateRangeChange,
-    handleComparisonModeToggle,
-    handleComparisonModeChange,
-    clearFilters
-  ]);
+  const { isLoading, error } = useAdvancedAnalytics(filters);
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader className="bg-blue-500 text-white rounded-t-lg">
-        <CardTitle>Advanced SLA & Ticket Trends</CardTitle>
-        <CardDescription className="text-blue-100">
-          Detailed analysis and performance metrics
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="p-0">
-        <FilterCard {...filterCardProps} />
+    <div className="space-y-6 mt-8">
+      <SectionHeader 
+        activeFiltersCount={activeFiltersCount} 
+        onClearFilters={clearFilters} 
+      />
 
-        <Tabs
-          defaultValue="trends"
-          value={activeTab}
-          onValueChange={handleTabChange}
-          className="w-full"
-        >
-          <div className="px-6 pt-2">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="trends">Ticket Trends</TabsTrigger>
-              <TabsTrigger value="sla">SLA Performance</TabsTrigger>
-            </TabsList>
-          </div>
+      <FilterCard 
+        filters={filters}
+        handleCityChange={handleCityChange}
+        handleClusterChange={handleClusterChange}
+        handleManagerChange={handleManagerChange}
+        handleRoleChange={handleRoleChange}
+        handleIssueTypeChange={handleIssueTypeChange}
+        handleDateRangeChange={handleDateRangeChange}
+        handleComparisonModeToggle={handleComparisonModeToggle}
+        handleComparisonModeChange={handleComparisonModeChange}
+        availableClusters={availableClusters}
+        managers={managers}
+        comparisonModes={COMPARISON_MODES}
+      />
 
-          <TabsContent value="trends" className="mt-0 p-6">
-            <TicketTrendAnalysis filters={filters} />
-          </TabsContent>
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-3">SLA Performance Dashboard</h3>
+        <SLADashboard filters={filters} />
+      </div>
 
-          <TabsContent value="sla" className="mt-0 p-6">
-            <SLADashboard filters={filters} />
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
+      <div className="mb-6">
+        <TicketTrendAnalysis filters={filters} />
+      </div>
+
+      <AnalyticsPlaceholder />
+    </div>
   );
-});
-
-AdvancedAnalyticsSection.displayName = "AdvancedAnalyticsSection";
+};

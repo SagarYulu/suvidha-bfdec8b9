@@ -1,5 +1,4 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator"; 
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import {
   ResponsiveContainer, AreaChart, Area,
   RadialBarChart, RadialBar, Cell, PieChart, Pie, Label
 } from 'recharts';
-import { format, isThisWeek, parseISO, getDate, getMonth, subDays, startOfWeek, endOfWeek } from 'date-fns';
+import { format, isThisWeek, parseISO, getDate, getMonth, subDays } from 'date-fns';
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { exportChartDataToCSV } from "@/utils/csvExportUtils";
@@ -107,7 +106,7 @@ const CHART_COLORS = {
 const formatChartDate = (dateStr: string): string => {
   try {
     const date = new Date(dateStr);
-    return format(date, 'MMM dd'); // Format as "May 21" for better readability
+    return format(date, 'yyyy-MM-dd');
   } catch (e) {
     return dateStr;
   }
@@ -117,7 +116,7 @@ const formatChartDate = (dateStr: string): string => {
 const formatDisplayDate = (dateStr: string): string => {
   try {
     const date = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
-    return format(date, 'MMM dd'); // Format as "May 21"
+    return format(date, 'MMM dd');
   } catch (e) {
     return String(dateStr);
   }
@@ -135,23 +134,6 @@ const formatTooltipDate = (dateStr: string): string => {
 
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
-  const [currentWeekDates, setCurrentWeekDates] = useState<Date[]>([]);
-  
-  // Initialize the current week dates based on filters or current date
-  useEffect(() => {
-    console.log("Filters changed in TicketTrendAnalysis:", filters);
-    const dateToUse = filters.dateRange.from || new Date();
-    const weekStart = startOfWeek(dateToUse);
-    
-    // Generate array of dates for the current week
-    const weekDates = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(weekStart);
-      date.setDate(weekStart.getDate() + i);
-      return date;
-    });
-    
-    setCurrentWeekDates(weekDates);
-  }, [filters]);
 
   if (isLoading) {
     return (
@@ -170,39 +152,39 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   }
 
   const issues = data.rawIssues as Issue[];
-  console.log("Processing issues data for charts:", issues.length);
 
-  // 1. Issue Resolution Time Trend (Line Chart) - Using filtered date range
+  // 1. Issue Resolution Time Trend (Line Chart) - Updated to show daily data for current week
   const getResolutionTimeTrend = (): ResolutionTimeData[] => {
     const closedIssues = issues.filter(issue => 
       issue.status === 'closed' || issue.status === 'resolved'
     );
 
-    if (closedIssues.length === 0) {
-      // Return data structure for the whole week with zeros for empty data
-      return currentWeekDates.map(date => ({
-        name: format(date, 'yyyy-MM-dd'),
-        time: 0,
-        volume: 0,
-        date: date
-      }));
-    }
+    if (closedIssues.length === 0) return [];
+
+    // First, let's identify current week dates
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    // Set to previous Sunday (start of week)
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
     
-    // Create a map for all days of current week or filtered week
-    const weekDaysMap: Record<string, ResolutionTimeData> = {};
-    currentWeekDates.forEach(day => {
+    // Create a map for all days of current week, even if no data
+    const weekDays: Record<string, ResolutionTimeData> = {};
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
       const dateKey = format(day, 'yyyy-MM-dd');
-      weekDaysMap[dateKey] = {
+      weekDays[dateKey] = {
         name: dateKey,
         time: 0,
         volume: 0,
         date: day
       };
-    });
+    }
     
     // Group issues by date
-    closedIssues.forEach(issue => {
-      if (!issue.created_at || !issue.closed_at) return;
+    const dailyData = closedIssues.reduce((acc, issue) => {
+      if (!issue.created_at || !issue.closed_at) return acc;
       
       const createdDate = new Date(issue.created_at);
       const closedDate = new Date(issue.closed_at);
@@ -210,27 +192,39 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       
       const dateKey = format(createdDate, 'yyyy-MM-dd');
       
-      // Only add to our week map if the date falls within our week dates
-      if (weekDaysMap[dateKey]) {
-        weekDaysMap[dateKey].time += resolutionTime;
-        weekDaysMap[dateKey].volume += 1;
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          name: dateKey,
+          time: 0,
+          volume: 0,
+          date: createdDate
+        };
       }
-    });
+      
+      acc[dateKey].time += resolutionTime;
+      acc[dateKey].volume += 1;
+      
+      return acc;
+    }, {} as Record<string, ResolutionTimeData>);
     
     // Calculate average for each day
-    Object.keys(weekDaysMap).forEach(dateKey => {
-      if (weekDaysMap[dateKey].volume > 0) {
-        weekDaysMap[dateKey].time = weekDaysMap[dateKey].time / weekDaysMap[dateKey].volume;
+    Object.keys(dailyData).forEach(dateKey => {
+      dailyData[dateKey].time = dailyData[dateKey].time / dailyData[dateKey].volume;
+    });
+    
+    // Merge with weekDays to ensure all days of the week are represented
+    Object.keys(weekDays).forEach(dateKey => {
+      if (dailyData[dateKey]) {
+        weekDays[dateKey] = dailyData[dateKey];
       }
     });
     
     // Convert to array and sort by date
-    return Object.values(weekDaysMap)
+    return Object.values(weekDays)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   };
 
   const resolutionTimeTrend = getResolutionTimeTrend();
-  console.log("Resolution Time Trend Data:", resolutionTimeTrend);
   
   // 2. Ticket Status Distribution - Modified to group statuses as requested
   const getStatusDistribution = (): StatusDistributionData[] => {
@@ -239,13 +233,15 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       'In Progress & Open': ['in_progress', 'open'],
       'Resolved & Closed': ['resolved', 'closed'],
       'Open': ['open'],
+      'Unknown': ['unknown']
     };
 
     // Initialize the counts for each group
     const groupCounts: Record<string, number> = {
       'In Progress & Open': 0,
       'Resolved & Closed': 0,
-      'Open': 0
+      'Open': 0, 
+      'Unknown': 0
     };
     
     // Count issues by status
@@ -262,11 +258,13 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
         groupCounts['In Progress & Open']++;
       } else if (statusGroups['Resolved & Closed'].includes(status)) {
         groupCounts['Resolved & Closed']++;
+      } else if (status === 'unknown') {
+        groupCounts['Unknown']++;
       }
     });
     
     // Calculate total for percentages
-    const total = Object.values(groupCounts).reduce((sum, count) => sum + count, 0) || 1; // Avoid division by zero
+    const total = Object.values(groupCounts).reduce((sum, count) => sum + count, 0);
     
     // Create the final data structure for the chart
     return [
@@ -292,7 +290,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
   
   const statusDistribution = getStatusDistribution();
-  console.log("Status Distribution Data:", statusDistribution);
   
   // 3. Tickets by Priority (Vertical Bar Chart)
   const getPriorityDistribution = (): PriorityDistributionData[] => {
@@ -319,44 +316,44 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   const priorityDistribution = getPriorityDistribution();
   
-  // 4. First Response Time Trends (Area Chart) - Updated to use the current week data based on filters
+  // 4. First Response Time Trends (Area Chart) - Updated to show daily data with curved lines
   const getFirstResponseTrend = (): FirstResponseData[] => {
     const issuesWithComments = issues.filter(issue => 
       issue.issue_comments && issue.issue_comments.length > 0
     );
     
-    if (issuesWithComments.length === 0) {
-      // Return empty data structure for the current week
-      return currentWeekDates.map(date => ({
-        name: format(date, 'yyyy-MM-dd'),
-        time: 0,
-        count: 0,
-        date: date
-      }));
-    }
+    if (issuesWithComments.length === 0) return [];
     
-    // Create a map for all days of filtered week
-    const weekDaysMap: Record<string, FirstResponseData> = {};
-    currentWeekDates.forEach(day => {
+    // Get the current date and determine the start of the current week
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Set to Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Create a map for all days of current week, even if no data
+    const weekDays: Record<string, FirstResponseData> = {};
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
       const dateKey = format(day, 'yyyy-MM-dd');
-      weekDaysMap[dateKey] = {
+      weekDays[dateKey] = {
         name: dateKey,
         time: 0,
         count: 0,
         date: day
       };
-    });
+    }
     
     // Process issues with comments
-    issuesWithComments.forEach(issue => {
-      if (!issue.created_at || !issue.issue_comments) return;
+    const dailyData = issuesWithComments.reduce((acc, issue) => {
+      if (!issue.created_at || !issue.issue_comments) return acc;
       
       // Sort comments and find first one
       const sortedComments = [...issue.issue_comments].sort(
         (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
       
-      if (sortedComments.length === 0) return;
+      if (sortedComments.length === 0) return acc;
       
       const createdDate = new Date(issue.created_at);
       const firstResponseDate = new Date(sortedComments[0].created_at);
@@ -364,30 +361,47 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       
       const dateKey = format(createdDate, 'yyyy-MM-dd');
       
-      // Only add to our week map if the date falls within our selected week
-      if (weekDaysMap[dateKey]) {
-        weekDaysMap[dateKey].time += responseTime;
-        weekDaysMap[dateKey].count += 1;
+      if (!acc[dateKey]) {
+        acc[dateKey] = {
+          name: dateKey,
+          time: 0,
+          count: 0,
+          date: createdDate
+        };
+      }
+      
+      acc[dateKey].time += responseTime;
+      acc[dateKey].count += 1;
+      
+      return acc;
+    }, {} as Record<string, FirstResponseData>);
+    
+    // Calculate average for each day
+    Object.keys(dailyData).forEach(dateKey => {
+      if (dailyData[dateKey].count > 0) {
+        dailyData[dateKey].time = dailyData[dateKey].time / dailyData[dateKey].count;
       }
     });
     
-    // Calculate average for each day
-    Object.keys(weekDaysMap).forEach(dateKey => {
-      if (weekDaysMap[dateKey].count > 0) {
-        weekDaysMap[dateKey].time = weekDaysMap[dateKey].time / weekDaysMap[dateKey].count;
+    // Merge with weekDays to ensure all days of the week are represented
+    Object.keys(weekDays).forEach(dateKey => {
+      if (dailyData[dateKey]) {
+        weekDays[dateKey] = dailyData[dateKey];
       }
     });
     
     // Convert to array and sort by date
-    return Object.values(weekDaysMap)
+    return Object.values(weekDays)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   };
   
   const firstResponseTrend = getFirstResponseTrend();
-  console.log("First Response Trend Data:", firstResponseTrend);
   
   // 5. Reopened Tickets Analysis (Horizontal Bar Chart)
   const getReopenedTicketsTrend = (): ReopenedTicketData[] => {
+    // Implementation remains the same
+    // ... keep existing code (reopened tickets analysis)
+    
     const issuesByIssueType = issues.reduce((acc: IssuesByTypeAcc, issue) => {
       const typeId = issue.type_id || 'unknown';
       if (!acc[typeId]) {
@@ -399,6 +413,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       
       acc[typeId].total += 1;
       
+      // Counting reopened tickets (implementation depends on how reopening is tracked)
+      // For this example, we'll use a simple heuristic: 
       // Count tickets with multiple status updates as potentially reopened
       if (issue.status_history && issue.status_history.length > 1) {
         acc[typeId].reopened += 1;
@@ -419,6 +435,9 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   // 6. Resolution Time by Issue Type (Bar Chart)
   const getResolutionTimeByType = (): ResolutionTimeByTypeData[] => {
+    // Implementation remains the same
+    // ... keep existing code (resolution time by issue type)
+    
     const closedIssuesByType = issues.filter(issue => 
       (issue.status === 'closed' || issue.status === 'resolved') && 
       issue.created_at && 
@@ -455,6 +474,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
 
   // Export functions
   const exportResolutionTimeData = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       resolutionTimeTrend.map(item => ({
         'Period': formatDisplayDate(item.name),
@@ -466,6 +487,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportStatusDistribution = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       statusDistribution.map(item => ({
         'Status': item.name,
@@ -477,6 +500,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportPriorityDistribution = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       priorityDistribution.map(item => ({
         'Priority': item.name,
@@ -487,6 +512,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportFirstResponseData = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       firstResponseTrend.map(item => ({
         'Period': formatDisplayDate(item.name),
@@ -498,6 +525,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportReopenedTicketsData = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       reopenedTickets.map(item => ({
         'Issue Type': item.name,
@@ -510,6 +539,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportResolutionTimeByType = () => {
+    // ... keep existing code (export function)
+    
     exportChartDataToCSV(
       resolutionTimeByType.map(item => ({
         'Issue Type': item.name,
@@ -529,7 +560,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
 
       {/* First row of insights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* 1. Resolution Time Trend - Updated to match reference image with better date formatting */}
+        {/* 1. Resolution Time Trend - Updated to match reference image */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -612,7 +643,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
           </CardContent>
         </Card>
 
-        {/* 2. Ticket Status Distribution - Combined statuses as requested */}
+        {/* 2. Ticket Status Distribution - Reverted to pie chart with combined statuses */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -774,7 +805,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
           </CardContent>
         </Card>
 
-        {/* 4. First Response Time Trend - Updated to match reference image with area chart using current week dates */}
+        {/* 4. First Response Time Trend - Updated to match reference image with area chart */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
