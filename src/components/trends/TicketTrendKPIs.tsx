@@ -7,6 +7,18 @@ interface TicketTrendKPIsProps {
   isLoading: boolean;
 }
 
+// Define a comprehensive KPI type that includes all possible properties
+interface KPI {
+  title: string;
+  value: string;
+  suffix: string;
+  change: number | null;
+  icon: React.ReactNode | null;
+  color?: string;
+  background?: string;
+  border?: string;
+}
+
 const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) => {
   if (isLoading) {
     return (
@@ -27,7 +39,7 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
   }
 
   // Basic KPIs
-  const basicKpis = [
+  const basicKpis: KPI[] = [
     {
       title: "Total Tickets",
       value: data.totalTickets.toLocaleString(),
@@ -59,7 +71,7 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
   ];
   
   // Response time KPIs
-  const responseKpis = [
+  const responseKpis: KPI[] = [
     {
       title: "Avg First Response",
       value: data.firstResponseTime.toFixed(1),
@@ -84,7 +96,7 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
   ];
 
   // SLA breach KPIs (highlighted with colors and icons)
-  const slaBreachKpis = [
+  const slaBreachKpis: KPI[] = [
     {
       title: "First Response SLA Breach",
       value: data.firstResponseSLABreach.toFixed(1),
@@ -148,7 +160,7 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
   ];
   
   // Other KPIs
-  const otherKpis = [
+  const otherKpis: KPI[] = [
     {
       title: "Ticket Reopen Count",
       value: data.reopenCount.toString(),
@@ -166,7 +178,7 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
   ];
 
   // Combine all KPIs
-  const allKpis = [...basicKpis, ...responseKpis, ...slaBreachKpis, ...otherKpis];
+  const allKpis: KPI[] = [...basicKpis, ...responseKpis, ...slaBreachKpis, ...otherKpis];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
