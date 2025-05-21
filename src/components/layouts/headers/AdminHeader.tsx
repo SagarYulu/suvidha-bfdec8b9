@@ -21,7 +21,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ title, userName, showBackButt
       
       <div className="flex items-center space-x-4">
         <span className="text-sm text-gray-700">{displayName}</span>
-        <Avatar className="h-8 w-8 bg-blue-600 text-white">
+        <Avatar className="h-8 w-8 bg-yulu-dashboard-blue text-white">
           <AvatarFallback>{userInitial}</AvatarFallback>
         </Avatar>
       </div>

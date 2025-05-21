@@ -14,10 +14,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const username = authState.user?.name || "Administrator";
   
   return (
-    <div className="h-full flex flex-col bg-yulu-dashboard-blue text-white w-64">
-      <div className="p-4 border-b border-blue-800">
-        <div className="font-medium text-lg text-gray-100">Yullu Suvisha Management</div>
-        <div className="text-sm text-gray-400 mt-1">{username}</div>
+    <div className="h-full flex flex-col bg-white text-yulu-dashboard-blue w-64">
+      <div className="p-4 border-b border-gray-200">
+        <div className="font-medium text-lg text-yulu-dashboard-blue">Yulu Suvidha Management</div>
+        <div className="text-sm text-gray-600 mt-1">{username}</div>
       </div>
       
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -27,8 +27,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Dashboard
@@ -41,8 +41,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Ticket Trend Analysis
@@ -55,8 +55,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             All Tickets
@@ -69,8 +69,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Assigned to Me
@@ -83,8 +83,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Users
@@ -97,8 +97,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Analytics
@@ -111,8 +111,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Feedback Analytics
@@ -125,8 +125,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Resolution Feedback
@@ -139,8 +139,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Sentiment Analysis
@@ -153,8 +153,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Admin Users
@@ -167,8 +167,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Access Control
@@ -181,8 +181,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Settings
@@ -195,8 +195,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
             className={({ isActive }) => cn(
               "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-800 text-white font-medium" 
-                : "text-blue-100 hover:text-white hover:bg-blue-800"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Generate Test Data
@@ -204,10 +204,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         </PermissionGate>
       </nav>
       
-      <div className="p-4 border-t border-blue-800">
+      <div className="p-4 border-t border-gray-200">
         <button 
           onClick={onLogout}
-          className="flex w-full items-center px-3 py-2 rounded-md text-blue-100 hover:text-white hover:bg-blue-800 transition"
+          className="flex w-full items-center px-3 py-2 rounded-md text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50 transition"
         >
           <LogOut className="h-4 w-4 mr-2" />
           <span>Logout</span>
