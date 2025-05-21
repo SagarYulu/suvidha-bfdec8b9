@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -15,20 +14,21 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
   const username = authState.user?.name || "Administrator";
   
   return (
-    <div className="h-full flex flex-col bg-white shadow-md border-r border-gray-200 w-64">
-      <div className="p-4">
-        <div className="font-medium text-lg text-blue-700">Yulu Suvidha Management</div>
+    <div className="h-full flex flex-col bg-white text-yulu-dashboard-blue w-64">
+      <div className="p-4 border-b border-gray-200">
+        <div className="font-medium text-lg text-yulu-dashboard-blue">Yulu Suvidha Management</div>
+        <div className="text-sm text-gray-600 mt-1">{username}</div>
       </div>
       
-      <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         <PermissionGate permission="view:dashboard">
           <NavLink 
             to="/admin/dashboard" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Dashboard
@@ -39,10 +39,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/ticket-trends" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Ticket Trend Analysis
@@ -53,10 +53,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/issues" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             All Tickets
@@ -67,10 +67,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/assigned-issues" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Assigned to Me
@@ -81,10 +81,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/users" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Users
@@ -95,10 +95,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/analytics" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Analytics
@@ -109,10 +109,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/feedback-analytics" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Feedback Analytics
@@ -123,10 +123,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/resolution-feedback" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Resolution Feedback
@@ -137,10 +137,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/sentiment-analysis" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Sentiment Analysis
@@ -151,10 +151,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/dashboard-users/add" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Admin Users
@@ -165,10 +165,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/access-control" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Access Control
@@ -179,10 +179,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/settings" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Settings
@@ -193,10 +193,10 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <NavLink 
             to="/admin/test-data-generator" 
             className={({ isActive }) => cn(
-              "flex items-center px-4 py-2 text-sm font-medium rounded-md",
+              "flex items-center px-3 py-2 rounded-md transition",
               isActive 
-                ? "bg-blue-50 text-blue-700" 
-                : "text-gray-600 hover:bg-blue-50 hover:text-blue-700"
+                ? "bg-blue-100 text-yulu-dashboard-blue font-medium" 
+                : "text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50"
             )}
           >
             Generate Test Data
@@ -205,10 +205,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
       </nav>
       
       <div className="p-4 border-t border-gray-200">
-        <div className="text-sm text-gray-600 mb-2">{username}</div>
         <button 
           onClick={onLogout}
-          className="flex w-full items-center px-4 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-blue-50 hover:text-blue-700"
+          className="flex w-full items-center px-3 py-2 rounded-md text-yulu-dashboard-blue hover:text-yulu-dashboard-blue-dark hover:bg-blue-50 transition"
         >
           <LogOut className="h-4 w-4 mr-2" />
           <span>Logout</span>

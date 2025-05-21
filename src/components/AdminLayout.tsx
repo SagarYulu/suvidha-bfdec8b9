@@ -20,7 +20,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   children, 
   title,
   className,
-  showBackButton = false,
+  showBackButton = true,
   requiredPermission = 'view:dashboard'
 }) => {
   const { authState, logout } = useAuth();
@@ -30,7 +30,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   if (authState.isAuthenticated === undefined) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
       </div>
     );
   }
