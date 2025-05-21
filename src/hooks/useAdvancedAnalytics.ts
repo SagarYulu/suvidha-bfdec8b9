@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AdvancedFilters } from '@/components/admin/analytics/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -8,37 +8,73 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Memoize the filter values to prevent unnecessary re-renders
+  const memoizedFilters = useMemo(() => {
+    return {
+      city: filters.city,
+      cluster: filters.cluster,
+      manager: filters.manager,
+      role: filters.role,
+      issueType: filters.issueType,
+      dateFrom: filters.dateRange?.from instanceof Date 
+        ? filters.dateRange.from.toISOString()
+        : filters.dateRange?.from,
+      dateTo: filters.dateRange?.to instanceof Date
+        ? filters.dateRange.to.toISOString()
+        : filters.dateRange?.to,
+      isComparisonModeEnabled: filters.isComparisonModeEnabled,
+      comparisonMode: filters.comparisonMode
+    };
+  }, [
+    filters.city,
+    filters.cluster,
+    filters.manager,
+    filters.role,
+    filters.issueType,
+    filters.dateRange?.from,
+    filters.dateRange?.to,
+    filters.isComparisonModeEnabled,
+    filters.comparisonMode
+  ]);
+
   useEffect(() => {
+    // Create an abort controller to handle component unmount
+    const abortController = new AbortController();
+    
     const fetchData = async () => {
-      setIsLoading(true);
+      // Don't set loading to true if we're already loading
+      // This prevents flickering when filters change rapidly
+      if (!isLoading) {
+        setIsLoading(true);
+      }
+      
       setError(null);
       
       try {
-        console.log("Fetching advanced analytics data with filters:", filters);
+        console.log("Fetching advanced analytics data with filters:", memoizedFilters);
         
         // Start building the query
         let query = supabase.from('issues').select('*');
         
         // Apply city filter via employees join if needed
-        if (filters.city) {
-          // This requires a more complex join with employees table
-          console.log("Filtering by city:", filters.city);
+        if (memoizedFilters.city) {
+          console.log("Filtering by city:", memoizedFilters.city);
           
-          // First, get employee IDs for the specified city
           const { data: employeeIds, error: empError } = await supabase
             .from('employees')
             .select('id')
-            .eq('city', filters.city);
+            .eq('city', memoizedFilters.city)
+            .abortSignal(abortController.signal);
+          
+          if (abortController.signal.aborted) return;
           
           if (empError) throw empError;
           
           if (employeeIds && employeeIds.length > 0) {
-            // Use these IDs to filter issues
             const employeeUuids = employeeIds.map(e => e.id);
             query = query.in('employee_uuid', employeeUuids);
           } else {
-            // No employees found for this city
-            console.log("No employees found for city:", filters.city);
+            console.log("No employees found for city:", memoizedFilters.city);
             setData({ rawIssues: [] });
             setIsLoading(false);
             return;
@@ -46,24 +82,24 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
         
         // Apply cluster filter via employees join if needed
-        if (filters.cluster) {
-          console.log("Filtering by cluster:", filters.cluster);
+        if (memoizedFilters.cluster) {
+          console.log("Filtering by cluster:", memoizedFilters.cluster);
           
-          // Get employee IDs for the specified cluster
           const { data: employeeIds, error: empError } = await supabase
             .from('employees')
             .select('id')
-            .eq('cluster', filters.cluster);
+            .eq('cluster', memoizedFilters.cluster)
+            .abortSignal(abortController.signal);
+          
+          if (abortController.signal.aborted) return;
           
           if (empError) throw empError;
           
           if (employeeIds && employeeIds.length > 0) {
-            // Use these IDs to filter issues
             const employeeUuids = employeeIds.map(e => e.id);
             query = query.in('employee_uuid', employeeUuids);
           } else {
-            // No employees found for this cluster
-            console.log("No employees found for cluster:", filters.cluster);
+            console.log("No employees found for cluster:", memoizedFilters.cluster);
             setData({ rawIssues: [] });
             setIsLoading(false);
             return;
@@ -71,24 +107,24 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
         
         // Apply manager filter via employees join if needed
-        if (filters.manager) {
-          console.log("Filtering by manager:", filters.manager);
+        if (memoizedFilters.manager) {
+          console.log("Filtering by manager:", memoizedFilters.manager);
           
-          // First, get employee IDs for the specified manager
           const { data: employeeIds, error: empError } = await supabase
             .from('employees')
             .select('id')
-            .eq('manager', filters.manager);
+            .eq('manager', memoizedFilters.manager)
+            .abortSignal(abortController.signal);
+          
+          if (abortController.signal.aborted) return;
           
           if (empError) throw empError;
           
           if (employeeIds && employeeIds.length > 0) {
-            // Use these IDs to filter issues
             const employeeUuids = employeeIds.map(e => e.id);
             query = query.in('employee_uuid', employeeUuids);
           } else {
-            // No employees found for this manager
-            console.log("No employees found for manager:", filters.manager);
+            console.log("No employees found for manager:", memoizedFilters.manager);
             setData({ rawIssues: [] });
             setIsLoading(false);
             return;
@@ -96,24 +132,24 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
         
         // Apply role filter via employees join if needed
-        if (filters.role) {
-          console.log("Filtering by role:", filters.role);
+        if (memoizedFilters.role) {
+          console.log("Filtering by role:", memoizedFilters.role);
           
-          // Get employee IDs for the specified role
           const { data: employeeIds, error: empError } = await supabase
             .from('employees')
             .select('id')
-            .eq('role', filters.role);
+            .eq('role', memoizedFilters.role)
+            .abortSignal(abortController.signal);
+          
+          if (abortController.signal.aborted) return;
           
           if (empError) throw empError;
           
           if (employeeIds && employeeIds.length > 0) {
-            // Use these IDs to filter issues
             const employeeUuids = employeeIds.map(e => e.id);
             query = query.in('employee_uuid', employeeUuids);
           } else {
-            // No employees found for this role
-            console.log("No employees found for role:", filters.role);
+            console.log("No employees found for role:", memoizedFilters.role);
             setData({ rawIssues: [] });
             setIsLoading(false);
             return;
@@ -121,71 +157,92 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         }
         
         // Apply issue type filter directly
-        if (filters.issueType) {
-          console.log("Filtering by issue type:", filters.issueType);
-          query = query.eq('type_id', filters.issueType);
+        if (memoizedFilters.issueType) {
+          console.log("Filtering by issue type:", memoizedFilters.issueType);
+          query = query.eq('type_id', memoizedFilters.issueType);
         }
         
         // Apply date range filter
-        if (filters.dateRange && filters.dateRange.from) {
-          const fromDate = filters.dateRange.from instanceof Date 
-            ? filters.dateRange.from.toISOString()
-            : filters.dateRange.from;
-          console.log("Filtering by date from:", fromDate);
-          query = query.gte('created_at', fromDate);
+        if (memoizedFilters.dateFrom) {
+          console.log("Filtering by date from:", memoizedFilters.dateFrom);
+          query = query.gte('created_at', memoizedFilters.dateFrom);
         }
         
-        if (filters.dateRange && filters.dateRange.to) {
-          const toDate = filters.dateRange.to instanceof Date
-            ? filters.dateRange.to.toISOString()
-            : filters.dateRange.to;
-          console.log("Filtering by date to:", toDate);
-          query = query.lte('created_at', toDate);
+        if (memoizedFilters.dateTo) {
+          console.log("Filtering by date to:", memoizedFilters.dateTo);
+          query = query.lte('created_at', memoizedFilters.dateTo);
         }
         
-        // Execute the query
-        const { data: issues, error: issuesError } = await query;
+        // Execute the query with abort signal
+        const { data: issues, error: issuesError } = await query
+          .abortSignal(abortController.signal);
+        
+        if (abortController.signal.aborted) return;
         
         if (issuesError) throw issuesError;
         
         console.log(`Found ${issues?.length || 0} issues matching the filters`);
         
-        // For each issue, fetch its comments
+        // For each issue, fetch its comments - using Promise.all for parallel requests
         let issuesWithComments = [];
+        
         if (issues && Array.isArray(issues)) {
-          for (const issue of issues) {
+          const commentsPromises = issues.map(async (issue) => {
             const { data: comments, error: commentsError } = await supabase
               .from('issue_comments')
               .select('*')
-              .eq('issue_id', issue.id);
+              .eq('issue_id', issue.id)
+              .abortSignal(abortController.signal);
             
             if (commentsError) {
               console.warn(`Error fetching comments for issue ${issue.id}:`, commentsError);
+              return {
+                ...issue,
+                issue_comments: []
+              };
             }
             
-            issuesWithComments.push({
+            return {
               ...issue,
               issue_comments: comments || []
-            });
+            };
+          });
+          
+          // Wait for all comments to be fetched
+          if (!abortController.signal.aborted) {
+            issuesWithComments = await Promise.all(commentsPromises);
           }
         }
         
-        // Process the data
-        setData({
-          rawIssues: issuesWithComments,
-          // Add any derived metrics here if needed
-        });
+        if (!abortController.signal.aborted) {
+          // Process the data
+          setData({
+            rawIssues: issuesWithComments,
+            // Add any derived metrics here if needed
+          });
+        }
       } catch (err: any) {
         console.error("Error in useAdvancedAnalytics:", err);
-        setError(err);
-        setData({rawIssues: []});
+        if (!abortController.signal.aborted) {
+          setError(err);
+          setData({rawIssues: []});
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [filters]); // Re-fetch when filters change
+
+    // Cleanup function that aborts any in-flight requests when component unmounts
+    return () => {
+      abortController.abort();
+    };
+  }, [
+    memoizedFilters
+  ]); // Only re-run when memoized filters change
 
   return { data, isLoading, error };
 };

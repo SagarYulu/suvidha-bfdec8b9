@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { AdvancedFilters, ComparisonMode } from "./types";
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 import { DateRange } from "./DateRangePicker";
@@ -23,7 +23,7 @@ export const useAnalyticsFilters = () => {
   const [managers, setManagers] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Fetch managers on component mount
+  // Fetch managers on component mount - only once
   useEffect(() => {
     const fetchManagers = async () => {
       try {
@@ -62,54 +62,55 @@ export const useAnalyticsFilters = () => {
     return CLUSTER_OPTIONS[filters.city] || [];
   }, [filters.city]);
 
-  const handleCityChange = (city: string) => {
+  // Use useCallback to memoize handler functions
+  const handleCityChange = useCallback((city: string) => {
     setFilters(prev => ({ 
       ...prev, 
       city: city === "all-cities" ? null : city,
       // Reset cluster when city changes
       cluster: null
     }));
-  };
+  }, []);
 
-  const handleClusterChange = (cluster: string) => {
+  const handleClusterChange = useCallback((cluster: string) => {
     setFilters(prev => ({ 
       ...prev, 
       cluster: cluster === "all-clusters" ? null : cluster 
     }));
-  };
+  }, []);
 
-  const handleManagerChange = (manager: string) => {
+  const handleManagerChange = useCallback((manager: string) => {
     setFilters(prev => ({ 
       ...prev, 
       manager: manager === "all-managers" ? null : manager 
     }));
-  };
+  }, []);
 
-  const handleRoleChange = (role: string) => {
+  const handleRoleChange = useCallback((role: string) => {
     setFilters(prev => ({ 
       ...prev, 
       role: role === "all-roles" ? null : role 
     }));
-  };
+  }, []);
 
-  const handleIssueTypeChange = (issueType: string) => {
+  const handleIssueTypeChange = useCallback((issueType: string) => {
     setFilters(prev => ({ 
       ...prev, 
       issueType: issueType === "all-issues" ? null : issueType 
     }));
-  };
+  }, []);
 
-  const handleDateRangeChange = (dateRange: DateRange) => {
+  const handleDateRangeChange = useCallback((dateRange: DateRange) => {
     setFilters(prev => ({ ...prev, dateRange }));
-  };
+  }, []);
 
-  const handleComparisonModeToggle = (enabled: boolean) => {
+  const handleComparisonModeToggle = useCallback((enabled: boolean) => {
     setFilters(prev => ({ ...prev, isComparisonModeEnabled: enabled }));
-  };
+  }, []);
 
-  const handleComparisonModeChange = (mode: string) => {
+  const handleComparisonModeChange = useCallback((mode: string) => {
     setFilters(prev => ({ ...prev, comparisonMode: mode as ComparisonMode }));
-  };
+  }, []);
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -119,20 +120,20 @@ export const useAnalyticsFilters = () => {
     if (filters.role) count++;
     if (filters.issueType) count++;
     return count;
-  }, [filters]);
+  }, [filters.city, filters.cluster, filters.manager, filters.role, filters.issueType]);
 
-  const clearFilters = () => {
-    setFilters({
+  const clearFilters = useCallback(() => {
+    setFilters(prev => ({
       city: null,
       cluster: null,
       manager: null,
       role: null,
       issueType: null,
-      dateRange: filters.dateRange,
-      isComparisonModeEnabled: filters.isComparisonModeEnabled,
-      comparisonMode: filters.comparisonMode,
-    });
-  };
+      dateRange: prev.dateRange,
+      isComparisonModeEnabled: prev.isComparisonModeEnabled,
+      comparisonMode: prev.comparisonMode,
+    }));
+  }, []);
 
   return {
     filters,

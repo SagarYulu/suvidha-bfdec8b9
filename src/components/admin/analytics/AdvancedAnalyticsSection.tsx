@@ -1,11 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterCard } from "./FilterCard";
 import { useAnalyticsFilters } from "./useAnalyticsFilters";
 import { TicketTrendAnalysis } from "./TicketTrendAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { SLADashboard } from "./SLADashboard";
 import { COMPARISON_MODES } from "./useAnalyticsFilters";
 
@@ -13,10 +12,12 @@ interface AdvancedAnalyticsSectionProps {
   onFilterChange?: (filters: any) => void; // New prop to pass filters up to parent
 }
 
-export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSectionProps) => {
+// Use memo to prevent unnecessary re-renders
+export const AdvancedAnalyticsSection = memo(({ onFilterChange }: AdvancedAnalyticsSectionProps) => {
   const [activeTab, setActiveTab] = useState("trends");
   const {
     filters,
+    managers,
     availableClusters,
     activeFiltersCount,
     handleCityChange,
@@ -27,57 +28,18 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
     handleDateRangeChange,
     handleComparisonModeToggle,
     handleComparisonModeChange,
-    clearFilters,
-    managers
+    clearFilters
   } = useAnalyticsFilters();
 
   // Effect to pass filters up to parent when they change
   useEffect(() => {
     if (onFilterChange) {
-      console.log("Passing filters up from AdvancedAnalyticsSection:", filters);
       onFilterChange(filters);
     }
   }, [filters, onFilterChange]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-  };
-
-  // Whenever any filter changes, call the handlers
-  const onCityChange = (city: string) => {
-    handleCityChange(city);
-  };
-  
-  const onClusterChange = (cluster: string) => {
-    handleClusterChange(cluster);
-  };
-  
-  const onManagerChange = (manager: string) => {
-    handleManagerChange(manager);
-  };
-  
-  const onRoleChange = (role: string) => {
-    handleRoleChange(role);
-  };
-  
-  const onIssueTypeChange = (issueType: string) => {
-    handleIssueTypeChange(issueType);
-  };
-  
-  const onDateRangeChange = (dateRange: any) => {
-    handleDateRangeChange(dateRange);
-  };
-  
-  const onComparisonModeToggle = (enabled: boolean) => {
-    handleComparisonModeToggle(enabled);
-  };
-  
-  const onComparisonModeChange = (mode: string) => {
-    handleComparisonModeChange(mode);
-  };
-  
-  const onClearFilters = () => {
-    clearFilters();
   };
 
   return (
@@ -96,15 +58,15 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
           activeFiltersCount={activeFiltersCount}
           managers={managers}
           comparisonModes={COMPARISON_MODES}
-          onCityChange={onCityChange}
-          onClusterChange={onClusterChange}
-          onManagerChange={onManagerChange}
-          onRoleChange={onRoleChange}
-          onIssueTypeChange={onIssueTypeChange}
-          onDateRangeChange={onDateRangeChange}
-          onComparisonModeToggle={onComparisonModeToggle}
-          onComparisonModeChange={onComparisonModeChange}
-          onClearFilters={onClearFilters}
+          onCityChange={handleCityChange}
+          onClusterChange={handleClusterChange}
+          onManagerChange={handleManagerChange}
+          onRoleChange={handleRoleChange}
+          onIssueTypeChange={handleIssueTypeChange}
+          onDateRangeChange={handleDateRangeChange}
+          onComparisonModeToggle={handleComparisonModeToggle}
+          onComparisonModeChange={handleComparisonModeChange}
+          onClearFilters={clearFilters}
         />
 
         <Tabs
@@ -131,4 +93,6 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
       </CardContent>
     </Card>
   );
-};
+});
+
+AdvancedAnalyticsSection.displayName = "AdvancedAnalyticsSection";
