@@ -32,6 +32,7 @@ import {
 } from "@/services/issues/ticketTrendService";
 import { Download } from "lucide-react";
 import { exportToCSV } from "@/utils/csvExportUtils";
+import { formatDate, formatShortDate } from "@/utils/formatUtils";
 
 interface TicketTrendChartsProps {
   data: TrendAnalyticsData;
@@ -78,24 +79,46 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
 
   const statusColors = ["#3b82f6", "#8b5cf6", "#14b8a6", "#22c55e"];
 
-  // Trend chart data
-  const trendChartData = data.ticketTrends.map(point => ({
-    date: point.date,
-    raised: point.raised,
-    closed: point.closed,
-    comparisonRaised: point.comparisonRaised || 0,
-    comparisonClosed: point.comparisonClosed || 0
-  }));
+  // Format dates for trend chart data to DD-MM-YYYY
+  const trendChartData = data.ticketTrends.map(point => {
+    // Convert date to DD-MM-YYYY format
+    const dateParts = point.date.split('-');
+    let formattedDate = point.date;
+    
+    if (dateParts.length === 3) {
+      // If the date is in YYYY-MM-DD format
+      if (dateParts[0].length === 4) {
+        formattedDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+      }
+    }
+    
+    return {
+      date: formattedDate,
+      raised: point.raised,
+      closed: point.closed,
+      comparisonRaised: point.comparisonRaised || 0,
+      comparisonClosed: point.comparisonClosed || 0
+    };
+  });
 
-  // Resolution time by type chart data - Now with color indicator based on time
+  // Resolution time by type chart data - now with x-axis for issue types and vertical bars
   const resolutionTimeData = data.resolutionByType
     .sort((a, b) => b.averageTime - a.averageTime)
     .map((item, index) => ({
       name: item.typeName,
       time: Number(item.averageTime.toFixed(1)),
-      count: item.ticketCount,
-      colorIndex: index
+      count: item.ticketCount
     }));
+
+  // For vertical bar chart coloring
+  const getBarColor = (time: number) => {
+    const maxTime = Math.max(...resolutionTimeData.map(d => d.time));
+    const ratio = time / maxTime;
+    // Create color interpolation from green to yellow to red
+    const r = Math.min(255, Math.round(255 * ratio * 2));
+    const g = Math.min(255, Math.round(255 * (2 - ratio * 2)));
+    return `rgb(${r}, ${g}, 80)`;
+  };
 
   // Weekday data transformed for line chart visualization
   const weekdayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -150,7 +173,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
-              <Tooltip />
+              <Tooltip labelFormatter={(label) => `Date: ${label}`} />
               <Legend />
               {activeTab === 'raised' ? (
                 <>
@@ -272,7 +295,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardContent>
       </Card>
 
-      {/* Resolution Time by Issue Type - Updated with new visual format */}
+      {/* Resolution Time by Issue Type - UPDATED to vertical bar chart */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Resolution Time by Issue Type</CardTitle>
@@ -288,16 +311,24 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
               data={resolutionTimeData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              layout="vertical"
+              margin={{ top: 20, right: 30, left: 30, bottom: 70 }}
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={true} />
+              <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
-                type="number" 
-                label={{ value: 'Hours', position: 'insideBottom', offset: -5 }}
-                domain={[0, 'dataMax + 2']}
+                dataKey="name" 
+                angle={-45}
+                textAnchor="end"
+                height={70}
+                interval={0}
               />
-              <YAxis type="category" dataKey="name" width={120} />
+              <YAxis 
+                label={{ 
+                  value: 'Hours', 
+                  angle: -90, 
+                  position: 'insideLeft',
+                  style: { textAnchor: 'middle' }
+                }} 
+              />
               <Tooltip 
                 formatter={(value, name, props) => {
                   if (name === 'time') {
@@ -314,28 +345,22 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
               <Bar 
                 dataKey="time" 
                 name="Resolution Time"
-                barSize={20}
-                radius={[0, 4, 4, 0]}
+                barSize={25}
               >
-                {resolutionTimeData.map((entry, index) => {
-                  // Calculate color based on resolution time
-                  // Using a gradient from green (fast) to red (slow)
-                  const maxTime = Math.max(...resolutionTimeData.map(d => d.time));
-                  const ratio = entry.time / maxTime;
-                  // Create color interpolation from green to yellow to red
-                  const r = Math.min(255, Math.round(255 * ratio * 2));
-                  const g = Math.min(255, Math.round(255 * (2 - ratio * 2)));
-                  const color = `rgb(${r}, ${g}, 100)`;
-                  
-                  return <Cell key={`cell-${index}`} fill={color} stroke="#ffffff" strokeWidth={1} />;
-                })}
+                {resolutionTimeData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={getBarColor(entry.time)} 
+                    stroke="#ffffff" 
+                    strokeWidth={1} 
+                  />
+                ))}
               </Bar>
               <Bar 
                 dataKey="count" 
                 name="Ticket Count" 
-                barSize={5}
-                fill="#8884d8"
-                radius={[0, 0, 0, 0]}
+                barSize={10}
+                fill="#9b87f5"
               />
             </BarChart>
           </ResponsiveContainer>
@@ -382,7 +407,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardContent>
       </Card>
 
-      {/* Weekday vs Weekend Distribution - Changed to line chart */}
+      {/* Weekday vs Weekend Distribution - Line chart with weekend highlight */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Weekday vs Weekend Ticket Flow</CardTitle>

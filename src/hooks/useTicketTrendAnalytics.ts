@@ -8,6 +8,7 @@ import {
   getRoles
 } from '@/services/issues/ticketTrendService';
 import { toast } from "sonner";
+import { formatDateToDDMMYYYY } from "@/utils/dateUtils";
 
 type UseTicketTrendAnalyticsProps = {
   filters: TrendFilters;
@@ -56,6 +57,15 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
       try {
         console.log("Fetching ticket trend analytics with filters:", filters);
         const data = await getTicketTrendAnalytics(filters);
+        
+        // Format dates to DD-MM-YYYY in the frontend
+        if (data && data.ticketTrends) {
+          data.ticketTrends = data.ticketTrends.map(trend => ({
+            ...trend,
+            date: formatDateToDDMMYYYY(trend.date) || trend.date
+          }));
+        }
+        
         setAnalytics(data);
       } catch (err) {
         console.error("Error fetching ticket trend analytics:", err);
