@@ -231,7 +231,7 @@ export const AdvancedAnalyticsCharts: React.FC<AdvancedAnalyticsChartsProps> = (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <ChartBarHorizontal className="h-5 w-5 text-blue-600" />
+              <BarChartHorizontal className="h-5 w-5 text-blue-600" />
               Top 5 Frequent Issue Types
             </CardTitle>
           </CardHeader>
