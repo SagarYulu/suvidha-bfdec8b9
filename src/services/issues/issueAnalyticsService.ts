@@ -1,14 +1,23 @@
-import { Issue, IssueAnalytics } from "@/types";
+
+import { Issue } from "@/types";
 import { format, subDays, parseISO } from "date-fns";
-import { getIssues } from "./issueFetchService";
-import { getIssueTypeLabel, getIssueSubtypeLabel } from "./issueTypeHelpers";
+import { getIssues } from "./issueFilters"; // Changed from issueFetchService to issueFilters
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "./issueTypeHelpers"; // Fixed the function name
 
 export interface AnalyticsFilters {
   issueType?: string;
   employeeUuids?: string[];
 }
 
-export interface IssueAnalyticsResponse extends IssueAnalytics {
+// Define IssueAnalytics interface that was missing
+export interface IssueAnalyticsResponse {
+  totalIssues: number;
+  openIssues: number;
+  resolvedIssues: number;
+  inProgressIssues: number;
+  highPriorityIssues: number;
+  issuesByType: { [key: string]: number };
+  issuesByCity: { [key: string]: number };
   volumeTrend: Array<{
     date: string;
     count: number;
@@ -59,7 +68,15 @@ export async function getIssueAnalytics(timeRange: '7days' | '30days' | '90days'
 }
 
 // Calculate basic analytics from issues
-function calculateBaseAnalytics(issues: Issue[]): IssueAnalytics {
+function calculateBaseAnalytics(issues: Issue[]): {
+  totalIssues: number;
+  openIssues: number;
+  resolvedIssues: number;
+  inProgressIssues: number;
+  highPriorityIssues: number;
+  issuesByType: { [key: string]: number };
+  issuesByCity: { [key: string]: number };
+} {
   const issuesByType: { [key: string]: number } = {};
   const issuesByCity: { [key: string]: number } = {};
 
@@ -227,7 +244,14 @@ function generateTypeDistributionTrend(issues: Issue[], days: number): Array<{ d
 }
 
 // Add getAnalytics function
-export async function getAnalytics(filters?: AnalyticsFilters): Promise<IssueAnalytics & {
+export function getAnalytics(filters?: AnalyticsFilters): Promise<{
+  totalIssues: number;
+  openIssues: number;
+  resolvedIssues: number;
+  inProgressIssues: number;
+  highPriorityIssues: number;
+  issuesByType: { [key: string]: number };
+  issuesByCity: { [key: string]: number };
   typeCounts: { [key: string]: number };
   cityCounts: { [key: string]: number };
   clusterCounts: { [key: string]: number };
