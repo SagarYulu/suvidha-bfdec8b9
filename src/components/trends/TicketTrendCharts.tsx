@@ -14,7 +14,12 @@ import {
   ResponsiveContainer, 
   Tooltip, 
   XAxis, 
-  YAxis 
+  YAxis,
+  RadarChart,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
 } from "recharts";
 import {
   TrendAnalyticsData,
@@ -88,6 +93,13 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
       time: Number(item.averageTime.toFixed(1)),
       count: item.ticketCount
     }));
+
+  // Weekday distribution data reformatted for radar chart
+  const weekdayData = Object.entries(data.weekdayDistribution).map(([day, count]) => ({
+    subject: day.charAt(0).toUpperCase() + day.slice(1),
+    count: count,
+    fullMark: Math.max(...Object.values(data.weekdayDistribution)) + 5
+  }));
 
   // Helper function to export chart data to CSV
   const exportChartData = (chartData: any[], filename: string) => {
@@ -256,7 +268,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardContent>
       </Card>
 
-      {/* Resolution Time by Issue Type */}
+      {/* Resolution Time by Issue Type - Changed to heat map style bar chart */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Resolution Time by Issue Type</CardTitle>
@@ -273,10 +285,11 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
             <BarChart
               data={resolutionTimeData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              layout="vertical"
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft' }} />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+              <XAxis type="number" label={{ value: 'Hours', position: 'insideBottom', offset: -5 }} />
+              <YAxis type="category" dataKey="name" width={100} />
               <Tooltip 
                 formatter={(value, name) => [
                   name === 'time' ? `${value} hours` : `${value} tickets`,
@@ -284,14 +297,24 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
                 ]}
               />
               <Legend />
-              <Bar dataKey="time" name="Avg. Resolution Time" fill="#3b82f6" />
-              <Bar dataKey="count" name="Ticket Count" fill="#22c55e" />
+              <Bar 
+                dataKey="time" 
+                name="Avg. Resolution Time" 
+                fill="#3b82f6"
+              >
+                {resolutionTimeData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`}
+                    fill={`hsl(${220 - (entry.time / Math.max(...resolutionTimeData.map(d => d.time))) * 100}, 80%, 60%)`}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Top Issue Types Chart */}
+      {/* Top Issue Types Chart - Changed to horizontal bar chart with gradient */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Top Issue Types</CardTitle>
@@ -313,18 +336,25 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
               layout="vertical"
               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
               <XAxis type="number" />
               <YAxis dataKey="name" type="category" width={100} />
               <Tooltip formatter={(value) => [`${value} tickets`, "Count"]} />
               <Legend />
-              <Bar dataKey="count" name="Ticket Count" fill="#8b5cf6" />
+              <Bar dataKey="count" name="Ticket Count">
+                {data.topIssueTypes.map((_, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={`hsl(${260 - index * 20}, 70%, 65%)`} 
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Weekday vs Weekend Distribution */}
+      {/* Weekday vs Weekend Distribution - Changed to radar chart */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Weekday vs Weekend Ticket Flow</CardTitle>
@@ -344,33 +374,20 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={Object.entries(data.weekdayDistribution).map(([day, count]) => ({
-                name: day.charAt(0).toUpperCase() + day.slice(1),
-                count
-              }))}
-              margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip formatter={(value) => [`${value} tickets`, "Count"]} />
-              <Legend />
-              <Bar 
-                dataKey="count" 
-                name="Ticket Count" 
+            <RadarChart outerRadius={90} data={weekdayData}>
+              <PolarGrid />
+              <PolarAngleAxis dataKey="subject" />
+              <PolarRadiusAxis angle={30} domain={[0, 'auto']} />
+              <Radar
+                name="Ticket Count"
+                dataKey="count"
+                stroke="#3b82f6"
                 fill="#3b82f6"
-                // Color weekends differently
-                style={{ fillOpacity: 0.8 }}
-              >
-                {Object.entries(data.weekdayDistribution).map(([day], index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={day === 'saturday' || day === 'sunday' ? '#ef4444' : '#3b82f6'} 
-                  />
-                ))}
-              </Bar>
-            </BarChart>
+                fillOpacity={0.6}
+              />
+              <Legend />
+              <Tooltip formatter={(value) => [`${value} tickets`, "Count"]} />
+            </RadarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
