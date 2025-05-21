@@ -6,6 +6,7 @@ import { useAnalyticsFilters, COMPARISON_MODES } from "./useAnalyticsFilters";
 import { AnalyticsPlaceholder } from "./AnalyticsPlaceholder";
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
+import { SLADashboard } from "./SLADashboard";
 
 // Re-export AdvancedFilters type so imports don't break elsewhere
 export type { AdvancedFilters } from "./types";
@@ -51,6 +52,11 @@ export const AdvancedAnalyticsSection = () => {
         managers={managers}
         comparisonModes={COMPARISON_MODES}
       />
+
+      <div className="mb-6">
+        <h3 className="text-lg font-medium mb-3">SLA Performance Dashboard</h3>
+        <SLADashboard filters={filters} />
+      </div>
 
       <AnalyticsPlaceholder />
     </div>
