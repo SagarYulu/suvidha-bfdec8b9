@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { AdvancedFilters } from '@/components/admin/analytics/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -7,6 +7,20 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const isMounted = useRef(true);
+
+  // Track if component is mounted to prevent state updates after unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      // Abort any pending requests when component unmounts
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   // Memoize the filter values to prevent unnecessary re-renders
   const memoizedFilters = useMemo(() => {
@@ -38,8 +52,14 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   ]);
 
   useEffect(() => {
-    // Create an abort controller to handle component unmount
-    const abortController = new AbortController();
+    // Cancel any previous requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create a new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
     
     const fetchData = async () => {
       // Don't set loading to true if we're already loading
@@ -64,9 +84,9 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             .from('employees')
             .select('id')
             .eq('city', memoizedFilters.city)
-            .abortSignal(abortController.signal);
+            .abortSignal(signal);
           
-          if (abortController.signal.aborted) return;
+          if (signal.aborted) return;
           
           if (empError) throw empError;
           
@@ -75,8 +95,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             query = query.in('employee_uuid', employeeUuids);
           } else {
             console.log("No employees found for city:", memoizedFilters.city);
-            setData({ rawIssues: [] });
-            setIsLoading(false);
+            if (isMounted.current) {
+              setData({ rawIssues: [] });
+              setIsLoading(false);
+            }
             return;
           }
         }
@@ -89,9 +111,9 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             .from('employees')
             .select('id')
             .eq('cluster', memoizedFilters.cluster)
-            .abortSignal(abortController.signal);
+            .abortSignal(signal);
           
-          if (abortController.signal.aborted) return;
+          if (signal.aborted) return;
           
           if (empError) throw empError;
           
@@ -100,8 +122,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             query = query.in('employee_uuid', employeeUuids);
           } else {
             console.log("No employees found for cluster:", memoizedFilters.cluster);
-            setData({ rawIssues: [] });
-            setIsLoading(false);
+            if (isMounted.current) {
+              setData({ rawIssues: [] });
+              setIsLoading(false);
+            }
             return;
           }
         }
@@ -114,9 +138,9 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             .from('employees')
             .select('id')
             .eq('manager', memoizedFilters.manager)
-            .abortSignal(abortController.signal);
+            .abortSignal(signal);
           
-          if (abortController.signal.aborted) return;
+          if (signal.aborted) return;
           
           if (empError) throw empError;
           
@@ -125,8 +149,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             query = query.in('employee_uuid', employeeUuids);
           } else {
             console.log("No employees found for manager:", memoizedFilters.manager);
-            setData({ rawIssues: [] });
-            setIsLoading(false);
+            if (isMounted.current) {
+              setData({ rawIssues: [] });
+              setIsLoading(false);
+            }
             return;
           }
         }
@@ -139,9 +165,9 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             .from('employees')
             .select('id')
             .eq('role', memoizedFilters.role)
-            .abortSignal(abortController.signal);
+            .abortSignal(signal);
           
-          if (abortController.signal.aborted) return;
+          if (signal.aborted) return;
           
           if (empError) throw empError;
           
@@ -150,8 +176,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             query = query.in('employee_uuid', employeeUuids);
           } else {
             console.log("No employees found for role:", memoizedFilters.role);
-            setData({ rawIssues: [] });
-            setIsLoading(false);
+            if (isMounted.current) {
+              setData({ rawIssues: [] });
+              setIsLoading(false);
+            }
             return;
           }
         }
@@ -175,74 +203,71 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         
         // Execute the query with abort signal
         const { data: issues, error: issuesError } = await query
-          .abortSignal(abortController.signal);
+          .abortSignal(signal);
         
-        if (abortController.signal.aborted) return;
+        if (signal.aborted) return;
         
         if (issuesError) throw issuesError;
         
         console.log(`Found ${issues?.length || 0} issues matching the filters`);
         
-        // For each issue, fetch its comments - using Promise.all for parallel requests
-        let issuesWithComments = [];
-        
-        if (issues && Array.isArray(issues)) {
-          const commentsPromises = issues.map(async (issue) => {
-            const { data: comments, error: commentsError } = await supabase
-              .from('issue_comments')
-              .select('*')
-              .eq('issue_id', issue.id)
-              .abortSignal(abortController.signal);
-            
-            if (commentsError) {
-              console.warn(`Error fetching comments for issue ${issue.id}:`, commentsError);
-              return {
-                ...issue,
-                issue_comments: []
-              };
-            }
-            
-            return {
-              ...issue,
-              issue_comments: comments || []
-            };
-          });
-          
-          // Wait for all comments to be fetched
-          if (!abortController.signal.aborted) {
-            issuesWithComments = await Promise.all(commentsPromises);
+        if (!Array.isArray(issues) || issues.length === 0) {
+          if (isMounted.current) {
+            setData({ rawIssues: [] });
+            setIsLoading(false);
           }
+          return;
         }
         
-        if (!abortController.signal.aborted) {
+        // For each issue, fetch its comments - using Promise.all for parallel requests
+        const commentsPromises = issues.map(async (issue) => {
+          if (signal.aborted) return issue;
+          
+          const { data: comments, error: commentsError } = await supabase
+            .from('issue_comments')
+            .select('*')
+            .eq('issue_id', issue.id)
+            .abortSignal(signal);
+          
+          if (commentsError) {
+            console.warn(`Error fetching comments for issue ${issue.id}:`, commentsError);
+            return {
+              ...issue,
+              issue_comments: []
+            };
+          }
+          
+          return {
+            ...issue,
+            issue_comments: comments || []
+          };
+        });
+        
+        // Wait for all comments to be fetched
+        const issuesWithComments = await Promise.all(commentsPromises);
+        
+        if (signal.aborted) return;
+        
+        if (isMounted.current) {
           // Process the data
           setData({
             rawIssues: issuesWithComments,
             // Add any derived metrics here if needed
           });
+          setIsLoading(false);
         }
       } catch (err: any) {
         console.error("Error in useAdvancedAnalytics:", err);
-        if (!abortController.signal.aborted) {
+        if (!signal.aborted && isMounted.current) {
           setError(err);
           setData({rawIssues: []});
-        }
-      } finally {
-        if (!abortController.signal.aborted) {
           setIsLoading(false);
         }
       }
     };
 
     fetchData();
-
-    // Cleanup function that aborts any in-flight requests when component unmounts
-    return () => {
-      abortController.abort();
-    };
-  }, [
-    memoizedFilters
-  ]); // Only re-run when memoized filters change
+  }, [memoizedFilters]); // Only re-run when memoized filters change
 
   return { data, isLoading, error };
 };

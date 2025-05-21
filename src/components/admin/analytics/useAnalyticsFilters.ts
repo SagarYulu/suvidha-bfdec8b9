@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { AdvancedFilters, ComparisonMode } from "./types";
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 import { DateRange } from "./DateRangePicker";
@@ -22,6 +22,15 @@ export const useAnalyticsFilters = () => {
 
   const [managers, setManagers] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const isMounted = useRef(true);
+
+  // Track if component is mounted to prevent state updates after unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Fetch managers on component mount - only once
   useEffect(() => {
@@ -38,18 +47,23 @@ export const useAnalyticsFilters = () => {
           return;
         }
 
-        // Extract unique manager names
-        const uniqueManagers = Array.from(new Set(
-          data
-            .map(item => item.manager)
-            .filter(Boolean) // Remove null/undefined values
-        ));
-        
-        setManagers(uniqueManagers as string[]);
+        // Only update state if component is still mounted
+        if (isMounted.current) {
+          // Extract unique manager names
+          const uniqueManagers = Array.from(new Set(
+            data
+              .map(item => item.manager)
+              .filter(Boolean) // Remove null/undefined values
+          ));
+          
+          setManagers(uniqueManagers as string[]);
+        }
       } catch (error) {
         console.error('Error in fetchManagers:', error);
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     };
 

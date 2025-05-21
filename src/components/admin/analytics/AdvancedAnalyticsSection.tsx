@@ -1,5 +1,5 @@
 
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, memo, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterCard } from "./FilterCard";
 import { useAnalyticsFilters } from "./useAnalyticsFilters";
@@ -42,6 +42,38 @@ export const AdvancedAnalyticsSection = memo(({ onFilterChange }: AdvancedAnalyt
     setActiveTab(value);
   };
 
+  // Memoize FilterCard props to prevent unnecessary re-renders
+  const filterCardProps = useMemo(() => ({
+    filters,
+    availableClusters,
+    managers,
+    comparisonModes: COMPARISON_MODES,
+    activeFiltersCount,
+    onCityChange: handleCityChange,
+    onClusterChange: handleClusterChange,
+    onManagerChange: handleManagerChange,
+    onRoleChange: handleRoleChange,
+    onIssueTypeChange: handleIssueTypeChange,
+    onDateRangeChange: handleDateRangeChange,
+    onComparisonModeToggle: handleComparisonModeToggle,
+    onComparisonModeChange: handleComparisonModeChange,
+    onClearFilters: clearFilters
+  }), [
+    filters,
+    availableClusters,
+    managers,
+    activeFiltersCount,
+    handleCityChange,
+    handleClusterChange,
+    handleManagerChange,
+    handleRoleChange,
+    handleIssueTypeChange,
+    handleDateRangeChange,
+    handleComparisonModeToggle,
+    handleComparisonModeChange,
+    clearFilters
+  ]);
+
   return (
     <Card className="shadow-lg">
       <CardHeader className="bg-blue-500 text-white rounded-t-lg">
@@ -52,22 +84,7 @@ export const AdvancedAnalyticsSection = memo(({ onFilterChange }: AdvancedAnalyt
       </CardHeader>
       
       <CardContent className="p-0">
-        <FilterCard
-          filters={filters}
-          availableClusters={availableClusters}
-          activeFiltersCount={activeFiltersCount}
-          managers={managers}
-          comparisonModes={COMPARISON_MODES}
-          onCityChange={handleCityChange}
-          onClusterChange={handleClusterChange}
-          onManagerChange={handleManagerChange}
-          onRoleChange={handleRoleChange}
-          onIssueTypeChange={handleIssueTypeChange}
-          onDateRangeChange={handleDateRangeChange}
-          onComparisonModeToggle={handleComparisonModeToggle}
-          onComparisonModeChange={handleComparisonModeChange}
-          onClearFilters={clearFilters}
-        />
+        <FilterCard {...filterCardProps} />
 
         <Tabs
           defaultValue="trends"

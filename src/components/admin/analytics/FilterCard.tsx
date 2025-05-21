@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
@@ -8,17 +8,10 @@ import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions"
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { DateRangePicker, DateRange } from "./DateRangePicker";
 import { ComparisonMode } from "./types";
+import { Button } from "@/components/ui/button";
 
 interface FilterCardProps {
   filters: any;
-  handleCityChange?: (city: string) => void;
-  handleClusterChange?: (cluster: string) => void;
-  handleManagerChange?: (manager: string) => void;
-  handleRoleChange?: (role: string) => void;
-  handleIssueTypeChange?: (issueType: string) => void;
-  handleDateRangeChange?: (dateRange: DateRange) => void;
-  handleComparisonModeToggle?: (enabled: boolean) => void;
-  handleComparisonModeChange?: (mode: string) => void;
   availableClusters?: string[];
   managers?: string[];
   comparisonModes?: Array<{ value: string, label: string }>;
@@ -36,39 +29,20 @@ interface FilterCardProps {
 
 export const FilterCard: React.FC<FilterCardProps> = ({
   filters,
-  handleCityChange,
-  handleClusterChange,
-  handleManagerChange,
-  handleRoleChange,
-  handleIssueTypeChange,
-  handleDateRangeChange,
-  handleComparisonModeToggle,
-  handleComparisonModeChange,
   availableClusters = [],
   managers = [],
   comparisonModes = [],
-  activeFiltersCount,
-  onCityChange,
-  onClusterChange,
-  onManagerChange,
-  onRoleChange,
-  onIssueTypeChange,
-  onDateRangeChange,
-  onComparisonModeToggle,
-  onComparisonModeChange,
-  onClearFilters
+  activeFiltersCount = 0,
+  onCityChange = () => {},
+  onClusterChange = () => {},
+  onManagerChange = () => {},
+  onRoleChange = () => {},
+  onIssueTypeChange = () => {},
+  onDateRangeChange = () => {},
+  onComparisonModeToggle = () => {},
+  onComparisonModeChange = () => {},
+  onClearFilters = () => {}
 }) => {
-  // Use either the on* or handle* props - prefer on* for consistency
-  const cityChangeHandler = onCityChange || handleCityChange || (() => {});
-  const clusterChangeHandler = onClusterChange || handleClusterChange || (() => {});
-  const managerChangeHandler = onManagerChange || handleManagerChange || (() => {});
-  const roleChangeHandler = onRoleChange || handleRoleChange || (() => {});
-  const issueTypeChangeHandler = onIssueTypeChange || handleIssueTypeChange || (() => {});
-  const dateRangeChangeHandler = onDateRangeChange || handleDateRangeChange || (() => {});
-  const comparisonModeToggleHandler = onComparisonModeToggle || handleComparisonModeToggle || (() => {});
-  const comparisonModeChangeHandler = onComparisonModeChange || handleComparisonModeChange || (() => {});
-  const clearFiltersHandler = onClearFilters || (() => {});
-
   // Ensure filters is an object to prevent runtime errors
   const safeFilters = filters || {};
   const safeComparisonModes = Array.isArray(comparisonModes) ? comparisonModes : [];
@@ -76,23 +50,36 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Filters</CardTitle>
-        <CardDescription>
-          Filter the data to analyze specific trends
-          {activeFiltersCount !== undefined && activeFiltersCount > 0 && (
-            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-              {activeFiltersCount} active
-            </span>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-lg">Filters</CardTitle>
+            <CardDescription>
+              Filter the data to analyze specific trends
+              {activeFiltersCount > 0 && (
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {activeFiltersCount} active
+                </span>
+              )}
+            </CardDescription>
+          </div>
+          {activeFiltersCount > 0 && (
+            <Button
+              variant="outline" 
+              size="sm"
+              onClick={onClearFilters}
+            >
+              Clear Filters
+            </Button>
           )}
-        </CardDescription>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
             <Select 
-              value={safeFilters.city || ""} 
-              onValueChange={cityChangeHandler}
+              value={safeFilters.city || "all-cities"} 
+              onValueChange={onCityChange}
             >
               <SelectTrigger id="city">
                 <SelectValue placeholder="All Cities" />
@@ -109,8 +96,8 @@ export const FilterCard: React.FC<FilterCardProps> = ({
           <div className="space-y-2">
             <Label htmlFor="cluster">Cluster</Label>
             <Select 
-              value={safeFilters.cluster || ""} 
-              onValueChange={clusterChangeHandler}
+              value={safeFilters.cluster || "all-clusters"} 
+              onValueChange={onClusterChange}
               disabled={!safeFilters.city}
             >
               <SelectTrigger id="cluster">
@@ -128,8 +115,8 @@ export const FilterCard: React.FC<FilterCardProps> = ({
           <div className="space-y-2">
             <Label htmlFor="manager">Manager</Label>
             <Select 
-              value={safeFilters.manager || ""} 
-              onValueChange={managerChangeHandler}
+              value={safeFilters.manager || "all-managers"} 
+              onValueChange={onManagerChange}
             >
               <SelectTrigger id="manager">
                 <SelectValue placeholder="All Managers" />
@@ -146,8 +133,8 @@ export const FilterCard: React.FC<FilterCardProps> = ({
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <Select 
-              value={safeFilters.role || ""} 
-              onValueChange={roleChangeHandler}
+              value={safeFilters.role || "all-roles"} 
+              onValueChange={onRoleChange}
             >
               <SelectTrigger id="role">
                 <SelectValue placeholder="All Roles" />
@@ -164,8 +151,8 @@ export const FilterCard: React.FC<FilterCardProps> = ({
           <div className="space-y-2">
             <Label htmlFor="issueType">Issue Type</Label>
             <Select 
-              value={safeFilters.issueType || ""} 
-              onValueChange={issueTypeChangeHandler}
+              value={safeFilters.issueType || "all-issues"} 
+              onValueChange={onIssueTypeChange}
             >
               <SelectTrigger id="issueType">
                 <SelectValue placeholder="All Issue Types" />
@@ -183,7 +170,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             <Label>Date Range</Label>
             <DateRangePicker 
               date={safeFilters.dateRange || {}} 
-              onChange={dateRangeChangeHandler} 
+              onChange={onDateRangeChange} 
             />
           </div>
 
@@ -200,7 +187,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               <Switch 
                 id="comparison-mode-toggle"
                 checked={!!safeFilters.isComparisonModeEnabled}
-                onCheckedChange={comparisonModeToggleHandler}
+                onCheckedChange={onComparisonModeToggle}
                 className={safeFilters.isComparisonModeEnabled ? "bg-blue-600" : ""}
               />
             </div>
@@ -208,7 +195,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               <div className="pt-2">
                 <Select 
                   value={safeFilters.comparisonMode || ""} 
-                  onValueChange={comparisonModeChangeHandler}
+                  onValueChange={onComparisonModeChange}
                   disabled={!safeFilters.isComparisonModeEnabled}
                 >
                   <SelectTrigger id="comparisonMode">
