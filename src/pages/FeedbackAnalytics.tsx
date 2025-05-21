@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -35,9 +36,9 @@ const TICKET_CATEGORIES = [
   { id: "other", name: "Other" }
 ];
 
-const FEEDBACK_TYPES: {value: "agent" | "solution" | "both"; label: string}[] = [
+const FEEDBACK_TYPES: {value: "agent" | "resolution" | "both"; label: string}[] = [
   { value: "agent", label: "Agent" },
-  { value: "solution", label: "Solution" },
+  { value: "resolution", label: "Resolution" },
   { value: "both", label: "Both" }
 ];
 
@@ -47,7 +48,7 @@ const FeedbackAnalytics = () => {
   const [selectedCluster, setSelectedCluster] = useState<string>("all");
   const [selectedResolver, setSelectedResolver] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "solution" | "both">("both");
+  const [selectedFeedbackType, setSelectedFeedbackType] = useState<"agent" | "resolution" | "both">("both");
   const [selectedComparisonMode, setSelectedComparisonMode] = useState<"day" | "week" | "month" | "quarter" | "year">("day");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: undefined,
@@ -104,7 +105,7 @@ const FeedbackAnalytics = () => {
 
   // Function to handle feedback type change with proper type checking
   const handleFeedbackTypeChange = (value: string) => {
-    if (value === "agent" || value === "solution" || value === "both") {
+    if (value === "agent" || value === "resolution" || value === "both") {
       setSelectedFeedbackType(value);
     }
   };

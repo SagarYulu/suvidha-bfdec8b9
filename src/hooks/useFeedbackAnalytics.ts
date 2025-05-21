@@ -59,7 +59,7 @@ export const useFeedbackAnalytics = ({
           processedFilters.feedbackType = 'agent';
         } else if (view === 'solution') {
           // For solution view, we use 'resolution' type feedback
-          // Note the change from 'solution' to 'resolution' to match backend terminology
+          // to match backend terminology
           processedFilters.feedbackType = 'resolution';
         } else if (view === 'overview') {
           // In overview, we respect the user's selected feedbackType
