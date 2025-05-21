@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
@@ -82,6 +83,10 @@ const AdminAnalytics = () => {
     }));
   };
 
+  // Calculate the total of open and in-progress issues
+  const totalOpenAndInProgressIssues = analytics ? 
+    (analytics.openIssues || 0) + (analytics.inProgressIssues || 0) : 0;
+
   return (
     <AdminLayout title="Analytics">
       {isLoading ? (
@@ -135,10 +140,10 @@ const AdminAnalytics = () => {
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Open Issues</CardTitle>
+                <CardTitle className="text-lg">Open & In Progress</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{analytics?.openIssues || 0}</div>
+                <div className="text-3xl font-bold">{totalOpenAndInProgressIssues}</div>
                 <p className="text-xs text-muted-foreground mt-1">Issues pending resolution</p>
               </CardContent>
             </Card>
@@ -202,34 +207,7 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Issues by City</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={getCityBarData()}
-                    layout="vertical"
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 50,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="name" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Issues" fill="#1E40AF" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Issues by Cluster</CardTitle>
