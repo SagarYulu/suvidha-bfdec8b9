@@ -14,9 +14,13 @@ import CommentSection from "@/components/admin/issues/CommentSection";
 import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
 import IssueMappingSection from "@/components/admin/issues/IssueMappingSection";
+import InternalCommentSection from "@/components/admin/issues/InternalCommentSection";
+import { useRBAC } from "@/contexts/RBACContext";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const { hasPermission } = useRBAC();
+  
   const {
     issue,
     setIssue,
@@ -39,7 +43,24 @@ const AdminIssueDetails = () => {
     handleAddComment,
     formatDate,
     currentUserId,
+    
+    // Internal comments properties and functions
+    internalComments,
+    newInternalComment,
+    setNewInternalComment,
+    isSubmittingInternalComment,
+    internalCommenterNames,
+    isLoadingInternalComments,
+    handleAddInternalComment,
+    canViewInternalComments,
+    canAddInternalComments,
   } = useAdminIssue(id);
+
+  // Check if current user can reply to the employee (only HR Admin or Super Admin)
+  const canReplyToEmployee = hasPermission("manage:issues") && (
+    hasPermission("create:dashboardUser") || // HR Admin permission
+    hasPermission("manage:users") // Super Admin permission
+  );
 
   if (isLoading) {
     return <IssueLoading />;
@@ -74,6 +95,22 @@ const AdminIssueDetails = () => {
               getIssueTypeLabel={getIssueTypeLabel}
               getIssueSubTypeLabel={getIssueSubTypeLabel}
             />
+            
+            {/* Add Internal Comment Section */}
+            <InternalCommentSection
+              issueId={issue.id}
+              internalComments={internalComments}
+              newInternalComment={newInternalComment}
+              setNewInternalComment={setNewInternalComment}
+              handleAddInternalComment={handleAddInternalComment}
+              isSubmittingInternalComment={isSubmittingInternalComment}
+              commentersNames={internalCommenterNames}
+              formatDate={formatDate}
+              currentUserId={currentUserId}
+              canViewInternalComments={canViewInternalComments}
+              canAddInternalComments={canAddInternalComments}
+              isLoading={isLoadingInternalComments}
+            />
 
             <CommentSection
               issue={issue}
@@ -84,6 +121,7 @@ const AdminIssueDetails = () => {
               commenterNames={commenterNames}
               formatDate={formatDate}
               currentUser={currentUserId}
+              canReplyToEmployee={canReplyToEmployee}
             />
           </div>
           

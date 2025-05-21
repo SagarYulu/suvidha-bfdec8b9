@@ -251,7 +251,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       }
       
       // Special case for any authenticated user - can manage their assigned issues
-      if (permission === 'manage:issues' && authState.isAuthenticated) {
+      if (permission === 'manage:issues' && authState.isAuthenticated && authState.user?.id) {
         console.log('Authenticated user - granting access to manage assigned issues');
         return true;
       }

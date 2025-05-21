@@ -229,6 +229,41 @@ export type Database = {
           },
         ]
       }
+      issue_internal_comments: {
+        Row: {
+          content: string
+          created_at: string
+          employee_uuid: string
+          id: string
+          issue_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          employee_uuid: string
+          id?: string
+          issue_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          employee_uuid?: string
+          id?: string
+          issue_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "issue_internal_comments_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issue_notifications: {
         Row: {
           content: string

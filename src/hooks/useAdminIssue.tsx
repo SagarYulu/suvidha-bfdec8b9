@@ -4,6 +4,7 @@ import { useIssueAssignment } from "./issues/useIssueAssignment";
 import { useIssueStatus } from "./issues/useIssueStatus";
 import { useIssueComments } from "./issues/useIssueComments";
 import { useIssueReopen } from "./issues/useIssueReopen";
+import { useInternalComments } from "./issues/useInternalComments";
 
 export const useAdminIssue = (issueId?: string) => {
   // Get core issue details
@@ -36,13 +37,26 @@ export const useAdminIssue = (issueId?: string) => {
     handleStatusChange
   } = useIssueStatus(issueId, issue, status, currentUserId, setIssue);
   
-  // Handle issue comments
+  // Handle issue comments (visible to employee)
   const {
     newComment,
     setNewComment,
     isSubmittingComment,
     handleAddComment
   } = useIssueComments(issueId, currentUserId, setIssue);
+  
+  // Handle internal comments (not visible to employee)
+  const {
+    internalComments,
+    newInternalComment,
+    setNewInternalComment,
+    isSubmittingInternalComment,
+    commentersNames: internalCommenterNames,
+    isLoading: isLoadingInternalComments,
+    handleAddInternalComment,
+    canViewInternalComments,
+    canAddInternalComments
+  } = useInternalComments(issueId, currentAssigneeId);
   
   // Handle issue reopening
   const {
@@ -65,16 +79,27 @@ export const useAdminIssue = (issueId?: string) => {
   return {
     // Issue details
     issue,
-    setIssue,  // <-- Make sure we export setIssue for the mapping feature
+    setIssue,
     employee,
     isLoading,
     commenterNames,
     status,
     
-    // Comments
+    // Comments (visible to employee)
     newComment,
     setNewComment,
     isSubmittingComment,
+    
+    // Internal comments (not visible to employee)
+    internalComments,
+    newInternalComment,
+    setNewInternalComment,
+    isSubmittingInternalComment,
+    internalCommenterNames,
+    isLoadingInternalComments,
+    handleAddInternalComment,
+    canViewInternalComments,
+    canAddInternalComments,
     
     // Status
     isUpdatingStatus,
