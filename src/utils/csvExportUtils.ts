@@ -99,3 +99,36 @@ export const exportResolutionTimeTrendToCSV = (
   
   exportToCSV(formattedData, filename);
 };
+
+/**
+ * Export general chart data to CSV
+ */
+export const exportChartDataToCSV = (
+  data: Array<Record<string, any>>,
+  chartTitle: string,
+  options?: {
+    prefix?: string;
+    keyMapping?: Record<string, string>;
+  }
+): void => {
+  const prefix = options?.prefix || 'chart';
+  const formattedDate = new Date().toISOString().split('T')[0];
+  const filename = `${prefix}-${chartTitle.toLowerCase().replace(/\s+/g, '-')}-${formattedDate}.csv`;
+  
+  // Apply key mapping if provided
+  if (options?.keyMapping) {
+    const mappedData = data.map(item => {
+      const result: Record<string, any> = {};
+      Object.entries(item).forEach(([key, value]) => {
+        const newKey = options.keyMapping?.[key] || key;
+        result[newKey] = value;
+      });
+      return result;
+    });
+    
+    exportToCSV(mappedData, filename);
+    return;
+  }
+  
+  exportToCSV(data, filename);
+};

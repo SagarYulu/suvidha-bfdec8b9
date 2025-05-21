@@ -1,9 +1,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button"; 
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { calculateWorkingHours, determinePriority } from "@/utils/workingTimeUtils";
+import { exportToCSV } from "@/utils/csvExportUtils";
 
 interface SLAMetricProps {
   icon: React.ReactNode;
@@ -39,13 +41,19 @@ interface SLACardProps {
   withinSLAPercentage: number;
   breachedCount: number;
   breachedPercentage: number;
+  onExport: () => void;
 }
 
-const SLACard = ({ title, totalCount, withinSLACount, withinSLAPercentage, breachedCount, breachedPercentage }: SLACardProps) => {
+const SLACard = ({ title, totalCount, withinSLACount, withinSLAPercentage, breachedCount, breachedPercentage, onExport }: SLACardProps) => {
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg">{title}</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">{title}</CardTitle>
+          <Button variant="outline" size="sm" onClick={onExport}>
+            Export CSV
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <SLAMetric 
@@ -235,6 +243,46 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
   const closedBreachedPercentage = getPercentage(slaBreaches.closedResolved.breached, slaBreaches.closedResolved.total);
   const closedWithinSLAPercentage = getPercentage(slaBreaches.closedResolved.withinSLA, slaBreaches.closedResolved.total);
 
+  // Export functions
+  const exportOpenInProgressSLA = () => {
+    exportToCSV([
+      {
+        'Category': 'Open & In Progress Tickets',
+        'Total Tickets': slaBreaches.openInProgress.total,
+        'Within SLA': slaBreaches.openInProgress.withinSLA,
+        'SLA Breached': slaBreaches.openInProgress.breached,
+        'Within SLA (%)': openInProgressWithinSLAPercentage.toFixed(1),
+        'Breached (%)': openInProgressBreachedPercentage.toFixed(1)
+      }
+    ], `open-in-progress-sla-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const exportFirstResponseSLA = () => {
+    exportToCSV([
+      {
+        'Category': 'First Response Time',
+        'Total Tickets': slaBreaches.firstResponse.total,
+        'Within SLA': slaBreaches.firstResponse.withinSLA,
+        'SLA Breached': slaBreaches.firstResponse.breached,
+        'Within SLA (%)': firstResponseWithinSLAPercentage.toFixed(1),
+        'Breached (%)': firstResponseBreachedPercentage.toFixed(1)
+      }
+    ], `first-response-sla-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
+  const exportClosedResolvedSLA = () => {
+    exportToCSV([
+      {
+        'Category': 'Closed & Resolved Tickets',
+        'Total Tickets': slaBreaches.closedResolved.total,
+        'Within SLA': slaBreaches.closedResolved.withinSLA,
+        'SLA Breached': slaBreaches.closedResolved.breached,
+        'Within SLA (%)': closedWithinSLAPercentage.toFixed(1),
+        'Breached (%)': closedBreachedPercentage.toFixed(1)
+      }
+    ], `closed-resolved-sla-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
   // Display the dashboard with the updated metrics showing both counts and percentages
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -245,6 +293,7 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
         withinSLAPercentage={openInProgressWithinSLAPercentage}
         breachedCount={slaBreaches.openInProgress.breached}
         breachedPercentage={openInProgressBreachedPercentage}
+        onExport={exportOpenInProgressSLA}
       />
       <SLACard
         title="First Response Time SLA"
@@ -253,6 +302,7 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
         withinSLAPercentage={firstResponseWithinSLAPercentage}
         breachedCount={slaBreaches.firstResponse.breached}
         breachedPercentage={firstResponseBreachedPercentage}
+        onExport={exportFirstResponseSLA}
       />
       <SLACard
         title="Closed & Resolved Tickets"
@@ -261,6 +311,7 @@ export const SLADashboard = ({ filters }: SLADashboardProps) => {
         withinSLAPercentage={closedWithinSLAPercentage}
         breachedCount={slaBreaches.closedResolved.breached}
         breachedPercentage={closedBreachedPercentage}
+        onExport={exportClosedResolvedSLA}
       />
     </div>
   );
