@@ -7,6 +7,7 @@ import { TicketTrendAnalysis } from "./TicketTrendAnalysis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { SLADashboard } from "./SLADashboard";
+import { COMPARISON_MODES } from "./useAnalyticsFilters";
 
 interface AdvancedAnalyticsSectionProps {
   onFilterChange?: (filters: any) => void; // New prop to pass filters up to parent
@@ -27,6 +28,7 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
     handleComparisonModeToggle,
     handleComparisonModeChange,
     clearFilters,
+    managers
   } = useAnalyticsFilters();
 
   // Effect to pass filters up to parent when they change
@@ -101,6 +103,8 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
           filters={filters}
           availableClusters={availableClusters}
           activeFiltersCount={activeFiltersCount}
+          managers={managers}
+          comparisonModes={COMPARISON_MODES}
           onCityChange={onCityChange}
           onClusterChange={onClusterChange}
           onManagerChange={onManagerChange}

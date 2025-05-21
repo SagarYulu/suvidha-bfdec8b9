@@ -11,17 +11,28 @@ import { ComparisonMode } from "./types";
 
 interface FilterCardProps {
   filters: any;
-  handleCityChange: (city: string) => void;
-  handleClusterChange: (cluster: string) => void;
-  handleManagerChange: (manager: string) => void;
-  handleRoleChange: (role: string) => void;
-  handleIssueTypeChange: (issueType: string) => void;
-  handleDateRangeChange: (dateRange: DateRange) => void;
-  handleComparisonModeToggle: (enabled: boolean) => void;
-  handleComparisonModeChange: (mode: string) => void;
+  handleCityChange?: (city: string) => void;
+  handleClusterChange?: (cluster: string) => void;
+  handleManagerChange?: (manager: string) => void;
+  handleRoleChange?: (role: string) => void;
+  handleIssueTypeChange?: (issueType: string) => void;
+  handleDateRangeChange?: (dateRange: DateRange) => void;
+  handleComparisonModeToggle?: (enabled: boolean) => void;
+  handleComparisonModeChange?: (mode: string) => void;
   availableClusters: string[];
-  managers: string[];
-  comparisonModes: Array<{ value: string, label: string }>;
+  managers?: string[];
+  comparisonModes?: Array<{ value: string, label: string }>;
+  // Added missing props
+  activeFiltersCount?: number;
+  onCityChange: (city: string) => void;
+  onClusterChange: (cluster: string) => void;
+  onManagerChange: (manager: string) => void;
+  onRoleChange: (role: string) => void;
+  onIssueTypeChange: (issueType: string) => void;
+  onDateRangeChange: (dateRange: DateRange) => void;
+  onComparisonModeToggle: (enabled: boolean) => void;
+  onComparisonModeChange: (mode: string) => void;
+  onClearFilters: () => void;
 }
 
 export const FilterCard: React.FC<FilterCardProps> = ({
@@ -35,8 +46,18 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   handleComparisonModeToggle,
   handleComparisonModeChange,
   availableClusters,
-  managers,
-  comparisonModes
+  managers = [],
+  comparisonModes = [],
+  activeFiltersCount,
+  onCityChange,
+  onClusterChange,
+  onManagerChange,
+  onRoleChange,
+  onIssueTypeChange,
+  onDateRangeChange,
+  onComparisonModeToggle,
+  onComparisonModeChange,
+  onClearFilters
 }) => {
   return (
     <Card>
@@ -44,13 +65,18 @@ export const FilterCard: React.FC<FilterCardProps> = ({
         <CardTitle className="text-lg">Filters</CardTitle>
         <CardDescription>
           Filter the data to analyze specific trends
+          {activeFiltersCount !== undefined && activeFiltersCount > 0 && (
+            <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              {activeFiltersCount} active
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
-            <Select value={filters.city || ""} onValueChange={handleCityChange}>
+            <Select value={filters.city || ""} onValueChange={onCityChange}>
               <SelectTrigger id="city">
                 <SelectValue placeholder="All Cities" />
               </SelectTrigger>
@@ -67,7 +93,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             <Label htmlFor="cluster">Cluster</Label>
             <Select 
               value={filters.cluster || ""} 
-              onValueChange={handleClusterChange}
+              onValueChange={onClusterChange}
               disabled={!filters.city}
             >
               <SelectTrigger id="cluster">
@@ -84,13 +110,13 @@ export const FilterCard: React.FC<FilterCardProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="manager">Manager</Label>
-            <Select value={filters.manager || ""} onValueChange={handleManagerChange}>
+            <Select value={filters.manager || ""} onValueChange={onManagerChange}>
               <SelectTrigger id="manager">
                 <SelectValue placeholder="All Managers" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-managers">All Managers</SelectItem>
-                {managers.map(manager => (
+                {managers && managers.map(manager => (
                   <SelectItem key={manager} value={manager}>{manager}</SelectItem>
                 ))}
               </SelectContent>
@@ -99,7 +125,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
-            <Select value={filters.role || ""} onValueChange={handleRoleChange}>
+            <Select value={filters.role || ""} onValueChange={onRoleChange}>
               <SelectTrigger id="role">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
@@ -114,7 +140,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
 
           <div className="space-y-2">
             <Label htmlFor="issueType">Issue Type</Label>
-            <Select value={filters.issueType || ""} onValueChange={handleIssueTypeChange}>
+            <Select value={filters.issueType || ""} onValueChange={onIssueTypeChange}>
               <SelectTrigger id="issueType">
                 <SelectValue placeholder="All Issue Types" />
               </SelectTrigger>
@@ -131,7 +157,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             <Label>Date Range</Label>
             <DateRangePicker 
               date={filters.dateRange} 
-              onChange={handleDateRangeChange} 
+              onChange={onDateRangeChange} 
             />
           </div>
 
@@ -148,15 +174,15 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               <Switch 
                 id="comparison-mode-toggle"
                 checked={filters.isComparisonModeEnabled}
-                onCheckedChange={handleComparisonModeToggle}
+                onCheckedChange={onComparisonModeToggle}
                 className={filters.isComparisonModeEnabled ? "bg-blue-600" : ""}
               />
             </div>
-            {filters.isComparisonModeEnabled && (
+            {filters.isComparisonModeEnabled && comparisonModes && comparisonModes.length > 0 && (
               <div className="pt-2">
                 <Select 
                   value={filters.comparisonMode} 
-                  onValueChange={handleComparisonModeChange}
+                  onValueChange={onComparisonModeChange}
                   disabled={!filters.isComparisonModeEnabled}
                 >
                   <SelectTrigger id="comparisonMode">

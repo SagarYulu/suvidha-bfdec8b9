@@ -1,8 +1,9 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AdvancedFilters, ComparisonMode } from "./types";
 import { CLUSTER_OPTIONS } from "@/data/formOptions";
 import { DateRange } from "./DateRangePicker";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useAnalyticsFilters = () => {
   const [filters, setFilters] = useState<AdvancedFilters>({
@@ -19,7 +20,32 @@ export const useAnalyticsFilters = () => {
     comparisonMode: "day-by-day",
   });
 
-  const [managers, setManagers] = useState<string[]>(["All Managers"]);
+  const [managers, setManagers] = useState<string[]>([]);
+
+  // Fetch managers on component mount
+  useEffect(() => {
+    const fetchManagers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('employees')
+          .select('manager')
+          .not('manager', 'is', null);
+        
+        if (error) {
+          console.error('Error fetching managers:', error);
+          return;
+        }
+
+        // Extract unique manager names
+        const uniqueManagers = Array.from(new Set(data.map(item => item.manager))).filter(Boolean);
+        setManagers(uniqueManagers as string[]);
+      } catch (error) {
+        console.error('Error in fetchManagers:', error);
+      }
+    };
+
+    fetchManagers();
+  }, []);
 
   // Available clusters based on selected city
   const availableClusters = useMemo(() => {
@@ -30,26 +56,38 @@ export const useAnalyticsFilters = () => {
   const handleCityChange = (city: string) => {
     setFilters(prev => ({ 
       ...prev, 
-      city,
+      city: city === "all-cities" ? null : city,
       // Reset cluster when city changes
       cluster: null
     }));
   };
 
   const handleClusterChange = (cluster: string) => {
-    setFilters(prev => ({ ...prev, cluster }));
+    setFilters(prev => ({ 
+      ...prev, 
+      cluster: cluster === "all-clusters" ? null : cluster 
+    }));
   };
 
   const handleManagerChange = (manager: string) => {
-    setFilters(prev => ({ ...prev, manager }));
+    setFilters(prev => ({ 
+      ...prev, 
+      manager: manager === "all-managers" ? null : manager 
+    }));
   };
 
   const handleRoleChange = (role: string) => {
-    setFilters(prev => ({ ...prev, role }));
+    setFilters(prev => ({ 
+      ...prev, 
+      role: role === "all-roles" ? null : role 
+    }));
   };
 
   const handleIssueTypeChange = (issueType: string) => {
-    setFilters(prev => ({ ...prev, issueType }));
+    setFilters(prev => ({ 
+      ...prev, 
+      issueType: issueType === "all-issues" ? null : issueType 
+    }));
   };
 
   const handleDateRangeChange = (dateRange: DateRange) => {
