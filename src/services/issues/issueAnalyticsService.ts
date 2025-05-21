@@ -243,8 +243,8 @@ function generateTypeDistributionTrend(issues: Issue[], days: number): Array<{ d
   return result;
 }
 
-// Add getAnalytics function
-export function getAnalytics(filters?: AnalyticsFilters): Promise<{
+// Add getAnalytics function - fixed by making it async
+export async function getAnalytics(filters?: AnalyticsFilters): Promise<{
   totalIssues: number;
   openIssues: number;
   resolvedIssues: number;
