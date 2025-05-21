@@ -45,7 +45,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   handleDateRangeChange,
   handleComparisonModeToggle,
   handleComparisonModeChange,
-  availableClusters,
+  availableClusters = [],
   managers = [],
   comparisonModes = [],
   activeFiltersCount,
@@ -82,7 +82,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-cities">All Cities</SelectItem>
-                {CITY_OPTIONS.map(city => (
+                {CITY_OPTIONS && CITY_OPTIONS.map(city => (
                   <SelectItem key={city} value={city}>{city}</SelectItem>
                 ))}
               </SelectContent>
@@ -101,7 +101,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-clusters">All Clusters</SelectItem>
-                {availableClusters.map(cluster => (
+                {availableClusters && availableClusters.map(cluster => (
                   <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                 ))}
               </SelectContent>
@@ -131,7 +131,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-roles">All Roles</SelectItem>
-                {ROLE_OPTIONS.map(role => (
+                {ROLE_OPTIONS && ROLE_OPTIONS.map(role => (
                   <SelectItem key={role} value={role}>{role}</SelectItem>
                 ))}
               </SelectContent>
@@ -146,7 +146,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all-issues">All Issue Types</SelectItem>
-                {ISSUE_TYPES.map(type => (
+                {ISSUE_TYPES && ISSUE_TYPES.map(type => (
                   <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
                 ))}
               </SelectContent>

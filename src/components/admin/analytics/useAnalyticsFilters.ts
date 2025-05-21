@@ -21,11 +21,13 @@ export const useAnalyticsFilters = () => {
   });
 
   const [managers, setManagers] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // Fetch managers on component mount
   useEffect(() => {
     const fetchManagers = async () => {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('employees')
           .select('manager')
@@ -37,10 +39,17 @@ export const useAnalyticsFilters = () => {
         }
 
         // Extract unique manager names
-        const uniqueManagers = Array.from(new Set(data.map(item => item.manager))).filter(Boolean);
+        const uniqueManagers = Array.from(new Set(
+          data
+            .map(item => item.manager)
+            .filter(Boolean) // Remove null/undefined values
+        ));
+        
         setManagers(uniqueManagers as string[]);
       } catch (error) {
         console.error('Error in fetchManagers:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -128,6 +137,7 @@ export const useAnalyticsFilters = () => {
   return {
     filters,
     managers,
+    loading,
     availableClusters,
     activeFiltersCount,
     handleCityChange,

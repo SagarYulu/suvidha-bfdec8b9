@@ -11,6 +11,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
       
       try {
         console.log("Fetching advanced analytics data with filters:", filters);
@@ -127,13 +128,19 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         
         // Apply date range filter
         if (filters.dateRange && filters.dateRange.from) {
-          console.log("Filtering by date from:", filters.dateRange.from);
-          query = query.gte('created_at', filters.dateRange.from.toISOString());
+          const fromDate = filters.dateRange.from instanceof Date 
+            ? filters.dateRange.from.toISOString()
+            : filters.dateRange.from;
+          console.log("Filtering by date from:", fromDate);
+          query = query.gte('created_at', fromDate);
         }
         
         if (filters.dateRange && filters.dateRange.to) {
-          console.log("Filtering by date to:", filters.dateRange.to);
-          query = query.lte('created_at', filters.dateRange.to.toISOString());
+          const toDate = filters.dateRange.to instanceof Date
+            ? filters.dateRange.to.toISOString()
+            : filters.dateRange.to;
+          console.log("Filtering by date to:", toDate);
+          query = query.lte('created_at', toDate);
         }
         
         // Execute the query
@@ -145,7 +152,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         
         // For each issue, fetch its comments
         let issuesWithComments = [];
-        if (issues) {
+        if (issues && Array.isArray(issues)) {
           for (const issue of issues) {
             const { data: comments, error: commentsError } = await supabase
               .from('issue_comments')
@@ -163,7 +170,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
           }
         }
         
-        // Process the data if needed
+        // Process the data
         setData({
           rawIssues: issuesWithComments,
           // Add any derived metrics here if needed
@@ -171,6 +178,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       } catch (err: any) {
         console.error("Error in useAdvancedAnalytics:", err);
         setError(err);
+        setData({rawIssues: []});
       } finally {
         setIsLoading(false);
       }
