@@ -4,7 +4,8 @@
 
 // Re-export types
 import { IssueFilters } from "./issues/issueFilters";
-export type { IssueFilters };
+import { AnalyticsFilters } from "./issues/issueAnalyticsService";
+export type { IssueFilters, AnalyticsFilters };
 
 // Re-export all the functions from the modular services
 export { 
@@ -35,7 +36,8 @@ export {
 } from "./issues/issueCommentService";
 
 export { 
-  getAnalytics
+  getAnalytics,
+  getIssueAnalytics
 } from "./issues/issueAnalyticsService";
 
 export {

@@ -3,6 +3,11 @@ import { format, subDays, parseISO } from "date-fns";
 import { getIssues } from "./issueFetchService";
 import { getIssueTypeLabel, getIssueSubtypeLabel } from "./issueTypeHelpers";
 
+export interface AnalyticsFilters {
+  issueType?: string;
+  employeeUuids?: string[];
+}
+
 export interface IssueAnalyticsResponse extends IssueAnalytics {
   volumeTrend: Array<{
     date: string;
@@ -60,6 +65,7 @@ function calculateBaseAnalytics(issues: Issue[]): IssueAnalytics {
 
   issues.forEach(issue => {
     const typeLabel = getIssueTypeLabel(issue.typeId) || 'Unknown Type';
+    // Use optional chaining to safely access the city property
     const city = issue.city || 'Unknown City';
 
     issuesByType[typeLabel] = (issuesByType[typeLabel] || 0) + 1;
@@ -220,6 +226,121 @@ function generateTypeDistributionTrend(issues: Issue[], days: number): Array<{ d
   return result;
 }
 
+// Add getAnalytics function
+export async function getAnalytics(filters?: AnalyticsFilters): Promise<IssueAnalytics & {
+  typeCounts: { [key: string]: number };
+  cityCounts: { [key: string]: number };
+  clusterCounts: { [key: string]: number };
+  managerCounts: { [key: string]: number };
+  resolutionRate: number;
+  avgResolutionTime: number;
+  avgFirstResponseTime: number;
+}> {
+  try {
+    // Fetch all issues
+    const issues = await getIssues();
+    
+    // Filter issues if filters are provided
+    let filteredIssues = [...issues];
+    if (filters) {
+      if (filters.issueType) {
+        filteredIssues = filteredIssues.filter(issue => issue.typeId === filters.issueType);
+      }
+      if (filters.employeeUuids && filters.employeeUuids.length > 0) {
+        filteredIssues = filteredIssues.filter(issue => 
+          filters.employeeUuids?.includes(issue.employeeUuid)
+        );
+      }
+    }
+    
+    // Calculate base analytics
+    const baseAnalytics = calculateBaseAnalytics(filteredIssues);
+    
+    // Calculate additional metrics
+    const typeCounts: { [key: string]: number } = {};
+    const cityCounts: { [key: string]: number } = {};
+    const clusterCounts: { [key: string]: number } = {};
+    const managerCounts: { [key: string]: number } = {};
+    
+    // Calculate resolution rate
+    const totalIssues = filteredIssues.length;
+    const resolvedIssues = filteredIssues.filter(issue => 
+      issue.status === 'resolved' || issue.status === 'closed'
+    ).length;
+    const resolutionRate = totalIssues > 0 
+      ? (resolvedIssues / totalIssues) * 100 
+      : 0;
+    
+    // Calculate average resolution time (in hours)
+    let totalResolutionTime = 0;
+    let resolvedCount = 0;
+    
+    // Calculate average first response time (in hours)
+    let totalFirstResponseTime = 0;
+    let respondedCount = 0;
+    
+    filteredIssues.forEach(issue => {
+      // Process issue types
+      const typeLabel = getIssueTypeLabel(issue.typeId);
+      typeCounts[typeLabel] = (typeCounts[typeLabel] || 0) + 1;
+      
+      // Process cities
+      if (issue.city) {
+        cityCounts[issue.city] = (cityCounts[issue.city] || 0) + 1;
+      }
+      
+      // For now, we don't have cluster and manager directly on issues
+      // This is just a placeholder for future implementation
+      const clusterLabel = "All Clusters";
+      const managerLabel = "All Managers";
+      clusterCounts[clusterLabel] = (clusterCounts[clusterLabel] || 0) + 1;
+      managerCounts[managerLabel] = (managerCounts[managerLabel] || 0) + 1;
+      
+      // Calculate resolution time for resolved issues
+      if ((issue.status === 'resolved' || issue.status === 'closed') && issue.createdAt && issue.updatedAt) {
+        const createdAt = new Date(issue.createdAt);
+        const resolvedAt = new Date(issue.updatedAt);
+        const resolutionHours = (resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        totalResolutionTime += resolutionHours;
+        resolvedCount++;
+      }
+      
+      // For first response time, check if there are any comments
+      if (issue.comments && issue.comments.length > 0 && issue.createdAt) {
+        const createdAt = new Date(issue.createdAt);
+        const firstComment = issue.comments[0];
+        const firstResponseAt = new Date(firstComment.createdAt);
+        const responseHours = (firstResponseAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+        totalFirstResponseTime += responseHours;
+        respondedCount++;
+      }
+    });
+    
+    const avgResolutionTime = resolvedCount > 0 
+      ? Math.round((totalResolutionTime / resolvedCount) * 10) / 10 
+      : 0;
+      
+    const avgFirstResponseTime = respondedCount > 0 
+      ? Math.round((totalFirstResponseTime / respondedCount) * 10) / 10 
+      : 0;
+    
+    return {
+      ...baseAnalytics,
+      typeCounts,
+      cityCounts,
+      clusterCounts,
+      managerCounts,
+      resolutionRate,
+      avgResolutionTime,
+      avgFirstResponseTime
+    };
+  } catch (error) {
+    console.error("Error fetching analytics:", error);
+    throw error;
+  }
+}
+
 export default {
   getIssueAnalytics,
+  getAnalytics
 };
