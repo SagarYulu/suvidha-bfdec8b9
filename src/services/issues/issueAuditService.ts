@@ -1,103 +1,155 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-export const getIssueAuditTrail = async (issueId: string) => {
+// Helper function to log audit trail
+export const logAuditTrail = async (
+  issueId: string, 
+  employeeUuid: string, 
+  action: string, 
+  previousStatus?: string, 
+  newStatus?: string,
+  details?: any
+) => {
   try {
-    const { data, error } = await supabase
-      .from('issue_audit_trail')
-      .select('*')
-      .eq('issue_id', issueId)
-      .order('created_at', { ascending: false });
+    // Make sure we have a valid issue ID
+    if (!issueId) {
+      console.error('Error: issueId is required for audit trail');
+      return;
+    }
+
+    // Convert any non-string employee UUID to string
+    let validEmployeeUuid = String(employeeUuid);
+    console.log(`Initial employeeUuid provided: "${validEmployeeUuid}"`);
+    
+    // Check if we have potentially invalid values or placeholder values
+    if (!validEmployeeUuid || 
+        validEmployeeUuid === 'undefined' || 
+        validEmployeeUuid === 'null' ||
+        validEmployeeUuid === 'system') {
+      
+      console.warn(`Warning: Invalid or missing employeeUuid: "${validEmployeeUuid}" for action "${action}". Fetching current user from session.`);
+      
+      try {
+        // Get the current authenticated user
+        const { data } = await supabase.auth.getSession();
+        const session = data?.session;
+        
+        if (session?.user?.id) {
+          validEmployeeUuid = session.user.id;
+          console.log(`Using authenticated user ID from session: ${validEmployeeUuid}`);
+        } else {
+          // Look for dashboardUser in localStorage
+          const mockUserStr = localStorage.getItem('mockUser');
+          if (mockUserStr) {
+            try {
+              const mockUser = JSON.parse(mockUserStr);
+              if (mockUser && mockUser.id) {
+                validEmployeeUuid = mockUser.id;
+                console.log(`Using mockUser ID from localStorage: ${validEmployeeUuid}`);
+              }
+            } catch (e) {
+              console.error("Error parsing mock user:", e);
+            }
+          }
+          
+          // If still no valid ID, look for yuluUser
+          if (validEmployeeUuid === 'system' || !validEmployeeUuid) {
+            const yuluUserStr = localStorage.getItem('yuluUser');
+            if (yuluUserStr) {
+              try {
+                const yuluUser = JSON.parse(yuluUserStr);
+                if (yuluUser && yuluUser.id) {
+                  validEmployeeUuid = yuluUser.id;
+                  console.log(`Using yuluUser ID from localStorage: ${validEmployeeUuid}`);
+                }
+              } catch (e) {
+                console.error("Error parsing yulu user:", e);
+              }
+            }
+          }
+          
+          // If still no valid user, use a last resort fallback
+          if (validEmployeeUuid === 'system' || !validEmployeeUuid) {
+            console.error('No authenticated user found. Using fallback ID.');
+            validEmployeeUuid = 'system-fallback';
+          }
+        }
+      } catch (error) {
+        console.error('Error getting session:', error);
+        validEmployeeUuid = employeeUuid || 'system-fallback';
+      }
+    }
+    
+    console.log(`Final employeeUuid being used for audit: ${validEmployeeUuid}`);
+
+    // Insert the audit trail entry with the validated employee UUID
+    const { data, error } = await supabase.from('issue_audit_trail').insert({
+      issue_id: issueId,
+      employee_uuid: validEmployeeUuid,
+      action,
+      previous_status: previousStatus,
+      new_status: newStatus,
+      details
+    });
     
     if (error) {
-      console.error("Error fetching audit trail:", error);
+      console.error('Error inserting audit trail:', error);
+      return;
+    }
+    
+    console.log(`Audit trail logged: ${action} for issue ${issueId} by user ${validEmployeeUuid}`);
+  } catch (error) {
+    console.error('Error logging audit trail:', error);
+  }
+};
+
+export const getAuditTrail = async (issueId?: string, limit = 100) => {
+  try {
+    let query = supabase
+      .from('issue_audit_trail')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (issueId) {
+      query = query.eq('issue_id', issueId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching audit trail:', error);
       return [];
     }
     
-    return data.map(item => ({
-      id: item.id,
-      issueId: item.issue_id,
-      employeeUuid: item.employee_uuid,
-      action: item.action,
-      previousStatus: item.previous_status,
-      newStatus: item.new_status,
-      details: item.details,
-      createdAt: item.created_at
-    }));
+    return data;
   } catch (error) {
-    console.error("Error in getIssueAuditTrail:", error);
+    console.error('Error in getAuditTrail:', error);
     return [];
   }
 };
 
-// Adding a new export for the function referenced in other files
+// Create a wrapper function with the name that's being imported
 export const createAuditLog = async (
   issueId: string,
   employeeUuid: string,
   action: string,
-  details?: Record<string, any>,
+  details?: any,
   description?: string
 ) => {
   try {
-    // Extract previous and new status from details if status_change action
-    const previousStatus = action === 'status_change' ? details?.previousStatus : null;
-    const newStatus = action === 'status_change' ? details?.newStatus : null;
-
-    const { data, error } = await supabase
-      .from('issue_audit_trail')
-      .insert({
-        issue_id: issueId,
-        employee_uuid: employeeUuid,
-        action,
-        previous_status: previousStatus,
-        new_status: newStatus,
-        details
-      });
-    
-    if (error) {
-      console.error("Error creating audit log:", error);
-      return false;
-    }
-    
+    // Use the existing logAuditTrail function
+    await logAuditTrail(
+      issueId,
+      employeeUuid,
+      action,
+      undefined, // previousStatus
+      undefined, // newStatus
+      details
+    );
+    console.log(`Audit log created: ${description || action} for issue ${issueId}`);
     return true;
   } catch (error) {
-    console.error("Error in createAuditLog:", error);
+    console.error('Error creating audit log:', error);
     return false;
   }
 };
-
-// Re-export logAuditTrail for backward compatibility
-export const logAuditTrail = async (
-  issueId: string,
-  employeeUuid: string,
-  action: string,
-  previousStatus?: string,
-  newStatus?: string,
-  details?: Record<string, any>
-) => {
-  try {
-    const { data, error } = await supabase
-      .from('issue_audit_trail')
-      .insert({
-        issue_id: issueId,
-        employee_uuid: employeeUuid,
-        action,
-        previous_status: previousStatus,
-        new_status: newStatus,
-        details
-      });
-    
-    if (error) {
-      console.error("Error logging audit trail:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error in logAuditTrail:", error);
-    return false;
-  }
-};
-
-// Alias for getIssueAuditTrail to fix import errors
-export const getAuditTrail = getIssueAuditTrail;

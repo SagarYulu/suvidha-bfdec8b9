@@ -1,10 +1,10 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { checkUserPermission, getPermissions, ensurePermissionsExist } from '@/services/rbacService';
+import { checkUserPermission, getPermissions } from '@/services/rbacService';
 import { toast } from "@/hooks/use-toast";
 
-// Define permission types - ensure all dashboard pages have corresponding permissions
+// Define permission types
 export type Permission = 
   | 'view:dashboard' 
   | 'manage:users' 
@@ -12,10 +12,7 @@ export type Permission =
   | 'manage:analytics'
   | 'manage:settings'
   | 'access:security'
-  | 'create:dashboardUser'
-  | 'view:assigned_issues'  
-  | 'view:feedback'         
-  | 'view:resolution';     
+  | 'create:dashboardUser';
 
 // Define context type
 type RBACContextType = {
@@ -52,7 +49,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
   
   // Fetch permissions on auth state change
   useEffect(() => {
-    if (authState.isAuthenticated) {
+    if (authState.isAuthenticated && authState.user?.id) {
       refreshPermissions();
     } else {
       setPermissionCache({});
@@ -67,7 +64,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
   
   // Function to refresh permissions from the database
   const refreshPermissions = async () => {
-    if (!authState.isAuthenticated) {
+    if (!authState.isAuthenticated || !authState.user?.id) {
       setPermissionCache({});
       setIsLoading(false);
       return;
@@ -76,12 +73,8 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
-      // First, ensure all permissions exist in the database
-      await ensurePermissionsExist();
-      
       // Special handling for admin users by email
-      if (authState.user?.email === 'admin@yulu.com' || 
-          authState.user?.email === 'sagar.km@yulu.bike') {
+      if (authState.user.email === 'admin@yulu.com') {
         console.log('Default admin account detected - granting all permissions');
         const allPermissions = {
           'view:dashboard': true,
@@ -90,10 +83,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           'manage:analytics': true,
           'manage:settings': true,
           'access:security': true,
-          'create:dashboardUser': true,
-          'view:assigned_issues': true,
-          'view:feedback': true,
-          'view:resolution': true
+          'create:dashboardUser': true
         };
         setPermissionCache(allPermissions);
         setIsLoading(false);
@@ -101,7 +91,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       }
       
       // Special handling for non-UUID users
-      if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {
+      if (authState.user.id === 'security-user-1' && authState.role === 'security-admin') {
         // Grant all permissions to this demo user
         console.log('Security admin demo account - granting all permissions');
         const demoPermissions = {
@@ -111,12 +101,27 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           'manage:analytics': true,
           'manage:settings': true,
           'access:security': true,
-          'create:dashboardUser': true,
-          'view:assigned_issues': true,
-          'view:feedback': true,
-          'view:resolution': true
+          'create:dashboardUser': true
         };
         setPermissionCache(demoPermissions);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Skip UUID validation for the developer account
+      if (authState.user.email === 'sagar.km@yulu.bike') {
+        // Grant all permissions to developer account
+        console.log('Developer account - granting all permissions');
+        const allPermissions = {
+          'view:dashboard': true,
+          'manage:users': true,
+          'manage:issues': true,
+          'manage:analytics': true,
+          'manage:settings': true,
+          'access:security': true,
+          'create:dashboardUser': true
+        };
+        setPermissionCache(allPermissions);
         setIsLoading(false);
         return;
       }
@@ -130,9 +135,9 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       
       // Safely access possible extended user properties
       const extendedUser = authState.user as ExtendedUser;
-      const userIdForPermissions = extendedUser?.user_id && isValidUuid(extendedUser.user_id)
+      const userIdForPermissions = extendedUser.user_id && isValidUuid(extendedUser.user_id)
         ? extendedUser.user_id
-        : (authState.user?.id && isValidUuid(authState.user.id) ? authState.user.id : null);
+        : (isValidUuid(authState.user.id) ? authState.user.id : null);
       
       if (userIdForPermissions) {
         console.log("Using ID for permission checks:", userIdForPermissions);
@@ -155,24 +160,6 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           for (const perm of allPermissions) {
             cache[perm.name] = true;
           }
-        } else if (authState.role === 'HR Admin') {
-          // HR Admin specific permissions
-          console.log('HR Admin role detected - granting specific permissions');
-          cache['view:dashboard'] = true;
-          cache['manage:users'] = true;
-          cache['manage:issues'] = true; 
-          cache['view:assigned_issues'] = true;
-          cache['view:feedback'] = true;
-          cache['view:resolution'] = true;
-        } else if (authState.role === 'Payroll Ops') {
-          // Payroll Ops specific permissions
-          console.log('Payroll Ops role detected - granting specific permissions');
-          cache['view:dashboard'] = true;
-          cache['manage:settings'] = true;
-          cache['manage:issues'] = true;
-          cache['view:assigned_issues'] = true;
-          cache['view:feedback'] = true;
-          cache['view:resolution'] = true;
         } else if (authState.role === 'security-admin') {
           console.log('Security admin role detected - granting specific permissions');
           cache['view:dashboard'] = true;
@@ -181,19 +168,12 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         } else if (authState.role === 'City Head' || 
                    authState.role === 'Revenue and Ops Head' || 
                    authState.role === 'CRM' || 
-                   authState.role === 'Cluster Head') {
+                   authState.role === 'Cluster Head' || 
+                   authState.role === 'Payroll Ops' || 
+                   authState.role === 'HR Admin') {
           console.log('Management role detected - granting dashboard access');
           cache['view:dashboard'] = true;
           cache['manage:issues'] = true;
-          cache['view:assigned_issues'] = true;
-          // Special case for Revenue and Ops Head
-          if (authState.role === 'Revenue and Ops Head') {
-            cache['manage:analytics'] = true;
-          }
-          // Special case for CRM
-          if (authState.role === 'CRM') {
-            cache['manage:users'] = true;
-          }
         }
       }
       
@@ -243,68 +223,15 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return true;
       }
       
-      // HR Admin specific permissions - Explicitly grant manage:issues and other relevant permissions
-      if (authState.role === 'HR Admin') {
-        if (permission === 'view:dashboard' || 
-            permission === 'manage:users' || 
-            permission === 'manage:issues' ||
-            permission === 'view:assigned_issues' ||
-            permission === 'view:feedback' ||
-            permission === 'view:resolution') {
-          console.log('HR Admin role - granting permission:', permission);
-          return true;
-        }
-      }
-      
-      // Payroll Ops specific permissions - Explicitly grant manage:issues and other relevant permissions
-      if (authState.role === 'Payroll Ops') {
-        if (permission === 'view:dashboard' || 
-            permission === 'manage:settings' || 
-            permission === 'manage:issues' ||
-            permission === 'view:assigned_issues' ||
-            permission === 'view:feedback' ||
-            permission === 'view:resolution') {
-          console.log('Payroll Ops role - granting permission:', permission);
-          return true;
-        }
-      }
-      
-      // For security-admin role
-      if (authState.role === 'security-admin') {
-        if (permission === 'view:dashboard' || 
-            permission === 'access:security' || 
-            permission === 'manage:users') {
-          console.log('Security admin role - granting permission:', permission);
-          return true;
-        }
-      }
-      
-      // City Head & Cluster Head permissions
-      if ((authState.role === 'City Head' || authState.role === 'Cluster Head') && 
-          (permission === 'view:dashboard' || 
-           permission === 'manage:issues' ||
-           permission === 'view:assigned_issues')) {
-        console.log('City/Cluster Head role - granting permission:', permission);
-        return true;
-      }
-      
-      // Revenue and Ops Head permissions
-      if (authState.role === 'Revenue and Ops Head' && 
-          (permission === 'view:dashboard' || 
-           permission === 'manage:issues' ||
-           permission === 'manage:analytics' ||
-           permission === 'view:assigned_issues')) {
-        console.log('Revenue and Ops Head role - granting permission:', permission);
-        return true;
-      }
-      
-      // CRM permissions
-      if (authState.role === 'CRM' && 
-          (permission === 'view:dashboard' || 
-           permission === 'manage:issues' ||
-           permission === 'manage:users' ||
-           permission === 'view:assigned_issues')) {
-        console.log('CRM role - granting permission:', permission);
+      // For management roles, grant specific dashboard permissions
+      if ((permission === 'view:dashboard' || permission === 'manage:issues') && 
+          (authState.role === 'City Head' || 
+           authState.role === 'Revenue and Ops Head' || 
+           authState.role === 'CRM' || 
+           authState.role === 'Cluster Head' || 
+           authState.role === 'Payroll Ops' || 
+           authState.role === 'HR Admin')) {
+        console.log('Management role - granting permission:', permission);
         return true;
       }
       

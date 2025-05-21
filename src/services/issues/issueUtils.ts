@@ -45,11 +45,8 @@ const userNameCache: Record<string, string> = {};
  * Provides caching to reduce API calls
  */
 export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<string> => {
-  console.log("Looking up name for employee UUID:", employeeUuid);
-  
   // Return from cache if available
   if (userNameCache[employeeUuid]) {
-    console.log("Found in cache:", userNameCache[employeeUuid]);
     return userNameCache[employeeUuid];
   }
   
@@ -60,42 +57,17 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
   }
   
   // Handle security-user IDs - including when they have numbers after
-  if (employeeUuid && typeof employeeUuid === 'string' && employeeUuid.startsWith("security-user")) {
+  if (employeeUuid.startsWith("security-user")) {
     userNameCache[employeeUuid] = "Security Team";
     return "Security Team";
   }
   
-  // If user ID is null or undefined, return early
-  if (!employeeUuid) {
-    return "Not assigned";
-  }
-  
   try {
-    // IMPORTANT: First try to get from dashboard_users table
-    const { data: dashboardUser, error: dashboardError } = await supabase
-      .from('dashboard_users')
-      .select('name, role')
-      .eq('id', employeeUuid)
-      .single();
-      
-    if (!dashboardError && dashboardUser) {
-      console.log("Found dashboard user:", dashboardUser);
-      const nameWithRole = `${dashboardUser.name} (${dashboardUser.role})`;
-      userNameCache[employeeUuid] = nameWithRole;
-      return nameWithRole;
-    } else {
-      console.log("Not found in dashboard_users, trying employees table");
-    }
-    
-    // Try regular employees table
     const user = await getUserById(employeeUuid);
     if (user) {
       // Store in cache for future use
       userNameCache[employeeUuid] = user.name;
-      console.log("Found in employees:", user.name);
       return user.name;
-    } else {
-      console.log("User not found in employees either");
     }
   } catch (error) {
     console.error(`Error fetching user name for UUID ${employeeUuid}:`, error);
@@ -109,7 +81,7 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
  * Maps employee UUIDs to names in a batch for better performance
  */
 export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = [...new Set(employeeUuids.filter(id => id))]; // Filter out null/undefined
+  const uniqueIds = [...new Set(employeeUuids)];
   const result: Record<string, string> = {};
   
   await Promise.all(uniqueIds.map(async (uuid) => {

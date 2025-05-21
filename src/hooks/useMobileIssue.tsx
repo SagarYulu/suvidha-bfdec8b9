@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Issue, IssueComment } from "@/types";
+import { Issue } from "@/types";
 import { getIssueById, addComment } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
@@ -32,27 +31,6 @@ export function useMobileIssue(issueId: string | undefined) {
     issue.closedAt && 
     isTicketReopenable(issue.closedAt);
 
-  // Filter out private messages for mobile view
-  const filterPrivateMessages = (comments: IssueComment[]): IssueComment[] => {
-    if (!issue) return [];
-    
-    // In mobile view, only show comments that are public or from the current user
-    return comments.filter(comment => {
-      // Allow employee's own comments
-      if (comment.employeeUuid === currentUserId) {
-        return true;
-      }
-      
-      // For all other comments, check if private
-      // For now assume all comments between assignee and creator are private in admin view
-      const isPrivateMessage = 
-        (comment.employeeUuid === issue.assignedTo && issue.employeeUuid !== currentUserId) || 
-        (comment.employeeUuid === issue.employeeUuid && issue.assignedTo !== currentUserId);
-      
-      return !isPrivateMessage;
-    });
-  };
-
   useEffect(() => {
     const fetchIssue = async () => {
       if (!issueId) return;
@@ -70,19 +48,12 @@ export function useMobileIssue(issueId: string | undefined) {
           return;
         }
         
-        // Apply privacy filtering for comments
-        const filteredComments = filterPrivateMessages(issueData.comments);
-        const filteredIssue = {
-          ...issueData,
-          comments: filteredComments
-        };
-        
-        setIssue(filteredIssue);
-        console.log("Fetched issue data:", filteredIssue);
+        setIssue(issueData);
+        console.log("Fetched issue data:", issueData);
         
         // Fetch commenter names
         const uniqueUserIds = new Set<string>();
-        filteredComments.forEach(comment => uniqueUserIds.add(comment.employeeUuid));
+        issueData.comments.forEach(comment => uniqueUserIds.add(comment.employeeUuid));
         
         const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
           try {
@@ -121,47 +92,38 @@ export function useMobileIssue(issueId: string | undefined) {
         try {
           const refreshedIssue = await getIssueById(issueId);
           
-          if (refreshedIssue) {
-            // Apply privacy filtering for comments
-            const filteredComments = filterPrivateMessages(refreshedIssue.comments);
-            const filteredIssue = {
-              ...refreshedIssue,
-              comments: filteredComments
-            };
+          if (refreshedIssue && refreshedIssue.comments.length !== issue?.comments.length) {
+            console.log("Refreshed issue with updated comments:", refreshedIssue);
+            setIssue(refreshedIssue);
             
-            if (filteredComments.length !== issue?.comments.length) {
-              console.log("Refreshed issue with updated comments:", filteredIssue);
-              setIssue(filteredIssue);
+            // Update commenter names for any new comments
+            const uniqueUserIds = new Set<string>();
+            refreshedIssue.comments.forEach(comment => {
+              if (!commenterNames[comment.employeeUuid]) {
+                uniqueUserIds.add(comment.employeeUuid);
+              }
+            });
             
-              // Update commenter names for any new comments
-              const uniqueUserIds = new Set<string>();
-              filteredComments.forEach(comment => {
-                if (!commenterNames[comment.employeeUuid]) {
-                  uniqueUserIds.add(comment.employeeUuid);
+            if (uniqueUserIds.size > 0) {
+              const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
+                try {
+                  const user = await getUserById(employeeUuid);
+                  return user ? { employeeUuid, name: user.name } : null;
+                } catch (error) {
+                  return null;
                 }
               });
               
-              if (uniqueUserIds.size > 0) {
-                const namesPromises = Array.from(uniqueUserIds).map(async (employeeUuid) => {
-                  try {
-                    const user = await getUserById(employeeUuid);
-                    return user ? { employeeUuid, name: user.name } : null;
-                  } catch (error) {
-                    return null;
+              const results = await Promise.all(namesPromises);
+              setCommenterNames(prev => {
+                const updated = { ...prev };
+                results.forEach(result => {
+                  if (result) {
+                    updated[result.employeeUuid] = result.name;
                   }
                 });
-                
-                const results = await Promise.all(namesPromises);
-                setCommenterNames(prev => {
-                  const updated = { ...prev };
-                  results.forEach(result => {
-                    if (result) {
-                      updated[result.employeeUuid] = result.name;
-                    }
-                  });
-                  return updated;
-                });
-              }
+                return updated;
+              });
             }
           }
         } catch (error) {
@@ -208,15 +170,8 @@ export function useMobileIssue(issueId: string | undefined) {
         // Fetch the updated issue to get all comments
         const updatedIssue = await getIssueById(issueId);
         if (updatedIssue) {
-          // Apply privacy filtering for comments
-          const filteredComments = filterPrivateMessages(updatedIssue.comments);
-          const filteredIssue = {
-            ...updatedIssue,
-            comments: filteredComments
-          };
-          
-          console.log("Updated issue after adding comment:", filteredIssue);
-          setIssue(filteredIssue);
+          console.log("Updated issue after adding comment:", updatedIssue);
+          setIssue(updatedIssue);
           setNewComment("");
           toast({
             title: "Success",

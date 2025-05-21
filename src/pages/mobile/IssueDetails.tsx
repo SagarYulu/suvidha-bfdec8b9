@@ -38,16 +38,6 @@ const MobileIssueDetails = () => {
   const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
   const bgColor = isClosedOrResolved ? "bg-gray-500" : "bg-yulu-dashboard-blue"; // Using dashboard blue color
 
-  // Create a wrapper function that matches the expected function signature (no parameters)
-  // This is needed because IssueHeader expects a function with no parameters
-  const handleReopenTicket = () => {
-    // This function has the correct signature (no parameters) for the IssueHeader component
-    console.log("Reopen button clicked in header");
-    
-    // We won't actually call processReopenTicket here as it requires a reason parameter
-    // The actual reopening with reason will be handled by the ClosedIssueCommentNotice component
-  };
-
   return (
     <MobileLayout 
       title="Issue Details"
@@ -61,16 +51,14 @@ const MobileIssueDetails = () => {
           getIssueSubTypeLabel={getIssueSubTypeLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           isReopenable={isReopenable || false}
-          handleReopenTicket={handleReopenTicket}
+          handleReopenTicket={() => {}}
         />
         
         {isClosedOrResolved ? (
           <>
             <ClosedIssueCommentNotice 
               isReopenable={isReopenable || false}
-              onReopen={(reason: string) => processReopenTicket(reason)}
-              ticketId={issue.id}
-              resolverUuid={issue.assignedTo}
+              onReopen={processReopenTicket}
             />
             <CommentSection
               comments={issue.comments}

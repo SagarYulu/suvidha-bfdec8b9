@@ -23,11 +23,6 @@ const TicketAssignment = ({
   onAssigneeSelect,
   onAssign,
 }: TicketAssignmentProps) => {
-  // Determine if the current assignee is unknown or not found in the dropdown
-  const assigneeNotInDropdown = currentAssigneeId && 
-    !availableAssignees.some(a => a.value === currentAssigneeId) && 
-    currentAssigneeName.includes("Unknown");
-
   return (
     <Card>
       <CardHeader>
@@ -37,13 +32,8 @@ const TicketAssignment = ({
         <div className="space-y-4">
           <div>
             <h3 className="font-medium mb-1">Currently Assigned To:</h3>
-            <p className={`text-gray-800 ${assigneeNotInDropdown ? "text-amber-600" : ""}`}>
-              {currentAssigneeName}
-              {assigneeNotInDropdown && (
-                <span className="block text-xs text-amber-600 mt-1">
-                  This user may have been removed or renamed
-                </span>
-              )}
+            <p className="text-gray-800">
+              {currentAssigneeName ? currentAssigneeName : "Not assigned"}
             </p>
           </div>
           
@@ -57,7 +47,7 @@ const TicketAssignment = ({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select an agent" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent>
                 {availableAssignees.map((assignee) => (
                   <SelectItem key={assignee.value} value={assignee.value}>
                     {assignee.label}

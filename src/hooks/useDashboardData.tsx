@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAnalytics, AnalyticsFilters } from "@/services/issues/issueAnalyticsService";
+import { getAnalytics } from "@/services/issues/issueAnalyticsService";
 import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
 import { getUsers } from "@/services/userService";
 import { toast } from "sonner";
@@ -36,70 +36,21 @@ export const useDashboardData = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes before refetching
     refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
-
-  // This will help us map employees to cities and clusters for filtering
-  const [employeeUuidsByFilter, setEmployeeUuidsByFilter] = useState<string[]>([]);
   
-  // Effect to determine which employee UUIDs match the current filters
-  useEffect(() => {
-    const fetchEmployeeUuids = async () => {
-      // Only fetch if we have city or cluster filters
-      if (filters.city || filters.cluster) {
-        try {
-          const allUsers = await getUsers();
-          const filteredUuids = allUsers
-            .filter(user => {
-              // Apply city filter
-              if (filters.city && user.city !== filters.city) {
-                return false;
-              }
-              // Apply cluster filter
-              if (filters.cluster && user.cluster !== filters.cluster) {
-                return false;
-              }
-              return true;
-            })
-            .map(user => user.id);
-            
-          console.log(`Filtered ${filteredUuids.length} employee UUIDs based on city/cluster filters`);
-          setEmployeeUuidsByFilter(filteredUuids);
-        } catch (error) {
-          console.error("Error fetching employee UUIDs:", error);
-          setEmployeeUuidsByFilter([]);
-        }
-      } else {
-        // Clear the filter if no city/cluster filters
-        setEmployeeUuidsByFilter([]);
-      }
-    };
-    
-    fetchEmployeeUuids();
-  }, [filters.city, filters.cluster]);
-  
-  // Query for analytics data with proper caching - passing the filters
+  // Query for analytics data with proper caching - making sure to use the fresh filters
   const { 
     data: analytics, 
     isLoading: isAnalyticsLoading,
     refetch: refetchAnalytics,
     error: analyticsError
   } = useQuery({
-    queryKey: ['analytics', filters, employeeUuidsByFilter],
+    queryKey: ['analytics', filters],
     queryFn: async () => {
       console.log("Fetching analytics with filters:", filters);
-      
-      // Prepare analytics filters using our new interface
-      const analyticsFilters: AnalyticsFilters = {
-        issueType: filters.issueType || undefined,
-        employeeUuids: employeeUuidsByFilter.length > 0 ? employeeUuidsByFilter : undefined
-      };
-      
-      console.log("Using analytics filters:", analyticsFilters);
-      const result = await getAnalytics(analyticsFilters);
-      console.log("Analytics result:", result);
-      return result;
+      return getAnalytics(filters);
     },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes before refetching
+    refetchOnWindowFocus: false, // Prevent unwanted refetches
   });
   
   // Query for users data with proper caching

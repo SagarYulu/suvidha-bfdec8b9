@@ -31,7 +31,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useRBAC } from "@/contexts/RBACContext";
 import RolePermissionsManager from "@/components/rbac/RolePermissionsManager";
 import { checkUserRole, assignRole, removeRole } from "@/services/roleService";
-import { ensurePermissionsExist } from "@/services/rbacService";
 
 const AccessControl = () => {
   // Original state for user management
@@ -242,35 +241,6 @@ const AccessControl = () => {
     setErrorMessage(null);
   };
 
-  // Add a new function to initialize permissions
-  const initializePermissions = useCallback(async () => {
-    try {
-      setErrorMessage(null);
-      await ensurePermissionsExist();
-      toast({
-        title: "Permissions Initialized",
-        description: "All required permissions have been added to the database",
-      });
-      // Refresh permissions cache after initialization
-      await refreshPermissions();
-      // Reload the dashboard users to reflect any permission changes
-      await loadDashboardUsers();
-      // Refresh the current tab
-      if (activeTab === 'permissions') {
-        setActiveTab('refresh');
-        setTimeout(() => setActiveTab('permissions'), 100);
-      }
-    } catch (error) {
-      console.error("Error initializing permissions:", error);
-      setErrorMessage("Failed to initialize permissions. See console for details.");
-      toast({
-        title: "Error",
-        description: "Failed to initialize permissions",
-        variant: "destructive",
-      });
-    }
-  }, [refreshPermissions]);
-
   return (
     <AdminLayout title="Access Control">
       <div className="space-y-6">
@@ -283,10 +253,6 @@ const AccessControl = () => {
             <Button onClick={() => loadDashboardUsers()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
-            </Button>
-            <Button onClick={initializePermissions} variant="outline">
-              <Settings className="mr-2 h-4 w-4" />
-              Initialize Permissions
             </Button>
           </div>
         </div>

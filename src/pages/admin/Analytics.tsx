@@ -82,21 +82,6 @@ const AdminAnalytics = () => {
     }));
   };
 
-  // Calculate the total of open and in-progress issues
-  const totalOpenAndInProgressIssues = analytics ? 
-    (analytics.openIssues || 0) + (analytics.inProgressIssues || 0) : 0;
-
-  // Format resolution time for display (ensure it's in working hours)
-  const formatResolutionTime = (hours: number) => {
-    if (hours < 24) {
-      return `${hours.toFixed(1)} hrs`;
-    } else {
-      const days = Math.floor(hours / 8); // Convert to working days (8 hours per day)
-      const remainingHours = hours % 8;
-      return `${days}d ${remainingHours.toFixed(1)}h`;
-    }
-  };
-
   return (
     <AdminLayout title="Analytics">
       {isLoading ? (
@@ -133,10 +118,8 @@ const AdminAnalytics = () => {
                 <CardTitle className="text-lg">Avg Resolution Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
-                  {analytics ? formatResolutionTime(analytics.avgResolutionTime) : '0 hrs'}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Working hours to close issues</p>
+                <div className="text-3xl font-bold">{analytics?.avgResolutionTime || '0'} hrs</div>
+                <p className="text-xs text-muted-foreground mt-1">Average time to close issues</p>
               </CardContent>
             </Card>
             
@@ -145,19 +128,17 @@ const AdminAnalytics = () => {
                 <CardTitle className="text-lg">First Response Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">
-                  {analytics ? formatResolutionTime(analytics.avgFirstResponseTime) : '0 hrs'}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">Working hours to first response</p>
+                <div className="text-3xl font-bold">{analytics?.avgFirstResponseTime || '0'} hrs</div>
+                <p className="text-xs text-muted-foreground mt-1">Average time to first response</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Open & In Progress</CardTitle>
+                <CardTitle className="text-lg">Open Issues</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{totalOpenAndInProgressIssues}</div>
+                <div className="text-3xl font-bold">{analytics?.openIssues || 0}</div>
                 <p className="text-xs text-muted-foreground mt-1">Issues pending resolution</p>
               </CardContent>
             </Card>
@@ -221,7 +202,34 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Issues by City</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={getCityBarData()}
+                    layout="vertical"
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 50,
+                      bottom: 5,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis type="category" dataKey="name" />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name="Issues" fill="#1E40AF" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            
             <Card>
               <CardHeader>
                 <CardTitle>Issues by Cluster</CardTitle>

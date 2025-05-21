@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAssignedIssues, getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
-import { Issue } from "@/types";
+import { Issue, User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -38,11 +38,7 @@ const AssignedIssues = () => {
 
       setIsLoading(true);
       try {
-        console.log("Fetching assigned issues for user:", authState.user.id);
-        console.log("User role:", authState.role);
-        
         const assignedIssues = await getAssignedIssues(authState.user.id);
-        console.log("Fetched assigned issues:", assignedIssues.length);
         setIssues(assignedIssues);
       } catch (error) {
         console.error("Error fetching assigned issues:", error);
@@ -57,7 +53,7 @@ const AssignedIssues = () => {
     };
 
     fetchAssignedIssues();
-  }, [authState.user?.id, authState.role]);
+  }, [authState.user?.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {

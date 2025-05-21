@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +25,7 @@ export const useRoleAccess = () => {
       authState.user?.email === "sagar.km@yulu.bike" || 
       authState.user?.email === "admin@yulu.com"
     ) {
-      console.log(`useRoleAccess: Admin account - has permission: ${permission}`);
+      console.log(`useRoleAccess: Developer/admin account - has permission: ${permission}`);
       return true;
     }
 
@@ -41,41 +40,32 @@ export const useRoleAccess = () => {
     // Logic for checking role-specific permissions
     const permissions = authState.role ? getPermissionsForRole(authState.role) : [];
     if (permissions.includes(permission)) {
-      console.log(`useRoleAccess: User with role ${authState.role} has permission: ${permission}`);
+      console.log(`useRoleAccess: User has permission: ${permission}`);
       return true;
     }
     
-    console.log(`useRoleAccess: User with role ${authState.role} does not have permission: ${permission}`);
+    console.log(`useRoleAccess: User does not have permission: ${permission}`);
     return false;
   }, [authState]);
 
   // Legacy function that supports navigation and toasts
   // Simplified to prevent conflicting redirects
   const checkAccess = useCallback((permission: Permission, options: AccessCheckOptions = {}) => {
-    const { redirectTo = false, showToast = true } = options;
+    const { showToast = true } = options;
     
     // Check permission without side effects
     const hasAccess = hasPermission(permission);
     
-    if (!hasAccess) {
-      console.log(`useRoleAccess: Access denied for ${permission}`);
-      
-      if (showToast) {
-        toast({
-          title: "Access Denied",
-          description: `You don't have permission to access this resource.`,
-          variant: "destructive"
-        });
-      }
-      
-      if (redirectTo && typeof redirectTo === 'string') {
-        console.log(`useRoleAccess: Redirecting to ${redirectTo}`);
-        navigate(redirectTo, { replace: true });
-      }
+    if (!hasAccess && showToast) {
+      toast({
+        title: "Access Denied",
+        description: `You don't have permission to access this resource.`,
+        variant: "destructive"
+      });
     }
     
     return hasAccess;
-  }, [hasPermission, navigate]);
+  }, [hasPermission]);
 
   return {
     checkAccess,
@@ -85,7 +75,7 @@ export const useRoleAccess = () => {
   };
 };
 
-// Updated function to get permissions based on role
+// Mock function to get permissions based on role
 const getPermissionsForRole = (role: string): Permission[] => {
   switch (role) {
     case 'Super Admin':
@@ -96,10 +86,7 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser',
-        'view:assigned_issues',
-        'view:feedback',
-        'view:resolution'
+        'create:dashboardUser'
       ];
     case 'admin':
       return [
@@ -109,39 +96,22 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser',
-        'view:assigned_issues',
-        'view:feedback',
-        'view:resolution'
+        'create:dashboardUser'
       ];
     case 'City Head':
-      return ['view:dashboard', 'manage:issues', 'view:assigned_issues'];
+      return ['view:dashboard', 'manage:issues'];
     case 'Revenue and Ops Head':
-      return ['view:dashboard', 'manage:analytics', 'manage:issues', 'view:assigned_issues'];
+      return ['view:dashboard', 'manage:analytics'];
     case 'CRM':
-      return ['view:dashboard', 'manage:users', 'manage:issues', 'view:assigned_issues'];
+      return ['view:dashboard', 'manage:users'];
     case 'Cluster Head':
-      return ['view:dashboard', 'manage:issues', 'view:assigned_issues'];
+      return ['view:dashboard', 'manage:issues'];
     case 'Payroll Ops':
-      return [
-        'view:dashboard', 
-        'manage:issues', 
-        'manage:settings', 
-        'view:assigned_issues',
-        'view:feedback',
-        'view:resolution'
-      ];
+      return ['view:dashboard', 'manage:settings'];
     case 'HR Admin':
-      return [
-        'view:dashboard', 
-        'manage:users', 
-        'manage:issues',
-        'view:assigned_issues',
-        'view:feedback',
-        'view:resolution'
-      ];
+      return ['view:dashboard', 'manage:users'];
     case 'security-admin':
-      return ['view:dashboard', 'access:security', 'manage:users'];
+      return ['view:dashboard', 'access:security'];
     default:
       return [];
   }

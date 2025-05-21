@@ -1,62 +1,73 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip
+} from 'recharts';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { SENTIMENT_COLORS, getSentimentColor, hasData } from '@/components/charts/ChartUtils';
 
-interface SentimentPieChartProps {
-  data: { name: string; value: number }[];
+interface MobileSentimentPieChartProps {
+  data: Array<{
+    name: string;
+    value: number;
+  }> | undefined;
 }
 
-const MobileSentimentPieChart: React.FC<SentimentPieChartProps> = ({ data }) => {
-  const COLORS = {
-    'Positive': '#4CAF50',
-    'Negative': '#F44336',
-    'Neutral': '#FFC107',
-    'Unknown': '#9E9E9E'
-  };
+const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data }) => {
+  // Safely check if data exists and has items
+  const validData = hasData(data) ? data : [];
   
-  if (!data || data.length === 0) {
-    return (
-      <Card className="bg-white/10 text-white">
-        <CardContent className="p-4">
-          <div className="h-64 flex items-center justify-center">
-            <p className="text-center opacity-70">No sentiment data available</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="bg-white/10 text-white">
-      <CardContent className="p-4">
-        <h3 className="text-lg font-medium mb-2">Sentiment Distribution</h3>
+    <Card className="bg-white/90">
+      <CardHeader>
+        <CardTitle className="text-lg font-medium text-gray-800">Sentiment Distribution</CardTitle>
+      </CardHeader>
+      <CardContent>
         <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              >
-                {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[entry.name as keyof typeof COLORS] || '#9E9E9E'} 
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.8)', color: 'white', border: 'none' }}
-                formatter={(value) => [`${value} items`, '']}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          {validData && validData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={validData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  innerRadius={40}
+                  fill="#8884d8"
+                  dataKey="value"
+                  paddingAngle={3}
+                  label={({ name, percent }) => {
+                    // Safe handling of undefined values
+                    const displayName = name || 'Unknown';
+                    const displayPercent = percent ? (percent * 100).toFixed(0) : '0';
+                    return `${displayName}: ${displayPercent}%`;
+                  }}
+                >
+                  {validData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={getSentimentColor(entry.name)} 
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value) => [`${value} responses`, "Count"]}
+                  contentStyle={{ backgroundColor: "white", borderRadius: "8px", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-gray-500">No sentiment data available</p>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

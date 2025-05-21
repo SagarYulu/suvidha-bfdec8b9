@@ -191,7 +191,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectContent>
               <SelectItem value="all-cities">All Cities</SelectItem>
               {cities?.map((city) => (
-                <SelectItem key={city.id} value={city.id || "no-id"}>
+                <SelectItem key={city.id} value={city.id}>
                   {city.name}
                 </SelectItem>
               ))}
@@ -213,7 +213,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectContent>
               <SelectItem value="all-clusters">All Clusters</SelectItem>
               {clusters?.map((cluster) => (
-                <SelectItem key={cluster.id} value={cluster.id || "no-id"}>
+                <SelectItem key={cluster.id} value={cluster.id}>
                   {cluster.name}
                 </SelectItem>
               ))}
@@ -231,7 +231,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectContent>
               <SelectItem value="all-roles">All Roles</SelectItem>
               {roles?.map((role) => (
-                <SelectItem key={role.id} value={role.id || "no-id"}>
+                <SelectItem key={role.id} value={role.id}>
                   {role.name}
                 </SelectItem>
               ))}

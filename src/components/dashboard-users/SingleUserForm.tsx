@@ -247,9 +247,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                       </FormControl>
                       <SelectContent>
                         {DASHBOARD_USER_ROLES.map(role => (
-                          <SelectItem key={role} value={role || "default-role"}>
-                            {role}
-                          </SelectItem>
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -280,9 +278,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                       </FormControl>
                       <SelectContent>
                         {CITY_OPTIONS.map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
+                          <SelectItem key={city} value={city}>{city}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -309,9 +305,7 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
                       </FormControl>
                       <SelectContent>
                         {availableClusters.map((cluster) => (
-                          <SelectItem key={cluster} value={cluster}>
-                            {cluster}
-                          </SelectItem>
+                          <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
 import { createAuditLog } from "./issueAuditService";
-import { getEmployeeNameByUuid } from "./issueUtils";
 
 /**
  * Update the status of an issue
@@ -15,14 +14,6 @@ export const updateIssueStatus = async (
 ): Promise<Issue | null> => {
   try {
     console.log(`Updating issue status. Issue ID: ${issueId}, New Status: ${newStatus}, Provided UserID: ${userId}`);
-    
-    // Get current issue to track status change
-    const currentIssue = await getIssueById(issueId);
-    const previousStatus = currentIssue?.status;
-    
-    // Get resolver name for audit log
-    const resolverName = await getEmployeeNameByUuid(userId);
-    console.log(`Resolver name: ${resolverName}`);
     
     // Prepare update data without the last_status_change_at field
     const updateData: Record<string, any> = {
@@ -49,17 +40,13 @@ export const updateIssueStatus = async (
       throw error;
     }
     
-    // Create audit log entry with resolver info
+    // Create audit log entry
     await createAuditLog(
       issueId,
       userId,
       'status_change',
-      { 
-        previousStatus, 
-        newStatus,
-        resolverName // Include resolver name
-      },
-      `Issue status updated from ${previousStatus} to ${newStatus} by ${resolverName}`
+      { newStatus },
+      'Issue status updated'
     );
     
     // Get the complete updated issue

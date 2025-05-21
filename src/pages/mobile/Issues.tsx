@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import TicketFeedbackButton from "@/components/mobile/issues/TicketFeedbackButton";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -297,56 +296,39 @@ const MobileIssues = () => {
             </div>
           ) : filteredIssues.length > 0 ? (
             <div className="space-y-3">
-              {filteredIssues.map((issue) => {
-                const isClosedTicket = issue.status === "closed" || issue.status === "resolved";
-                
-                return (
-                  <div
-                    key={issue.id}
-                    className="bg-white rounded-lg p-4 active:bg-gray-50"
-                  >
-                    <div 
-                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="font-medium">
-                          {getIssueTypeLabel(issue.typeId)}
-                        </h3>
-                        <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
-                                        issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
-                                        "bg-green-500 text-white"}`}>
-                          {issue.status === "open" ? "Open / खुला" : 
-                          issue.status === "in_progress" ? "In progress / प्रगति पर" : 
-                          "Closed / बंद"}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
-                      </p>
-                      <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
-                      <div className="flex justify-between text-xs text-gray-500">
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {formatShortDate(issue.createdAt)}
-                        </span>
-                        <span className="flex items-center">
-                          {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Show feedback button only for closed tickets */}
-                    {isClosedTicket && authState.user?.id && (
-                      <TicketFeedbackButton
-                        ticketId={issue.id}
-                        resolverUuid={issue.assignedTo}
-                        employeeUuid={authState.user.id}
-                      />
-                    )}
+              {filteredIssues.map((issue) => (
+                <div
+                  key={issue.id}
+                  onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                  className="bg-white rounded-lg p-4 active:bg-gray-50"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium">
+                      {getIssueTypeLabel(issue.typeId)}
+                    </h3>
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
+                                     issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
+                                     "bg-green-500 text-white"}`}>
+                      {issue.status === "open" ? "Open / खुला" : 
+                       issue.status === "in_progress" ? "In progress / प्रगति पर" : 
+                       "Closed / बंद"}
+                    </span>
                   </div>
-                );
-              })}
+                  <p className="text-sm text-gray-600 mb-1">
+                    {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+                  </p>
+                  <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span className="flex items-center">
+                      <Clock className="h-3 w-3 mr-1" />
+                      {formatShortDate(issue.createdAt)}
+                    </span>
+                    <span className="flex items-center">
+                      {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8 bg-white rounded-lg p-4">

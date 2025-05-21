@@ -3,7 +3,6 @@ import React, { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { getIssueTypeLabel } from "@/services/issues/issueTypeHelpers";
-import EmptyDataState from "@/components/charts/EmptyDataState";
 
 type ChartSectionProps = {
   typePieData: any[];
@@ -52,10 +51,9 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyDataState 
-              message="No data available for the selected filters" 
-              subMessage="Try changing your filter selection"
-            />
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              No data available for the selected filters
+            </div>
           )}
         </CardContent>
       </Card>
@@ -85,10 +83,9 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <EmptyDataState 
-              message="No data available for the selected cluster" 
-              subMessage="Try selecting a different cluster or city"
-            />
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              No data available for the selected filters
+            </div>
           )}
         </CardContent>
       </Card>

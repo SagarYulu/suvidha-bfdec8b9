@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Issue } from "@/types";
 import { assignIssueToUser } from "@/services/issues/issueAssignmentService";
 import { getAvailableAssignees, getEmployeeNameByUuid } from "@/services/issues/issueUtils";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 
 export const useIssueAssignment = (issue: Issue | null, currentUserId: string, setIssue: (issue: Issue) => void) => {
   const [availableAssignees, setAvailableAssignees] = useState<{ value: string; label: string }[]>([]);
@@ -15,38 +15,18 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
   useEffect(() => {
     const fetchAssigneeInfo = async () => {
       try {
-        console.log("Fetching assignee info for issue:", issue?.id);
-        
-        // Fetch available assignees first to ensure we have the dropdown data
-        const assignees = await getAvailableAssignees();
-        console.log("Available assignees:", assignees);
-        setAvailableAssignees(assignees);
-        
         // Fetch assignee information if issue has one
         if (issue?.assignedTo) {
           setCurrentAssigneeId(issue.assignedTo);
-          console.log("Issue is assigned to:", issue.assignedTo);
-          
-          // Try to find assignee in dropdown first for immediate display
-          const matchedAssignee = assignees.find(a => a.value === issue.assignedTo);
-          
-          if (matchedAssignee) {
-            console.log("Found assignee in dropdown:", matchedAssignee.label);
-            setCurrentAssigneeName(matchedAssignee.label);
-          } else {
-            // Fall back to lookup if not in dropdown
-            const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
-            console.log("Resolved assignee name via lookup:", assigneeName);
-            setCurrentAssigneeName(assigneeName || "Unknown User");
-          }
-        } else {
-          console.log("Issue has no assignee");
-          setCurrentAssigneeId(null);
-          setCurrentAssigneeName("Not assigned");
+          const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
+          setCurrentAssigneeName(assigneeName || "Unknown");
         }
+        
+        // Fetch available assignees
+        const assignees = await getAvailableAssignees();
+        setAvailableAssignees(assignees);
       } catch (error) {
         console.error("Error fetching assignee information:", error);
-        setCurrentAssigneeName("Error retrieving assignee");
       }
     };
 
@@ -60,32 +40,26 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
     
     setIsAssigning(true);
     try {
-      console.log(`Assigning issue ${issue.id} to ${selectedAssignee}`);
-      
-      // Find the assignee name from our dropdown options for immediate UI update
-      const selectedAssigneeName = availableAssignees.find(a => a.value === selectedAssignee)?.label;
-      console.log("Selected assignee name from dropdown:", selectedAssigneeName);
-        
       const updatedIssue = await assignIssueToUser(issue.id, selectedAssignee, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
         setCurrentAssigneeId(selectedAssignee);
         
-        if (selectedAssigneeName) {
-          setCurrentAssigneeName(selectedAssigneeName);
-          console.log("Set assignee name immediately to:", selectedAssigneeName);
-        } else {
-          // Fallback to lookup
-          const assigneeName = await getEmployeeNameByUuid(selectedAssignee);
-          setCurrentAssigneeName(assigneeName || "Unknown User");
-          console.log("Lookup assignee name:", assigneeName);
-        }
+        const assigneeName = await getEmployeeNameByUuid(selectedAssignee);
+        setCurrentAssigneeName(assigneeName || "Unknown");
         
-        toast.success(`Ticket assigned to ${selectedAssigneeName || "selected agent"}`);
+        toast({
+          title: "Success",
+          description: `Ticket assigned to ${assigneeName || "selected agent"}`,
+        });
       }
     } catch (error) {
       console.error("Error assigning issue:", error);
-      toast.error("Failed to assign ticket");
+      toast({
+        title: "Error",
+        description: "Failed to assign ticket",
+        variant: "destructive",
+      });
     } finally {
       setIsAssigning(false);
       setSelectedAssignee("");

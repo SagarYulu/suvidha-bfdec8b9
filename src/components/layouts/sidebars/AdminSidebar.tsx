@@ -14,7 +14,6 @@ import {
   ChevronDown,
   UserPlus,
   Ticket,
-  ThumbsUp,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -241,16 +240,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
               isActive={location.pathname === "/admin/analytics"}
             />
           </DropdownMenu>
-        )}
-        
-        {/* Feedback Analytics - Available to users with manage:analytics permission */}
-        {hasPermission("manage:analytics") && (
-          <SidebarLink 
-            href="/feedback-analytics" 
-            icon={ThumbsUp} 
-            label="Feedback Analytics" 
-            isActive={location.pathname === "/feedback-analytics"}
-          />
         )}
         
         {/* Dashboard Users dropdown - Available to users with create:dashboardUser permission */}

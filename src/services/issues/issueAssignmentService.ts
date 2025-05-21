@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
 import { createAuditLog } from "./issueAuditService";
-import { getEmployeeNameByUuid } from "./issueUtils";
 
 /**
  * Assign an issue to a user
@@ -14,16 +13,6 @@ export const assignIssueToUser = async (
   currentUserId: string
 ): Promise<Issue | null> => {
   try {
-    console.log(`Assigning issue ${issueId} to user ${assigneeId} by ${currentUserId}`);
-    
-    // First, get the assignee name to include in the audit log
-    const assigneeName = await getEmployeeNameByUuid(assigneeId);
-    console.log(`Assigning to: ${assigneeName}`);
-    
-    // Get the name of the person doing the assignment (usually an admin)
-    const assignerName = await getEmployeeNameByUuid(currentUserId);
-    console.log(`Assignment performed by: ${assignerName}`);
-    
     const { data, error } = await supabase
       .from('issues')
       .update({
@@ -40,23 +29,14 @@ export const assignIssueToUser = async (
       throw error;
     }
     
-    console.log('Assignment database update successful');
-    
-    // Create audit log entry for assignment with detailed information
+    // Create audit log entry for assignment
     await createAuditLog(
       issueId,
       currentUserId,
       'assignment',
-      { 
-        assigneeId,
-        assigneeName, // Include assignee name in the audit log
-        assignerId: currentUserId,
-        assignerName // Include assigner name in the audit log
-      },
-      `Issue assigned to ${assigneeName} by ${assignerName}`
+      { assigneeId },
+      'Issue assigned to user'
     );
-    
-    console.log('Assignment audit log created');
     
     // Return the complete updated issue
     return await getIssueById(issueId);
