@@ -59,6 +59,19 @@ interface CommentVolumeData {
   adminComments: number;
 }
 
+// Define accumulator interfaces for our reducers
+interface IssuesByTypeAcc {
+  [key: string]: { total: number; reopened: number }
+}
+
+interface ResolutionByTypeAcc {
+  [key: string]: { count: number; totalResolutionTime: number }
+}
+
+interface CommentsByWeekAcc {
+  [key: string]: CommentVolumeData
+}
+
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
 
@@ -223,10 +236,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const getReopenedTicketsTrend = (): ReopenedTicketData[] => {
     // Sample implementation - in a real app, we'd use actual reopened data
     // Assumption: tickets with multiple status changes might be reopened
-    type IssuesByTypeAcc = {
-      [key: string]: { total: number; reopened: number }
-    };
-
     const issuesByIssueType = issues.reduce((acc: IssuesByTypeAcc, issue) => {
       const typeId = issue.type_id || 'unknown';
       if (!acc[typeId]) {
@@ -260,10 +269,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   // 6. Resolution Time by Issue Type (Radial Bar Chart)
   const getResolutionTimeByType = (): ResolutionTimeByTypeData[] => {
-    type ResolutionByTypeAcc = {
-      [key: string]: { count: number; totalResolutionTime: number }
-    };
-
     const closedIssuesByType = issues.filter(issue => 
       (issue.status === 'closed' || issue.status === 'resolved') && 
       issue.created_at && 
@@ -300,10 +305,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   
   // 7. Comment Volume Trend (Line Chart with Multiple Lines)
   const getCommentVolumeTrend = (): CommentVolumeData[] => {
-    type CommentsByWeekAcc = {
-      [key: string]: CommentVolumeData
-    };
-    
     const commentsByWeek = issues.reduce((acc: CommentsByWeekAcc, issue) => {
       if (!issue.created_at || !issue.issue_comments) return acc;
       
