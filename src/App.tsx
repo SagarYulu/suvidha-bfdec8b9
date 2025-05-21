@@ -27,7 +27,6 @@ import MobileIssueDetails from "./pages/mobile/IssueDetails";
 import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 import TestDataGenerator from "./pages/admin/TestDataGenerator";
 import FeedbackAnalytics from "./pages/FeedbackAnalytics";
-import TicketTrendAnalysis from "./pages/admin/TicketTrendAnalysis";
 
 // Import guards
 import {
@@ -73,13 +72,6 @@ const App = () => {
                 <Route path="/admin/dashboard" element={
                   <DashboardGuard redirectTo="/admin/login">
                     <AdminDashboard />
-                  </DashboardGuard>
-                } />
-                
-                {/* Ticket Trend Analysis Route */}
-                <Route path="/admin/ticket-trends" element={
-                  <DashboardGuard redirectTo="/admin/login">
-                    <TicketTrendAnalysis />
                   </DashboardGuard>
                 } />
                 

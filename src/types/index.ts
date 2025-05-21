@@ -41,7 +41,6 @@ export interface Issue {
   mappedSubTypeId?: string; // Field to store mapped subtype
   mappedAt?: string; // When the issue was mapped
   mappedBy?: string; // Who mapped the issue
-  city?: string; // Added city field for analytics
 }
 
 export interface IssueComment {
@@ -55,17 +54,6 @@ export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   role: string | null; // Changed from specific type to string
-}
-
-// Add IssueAnalytics interface
-export interface IssueAnalytics {
-  totalIssues: number;
-  openIssues: number;
-  resolvedIssues: number;
-  inProgressIssues: number;
-  highPriorityIssues: number;
-  issuesByType: { [key: string]: number };
-  issuesByCity: { [key: string]: number };
 }
 
 // Add a new interface for CSV employee data

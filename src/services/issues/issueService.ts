@@ -34,8 +34,7 @@ export {
 
 // Re-export analytics service
 export { 
-  getAnalytics,
-  getIssueAnalytics 
+  getAnalytics 
 } from "./issueAnalyticsService";
 
 // Initialize service

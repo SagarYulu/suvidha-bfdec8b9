@@ -1,357 +1,146 @@
+import { supabase } from "@/integrations/supabase/client";
+import { getIssueAuditTrail } from "./issueAuditService";
 
-import { Issue } from "@/types";
-import { format, subDays, parseISO } from "date-fns";
-import { getIssues } from "./issueFilters"; // Changed from issueFetchService to issueFilters
-import { getIssueTypeLabel, getIssueSubTypeLabel } from "./issueTypeHelpers"; // Fixed the function name
-
+// Define an interface for analytics filters
 export interface AnalyticsFilters {
-  issueType?: string;
   employeeUuids?: string[];
-}
-
-// Define IssueAnalytics interface that was missing
-export interface IssueAnalyticsResponse {
-  totalIssues: number;
-  openIssues: number;
-  resolvedIssues: number;
-  inProgressIssues: number;
-  highPriorityIssues: number;
-  issuesByType: { [key: string]: number };
-  issuesByCity: { [key: string]: number };
-  volumeTrend: Array<{
-    date: string;
-    count: number;
-  }>;
-  resolutionTimeTrend: Array<{
-    date: string;
-    avgResolutionHours: number;
-  }>;
-  typeDistributionTrend: Array<{
-    date: string;
-    [key: string]: number | string;
-  }>;
-}
-
-export async function getIssueAnalytics(timeRange: '7days' | '30days' | '90days' = '30days'): Promise<IssueAnalyticsResponse> {
-  try {
-    console.log(`Fetching issue analytics for ${timeRange}`);
-    const days = timeRange === '7days' ? 7 : timeRange === '30days' ? 30 : 90;
-    
-    // Fetch all issues
-    const issues = await getIssues();
-    
-    if (!issues || !issues.length) {
-      console.error("No issues found");
-      throw new Error("Failed to fetch issues");
-    }
-    
-    // Base analytics
-    const analytics = calculateBaseAnalytics(issues);
-    
-    // Generate trends data
-    const volumeTrend = generateVolumeTrend(issues, days);
-    const resolutionTimeTrend = generateResolutionTimeTrend(issues, days);
-    const typeDistributionTrend = generateTypeDistributionTrend(issues, days);
-    
-    console.log(`Generated analytics with ${volumeTrend.length} trend points`);
-    
-    return {
-      ...analytics,
-      volumeTrend,
-      resolutionTimeTrend,
-      typeDistributionTrend,
-    };
-  } catch (error) {
-    console.error("Error fetching issue analytics:", error);
-    throw error;
-  }
-}
-
-// Calculate basic analytics from issues
-function calculateBaseAnalytics(issues: Issue[]): {
-  totalIssues: number;
-  openIssues: number;
-  resolvedIssues: number;
-  inProgressIssues: number;
-  highPriorityIssues: number;
-  issuesByType: { [key: string]: number };
-  issuesByCity: { [key: string]: number };
-} {
-  const issuesByType: { [key: string]: number } = {};
-  const issuesByCity: { [key: string]: number } = {};
-
-  issues.forEach(issue => {
-    const typeLabel = getIssueTypeLabel(issue.typeId) || 'Unknown Type';
-    // Use optional chaining to safely access the city property
-    const city = issue.city || 'Unknown City';
-
-    issuesByType[typeLabel] = (issuesByType[typeLabel] || 0) + 1;
-    issuesByCity[city] = (issuesByCity[city] || 0) + 1;
-  });
-  
-  return {
-    totalIssues: issues.length,
-    openIssues: issues.filter(i => i.status === 'open').length,
-    resolvedIssues: issues.filter(i => i.status === 'resolved').length,
-    inProgressIssues: issues.filter(i => i.status === 'in_progress').length,
-    highPriorityIssues: issues.filter(i => i.priority === 'high').length,
-    issuesByType: issuesByType,
-    issuesByCity: issuesByCity,
+  issueType?: string;
+  dateRange?: {
+    start?: string;
+    end?: string;
   };
 }
 
-// Generate ticket volume trend data
-function generateVolumeTrend(issues: Issue[], days: number): Array<{ date: string; count: number }> {
-  const result = [];
-  const today = new Date();
-  
-  // Create a map to count issues by date
-  const issuesByDate = new Map<string, number>();
-  
-  // Initialize all dates in the range with 0 count
-  for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    issuesByDate.set(dateStr, 0);
-  }
-  
-  // Count issues for each date
-  for (const issue of issues) {
-    try {
-      const createdAt = parseISO(issue.createdAt);
-      if (createdAt >= subDays(today, days)) {
-        const dateStr = format(createdAt, 'yyyy-MM-dd');
-        issuesByDate.set(dateStr, (issuesByDate.get(dateStr) || 0) + 1);
-      }
-    } catch (e) {
-      console.error("Error parsing date:", e);
-    }
-  }
-  
-  // Convert map to array
-  for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    result.push({
-      date: dateStr,
-      count: issuesByDate.get(dateStr) || 0,
-    });
-  }
-  
-  return result;
-}
-
-// Generate resolution time trend data
-function generateResolutionTimeTrend(issues: Issue[], days: number): Array<{ date: string; avgResolutionHours: number }> {
-  const result = [];
-  const today = new Date();
-  
-  // Create map of issues by date with resolution times
-  const resolutionTimesByDate = new Map<string, number[]>();
-  
-  // Initialize all dates
-  for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    resolutionTimesByDate.set(dateStr, []);
-  }
-  
-  // Calculate resolution times
-  for (const issue of issues) {
-    if (issue.status === 'resolved' && issue.createdAt && issue.updatedAt) {
-      try {
-        const createdAt = parseISO(issue.createdAt);
-        const updatedAt = parseISO(issue.updatedAt);
-        
-        // Only include issues updated within the time range
-        if (updatedAt >= subDays(today, days)) {
-          const dateStr = format(updatedAt, 'yyyy-MM-dd');
-          
-          // Calculate resolution time in hours
-          const resolutionTime = (updatedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-          
-          const times = resolutionTimesByDate.get(dateStr) || [];
-          times.push(resolutionTime);
-          resolutionTimesByDate.set(dateStr, times);
-        }
-      } catch (e) {
-        console.error("Error parsing dates:", e);
-      }
-    }
-  }
-  
-  // Calculate average resolution times
-  for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const times = resolutionTimesByDate.get(dateStr) || [];
-    
-    const avgResolutionHours = times.length > 0
-      ? Math.round((times.reduce((sum, time) => sum + time, 0) / times.length) * 10) / 10
-      : 0;
-    
-    result.push({
-      date: dateStr,
-      avgResolutionHours,
-    });
-  }
-  
-  return result;
-}
-
-// Generate type distribution trend data
-function generateTypeDistributionTrend(issues: Issue[], days: number): Array<{ date: string; [key: string]: number | string }> {
-  const result = [];
-  const today = new Date();
-  
-  // Get all unique issue types
-  const issueTypes = new Set<string>();
-  issues.forEach(issue => {
-    if (issue.typeId) {
-      issueTypes.add(getIssueTypeLabel(issue.typeId) || issue.typeId);
-    }
-  });
-  
-  // Create a structure for each day
-  for (let i = days - 1; i >= 0; i--) {
-    const date = subDays(today, i);
-    const dateStr = format(date, 'yyyy-MM-dd');
-    
-    const dayData: { date: string; [key: string]: number | string } = { date: dateStr };
-    
-    // Initialize all issue types with 0
-    issueTypes.forEach(type => {
-      dayData[type] = 0;
-    });
-    
-    // Count issues by type for this day
-    for (const issue of issues) {
-      try {
-        const createdAt = parseISO(issue.createdAt);
-        if (format(createdAt, 'yyyy-MM-dd') === dateStr) {
-          const typeLabel = getIssueTypeLabel(issue.typeId) || issue.typeId;
-          dayData[typeLabel] = (dayData[typeLabel] as number) + 1;
-        }
-      } catch (e) {
-        console.error("Error parsing date:", e);
-      }
-    }
-    
-    result.push(dayData);
-  }
-  
-  return result;
-}
-
-// Add getAnalytics function - fixed by making it async
-export async function getAnalytics(filters?: AnalyticsFilters): Promise<{
-  totalIssues: number;
-  openIssues: number;
-  resolvedIssues: number;
-  inProgressIssues: number;
-  highPriorityIssues: number;
-  issuesByType: { [key: string]: number };
-  issuesByCity: { [key: string]: number };
-  typeCounts: { [key: string]: number };
-  cityCounts: { [key: string]: number };
-  clusterCounts: { [key: string]: number };
-  managerCounts: { [key: string]: number };
-  resolutionRate: number;
-  avgResolutionTime: number;
-  avgFirstResponseTime: number;
-}> {
+export const getAnalytics = async (filters: AnalyticsFilters = {}) => {
   try {
-    // Fetch all issues
-    const issues = await getIssues();
+    console.log("Analytics filters received:", filters);
     
-    // Filter issues if filters are provided
-    let filteredIssues = [...issues];
+    // Build the query with filters
+    let query = supabase.from('issues').select('*');
+    
+    // Apply filters if provided
     if (filters) {
-      if (filters.issueType) {
-        filteredIssues = filteredIssues.filter(issue => issue.typeId === filters.issueType);
-      }
+      // Apply employee_uuid filter if there's city/cluster filtering
       if (filters.employeeUuids && filters.employeeUuids.length > 0) {
-        filteredIssues = filteredIssues.filter(issue => 
-          filters.employeeUuids?.includes(issue.employeeUuid)
-        );
+        query = query.in('employee_uuid', filters.employeeUuids);
+      }
+      
+      // Apply issue type filter
+      if (filters.issueType) {
+        query = query.eq('type_id', filters.issueType);
+      }
+
+      // Apply date range filter if provided
+      if (filters.dateRange) {
+        if (filters.dateRange.start) {
+          query = query.gte('created_at', filters.dateRange.start);
+        }
+        if (filters.dateRange.end) {
+          query = query.lte('created_at', filters.dateRange.end);
+        }
       }
     }
     
-    // Calculate base analytics
-    const baseAnalytics = calculateBaseAnalytics(filteredIssues);
+    // Execute the query
+    const { data, error } = await query;
     
-    // Calculate additional metrics
-    const typeCounts: { [key: string]: number } = {};
-    const cityCounts: { [key: string]: number } = {};
-    const clusterCounts: { [key: string]: number } = {};
-    const managerCounts: { [key: string]: number } = {};
+    if (error) {
+      console.error("Error fetching issues:", error);
+      return null;
+    }
     
-    // Calculate resolution rate
-    const totalIssues = filteredIssues.length;
-    const resolvedIssues = filteredIssues.filter(issue => 
-      issue.status === 'resolved' || issue.status === 'closed'
-    ).length;
+    console.log(`Retrieved ${data?.length || 0} issues for analytics`);
+
+    // Get employee data to map to cities, clusters, and managers
+    const { data: employeeData, error: employeeError } = await supabase
+      .from('employees')
+      .select('id, city, cluster, manager');
+
+    if (employeeError) {
+      console.error("Error fetching employee data for analytics:", employeeError);
+    }
+
+    // Create a mapping of employee IDs to their city, cluster and manager info
+    const employeeMap = {};
+    if (employeeData) {
+      employeeData.forEach(emp => {
+        employeeMap[emp.id] = {
+          city: emp.city || 'Unknown',
+          cluster: emp.cluster || 'Unknown',
+          manager: emp.manager || 'Unknown'
+        };
+      });
+    }
+    
+    // Process the data to derive insights
+    const totalIssues = data.length;
+    
+    // Use consistent status counting - ensure we're counting the same way across the app
+    const openIssues = data.filter(issue => issue.status === 'open').length;
+    const inProgressIssues = data.filter(issue => issue.status === 'in_progress').length;
+    const resolvedIssues = data.filter(issue => issue.status === 'resolved').length;
+    const closedIssues = data.filter(issue => issue.status === 'closed').length;
+    
+    // Example: Issues created per day
+    const issuesPerDay = data.reduce((acc, issue) => {
+      const date = new Date(issue.created_at).toLocaleDateString();
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Issues by type - map using the correct property name (type_id)
+    const issuesByType = data.reduce((acc, issue) => {
+      acc[issue.type_id] = (acc[issue.type_id] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Group issues by city using employee data
+    const cityCounts = data.reduce((acc, issue) => {
+      // Get employee data or default to Unknown
+      const employeeInfo = employeeMap[issue.employee_uuid] || { city: 'Unknown' };
+      const city = employeeInfo.city;
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Add cluster counts to analytics using employee data
+    const clusterCounts = data.reduce((acc, issue) => {
+      const employeeInfo = employeeMap[issue.employee_uuid] || { cluster: 'Unknown' };
+      const cluster = employeeInfo.cluster;
+      acc[cluster] = (acc[cluster] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Add manager counts to analytics using employee data
+    const managerCounts = data.reduce((acc, issue) => {
+      const employeeInfo = employeeMap[issue.employee_uuid] || { manager: 'Unknown' };
+      const manager = employeeInfo.manager;
+      acc[manager] = (acc[manager] || 0) + 1;
+      return acc;
+    }, {});
+    
+    // Ensure type counts match the issues by type data 
+    const typeCounts = {...issuesByType};
+    
+    // Calculate resolution rate - include both resolved and closed issues
     const resolutionRate = totalIssues > 0 
-      ? (resolvedIssues / totalIssues) * 100 
+      ? ((resolvedIssues + closedIssues) / totalIssues) * 100 
       : 0;
     
-    // Calculate average resolution time (in hours)
-    let totalResolutionTime = 0;
-    let resolvedCount = 0;
-    
-    // Calculate average first response time (in hours)
-    let totalFirstResponseTime = 0;
-    let respondedCount = 0;
-    
-    filteredIssues.forEach(issue => {
-      // Process issue types
-      const typeLabel = getIssueTypeLabel(issue.typeId);
-      typeCounts[typeLabel] = (typeCounts[typeLabel] || 0) + 1;
-      
-      // Process cities
-      if (issue.city) {
-        cityCounts[issue.city] = (cityCounts[issue.city] || 0) + 1;
-      }
-      
-      // For now, we don't have cluster and manager directly on issues
-      // This is just a placeholder for future implementation
-      const clusterLabel = "All Clusters";
-      const managerLabel = "All Managers";
-      clusterCounts[clusterLabel] = (clusterCounts[clusterLabel] || 0) + 1;
-      managerCounts[managerLabel] = (managerCounts[managerLabel] || 0) + 1;
-      
-      // Calculate resolution time for resolved issues
-      if ((issue.status === 'resolved' || issue.status === 'closed') && issue.createdAt && issue.updatedAt) {
-        const createdAt = new Date(issue.createdAt);
-        const resolvedAt = new Date(issue.updatedAt);
-        const resolutionHours = (resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-        totalResolutionTime += resolutionHours;
-        resolvedCount++;
-      }
-      
-      // For first response time, check if there are any comments
-      if (issue.comments && issue.comments.length > 0 && issue.createdAt) {
-        const createdAt = new Date(issue.createdAt);
-        const firstComment = issue.comments[0];
-        const firstResponseAt = new Date(firstComment.createdAt);
-        const responseHours = (firstResponseAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-        totalFirstResponseTime += responseHours;
-        respondedCount++;
-      }
-    });
-    
-    const avgResolutionTime = resolvedCount > 0 
-      ? Math.round((totalResolutionTime / resolvedCount) * 10) / 10 
-      : 0;
-      
-    const avgFirstResponseTime = respondedCount > 0 
-      ? Math.round((totalFirstResponseTime / respondedCount) * 10) / 10 
-      : 0;
+    // Add average resolution and response times
+    const avgResolutionTime = await getAverageResolutionTime();
+    const avgFirstResponseTime = await getAverageFirstResponseTime();
     
     return {
-      ...baseAnalytics,
-      typeCounts,
+      totalIssues,
+      openIssues,
+      inProgressIssues,
+      resolvedIssues,
+      closedIssues,
+      issuesPerDay,
+      issuesByType,
       cityCounts,
+      typeCounts,
       clusterCounts,
       managerCounts,
       resolutionRate,
@@ -359,12 +148,144 @@ export async function getAnalytics(filters?: AnalyticsFilters): Promise<{
       avgFirstResponseTime
     };
   } catch (error) {
-    console.error("Error fetching analytics:", error);
-    throw error;
+    console.error("Error in getAnalytics:", error);
+    return null;
   }
-}
+};
 
-export default {
-  getIssueAnalytics,
-  getAnalytics
+// Example function to fetch issues created within a specific date range
+export const getIssuesCreatedBetween = async (startDate: string, endDate: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate);
+    
+    if (error) {
+      console.error("Error fetching issues by date range:", error);
+      return [];
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error in getIssuesCreatedBetween:", error);
+    return [];
+  }
+};
+
+// Example function to calculate the average resolution time for issues
+export const getAverageResolutionTime = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('created_at, closed_at')
+      .not('closed_at', 'is', null);
+    
+    if (error) {
+      console.error("Error fetching issues for resolution time calculation:", error);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      return 0; // Return 0 if there are no resolved issues
+    }
+    
+    // Calculate the total resolution time in milliseconds
+    const totalResolutionTime = data.reduce((acc, issue) => {
+      const createdAt = new Date(issue.created_at).getTime();
+      const closedAt = new Date(issue.closed_at).getTime();
+      return acc + (closedAt - createdAt);
+    }, 0);
+    
+    // Calculate the average resolution time in hours
+    const averageResolutionTimeMs = totalResolutionTime / data.length;
+    const averageResolutionTimeHours = averageResolutionTimeMs / (1000 * 60 * 60);
+    
+    return Math.round(averageResolutionTimeHours * 10) / 10; // Round to 1 decimal place
+  } catch (error) {
+    console.error("Error in getAverageResolutionTime:", error);
+    return null;
+  }
+};
+
+// New function to calculate average first response time
+export const getAverageFirstResponseTime = async () => {
+  try {
+    // This is a placeholder implementation
+    // In a real implementation, you would calculate this from first comment timestamps
+    return 4.5; // Return a placeholder value of 4.5 hours
+  } catch (error) {
+    console.error("Error in getAverageFirstResponseTime:", error);
+    return null;
+  }
+};
+
+// Example function to get the distribution of issue priorities
+export const getIssuePriorityDistribution = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('priority');
+    
+    if (error) {
+      console.error("Error fetching issue priorities:", error);
+      return {};
+    }
+    
+    const priorityDistribution = data.reduce((acc, issue) => {
+      acc[issue.priority] = (acc[issue.priority] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return priorityDistribution;
+  } catch (error) {
+    console.error("Error in getIssuePriorityDistribution:", error);
+    return {};
+  }
+};
+
+// Example function to get issues by status
+export const getIssuesByStatus = async (status: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('status', status);
+
+    if (error) {
+      console.error(`Error fetching issues with status ${status}:`, error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`Error in getIssuesByStatus for status ${status}:`, error);
+    return [];
+  }
+};
+
+// Fix the function call with correct number of arguments
+export const someFunction = (issueId: string) => {
+  return getIssueAuditTrail(issueId);
+};
+
+// Example function to fetch issues assigned to a specific employee
+export const getIssuesAssignedToEmployee = async (employeeUuid: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('assigned_to', employeeUuid);
+
+    if (error) {
+      console.error(`Error fetching issues assigned to employee ${employeeUuid}:`, error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error(`Error in getIssuesAssignedToEmployee for employee ${employeeUuid}:`, error);
+    return [];
+  }
 };

@@ -15,7 +15,6 @@ import {
   UserPlus,
   Ticket,
   ThumbsUp,
-  TrendingUp,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -192,11 +191,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         {/* Dashboard - All admin users have access */}
         {hasPermission("view:dashboard") && (
           <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        )}
-        
-        {/* Ticket Trend Analysis - New menu item */}
-        {hasPermission("view:dashboard") && (
-          <SidebarLink href="/admin/ticket-trends" icon={TrendingUp} label="Ticket Trend Analysis" />
         )}
         
         {/* Tickets dropdown - Available to users with manage:issues permission */}
