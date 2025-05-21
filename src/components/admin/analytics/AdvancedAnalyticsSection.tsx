@@ -144,7 +144,7 @@ export const AdvancedAnalyticsSection = () => {
                   <SelectValue placeholder="All Cities" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Cities</SelectItem>
+                  <SelectItem value="all-cities">All Cities</SelectItem>
                   {CITY_OPTIONS.map(city => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
@@ -163,7 +163,7 @@ export const AdvancedAnalyticsSection = () => {
                   <SelectValue placeholder="All Clusters" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Clusters</SelectItem>
+                  <SelectItem value="all-clusters">All Clusters</SelectItem>
                   {availableClusters.map(cluster => (
                     <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
                   ))}
@@ -178,7 +178,7 @@ export const AdvancedAnalyticsSection = () => {
                   <SelectValue placeholder="All Managers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Managers</SelectItem>
+                  <SelectItem value="all-managers">All Managers</SelectItem>
                   {managers.map(manager => (
                     <SelectItem key={manager} value={manager}>{manager}</SelectItem>
                   ))}
@@ -193,7 +193,7 @@ export const AdvancedAnalyticsSection = () => {
                   <SelectValue placeholder="All Roles" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Roles</SelectItem>
+                  <SelectItem value="all-roles">All Roles</SelectItem>
                   {ROLE_OPTIONS.map(role => (
                     <SelectItem key={role} value={role}>{role}</SelectItem>
                   ))}
@@ -208,7 +208,7 @@ export const AdvancedAnalyticsSection = () => {
                   <SelectValue placeholder="All Issue Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Issue Types</SelectItem>
+                  <SelectItem value="all-issues">All Issue Types</SelectItem>
                   {ISSUE_TYPES.map(type => (
                     <SelectItem key={type.id} value={type.id}>{type.label}</SelectItem>
                   ))}
