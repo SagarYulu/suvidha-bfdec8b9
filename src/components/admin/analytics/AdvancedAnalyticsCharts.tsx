@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdvancedFilters } from "./types";
@@ -14,6 +13,7 @@ import {
   Bell, Clock, Percent, Ticket, Users, Repeat 
 } from "lucide-react";
 import TopicRadarChart from "@/components/charts/TopicRadarChart";
+import { SLABreachMetricsCard } from "./SLABreachMetricsCard";
 
 interface AdvancedAnalyticsChartsProps {
   filters: AdvancedFilters;
@@ -86,6 +86,19 @@ export const AdvancedAnalyticsCharts: React.FC<AdvancedAnalyticsChartsProps> = (
   
   return (
     <div className="space-y-6">
+      {/* SLA Breach Metrics Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <SLABreachMetricsCard 
+          closedResolvedSLABreach={analyticsData.closedResolvedSLABreach}
+          overallSLABreach={analyticsData.overallSLABreach}
+          openInProgressSLABreach={analyticsData.openInProgressSLABreach}
+          firstResponseSLABreach={analyticsData.firstResponseSLABreach}
+          assigneeSLABreach={analyticsData.assigneeSLABreach}
+        />
+        
+        {/* Allow space for other cards in this row if needed */}
+      </div>
+      
       {/* KPI Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard 

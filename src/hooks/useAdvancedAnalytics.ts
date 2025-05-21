@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,11 @@ export interface AnalyticsData {
   resolutionSLABreach: number;
   reopenCount: number;
   reopenRate: number;
+  // Add SLA breach metrics
+  closedResolvedSLABreach: number;
+  overallSLABreach: number;
+  openInProgressSLABreach: number;
+  assigneeSLABreach: number;
   priorityDistribution: {
     priority: string;
     count: number;
@@ -108,7 +112,10 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         queryModifiers = queryModifiers.eq('type_id', filters.issueType);
       }
       
-      // Get total tickets
+      // Get all issues for analysis
+      const { data: allIssues } = await queryModifiers;
+      
+      // Get total tickets count
       const { count: totalTickets } = await queryModifiers;
       
       // Get resolved tickets
@@ -226,6 +233,60 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       
       const reopenRate = resolvedTickets > 0 ? (reopenedTickets.size / resolvedTickets) * 100 : 0;
       
+      // Calculate SLA breach metrics
+      // 1. Closed & Resolved SLA Breach (already calculated in resolutionSLABreach)
+      const closedResolvedSLABreach = resolutionSLABreach;
+      
+      // 2. Open & In Progress SLA Breach
+      let openInProgressBreachCount = 0;
+      const openInProgressSLABenchmark = 24; // 24 hours for open/in progress tickets
+      
+      allIssues?.forEach(issue => {
+        if (issue.status === 'open' || issue.status === 'in_progress') {
+          const createdAt = new Date(issue.created_at);
+          const now = new Date();
+          const hoursElapsed = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+          
+          if (hoursElapsed > openInProgressSLABenchmark) {
+            openInProgressBreachCount++;
+          }
+        }
+      });
+      
+      const openInProgressCount = allIssues?.filter(issue => 
+        issue.status === 'open' || issue.status === 'in_progress').length || 0;
+      const openInProgressSLABreach = openInProgressCount > 0 ? 
+        (openInProgressBreachCount / openInProgressCount) * 100 : 0;
+      
+      // 3. Assignee SLA Breach
+      let assigneeBreachCount = 0;
+      const assigneeSLABenchmark = 8; // 8 hours for assignee response
+      
+      // Filter for assigned tickets
+      const assignedTickets = allIssues?.filter(issue => issue.assigned_to) || [];
+      
+      assignedTickets.forEach(issue => {
+        // For simplicity, we'll check if any assigned ticket has not been updated within the SLA timeframe
+        const updatedAt = new Date(issue.updated_at);
+        const now = new Date();
+        const hoursElapsed = (now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursElapsed > assigneeSLABenchmark) {
+          assigneeBreachCount++;
+        }
+      });
+      
+      const assigneeSLABreach = assignedTickets.length > 0 ? 
+        (assigneeBreachCount / assignedTickets.length) * 100 : 0;
+      
+      // 4. Overall SLA Breach (average of all SLA breach types)
+      const overallSLABreach = (
+        closedResolvedSLABreach + 
+        firstResponseSLABreach + 
+        openInProgressSLABreach + 
+        assigneeSLABreach
+      ) / 4;
+      
       // Priority distribution
       const { data: priorityResults } = await supabase
         .from('issues')
@@ -272,8 +333,6 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         .slice(0, 5);
       
       // Weekday vs Weekend volume
-      const { data: allIssues } = await queryModifiers;
-      
       const weekdayCount = allIssues?.filter(issue => {
         const date = new Date(issue.created_at);
         const day = date.getDay();
@@ -367,6 +426,11 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         resolutionSLABreach,
         reopenCount,
         reopenRate,
+        // Add SLA breach metrics
+        closedResolvedSLABreach,
+        overallSLABreach,
+        openInProgressSLABreach,
+        assigneeSLABreach,
         priorityDistribution,
         statusDistribution,
         topIssueTypes,
