@@ -32,6 +32,8 @@ export interface TrendKPIData {
   closedTicketsSLABreach: number; // Percentage of closed tickets that breached SLA
   inProgressSLABreach: number; // Percentage of in-progress tickets in SLA breach
   assigneeSLABreach: number; // Percentage of tickets breaching assignee response SLA
+  // Status distribution property
+  statusDistribution?: StatusDistribution; // Added this property
 }
 
 export interface PriorityDistribution {
