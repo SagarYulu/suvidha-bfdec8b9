@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { getAnalytics } from "@/services/issues/issueAnalyticsService";
+import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PieChart, Pie, Cell,

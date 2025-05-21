@@ -549,6 +549,47 @@ export type Database = {
           },
         ]
       }
+      resolution_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          employee_uuid: string
+          id: string
+          metadata: Json | null
+          rating: number
+          resolver_uuid: string | null
+          ticket_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          employee_uuid: string
+          id?: string
+          metadata?: Json | null
+          rating: number
+          resolver_uuid?: string | null
+          ticket_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          employee_uuid?: string
+          id?: string
+          metadata?: Json | null
+          rating?: number
+          resolver_uuid?: string | null
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resolution_feedback_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: true
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

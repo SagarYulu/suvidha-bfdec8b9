@@ -1,184 +1,373 @@
-import React, { useState, useEffect } from 'react';
-import MobileLayout from '@/components/MobileLayout';
-import { useIssues } from '@/hooks/useIssues';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Plus } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { Separator } from '@/components/ui/separator';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { ISSUE_TYPES } from '@/config/issueTypes';
 
-const Issues = () => {
-  const navigate = useNavigate();
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import MobileLayout from "@/components/MobileLayout";
+import { getIssuesByUserId } from "@/services/issues/issueCore";
+import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
+import { getUserById } from "@/services/userService";
+import { Issue, User } from "@/types";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { formatShortDate } from "@/utils/formatUtils";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import TicketFeedbackButton from "@/components/mobile/issues/TicketFeedbackButton";
+
+const MobileIssues = () => {
   const { authState } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('open');
-  
-  const { 
-    issues, 
-    isLoading, 
-    error,
-    fetchIssues
-  } = useIssues({
-    employeeUuid: authState.user?.id,
-    status: activeTab === 'open' ? ['open', 'in_progress'] : ['closed', 'resolved']
-  });
+  const navigate = useNavigate();
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isEmployeeLoading, setIsEmployeeLoading] = useState(true);
+  const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    const fetchEmployeeDetails = async () => {
+      if (!authState.user?.id) {
+        console.log("No user ID available, cannot fetch employee details");
+        setIsEmployeeLoading(false);
+        setLoadError("User details not available. Please try logging in again.");
+        return;
+      }
+
+      try {
+        console.log("Fetching employee details for:", authState.user.id);
+        setIsEmployeeLoading(true);
+        
+        // Look for employee by matching either id or user_id field to handle different ID formats
+        const { data: employees, error } = await supabase
+          .from('employees')
+          .select('*')
+          .or(`user_id.eq.${authState.user.id},id.eq.${authState.user.id}`);
+          
+        if (error) {
+          console.error("Error fetching employee details:", error);
+          setLoadError("Could not load employee details. Please try again.");
+          return;
+        }
+        
+        if (employees && employees.length > 0) {
+          // Map the employee data to User type
+          const userData: User = {
+            id: String(employees[0].id),
+            name: employees[0].name,
+            email: employees[0].email,
+            phone: employees[0].phone || "",
+            employeeId: employees[0].emp_id,
+            city: employees[0].city || "",
+            cluster: employees[0].cluster || "",
+            manager: employees[0].manager || "",
+            role: employees[0].role || "",
+            password: employees[0].password,
+            dateOfJoining: employees[0].date_of_joining || "",
+            bloodGroup: employees[0].blood_group || "",
+            dateOfBirth: employees[0].date_of_birth || "",
+            accountNumber: employees[0].account_number || "",
+            ifscCode: employees[0].ifsc_code || "",
+            userId: employees[0].user_id || "",
+          };
+          
+          setEmployeeDetails(userData);
+          console.log("Employee details found:", userData);
+        } else {
+          console.warn("No employee details found for user ID:", authState.user.id);
+          setLoadError("Could not find your employee record. Please contact support.");
+        }
+      } catch (error) {
+        console.error("Error fetching employee details:", error);
+        setLoadError("Error loading employee details. Please try again.");
+      } finally {
+        setIsEmployeeLoading(false);
+      }
+    };
+
+    fetchEmployeeDetails();
+  }, [authState.user?.id]);
+
+  useEffect(() => {
+    const fetchIssues = async () => {
+      setIsLoading(true);
+      if (authState.user?.id) {
+        try {
+          const userIssues = await getIssuesByUserId(authState.user.id);
+          setIssues(userIssues);
+          setFilteredIssues(userIssues);
+        } catch (error) {
+          console.error("Error fetching tickets:", error);
+          setLoadError("Error loading your tickets. Please try again.");
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        // If no user ID is available, still stop loading
+        setIsLoading(false);
+      }
+    };
+
     fetchIssues();
-  }, [activeTab]);
+  }, [authState.user?.id]);
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-  };
+  useEffect(() => {
+    if (searchTerm) {
+      const filtered = issues.filter((issue) => {
+        const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
+        const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
+        const description = issue.description.toLowerCase();
+        const term = searchTerm.toLowerCase();
 
-  const getIssueTypeName = (typeId: string) => {
-    const issueType = ISSUE_TYPES.find(type => type.id === typeId);
-    return issueType?.label || typeId;
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'open':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-100';
-      case 'resolved':
-        return 'bg-green-100 text-green-800 hover:bg-green-100';
-      case 'closed':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-100';
+        return (
+          typeLabel.includes(term) || 
+          subTypeLabel.includes(term) || 
+          description.includes(term)
+        );
+      });
+      
+      setFilteredIssues(filtered);
+    } else {
+      setFilteredIssues(issues);
     }
-  };
+  }, [searchTerm, issues]);
 
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case 'in_progress':
-        return 'In Progress';
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
+  const handleRetry = () => {
+    setLoadError(null);
+    setIsEmployeeLoading(true);
+    
+    // Show a toast to indicate retry is happening
+    toast({
+      title: "Retrying...",
+      description: "Attempting to fetch your details again.",
+    });
+    
+    // Force refetch by causing the useEffect to run again
+    if (authState.user?.id) {
+      // We're just triggering the useEffect by updating a dependency it relies on
+      const tempId = authState.user.id;
+      authState.user.id = "";
+      setTimeout(() => {
+        authState.user.id = tempId;
+      }, 100);
     }
   };
 
   return (
-    <MobileLayout title="My Issues">
-      <div className="flex justify-between items-center mb-4 px-4">
-        <h1 className="text-xl font-bold">My Issues</h1>
-        <Button 
-          size="sm" 
-          onClick={() => navigate('/mobile/issues/new')}
-          className="bg-yulu-blue hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-1" /> New
-        </Button>
-      </div>
+    <MobileLayout title="Home / होम">
+      <div className="space-y-4 pb-16">
+        {/* Employee Details Card */}
+        {isEmployeeLoading ? (
+          <div className="bg-white rounded-lg p-4">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        ) : loadError ? (
+          <div className="bg-white rounded-lg p-4">
+            <div className="text-center py-4">
+              <p className="text-red-500 mb-3">{loadError}</p>
+              <Button 
+                onClick={handleRetry}
+                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
+              >
+                Retry / पुनः प्रयास करें
+              </Button>
+            </div>
+          </div>
+        ) : employeeDetails ? (
+          
+          <div className="bg-white rounded-lg p-4 relative">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <UserIcon className="h-5 w-5 text-yulu-dashboard-blue" />
+                </div>
+                <h2 className="text-lg font-medium">Employee Details / कर्मचारी विवरण</h2>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+              <div>
+                <p className="text-gray-500 text-sm">Name / नाम</p>
+                <p>{employeeDetails.name}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Employee ID / कर्मचारी आईडी</p>
+                <p>{employeeDetails.employeeId}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Email / ईमेल</p>
+                <p className="truncate">{employeeDetails.email}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Phone / फोन</p>
+                <p>{employeeDetails.phone || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">City / शहर</p>
+                <p>{employeeDetails.city || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Cluster / क्लस्टर</p>
+                <p>{employeeDetails.cluster || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Role / पद</p>
+                <p>{employeeDetails.role || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Reporting Manager / रिपोर्टिंग मैनेजर</p>
+                <p>{employeeDetails.manager || "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Date of Joining / नियुक्ति तिथि</p>
+                <p>{employeeDetails.dateOfJoining ? formatShortDate(employeeDetails.dateOfJoining) : "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Date of Birth / जन्म तिथि</p>
+                <p>{employeeDetails.dateOfBirth ? formatShortDate(employeeDetails.dateOfBirth) : "N/A"}</p>
+              </div>
+              <div>
+                <p className="text-gray-500 text-sm">Blood Group / रक्त समूह</p>
+                <p>{employeeDetails.bloodGroup || "N/A"}</p>
+              </div>
+            </div>
+            
+            {/* Financial Details in a separate section */}
+            {(employeeDetails.accountNumber || employeeDetails.ifscCode) && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <CreditCard className="h-4 w-4 mr-1" />
+                  Financial Details / वित्तीय विवरण
+                </h3>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                  <div>
+                    <p className="text-gray-500 text-sm">Account Number / खाता संख्या</p>
+                    <p>{employeeDetails.accountNumber || "N/A"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500 text-sm">IFSC Code / आईएफएससी कोड</p>
+                    <p>{employeeDetails.ifscCode || "N/A"}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
 
-      <Tabs defaultValue="open" onValueChange={handleTabChange}>
-        <TabsList className="grid grid-cols-2 mb-4 mx-4">
-          <TabsTrigger value="open">Open</TabsTrigger>
-          <TabsTrigger value="closed">Closed</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="open" className="mt-0">
-          <ScrollArea className="h-[calc(100vh-180px)]">
-            <div className="px-4 pb-24">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-8 text-red-500">
-                  Error loading issues. Please try again.
-                </div>
-              ) : issues.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No open issues found.
-                </div>
-              ) : (
-                issues.map((issue) => (
-                  <Card 
-                    key={issue.id} 
-                    className="mb-4 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+        {/* Tickets Section */}
+        <div>
+          <h2 className="text-lg font-medium mb-3">My Tickets / मेरे टिकट</h2>
+          
+          <div className="relative mb-4 bg-white rounded-lg">
+            <div className="flex items-center px-3">
+              <Search className="h-4 w-4 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search tickets... / टिकट खोजें..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="border-none shadow-none focus-visible:ring-0 rounded-lg"
+              />
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-dashboard-blue"></div>
+            </div>
+          ) : loadError ? (
+            <div className="text-center py-8 bg-white rounded-lg p-4">
+              <p className="text-red-500 mb-2">{loadError}</p>
+              <Button
+                onClick={handleRetry}
+                className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white"
+              >
+                Retry / पुनः प्रयास करें
+              </Button>
+            </div>
+          ) : filteredIssues.length > 0 ? (
+            <div className="space-y-3">
+              {filteredIssues.map((issue) => {
+                const isClosedTicket = issue.status === "closed" || issue.status === "resolved";
+                
+                return (
+                  <div
+                    key={issue.id}
+                    className="bg-white rounded-lg p-4 active:bg-gray-50"
                   >
-                    <CardContent className="p-4">
+                    <div 
+                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                      className="cursor-pointer"
+                    >
                       <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className={getStatusBadgeColor(issue.status)}>
-                          {formatStatus(issue.status)}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          {formatDistanceToNow(new Date(issue.created_at), { addSuffix: true })}
+                        <h3 className="font-medium">
+                          {getIssueTypeLabel(issue.typeId)}
+                        </h3>
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
+                                        issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
+                                        "bg-green-500 text-white"}`}>
+                          {issue.status === "open" ? "Open / खुला" : 
+                          issue.status === "in_progress" ? "In progress / प्रगति पर" : 
+                          "Closed / बंद"}
                         </span>
                       </div>
-                      
-                      <h3 className="font-medium mb-1">{getIssueTypeName(issue.type_id)}</h3>
-                      <p className="text-sm text-gray-700 line-clamp-2 mb-2">{issue.description}</p>
-                      
-                      {issue.assigned_to && (
-                        <>
-                          <Separator className="my-2" />
-                          <div className="flex justify-between items-center text-xs text-gray-500">
-                            <span>Assigned to: {issue.assigned_to_name || 'Support Agent'}</span>
-                          </div>
-                        </>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
-          </ScrollArea>
-        </TabsContent>
-        
-        <TabsContent value="closed" className="mt-0">
-          <ScrollArea className="h-[calc(100vh-180px)]">
-            <div className="px-4 pb-24">
-              {isLoading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
-                </div>
-              ) : error ? (
-                <div className="text-center py-8 text-red-500">
-                  Error loading issues. Please try again.
-                </div>
-              ) : issues.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  No closed issues found.
-                </div>
-              ) : (
-                issues.map((issue) => (
-                  <Card 
-                    key={issue.id} 
-                    className="mb-4 cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <Badge variant="outline" className={getStatusBadgeColor(issue.status)}>
-                          {formatStatus(issue.status)}
-                        </Badge>
-                        <span className="text-xs text-gray-500">
-                          Closed {issue.closed_at ? formatDistanceToNow(new Date(issue.closed_at), { addSuffix: true }) : 'recently'}
+                      <p className="text-sm text-gray-600 mb-1">
+                        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+                      </p>
+                      <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
+                      <div className="flex justify-between text-xs text-gray-500">
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatShortDate(issue.createdAt)}
+                        </span>
+                        <span className="flex items-center">
+                          {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
                         </span>
                       </div>
-                      
-                      <h3 className="font-medium mb-1">{getIssueTypeName(issue.type_id)}</h3>
-                      <p className="text-sm text-gray-700 line-clamp-2 mb-2">{issue.description}</p>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
+                    </div>
+                    
+                    {/* Show feedback button only for closed tickets */}
+                    {isClosedTicket && authState.user?.id && (
+                      <TicketFeedbackButton
+                        ticketId={issue.id}
+                        resolverUuid={issue.assignedTo}
+                        employeeUuid={authState.user.id}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </ScrollArea>
-        </TabsContent>
-      </Tabs>
+          ) : (
+            <div className="text-center py-8 bg-white rounded-lg p-4">
+              <h3 className="mt-2 text-lg font-medium">No tickets found / कोई टिकट नहीं मिला</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? "No tickets match your search / आपकी खोज से मेल खाने वाला कोई टिकट नहीं" : "You haven't raised any tickets yet / आपने अभी तक कोई टिकट नहीं बनाया है"}
+              </p>
+              <div className="mt-6">
+                <button
+                  onClick={() => navigate("/mobile/issues/new")}
+                  className="px-4 py-2 text-sm font-medium rounded-md text-white bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark"
+                >
+                  Raise a new ticket / नया टिकट बनाएँ
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </MobileLayout>
   );
 };
 
-export default Issues;
+export default MobileIssues;
