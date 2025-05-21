@@ -75,6 +75,13 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
     );
   }
 
+  // Get the appropriate title based on the view
+  const getFeedbackTypeName = () => {
+    if (view === "agent") return "Agent";
+    if (view === "solution") return "Resolution";
+    return "";
+  };
+
   // Render metrics based on the selected view
   const renderOverviewMetrics = () => (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-6">
@@ -246,7 +253,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryAnalysis = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>{view === "solution" ? "Solution Category Analysis" : "Category Analysis"}</CardTitle>
+        <CardTitle>{view === "solution" ? "Resolution Category Analysis" : "Category Analysis"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -271,7 +278,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryTable = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>{view === "solution" ? "Solution Category Ratings" : "Category Ratings"}</CardTitle>
+        <CardTitle>{view === "solution" ? "Resolution Category Ratings" : "Category Ratings"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -351,7 +358,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
                     <YAxis domain={[0, 5]} />
                     <Tooltip />
                     <Legend />
-                    <Line dataKey="rating" name="Solution Rating" stroke="#8884d8" />
+                    <Line dataKey="rating" name="Resolution Rating" stroke="#8884d8" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

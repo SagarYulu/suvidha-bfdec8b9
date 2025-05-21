@@ -53,6 +53,8 @@ export const useFeedbackAnalytics = ({
         }
         
         // Add feedbackType based on view to the filters
+        // Use 'agent' for agent view, 'solution' for solution view
+        // For overview, we'll filter by the user's selected feedbackType
         if (view === 'agent') {
           processedFilters.feedbackType = 'agent';
         } else if (view === 'solution') {

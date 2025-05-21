@@ -321,7 +321,7 @@ const FeedbackAnalytics = () => {
           <TabsList className="grid grid-cols-3 w-[400px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
-            <TabsTrigger value="solution">Solution Feedback</TabsTrigger>
+            <TabsTrigger value="solution">Resolution Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
