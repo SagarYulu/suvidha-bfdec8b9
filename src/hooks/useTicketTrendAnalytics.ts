@@ -66,11 +66,18 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
           }));
         }
         
-        // Add status distribution if not already present
-        if (data && data.kpis && !data.statusDistribution) {
-          data.statusDistribution = {
-            open: Math.round(data.kpis.openTickets * 0.4),
-            in_progress: Math.round(data.kpis.openTickets * 0.6),
+        // Add status distribution directly to the kpis object
+        if (data && data.kpis && data.statusDistribution) {
+          // Move status distribution from analytics level to kpis level
+          data.kpis.statusDistribution = data.statusDistribution;
+        } else if (data && data.kpis && !data.kpis.statusDistribution) {
+          // Create status distribution if not present at all
+          const openTicketsCount = Math.round(data.kpis.openTickets * 0.4);
+          const inProgressCount = Math.round(data.kpis.openTickets * 0.6);
+          
+          data.kpis.statusDistribution = {
+            open: openTicketsCount,
+            in_progress: inProgressCount,
             resolved: Math.round(data.kpis.resolvedTickets * 0.7),
             closed: Math.round(data.kpis.resolvedTickets * 0.3)
           };
