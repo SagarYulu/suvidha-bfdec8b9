@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdvancedFilters } from "./AdvancedAnalyticsSection";
@@ -7,9 +8,9 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TopicRadarChart } from "@/components/charts/TopicRadarChart";
-import { TopicBarChart } from "@/components/charts/TopicBarChart";
-import { SentimentPieChart } from "@/components/charts/SentimentPieChart";
+import TopicRadarChart from "@/components/charts/TopicRadarChart";
+import TopicBarChart from "@/components/charts/TopicBarChart";
+import SentimentPieChart from "@/components/charts/SentimentPieChart";
 
 interface AdvancedAnalyticsChartsProps {
   filters: AdvancedFilters;
