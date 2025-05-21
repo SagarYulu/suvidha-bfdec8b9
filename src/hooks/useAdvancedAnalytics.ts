@@ -14,7 +14,7 @@ export interface AnalyticsData {
   resolutionSLABreach: number;
   reopenCount: number;
   reopenRate: number;
-  // Add SLA breach metrics
+  // SLA breach metrics
   closedResolvedSLABreach: number;
   overallSLABreach: number;
   openInProgressSLABreach: number;
@@ -69,6 +69,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         queryModifiers = queryModifiers.lte('created_at', endDate);
       }
       
+      // Apply filters
       if (filters.city) {
         // Assuming issues are linked to employees and employees have city
         const { data: employeeIds } = await supabase
@@ -287,6 +288,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         assigneeSLABreach
       ) / 4;
       
+      // Other metrics and charts data
       // Priority distribution
       const { data: priorityResults } = await supabase
         .from('issues')
@@ -426,7 +428,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         resolutionSLABreach,
         reopenCount,
         reopenRate,
-        // Add SLA breach metrics
+        // SLA breach metrics
         closedResolvedSLABreach,
         overallSLABreach,
         openInProgressSLABreach,

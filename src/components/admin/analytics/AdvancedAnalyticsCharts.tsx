@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdvancedFilters } from "./types";
@@ -9,7 +10,7 @@ import {
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { 
   ArrowUp, ArrowDown, ChartPie, ChartBar, 
-  BarChartHorizontal, TrendingDown, TrendingUp, 
+  BarChart3 as BarChart3Icon, TrendingDown, TrendingUp, 
   Bell, Clock, Percent, Ticket, Users, Repeat 
 } from "lucide-react";
 import TopicRadarChart from "@/components/charts/TopicRadarChart";

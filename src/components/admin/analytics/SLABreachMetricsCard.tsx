@@ -24,12 +24,13 @@ export const SLABreachMetricsCard: React.FC<SLABreachMetricsCardProps> = ({
   
   const SLAMetricItem = ({ label, value }: { label: string; value: number }) => {
     const showWarning = value > 0;
+    const valueClass = showWarning ? 'text-red-600' : 'text-green-600';
     
     return (
       <div className="flex items-center justify-between py-2 border-b last:border-b-0 border-gray-100">
         <span className="text-sm font-medium text-gray-600">{label}</span>
         <div className="flex items-center gap-2">
-          <span className={`font-semibold ${showWarning ? 'text-red-600' : 'text-green-600'}`}>
+          <span className={`font-semibold ${valueClass}`}>
             {formatPercent(value)}
           </span>
           {showWarning && <CircleAlert className="h-4 w-4 text-red-500" />}
@@ -39,9 +40,9 @@ export const SLABreachMetricsCard: React.FC<SLABreachMetricsCardProps> = ({
   };
   
   return (
-    <Card className="bg-white">
+    <Card className="bg-white shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
           <span>SLA Breach Metrics</span>
           {(closedResolvedSLABreach > 0 || overallSLABreach > 0 || openInProgressSLABreach > 0 ||
             firstResponseSLABreach > 0 || assigneeSLABreach > 0) && (
@@ -49,7 +50,7 @@ export const SLABreachMetricsCard: React.FC<SLABreachMetricsCardProps> = ({
           )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-0">
+      <CardContent className="pt-0">
         <SLAMetricItem label="Closed & Resolved SLA Breach" value={closedResolvedSLABreach} />
         <SLAMetricItem label="Overall SLA Breach" value={overallSLABreach} />
         <SLAMetricItem label="Open & In Progress SLA Breach" value={openInProgressSLABreach} />
