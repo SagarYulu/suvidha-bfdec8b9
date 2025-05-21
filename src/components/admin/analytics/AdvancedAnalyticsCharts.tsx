@@ -88,7 +88,7 @@ export const AdvancedAnalyticsCharts: React.FC<AdvancedAnalyticsChartsProps> = (
   return (
     <div className="space-y-6">
       {/* SLA Breach Metrics Card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SLABreachMetricsCard 
           closedResolvedSLABreach={analyticsData.closedResolvedSLABreach}
           overallSLABreach={analyticsData.overallSLABreach}
@@ -140,10 +140,10 @@ export const AdvancedAnalyticsCharts: React.FC<AdvancedAnalyticsChartsProps> = (
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <KpiCard 
-          title="First Response SLA Breach" 
-          value={formatPercent(analyticsData.firstResponseSLABreach)} 
-          icon={<Percent className="h-5 w-5 text-red-600" />}
-          className="bg-red-50" 
+          title="First Response Time" 
+          value={formatHours(analyticsData.avgFirstResponseTime || 0)} 
+          icon={<Clock className="h-5 w-5 text-blue-600" />}
+          className="bg-blue-50" 
         />
         
         <KpiCard 
