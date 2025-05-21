@@ -13,14 +13,6 @@ interface TagTrendAnalysisProps {
   isLoading: boolean;
 }
 
-// Safe formatter for label lists
-const safeFormatLabel = (value: any): string | number => {
-  if (Array.isArray(value)) {
-    return value && value.length > 0 ? String(value[0] || 0) : '0';
-  }
-  return typeof value === 'string' || typeof value === 'number' ? value : String(value);
-};
-
 const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) => {
   const [activeTab, setActiveTab] = useState('tags');
   const [tagDistribution, setTagDistribution] = useState<any[]>([]);
@@ -30,16 +22,16 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
 
   useEffect(() => {
     if (!isLoading && data && data.length > 0) {
-      processData();
+      processData(data);
     }
   }, [data, isLoading]);
 
-  const processData = () => {
-    // Process tag distribution
+  const processData = (feedbackData: any[]) => {
+    // Process tag distribution from real data
     const tagCounts: Record<string, number> = {};
     
     // Count all tags
-    data.forEach(item => {
+    feedbackData.forEach(item => {
       if (item.tags && Array.isArray(item.tags)) {
         item.tags.forEach((tag: string) => {
           if (tag) {
@@ -74,10 +66,10 @@ const TagTrendAnalysis: React.FC<TagTrendAnalysisProps> = ({ data, isLoading }) 
       fullMark: Math.max(...sortedTags.map(t => t.value)) + 2
     })));
     
-    // Process sentiment distribution
+    // Process sentiment distribution from actual data
     const sentimentCounts: Record<string, number> = {};
     
-    data.forEach(item => {
+    feedbackData.forEach(item => {
       let label = item.sentiment_label?.toLowerCase() || 'unknown';
       // Simplify to positive, negative, neutral
       if (label.includes('positive')) label = 'positive';
