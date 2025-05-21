@@ -26,3 +26,11 @@ export interface TopicDataItem {
   previousCount?: number; // Make previousCount optional
   fullMark: number;
 }
+
+export interface KpiCardProps {
+  title: string;
+  value: string | number;
+  icon?: React.ReactNode;
+  className?: string;
+  change?: number;
+}
