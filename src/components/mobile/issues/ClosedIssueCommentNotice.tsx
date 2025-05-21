@@ -1,21 +1,43 @@
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Lock, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { Lock, RefreshCw, MessageCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import FeedbackDialog from "./FeedbackDialog";
+import { checkFeedbackExists } from "@/services/ticketFeedbackService";
 
 interface ClosedIssueCommentNoticeProps {
   isReopenable: boolean;
   onReopen: (reason: string) => Promise<void>;
+  issueId: string;
+  employeeUuid: string;
 }
 
 const ClosedIssueCommentNotice = ({ 
   isReopenable, 
-  onReopen 
+  onReopen,
+  issueId,
+  employeeUuid
 }: ClosedIssueCommentNoticeProps) => {
   const [showReopenForm, setShowReopenForm] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [hasFeedback, setHasFeedback] = useState(false);
+  const [checkingFeedback, setCheckingFeedback] = useState(true);
+
+  useEffect(() => {
+    const checkForExistingFeedback = async () => {
+      if (issueId && employeeUuid) {
+        setCheckingFeedback(true);
+        const exists = await checkFeedbackExists(issueId, employeeUuid);
+        setHasFeedback(exists);
+        setCheckingFeedback(false);
+      }
+    };
+
+    checkForExistingFeedback();
+  }, [issueId, employeeUuid]);
 
   const handleReopen = async () => {
     if (!reopenReason.trim()) return;
@@ -41,6 +63,19 @@ const ClosedIssueCommentNotice = ({
       <p className="text-gray-500 text-sm mt-1 text-center">
         You can't add new comments to a closed ticket.
       </p>
+
+      {!checkingFeedback && !hasFeedback && (
+        <div className="mt-4">
+          <Button 
+            variant="secondary"
+            onClick={() => setShowFeedbackDialog(true)}
+            className="w-full flex items-center justify-center"
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Share your feedback / अपनी प्रतिक्रिया साझा करें
+          </Button>
+        </div>
+      )}
 
       {isReopenable && !showReopenForm && (
         <div className="mt-4">
@@ -89,6 +124,14 @@ const ClosedIssueCommentNotice = ({
           </div>
         </div>
       )}
+
+      {/* Feedback Dialog */}
+      <FeedbackDialog 
+        isOpen={showFeedbackDialog}
+        onClose={() => setShowFeedbackDialog(false)}
+        issueId={issueId}
+        employeeUuid={employeeUuid}
+      />
     </div>
   );
 };

@@ -549,6 +549,41 @@ export type Database = {
           },
         ]
       }
+      ticket_feedback: {
+        Row: {
+          created_at: string
+          employee_uuid: string
+          feedback_option: string
+          id: string
+          issue_id: string
+          sentiment: string
+        }
+        Insert: {
+          created_at?: string
+          employee_uuid: string
+          feedback_option: string
+          id?: string
+          issue_id: string
+          sentiment: string
+        }
+        Update: {
+          created_at?: string
+          employee_uuid?: string
+          feedback_option?: string
+          id?: string
+          issue_id?: string
+          sentiment?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_feedback_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
