@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { useRBAC, Permission } from '@/contexts/RBACContext';
+import { usePermission, Permission } from '@/contexts/PermissionContext';
 
 interface PermissionGateProps {
   permission: Permission;
@@ -18,7 +18,7 @@ export const PermissionGate: React.FC<PermissionGateProps> = ({
   children,
   fallback = null
 }) => {
-  const { hasPermission } = useRBAC();
+  const { hasPermission } = usePermission();
   
   // If user has permission, render children; otherwise render fallback (or nothing)
   return hasPermission(permission) ? <>{children}</> : <>{fallback}</>;

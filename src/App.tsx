@@ -24,6 +24,7 @@ import TicketTrendAnalysis from "./pages/TicketTrendAnalysis";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { PermissionProvider } from "./contexts/PermissionContext";
+import Login from "./components/admin/Login";
 
 const App = () => {
   // Check if the current environment is the client-side
@@ -50,9 +51,7 @@ const App = () => {
     },
     {
       path: "/admin/login",
-      // This is where the error is happening - we need to import the Login component
-      // For now, just comment this out until we fix it
-      // element: <Login />,
+      element: <Login />,
     },
     {
       path: "/admin/dashboard",
