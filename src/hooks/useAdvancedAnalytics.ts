@@ -22,7 +22,7 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
       try {
         console.log("Fetching advanced analytics data with filters:", filters);
         
-        // Start building the base query
+        // Start building the base query - use type assertion to help TypeScript
         let query = supabase
           .from('issues')
           .select(`
@@ -30,47 +30,64 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
             issue_comments (*)
           `);
         
+        // Apply filters one by one, using a different approach to avoid deep type instantiation
+        
         // Apply city filter
         if (filters.city) {
           console.log("Applying city filter:", filters.city);
-          // Use a typed parameter to avoid excessive type instantiation
-          const cityFilter: string = filters.city;
-          query = query.eq('city', cityFilter);
+          query = supabase
+            .from('issues')
+            .select(`
+              *,
+              issue_comments (*)
+            `)
+            .eq('city', filters.city);
+            
+          // Apply other filters to this new query instance
+          if (filters.cluster) {
+            console.log("Applying cluster filter:", filters.cluster);
+            query = query.eq('cluster', filters.cluster);
+          }
+          
+          if (filters.manager) {
+            console.log("Applying manager filter:", filters.manager);
+            query = query.eq('manager', filters.manager);
+          }
+          
+          if (filters.role) {
+            console.log("Applying role filter:", filters.role);
+            query = query.eq('role', filters.role);
+          }
+          
+          if (filters.issueType) {
+            console.log("Applying issue type filter:", filters.issueType);
+            query = query.eq('type_id', filters.issueType);
+          }
+        } 
+        // If no city filter, but other filters exist
+        else {
+          if (filters.cluster) {
+            console.log("Applying cluster filter:", filters.cluster);
+            query = query.eq('cluster', filters.cluster);
+          }
+          
+          if (filters.manager) {
+            console.log("Applying manager filter:", filters.manager);
+            query = query.eq('manager', filters.manager);
+          }
+          
+          if (filters.role) {
+            console.log("Applying role filter:", filters.role);
+            query = query.eq('role', filters.role);
+          }
+          
+          if (filters.issueType) {
+            console.log("Applying issue type filter:", filters.issueType);
+            query = query.eq('type_id', filters.issueType);
+          }
         }
         
-        // Apply cluster filter
-        if (filters.cluster) {
-          console.log("Applying cluster filter:", filters.cluster);
-          // Use a typed parameter to avoid excessive type instantiation
-          const clusterFilter: string = filters.cluster;
-          query = query.eq('cluster', clusterFilter);
-        }
-        
-        // Apply manager filter
-        if (filters.manager) {
-          console.log("Applying manager filter:", filters.manager);
-          // Use a typed parameter to avoid excessive type instantiation
-          const managerFilter: string = filters.manager;
-          query = query.eq('manager', managerFilter);
-        }
-        
-        // Apply role filter
-        if (filters.role) {
-          console.log("Applying role filter:", filters.role);
-          // Use a typed parameter to avoid excessive type instantiation
-          const roleFilter: string = filters.role;
-          query = query.eq('role', roleFilter);
-        }
-        
-        // Apply issue type filter
-        if (filters.issueType) {
-          console.log("Applying issue type filter:", filters.issueType);
-          // Use a typed parameter to avoid excessive type instantiation
-          const issueTypeFilter: string = filters.issueType;
-          query = query.eq('type_id', issueTypeFilter);
-        }
-        
-        // Apply date range filter
+        // Apply date range filter (can be safely chained)
         if (filters.dateRange) {
           if (filters.dateRange.from) {
             const fromDate = new Date(filters.dateRange.from);
