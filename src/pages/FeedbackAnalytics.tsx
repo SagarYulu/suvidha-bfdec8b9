@@ -61,7 +61,7 @@ const FeedbackAnalytics = () => {
   const [loading, setLoading] = useState(true);
 
   // Active tab state
-  const [activeTab, setActiveTab] = useState<"overview" | "agent" | "resolution">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "agent" | "solution">("overview");
 
   // Fetch cities and clusters from master data
   useEffect(() => {
@@ -316,12 +316,12 @@ const FeedbackAnalytics = () => {
           </CardContent>
         </Card>
 
-        {/* Analytics Tabs - Updated to use consistent naming */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "agent" | "resolution")}>
+        {/* Analytics Tabs */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "agent" | "solution")}>
           <TabsList className="grid grid-cols-3 w-[400px]">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
-            <TabsTrigger value="resolution">Resolution Feedback</TabsTrigger>
+            <TabsTrigger value="solution">Resolution Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">
@@ -338,9 +338,9 @@ const FeedbackAnalytics = () => {
             />
           </TabsContent>
 
-          <TabsContent value="resolution" className="mt-6">
+          <TabsContent value="solution" className="mt-6">
             <FeedbackAnalyticsContent 
-              view="resolution"
+              view="solution"
               filters={getFilters()}
             />
           </TabsContent>

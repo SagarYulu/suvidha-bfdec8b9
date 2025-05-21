@@ -155,7 +155,7 @@ export const useDashboardData = () => {
     return users.filter(user => user.role === "employee").length;
   }, [users]);
   
-  // Memoize chart data to prevent recalculations and properly apply filters
+  // Memoize chart data to prevent recalculations
   const typePieData = useMemo(() => {
     if (!analytics?.typeCounts) {
       console.log("No type counts data available for pie chart");
@@ -169,39 +169,18 @@ export const useDashboardData = () => {
     return data;
   }, [analytics]);
   
-  // FIX: Apply city filter to ensure we only show data for the selected city
   const cityBarData = useMemo(() => {
     if (!analytics?.cityCounts) {
       console.log("No city counts data available for bar chart");
       return [];
     }
-    
-    // If a city filter is applied, only show that city in the chart
-    if (filters.city) {
-      // Only include the selected city in the chart data
-      const filteredCityCounts = {};
-      if (analytics.cityCounts[filters.city]) {
-        filteredCityCounts[filters.city] = analytics.cityCounts[filters.city];
-      }
-      
-      const data = Object.entries(filteredCityCounts).map(([name, value]) => ({
-        name,
-        value
-      }));
-      
-      console.log("Generated filtered city bar data:", data);
-      return data;
-    } else {
-      // No city filter applied, show all cities
-      const data = Object.entries(analytics.cityCounts).map(([name, value]) => ({
-        name,
-        value
-      }));
-      
-      console.log("Generated city bar data (all cities):", data);
-      return data;
-    }
-  }, [analytics, filters.city]);
+    const data = Object.entries(analytics.cityCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+    console.log("Generated city bar data:", data);
+    return data;
+  }, [analytics]);
   
   // Improved filter change handler with consistent state management
   const handleFilterChange = useCallback((newFilters: IssueFilters) => {
