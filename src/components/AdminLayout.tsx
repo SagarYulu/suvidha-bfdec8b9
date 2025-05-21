@@ -1,70 +1,61 @@
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { ReactNode } from 'react';
+import Sidebar from '@/components/Sidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from "@/hooks/use-toast"; 
-
-import BaseLayout from './layouts/BaseLayout';
-import AdminHeader from './layouts/headers/AdminHeader';
-import AdminSidebar from './layouts/sidebars/AdminSidebar';
+import { Loader2 } from 'lucide-react';
+import { Navigate } from 'react-router-dom';
 
 interface AdminLayoutProps {
-  children: React.ReactNode;
   title: string;
-  className?: string;
-  showBackButton?: boolean;
-  requiredPermission?: 'view:dashboard' | 'manage:users' | 'manage:issues' | 'manage:analytics' | 'manage:settings' | 'access:security' | 'create:dashboardUser';
+  children: ReactNode;
+  requiredPermission?: string;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ 
-  children, 
-  title,
-  className,
-  showBackButton = true,
-  requiredPermission = 'view:dashboard'
+  title, 
+  children,
+  requiredPermission
 }) => {
-  const { authState, logout } = useAuth();
-  const navigate = useNavigate();
+  const { authState, hasPermission } = useAuth();
   
-  // Show loading indicator while authentication state is being determined
-  if (authState.isAuthenticated === undefined) {
+  // Check if user is authenticated
+  if (authState.status === 'loading') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading...</span>
+      </div>
+    );
+  }
+  
+  if (authState.status === 'unauthenticated') {
+    return <Navigate to="/admin/login" />;
+  }
+
+  // Check permission if required
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-50">
+        <h1 className="text-2xl font-bold text-red-500 mb-2">Access Denied</h1>
+        <p className="text-gray-600">You don't have permission to access this page.</p>
       </div>
     );
   }
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/admin/login', { replace: true });
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast({
-        title: "Logout Failed",
-        description: "Unable to log out. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
-    <BaseLayout 
-      header={
-        <AdminHeader 
-          title={title} 
-          userName={authState.user?.name || 'Administrator'} 
-          showBackButton={showBackButton}
-        />
-      } 
-      sidebar={
-        <AdminSidebar onLogout={handleLogout} />
-      }
-      className={className}
-    >
-      {children}
-    </BaseLayout>
+    <div className="flex h-screen bg-gray-100">
+      <Sidebar />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <header className="bg-white shadow">
+          <div className="px-6 py-4">
+            <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
+          </div>
+        </header>
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
+    </div>
   );
 };
 
