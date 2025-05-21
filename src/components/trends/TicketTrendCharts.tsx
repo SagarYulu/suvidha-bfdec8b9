@@ -19,7 +19,9 @@ import {
   Radar,
   PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis
+  PolarRadiusAxis,
+  LineChart,
+  Line
 } from "recharts";
 import {
   TrendAnalyticsData,
@@ -85,20 +87,22 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
     comparisonClosed: point.comparisonClosed || 0
   }));
 
-  // Resolution time by type chart data
+  // Resolution time by type chart data - Now with color indicator based on time
   const resolutionTimeData = data.resolutionByType
     .sort((a, b) => b.averageTime - a.averageTime)
-    .map(item => ({
+    .map((item, index) => ({
       name: item.typeName,
       time: Number(item.averageTime.toFixed(1)),
-      count: item.ticketCount
+      count: item.ticketCount,
+      colorIndex: index
     }));
 
-  // Weekday distribution data reformatted for radar chart
-  const weekdayData = Object.entries(data.weekdayDistribution).map(([day, count]) => ({
-    subject: day.charAt(0).toUpperCase() + day.slice(1),
-    count: count,
-    fullMark: Math.max(...Object.values(data.weekdayDistribution)) + 5
+  // Weekday data transformed for line chart visualization
+  const weekdayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const weekdayData = weekdayOrder.map(day => ({
+    name: day.charAt(0).toUpperCase() + day.slice(1),
+    tickets: data.weekdayDistribution[day],
+    isWeekend: day === 'saturday' || day === 'sunday'
   }));
 
   // Helper function to export chart data to CSV
@@ -268,7 +272,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardContent>
       </Card>
 
-      {/* Resolution Time by Issue Type - Changed to heat map style bar chart */}
+      {/* Resolution Time by Issue Type - Updated with new visual format */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Resolution Time by Issue Type</CardTitle>
@@ -287,34 +291,58 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
               layout="vertical"
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" label={{ value: 'Hours', position: 'insideBottom', offset: -5 }} />
-              <YAxis type="category" dataKey="name" width={100} />
+              <CartesianGrid strokeDasharray="3 3" horizontal={true} />
+              <XAxis 
+                type="number" 
+                label={{ value: 'Hours', position: 'insideBottom', offset: -5 }}
+                domain={[0, 'dataMax + 2']}
+              />
+              <YAxis type="category" dataKey="name" width={120} />
               <Tooltip 
-                formatter={(value, name) => [
-                  name === 'time' ? `${value} hours` : `${value} tickets`,
-                  name === 'time' ? 'Avg. Resolution Time' : 'Ticket Count'
-                ]}
+                formatter={(value, name, props) => {
+                  if (name === 'time') {
+                    return [`${value} hours`, 'Resolution Time'];
+                  }
+                  if (name === 'count') {
+                    return [`${value} tickets`, 'Ticket Count'];
+                  }
+                  return [value, name];
+                }}
+                labelFormatter={(label) => `Issue Type: ${label}`}
               />
               <Legend />
               <Bar 
                 dataKey="time" 
-                name="Avg. Resolution Time" 
-                fill="#3b82f6"
+                name="Resolution Time"
+                barSize={20}
+                radius={[0, 4, 4, 0]}
               >
-                {resolutionTimeData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`}
-                    fill={`hsl(${220 - (entry.time / Math.max(...resolutionTimeData.map(d => d.time))) * 100}, 80%, 60%)`}
-                  />
-                ))}
+                {resolutionTimeData.map((entry, index) => {
+                  // Calculate color based on resolution time
+                  // Using a gradient from green (fast) to red (slow)
+                  const maxTime = Math.max(...resolutionTimeData.map(d => d.time));
+                  const ratio = entry.time / maxTime;
+                  // Create color interpolation from green to yellow to red
+                  const r = Math.min(255, Math.round(255 * ratio * 2));
+                  const g = Math.min(255, Math.round(255 * (2 - ratio * 2)));
+                  const color = `rgb(${r}, ${g}, 100)`;
+                  
+                  return <Cell key={`cell-${index}`} fill={color} stroke="#ffffff" strokeWidth={1} />;
+                })}
               </Bar>
+              <Bar 
+                dataKey="count" 
+                name="Ticket Count" 
+                barSize={5}
+                fill="#8884d8"
+                radius={[0, 0, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      {/* Top Issue Types Chart - Changed to horizontal bar chart with gradient */}
+      {/* Top Issue Types Chart */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Top Issue Types</CardTitle>
@@ -341,7 +369,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
               <YAxis dataKey="name" type="category" width={100} />
               <Tooltip formatter={(value) => [`${value} tickets`, "Count"]} />
               <Legend />
-              <Bar dataKey="count" name="Ticket Count">
+              <Bar dataKey="count" name="Ticket Count" radius={[0, 4, 4, 0]}>
                 {data.topIssueTypes.map((_, index) => (
                   <Cell 
                     key={`cell-${index}`} 
@@ -354,7 +382,7 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardContent>
       </Card>
 
-      {/* Weekday vs Weekend Distribution - Changed to radar chart */}
+      {/* Weekday vs Weekend Distribution - Changed to line chart */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Weekday vs Weekend Ticket Flow</CardTitle>
@@ -374,20 +402,58 @@ const TicketTrendCharts: React.FC<TicketTrendChartsProps> = ({ data, isLoading }
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <RadarChart outerRadius={90} data={weekdayData}>
-              <PolarGrid />
-              <PolarAngleAxis dataKey="subject" />
-              <PolarRadiusAxis angle={30} domain={[0, 'auto']} />
-              <Radar
-                name="Ticket Count"
-                dataKey="count"
-                stroke="#3b82f6"
-                fill="#3b82f6"
-                fillOpacity={0.6}
+            <LineChart data={weekdayData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                tickLine={true}
+                padding={{ left: 10, right: 10 }}
+              />
+              <YAxis 
+                label={{ value: 'Ticket Count', angle: -90, position: 'insideLeft', offset: -5 }}
+                allowDecimals={false}
+              />
+              <Tooltip 
+                formatter={(value) => [`${value} tickets`, "Count"]}
+                labelFormatter={(label) => `Day: ${label}`}
               />
               <Legend />
-              <Tooltip formatter={(value) => [`${value} tickets`, "Count"]} />
-            </RadarChart>
+              
+              {/* Add background areas to highlight weekends */}
+              <defs>
+                <pattern id="weekend-pattern" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
+                  <line x1="0" y="0" x2="0" y2="6" stroke="#f0f0f0" strokeWidth="2" />
+                </pattern>
+              </defs>
+              
+              {/* Weekend area highlight */}
+              {weekdayData.map((day, index) => {
+                if (day.isWeekend) {
+                  return (
+                    <rect 
+                      key={`weekend-${index}`}
+                      x={`${index * (100 / weekdayData.length)}%`} 
+                      width={`${100 / weekdayData.length}%`}
+                      y="0" 
+                      height="100%" 
+                      fill="url(#weekend-pattern)"
+                      fillOpacity={0.4}
+                    />
+                  );
+                }
+                return null;
+              })}
+              
+              <Line
+                type="monotone"
+                dataKey="tickets"
+                name="Ticket Count"
+                stroke="#8884d8"
+                strokeWidth={2}
+                dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4, fill: 'white' }}
+                activeDot={{ r: 6, stroke: '#8884d8', strokeWidth: 2, fill: '#8884d8' }}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
