@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdvancedFilters } from "./AdvancedAnalyticsSection";
+import { AdvancedFilters } from "./types";
 import {
   LineChart, Line, BarChart, Bar, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
