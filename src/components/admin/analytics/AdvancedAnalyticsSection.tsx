@@ -35,6 +35,7 @@ export const AdvancedAnalyticsSection = () => {
   } = useAnalyticsFilters();
 
   const applyFilters = () => {
+    console.log("Applying filters:", pendingFilters);
     setAppliedFilters(pendingFilters);
     toast.success("Filters applied successfully");
   };

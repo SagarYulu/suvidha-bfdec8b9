@@ -20,6 +20,8 @@ interface DateRangePickerProps {
 }
 
 export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  
   // Convert our DateRange to the DayPickerDateRange expected by the Calendar component
   const dayPickerValue: DayPickerDateRange | undefined = date.from ? {
     from: date.from,
@@ -32,10 +34,15 @@ export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
       from: range?.from,
       to: range?.to
     });
+    
+    // Don't close the popover automatically - let user apply the filter
+    if (range?.from && range?.to) {
+      setIsOpen(false);
+    }
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -43,6 +50,7 @@ export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground"
           )}
+          onClick={() => setIsOpen(true)}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date?.from ? (
@@ -68,6 +76,15 @@ export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
           numberOfMonths={2}
           className="pointer-events-auto"
         />
+        <div className="p-2 border-t flex justify-end">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setIsOpen(false)}
+          >
+            Close
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

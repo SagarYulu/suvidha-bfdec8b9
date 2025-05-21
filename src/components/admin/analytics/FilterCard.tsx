@@ -50,7 +50,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
             <Select value={filters.city || ""} onValueChange={handleCityChange}>
@@ -137,50 +137,52 @@ export const FilterCard: React.FC<FilterCardProps> = ({
               onChange={handleDateRangeChange} 
             />
           </div>
+        </div>
 
-          <div className="col-span-1 md:col-span-2 space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="comparison-mode-toggle" className="font-medium">
-                Comparison Mode
-                {filters.isComparisonModeEnabled && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    Enabled
-                  </span>
-                )}
-              </Label>
-              <Switch 
-                id="comparison-mode-toggle"
-                checked={filters.isComparisonModeEnabled}
-                onCheckedChange={handleComparisonModeToggle}
-                className={filters.isComparisonModeEnabled ? "bg-blue-600" : ""}
-              />
-            </div>
-            {filters.isComparisonModeEnabled && (
-              <div className="pt-2">
-                <Select 
-                  value={filters.comparisonMode} 
-                  onValueChange={handleComparisonModeChange}
-                  disabled={!filters.isComparisonModeEnabled}
-                >
-                  <SelectTrigger id="comparisonMode">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {comparisonModes.map(mode => (
-                      <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+        <div className="mt-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <Label htmlFor="comparison-mode-toggle" className="font-medium">
+              Comparison Mode
+              {filters.isComparisonModeEnabled && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Enabled
+                </span>
+              )}
+            </Label>
+            <Switch 
+              id="comparison-mode-toggle"
+              checked={filters.isComparisonModeEnabled}
+              onCheckedChange={handleComparisonModeToggle}
+              className={filters.isComparisonModeEnabled ? "bg-blue-600" : ""}
+            />
           </div>
+          
+          {filters.isComparisonModeEnabled && (
+            <div>
+              <Select 
+                value={filters.comparisonMode} 
+                onValueChange={handleComparisonModeChange}
+                disabled={!filters.isComparisonModeEnabled}
+              >
+                <SelectTrigger id="comparisonMode">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {comparisonModes.map(mode => (
+                    <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
         
-        {/* Add Apply Filters button */}
-        <div className="mt-4 flex justify-end">
+        {/* Apply Filters button - prominently displayed */}
+        <div className="mt-6 flex justify-end">
           <Button 
             onClick={applyFilters}
             className="bg-blue-600 hover:bg-blue-700"
+            size="lg"
           >
             Apply Filters
           </Button>

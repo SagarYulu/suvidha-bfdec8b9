@@ -81,6 +81,7 @@ export const useAnalyticsFilters = () => {
     if (pendingFilters.manager) count++;
     if (pendingFilters.role) count++;
     if (pendingFilters.issueType) count++;
+    if (pendingFilters.isComparisonModeEnabled) count++;
     return count;
   }, [pendingFilters]);
 
@@ -91,13 +92,16 @@ export const useAnalyticsFilters = () => {
       manager: null,
       role: null,
       issueType: null,
-      dateRange: pendingFilters.dateRange,
-      isComparisonModeEnabled: pendingFilters.isComparisonModeEnabled,
-      comparisonMode: pendingFilters.comparisonMode,
+      dateRange: {
+        from: new Date(new Date().setDate(new Date().getDate() - 30)),
+        to: new Date(),
+      },
+      isComparisonModeEnabled: false,
+      comparisonMode: "day-by-day",
     };
     setPendingFilters(clearedFilters);
     setAppliedFilters(clearedFilters);
-  }, [pendingFilters.dateRange, pendingFilters.isComparisonModeEnabled, pendingFilters.comparisonMode]);
+  }, []);
 
   return {
     filters,

@@ -42,8 +42,9 @@ const AboutDataCard: React.FC<AboutDataCardProps> = ({ dataCount }) => {
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
                     <p>Resolution time is calculated in working hours (9 AM - 5 PM on weekdays only).</p>
-                    <p className="mt-1">For example, an issue created at 4 PM on Friday and resolved at 10 AM on Monday 
+                    <p className="mt-1">For example: An issue created at 4 PM on Friday and resolved at 10 AM on Monday 
                     would have a resolution time of 2 hours (1 hour on Friday + 1 hour on Monday).</p>
+                    <p className="mt-1">Resolution times are displayed as "days hours" where 1 day equals 8 working hours.</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -51,6 +52,9 @@ const AboutDataCard: React.FC<AboutDataCardProps> = ({ dataCount }) => {
             <p className="text-sm opacity-80">
               All resolution times are calculated in <span className="font-medium">working hours only</span> (9 AM - 5 PM, weekdays), 
               excluding weekends and holidays.
+            </p>
+            <p className="text-sm opacity-80 mt-1">
+              Times are displayed as "Xd Yh" where X is days (8 working hours per day) and Y is remaining hours.
             </p>
           </div>
         </div>
