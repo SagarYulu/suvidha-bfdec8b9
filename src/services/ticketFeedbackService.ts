@@ -39,6 +39,18 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
   try {
     console.log("Submitting feedback:", feedback);
     
+    // Check if feedback already exists
+    const feedbackExists = await checkFeedbackExists(feedback.issue_id, feedback.employee_uuid);
+    
+    if (feedbackExists) {
+      console.log("Feedback already exists for this ticket");
+      toast({
+        title: "Feedback Already Submitted",
+        description: "You have already provided feedback for this ticket.",
+      });
+      return true; // Return true since the feedback is already handled
+    }
+    
     const { data, error } = await supabase
       .from('ticket_feedback')
       .insert([feedback])

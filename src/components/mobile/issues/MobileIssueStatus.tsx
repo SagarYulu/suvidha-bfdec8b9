@@ -71,6 +71,17 @@ const MobileIssueStatus = ({
             <Clock className="h-3 w-3 mr-1" />
             <span>Closed on {formatDate(issue.closedAt || "")}</span>
           </div>
+          
+          {isReopenable && (
+            <Button 
+              onClick={handleReopenTicket} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 text-xs h-7"
+            >
+              Reopen Ticket / टिकट फिर से खोलें
+            </Button>
+          )}
         </div>
       )}
     </div>

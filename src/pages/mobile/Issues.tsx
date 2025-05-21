@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,11 +8,13 @@ import { getUserById } from "@/services/userService";
 import { Issue, User } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, Search, User as UserIcon, CreditCard } from "lucide-react";
+import { Clock, Search, User as UserIcon, CreditCard, MessageSquare } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import FeedbackDialog from "@/components/mobile/issues/FeedbackDialog";
+import { checkFeedbackExists } from "@/services/ticketFeedbackService";
 
 const MobileIssues = () => {
   const { authState } = useAuth();
@@ -25,6 +26,11 @@ const MobileIssues = () => {
   const [isEmployeeLoading, setIsEmployeeLoading] = useState(true);
   const [employeeDetails, setEmployeeDetails] = useState<User | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  
+  // State for feedback dialog
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [selectedIssueId, setSelectedIssueId] = useState<string>("");
+  const [ticketFeedbackStatus, setTicketFeedbackStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchEmployeeDetails = async () => {
@@ -97,6 +103,27 @@ const MobileIssues = () => {
           const userIssues = await getIssuesByUserId(authState.user.id);
           setIssues(userIssues);
           setFilteredIssues(userIssues);
+          
+          // Check feedback status for all closed or resolved tickets
+          const closedTickets = userIssues.filter(
+            issue => issue.status === "closed" || issue.status === "resolved"
+          );
+          
+          if (closedTickets.length > 0) {
+            const feedbackChecks = await Promise.all(
+              closedTickets.map(async (issue) => {
+                const hasFeedback = await checkFeedbackExists(issue.id, authState.user?.id || "");
+                return { issueId: issue.id, hasFeedback };
+              })
+            );
+            
+            const feedbackStatusMap: Record<string, boolean> = {};
+            feedbackChecks.forEach(({ issueId, hasFeedback }) => {
+              feedbackStatusMap[issueId] = hasFeedback;
+            });
+            
+            setTicketFeedbackStatus(feedbackStatusMap);
+          }
         } catch (error) {
           console.error("Error fetching tickets:", error);
           setLoadError("Error loading your tickets. Please try again.");
@@ -152,6 +179,20 @@ const MobileIssues = () => {
         authState.user.id = tempId;
       }, 100);
     }
+  };
+
+  const openFeedbackDialog = (issueId: string) => {
+    setSelectedIssueId(issueId);
+    setFeedbackDialogOpen(true);
+  };
+
+  const handleFeedbackSubmitted = (issueId: string) => {
+    // Update the local state to show feedback was submitted
+    setTicketFeedbackStatus(prev => ({
+      ...prev,
+      [issueId]: true
+    }));
+    setFeedbackDialogOpen(false);
   };
 
   return (
@@ -296,39 +337,85 @@ const MobileIssues = () => {
             </div>
           ) : filteredIssues.length > 0 ? (
             <div className="space-y-3">
-              {filteredIssues.map((issue) => (
-                <div
-                  key={issue.id}
-                  onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                  className="bg-white rounded-lg p-4 active:bg-gray-50"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium">
-                      {getIssueTypeLabel(issue.typeId)}
-                    </h3>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${issue.status === "open" ? "bg-red-500 text-white" : 
-                                     issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
-                                     "bg-green-500 text-white"}`}>
-                      {issue.status === "open" ? "Open / खुला" : 
-                       issue.status === "in_progress" ? "In progress / प्रगति पर" : 
-                       "Closed / बंद"}
-                    </span>
+              {filteredIssues.map((issue) => {
+                const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
+                const hasFeedback = ticketFeedbackStatus[issue.id] || false;
+                
+                return (
+                  <div
+                    key={issue.id}
+                    className="bg-white rounded-lg p-4"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 
+                        className="font-medium cursor-pointer"
+                        onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                      >
+                        {getIssueTypeLabel(issue.typeId)}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 text-xs rounded-full ${
+                          issue.status === "open" ? "bg-red-500 text-white" : 
+                          issue.status === "in_progress" ? "bg-yellow-500 text-white" : 
+                          "bg-green-500 text-white"
+                        }`}>
+                          {issue.status === "open" ? "Open / खुला" : 
+                          issue.status === "in_progress" ? "In progress / प्रगति पर" : 
+                          "Closed / बंद"}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p 
+                      className="text-sm text-gray-600 mb-1 cursor-pointer"
+                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                    >
+                      {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+                    </p>
+                    
+                    <p 
+                      className="text-sm mb-3 line-clamp-2 cursor-pointer"
+                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                    >
+                      {issue.description}
+                    </p>
+                    
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span className="flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatShortDate(issue.createdAt)}
+                      </span>
+                      
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center">
+                          {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
+                        </span>
+                        
+                        {isClosedOrResolved && (
+                          <>
+                            {hasFeedback ? (
+                              <span className="text-green-600 text-xs flex items-center">
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                Feedback Submitted / प्रतिक्रिया दी गई
+                              </span>
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs border-blue-300 text-blue-600"
+                                onClick={() => openFeedbackDialog(issue.id)}
+                              >
+                                <MessageSquare className="h-3 w-3 mr-1" />
+                                Share Feedback / अपनी प्रतिक्रिया साझा करें
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-1">
-                    {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
-                  </p>
-                  <p className="text-sm mb-3 line-clamp-2">{issue.description}</p>
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <span className="flex items-center">
-                      <Clock className="h-3 w-3 mr-1" />
-                      {formatShortDate(issue.createdAt)}
-                    </span>
-                    <span className="flex items-center">
-                      {issue.comments ? issue.comments.length : 0} comments / टिप्पणियाँ
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-8 bg-white rounded-lg p-4">
@@ -348,6 +435,15 @@ const MobileIssues = () => {
           )}
         </div>
       </div>
+      
+      {/* Feedback Dialog */}
+      <FeedbackDialog
+        isOpen={feedbackDialogOpen}
+        onClose={() => setFeedbackDialogOpen(false)}
+        issueId={selectedIssueId}
+        employeeUuid={authState.user?.id || ""}
+        onFeedbackSubmitted={() => handleFeedbackSubmitted(selectedIssueId)}
+      />
     </MobileLayout>
   );
 };

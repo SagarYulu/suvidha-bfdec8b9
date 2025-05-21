@@ -24,6 +24,7 @@ interface FeedbackDialogProps {
   onClose: () => void;
   issueId: string;
   employeeUuid: string;
+  onFeedbackSubmitted?: (issueId: string) => void;
 }
 
 const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
@@ -31,6 +32,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
   onClose,
   issueId,
   employeeUuid,
+  onFeedbackSubmitted,
 }) => {
   const [step, setStep] = useState<"sentiment" | "options" | "submitted">("sentiment");
   const [sentiment, setSentiment] = useState<"happy" | "neutral" | "sad" | null>(null);
@@ -130,6 +132,11 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
     
     if (success) {
       setStep("submitted");
+      
+      // Call the onFeedbackSubmitted callback if provided
+      if (onFeedbackSubmitted) {
+        onFeedbackSubmitted(issueId);
+      }
     }
     
     setIsSubmitting(false);
