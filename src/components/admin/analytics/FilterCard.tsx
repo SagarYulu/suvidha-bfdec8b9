@@ -3,6 +3,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { DateRangePicker, DateRange } from "./DateRangePicker";
@@ -16,6 +17,7 @@ interface FilterCardProps {
   handleRoleChange: (role: string) => void;
   handleIssueTypeChange: (issueType: string) => void;
   handleDateRangeChange: (dateRange: DateRange) => void;
+  handleComparisonModeToggle: (enabled: boolean) => void;
   handleComparisonModeChange: (mode: string) => void;
   availableClusters: string[];
   managers: string[];
@@ -30,6 +32,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
   handleRoleChange,
   handleIssueTypeChange,
   handleDateRangeChange,
+  handleComparisonModeToggle,
   handleComparisonModeChange,
   availableClusters,
   managers,
@@ -132,21 +135,41 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="comparisonMode">Comparison Mode</Label>
-            <Select 
-              value={filters.comparisonMode} 
-              onValueChange={handleComparisonModeChange}
-            >
-              <SelectTrigger id="comparisonMode">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {comparisonModes.map(mode => (
-                  <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="col-span-1 md:col-span-2 space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="comparison-mode-toggle" className="font-medium">
+                Comparison Mode
+                {filters.isComparisonModeEnabled && (
+                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    Enabled
+                  </span>
+                )}
+              </Label>
+              <Switch 
+                id="comparison-mode-toggle"
+                checked={filters.isComparisonModeEnabled}
+                onCheckedChange={handleComparisonModeToggle}
+                className={filters.isComparisonModeEnabled ? "bg-blue-600" : ""}
+              />
+            </div>
+            {filters.isComparisonModeEnabled && (
+              <div className="pt-2">
+                <Select 
+                  value={filters.comparisonMode} 
+                  onValueChange={handleComparisonModeChange}
+                  disabled={!filters.isComparisonModeEnabled}
+                >
+                  <SelectTrigger id="comparisonMode">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {comparisonModes.map(mode => (
+                      <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

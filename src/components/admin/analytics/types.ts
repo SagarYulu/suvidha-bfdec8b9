@@ -15,5 +15,6 @@ export interface AdvancedFilters {
   role: string | null;
   issueType: string | null;
   dateRange: DateRange;
+  isComparisonModeEnabled: boolean;
   comparisonMode: ComparisonMode;
 }

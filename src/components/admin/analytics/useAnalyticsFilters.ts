@@ -15,6 +15,7 @@ export const useAnalyticsFilters = () => {
       from: new Date(new Date().setDate(new Date().getDate() - 30)),
       to: new Date(),
     },
+    isComparisonModeEnabled: false,
     comparisonMode: "day-by-day",
   });
 
@@ -55,6 +56,10 @@ export const useAnalyticsFilters = () => {
     setFilters(prev => ({ ...prev, dateRange }));
   };
 
+  const handleComparisonModeToggle = (enabled: boolean) => {
+    setFilters(prev => ({ ...prev, isComparisonModeEnabled: enabled }));
+  };
+
   const handleComparisonModeChange = (mode: string) => {
     setFilters(prev => ({ ...prev, comparisonMode: mode as ComparisonMode }));
   };
@@ -77,6 +82,7 @@ export const useAnalyticsFilters = () => {
       role: null,
       issueType: null,
       dateRange: filters.dateRange,
+      isComparisonModeEnabled: filters.isComparisonModeEnabled,
       comparisonMode: filters.comparisonMode,
     });
   };
@@ -92,6 +98,7 @@ export const useAnalyticsFilters = () => {
     handleRoleChange,
     handleIssueTypeChange,
     handleDateRangeChange,
+    handleComparisonModeToggle,
     handleComparisonModeChange,
     clearFilters,
   };
