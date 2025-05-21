@@ -7,7 +7,7 @@ export interface FeedbackFilters {
   cluster?: string;
   resolver?: string;
   category?: string;
-  feedbackType?: "agent" | "resolution" | "both";
+  feedbackType?: "agent" | "solution" | "resolution" | "both";
   comparisonMode?: "day" | "week" | "month" | "quarter" | "year";
   dateRange?: {
     start: string;
@@ -64,281 +64,179 @@ export interface TrendPoint {
   submissions: number;
 }
 
-// Mock data for when API calls fail
-const MOCK_DATA = {
-  overview: {
+// Mocked API functions
+export const getCities = async (): Promise<string[]> => {
+  // Mock implementation - would be replaced with actual API call
+  return ["Bangalore", "Mumbai", "Delhi", "Chennai", "Hyderabad"];
+};
+
+export const getClusters = async (city?: string): Promise<string[]> => {
+  // Mock implementation - would be replaced with actual API call
+  if (city === "Bangalore") {
+    return ["Electronic City", "Whitefield", "Koramangala"];
+  } else if (city === "Mumbai") {
+    return ["Andheri", "Powai", "BKC"];
+  } else {
+    return ["North", "South", "East", "West", "Central"];
+  }
+};
+
+export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<FeedbackOverview> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  console.log("Fetching feedback overview with filters:", filters);
+  
+  // Mock implementation - would be replaced with actual API call
+  return {
     averageRating: 4.2,
     changePercentage: 5.3,
     submissionRate: {
-      percentage: 68.5,
-      withFeedback: 137,
+      percentage: 78.5,
+      withFeedback: 157,
       total: 200,
       changePercentage: 2.8
     },
     ratingDistribution: [
-      { rating: 1, count: 5, percentage: 3.6 },
-      { rating: 2, count: 8, percentage: 5.8 },
-      { rating: 3, count: 15, percentage: 10.9 },
-      { rating: 4, count: 42, percentage: 30.7 },
-      { rating: 5, count: 67, percentage: 48.9 }
+      { rating: 5, count: 78, percentage: 49.7 },
+      { rating: 4, count: 45, percentage: 28.7 },
+      { rating: 3, count: 20, percentage: 12.7 },
+      { rating: 2, count: 10, percentage: 6.4 },
+      { rating: 1, count: 4, percentage: 2.5 }
     ]
-  },
-  resolvers: [
+  };
+};
+
+export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<ResolverStats[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 700));
+  
+  console.log("Fetching resolver leaderboard with filters:", filters);
+  
+  // Mock implementation - would be replaced with actual API call
+  return [
     {
-      id: "res1",
-      name: "Alex Johnson",
+      id: "1",
+      name: "Priya Sharma",
       avgRating: 4.8,
-      changePercentage: 3.2,
-      feedbackCount: 45,
+      changePercentage: 2.1,
+      feedbackCount: 42,
+      veryHappy: 85,
+      happy: 10,
+      neutral: 5,
+      unhappy: 0,
+      veryUnhappy: 0
+    },
+    {
+      id: "2",
+      name: "Rahul Verma",
+      avgRating: 4.5,
+      changePercentage: 1.5,
+      feedbackCount: 38,
+      veryHappy: 65,
+      happy: 25,
+      neutral: 10,
+      unhappy: 0,
+      veryUnhappy: 0
+    },
+    {
+      id: "3",
+      name: "Ananya Patel",
+      avgRating: 4.2,
+      changePercentage: -0.3,
+      feedbackCount: 36,
+      veryHappy: 55,
+      happy: 25,
+      neutral: 10,
+      unhappy: 10,
+      veryUnhappy: 0
+    },
+    {
+      id: "4",
+      name: "Vikram Singh",
+      avgRating: 3.9,
+      changePercentage: 0.8,
+      feedbackCount: 32,
+      veryHappy: 40,
+      happy: 30,
+      neutral: 15,
+      unhappy: 10,
+      veryUnhappy: 5
+    }
+  ];
+};
+
+export const getCategoryAnalysis = async (filters: FeedbackFilters): Promise<CategoryStats[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 600));
+  
+  console.log("Fetching category analysis with filters:", filters);
+  
+  // Mock implementation - would be replaced with actual API call
+  return [
+    {
+      name: "Salary",
+      rating: 4.5,
+      changePercentage: 2.2,
       veryHappy: 68,
       happy: 22,
       neutral: 7,
-      unhappy: 2,
-      veryUnhappy: 1
+      unhappy: 3,
+      veryUnhappy: 0
     },
     {
-      id: "res2",
-      name: "Sarah Williams",
-      avgRating: 4.5,
-      changePercentage: 1.8,
-      feedbackCount: 32,
-      veryHappy: 56,
-      happy: 28,
-      neutral: 10,
-      unhappy: 4,
-      veryUnhappy: 2
-    },
-    {
-      id: "res3",
-      name: "Michael Brown",
-      avgRating: 4.2,
-      changePercentage: -0.5,
-      feedbackCount: 28,
-      veryHappy: 48,
-      happy: 32,
-      neutral: 12,
-      unhappy: 6,
-      veryUnhappy: 2
-    }
-  ],
-  categories: [
-    {
-      name: "Salary",
+      name: "Leave",
       rating: 4.3,
-      changePercentage: 2.1,
-      veryHappy: 52,
-      happy: 30,
-      neutral: 10,
-      unhappy: 5,
-      veryUnhappy: 3
-    },
-    {
-      name: "PF",
-      rating: 4.1,
-      changePercentage: 1.5,
-      veryHappy: 45,
-      happy: 35,
+      changePercentage: 1.7,
+      veryHappy: 58,
+      happy: 25,
       neutral: 12,
-      unhappy: 6,
-      veryUnhappy: 2
+      unhappy: 5,
+      veryUnhappy: 0
     },
     {
       name: "ESI",
       rating: 3.9,
-      changePercentage: -1.2,
-      veryHappy: 40,
-      happy: 32,
+      changePercentage: -0.5,
+      veryHappy: 42,
+      happy: 28,
       neutral: 15,
-      unhappy: 8,
+      unhappy: 10,
       veryUnhappy: 5
     },
     {
-      name: "Leave",
-      rating: 4.5,
-      changePercentage: 3.8,
-      veryHappy: 60,
-      happy: 25,
-      neutral: 10,
-      unhappy: 3,
-      veryUnhappy: 2
+      name: "PF",
+      rating: 3.7,
+      changePercentage: 0.8,
+      veryHappy: 35,
+      happy: 30,
+      neutral: 20,
+      unhappy: 10,
+      veryUnhappy: 5
     }
-  ],
-  trends: Array.from({ length: 12 }, (_, i) => ({
-    period: `Month ${i + 1}`,
-    rating: 3.5 + Math.random() * 1.5,
-    submissions: 20 + Math.floor(Math.random() * 30)
-  }))
+  ];
 };
 
-// Helper function to check response
-async function checkResponse(response: Response, endpoint: string) {
-  // First, check if the response is OK
-  if (!response.ok) {
-    let errorText;
-    try {
-      // Try to get error text as JSON
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        const errorJson = await response.json();
-        errorText = JSON.stringify(errorJson);
-      } else {
-        // If not JSON, get as text
-        errorText = await response.text();
-      }
-    } catch (e) {
-      // If we can't parse the response, just use status text
-      errorText = response.statusText;
-    }
+export const getFeedbackTrends = async (filters: FeedbackFilters): Promise<TrendPoint[]> => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  console.log("Fetching feedback trends with filters:", filters);
+  
+  const trendData = [];
+  const baseDate = new Date();
+  
+  // Generate 12 data points (e.g., for months or weeks)
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(baseDate);
+    date.setMonth(baseDate.getMonth() - (11 - i));
     
-    throw new Error(`API error (${response.status}): ${errorText || response.statusText} from ${endpoint}`);
-  }
-
-  // Then, check if the response is JSON
-  const contentType = response.headers.get('content-type');
-  if (!contentType || !contentType.includes('application/json')) {
-    const errorText = await response.text();
-    throw new Error(`Expected JSON response but got ${contentType || 'unknown content type'}. Response: ${errorText.substring(0, 100)}... from ${endpoint}`);
-  }
-
-  return response;
-}
-
-// Helper function to handle API calls with appropriate error logging
-async function apiCall<T>(endpoint: string, method: 'GET' | 'POST' = 'GET', body?: any): Promise<T> {
-  try {
-    const options: RequestInit = {
-      method,
-      headers: method === 'POST' ? { 'Content-Type': 'application/json' } : undefined,
-      body: body ? JSON.stringify(body) : undefined
-    };
-    
-    console.log(`Calling ${endpoint} with method ${method}`, body ? `and body: ${JSON.stringify(body)}` : '');
-    const response = await fetch(endpoint);
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error(`Error calling ${endpoint}:`, error);
-    throw error;
-  }
-}
-
-// API functions that now use mock data as fallback when specified
-export const getCities = async (useMockOnError: boolean = false): Promise<string[]> => {
-  const endpoint = '/api/analytics/cities';
-  try {
-    const response = await fetch(endpoint);
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching cities:', error);
-    if (useMockOnError) {
-      console.warn('Using mock cities data');
-      return ["New York", "San Francisco", "Chicago", "Los Angeles", "Miami"];
-    }
-    throw error;
-  }
-};
-
-export const getClusters = async (city?: string, useMockOnError: boolean = false): Promise<string[]> => {
-  const url = city ? `/api/analytics/clusters?city=${encodeURIComponent(city)}` : '/api/analytics/clusters';
-  try {
-    const response = await fetch(url);
-    await checkResponse(response, url);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching clusters:', error);
-    if (useMockOnError) {
-      console.warn('Using mock clusters data');
-      return ["Downtown", "Midtown", "Uptown", "Westside", "Eastside"];
-    }
-    throw error;
-  }
-};
-
-export const getFeedbackOverview = async (filters: FeedbackFilters, useMockOnError: boolean = false): Promise<FeedbackOverview> => {
-  const endpoint = '/api/analytics/feedback/overview';
-  try {
-    console.log("Fetching overview with filters:", JSON.stringify(filters));
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(filters)
+    trendData.push({
+      period: date.toLocaleString('default', { month: 'short' }),
+      rating: 3.5 + (Math.random() * 1.5),
+      submissions: Math.floor(Math.random() * 50) + 20
     });
-    
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching feedback overview:', error);
-    if (useMockOnError) {
-      console.warn('Using mock overview data');
-      return MOCK_DATA.overview;
-    }
-    throw error;
   }
-};
-
-export const getResolverLeaderboard = async (filters: FeedbackFilters, useMockOnError: boolean = false): Promise<ResolverStats[]> => {
-  const endpoint = '/api/analytics/feedback/resolvers';
-  try {
-    console.log("Fetching resolver data with filters:", JSON.stringify(filters));
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(filters)
-    });
-    
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching resolver leaderboard:', error);
-    if (useMockOnError) {
-      console.warn('Using mock resolver data');
-      return MOCK_DATA.resolvers;
-    }
-    throw error;
-  }
-};
-
-export const getCategoryAnalysis = async (filters: FeedbackFilters, useMockOnError: boolean = false): Promise<CategoryStats[]> => {
-  const endpoint = '/api/analytics/feedback/categories';
-  try {
-    console.log("Fetching category data with filters:", JSON.stringify(filters));
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(filters)
-    });
-    
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching category analysis:', error);
-    if (useMockOnError) {
-      console.warn('Using mock category data');
-      return MOCK_DATA.categories;
-    }
-    throw error;
-  }
-};
-
-export const getFeedbackTrends = async (filters: FeedbackFilters, useMockOnError: boolean = false): Promise<TrendPoint[]> => {
-  const endpoint = '/api/analytics/feedback/trends';
-  try {
-    console.log("Fetching trends with filters:", JSON.stringify(filters));
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(filters)
-    });
-    
-    await checkResponse(response, endpoint);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching feedback trends:', error);
-    if (useMockOnError) {
-      console.warn('Using mock trends data');
-      return MOCK_DATA.trends;
-    }
-    throw error;
-  }
+  
+  return trendData;
 };
