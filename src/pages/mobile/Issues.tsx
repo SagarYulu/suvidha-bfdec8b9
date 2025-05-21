@@ -413,6 +413,27 @@ const MobileIssues = () => {
                         )}
                       </div>
                     </div>
+                    
+                    {/* Feedback Section - More Prominent and Eye-catching */}
+                    {isClosedOrResolved && (
+                      <div className="mt-4 pt-3 border-t border-gray-100 flex justify-center">
+                        {hasFeedback ? (
+                          <div className="flex items-center justify-center text-green-600 bg-green-50 py-2 px-3 rounded-md w-full">
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            <span>Feedback Submitted / प्रतिक्रिया दी गई</span>
+                          </div>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            className="w-full animate-pulse border-2 border-blue-400 bg-blue-50 text-blue-600 font-medium hover:bg-blue-100 flex items-center justify-center"
+                            onClick={() => openFeedbackDialog(issue.id)}
+                          >
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                            Share Feedback / अपनी प्रतिक्रिया साझा करें
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
