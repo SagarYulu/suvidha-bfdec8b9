@@ -45,11 +45,10 @@ const IssueHeader = ({
       </div>
       
       <MobileIssueStatus 
-        status={issue.status}
-        updatedAt={issue.updatedAt}
-        closedAt={issue.closedAt}
-        issueId={issue.id}
-        employeeUuid={issue.employeeUuid}
+        issue={issue}
+        formatDate={formatDate}
+        isReopenable={isReopenable}
+        handleReopenTicket={handleReopenTicket}
       />
       
       <div className="border-t border-gray-200 pt-3">
