@@ -3,10 +3,16 @@ import { useState, useEffect } from "react";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
 
+interface AdvancedAnalyticsData {
+  rawIssues: any[];
+  totalIssues: number;
+  // Add more specific properties as needed
+}
+
 export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AdvancedAnalyticsData | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,32 +33,41 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         // Apply city filter
         if (filters.city) {
           console.log("Applying city filter:", filters.city);
-          // Join with employees table to filter by city
-          query = query.eq('city', filters.city);
+          // Use a typed parameter to avoid excessive type instantiation
+          const cityFilter: string = filters.city;
+          query = query.eq('city', cityFilter);
         }
         
         // Apply cluster filter
         if (filters.cluster) {
           console.log("Applying cluster filter:", filters.cluster);
-          query = query.eq('cluster', filters.cluster);
+          // Use a typed parameter to avoid excessive type instantiation
+          const clusterFilter: string = filters.cluster;
+          query = query.eq('cluster', clusterFilter);
         }
         
         // Apply manager filter
         if (filters.manager) {
           console.log("Applying manager filter:", filters.manager);
-          query = query.eq('manager', filters.manager);
+          // Use a typed parameter to avoid excessive type instantiation
+          const managerFilter: string = filters.manager;
+          query = query.eq('manager', managerFilter);
         }
         
         // Apply role filter
         if (filters.role) {
           console.log("Applying role filter:", filters.role);
-          query = query.eq('role', filters.role);
+          // Use a typed parameter to avoid excessive type instantiation
+          const roleFilter: string = filters.role;
+          query = query.eq('role', roleFilter);
         }
         
         // Apply issue type filter
         if (filters.issueType) {
           console.log("Applying issue type filter:", filters.issueType);
-          query = query.eq('type_id', filters.issueType);
+          // Use a typed parameter to avoid excessive type instantiation
+          const issueTypeFilter: string = filters.issueType;
+          query = query.eq('type_id', issueTypeFilter);
         }
         
         // Apply date range filter
@@ -82,8 +97,8 @@ export const useAdvancedAnalytics = (filters: AdvancedFilters) => {
         console.log(`Fetched ${rawIssues?.length || 0} issues with applied filters`);
         
         // Process the data
-        const processedData = {
-          rawIssues,
+        const processedData: AdvancedAnalyticsData = {
+          rawIssues: rawIssues || [],
           // Add any additional processed metrics here
           totalIssues: rawIssues?.length || 0,
           // Calculate other metrics as needed
