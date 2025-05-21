@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
-import { checkUserPermission, getPermissions } from '@/services/rbacService';
+import { checkUserPermission, getPermissions, ensurePermissionsExist } from '@/services/rbacService';
 import { toast } from "@/hooks/use-toast";
 
 // Define permission types - ensure all dashboard pages have corresponding permissions
@@ -13,9 +13,9 @@ export type Permission =
   | 'manage:settings'
   | 'access:security'
   | 'create:dashboardUser'
-  | 'view:assigned_issues'  // Added for assigned issues page
-  | 'view:feedback'         // Added for feedback page
-  | 'view:resolution';      // Added for resolution feedback page
+  | 'view:assigned_issues'  
+  | 'view:feedback'         
+  | 'view:resolution';     
 
 // Define context type
 type RBACContextType = {
@@ -52,7 +52,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
   
   // Fetch permissions on auth state change
   useEffect(() => {
-    if (authState.isAuthenticated && authState.user?.id) {
+    if (authState.isAuthenticated) {
       refreshPermissions();
     } else {
       setPermissionCache({});
@@ -67,7 +67,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
   
   // Function to refresh permissions from the database
   const refreshPermissions = async () => {
-    if (!authState.isAuthenticated || !authState.user?.id) {
+    if (!authState.isAuthenticated) {
       setPermissionCache({});
       setIsLoading(false);
       return;
@@ -76,8 +76,12 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
     setIsLoading(true);
     
     try {
+      // First, ensure all permissions exist in the database
+      await ensurePermissionsExist();
+      
       // Special handling for admin users by email
-      if (authState.user.email === 'admin@yulu.com') {
+      if (authState.user?.email === 'admin@yulu.com' || 
+          authState.user?.email === 'sagar.km@yulu.bike') {
         console.log('Default admin account detected - granting all permissions');
         const allPermissions = {
           'view:dashboard': true,
@@ -97,7 +101,7 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       }
       
       // Special handling for non-UUID users
-      if (authState.user.id === 'security-user-1' && authState.role === 'security-admin') {
+      if (authState.user?.id === 'security-user-1' && authState.role === 'security-admin') {
         // Grant all permissions to this demo user
         console.log('Security admin demo account - granting all permissions');
         const demoPermissions = {
@@ -117,27 +121,6 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
         return;
       }
       
-      // Skip UUID validation for the developer account
-      if (authState.user.email === 'sagar.km@yulu.bike') {
-        // Grant all permissions to developer account
-        console.log('Developer account - granting all permissions');
-        const allPermissions = {
-          'view:dashboard': true,
-          'manage:users': true,
-          'manage:issues': true,
-          'manage:analytics': true,
-          'manage:settings': true,
-          'access:security': true,
-          'create:dashboardUser': true,
-          'view:assigned_issues': true,
-          'view:feedback': true,
-          'view:resolution': true
-        };
-        setPermissionCache(allPermissions);
-        setIsLoading(false);
-        return;
-      }
-      
       // Check if we have a valid UUID for database operations
       // For UUID users, get all defined permissions from the database
       const allPermissions = await getPermissions();
@@ -147,9 +130,9 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       
       // Safely access possible extended user properties
       const extendedUser = authState.user as ExtendedUser;
-      const userIdForPermissions = extendedUser.user_id && isValidUuid(extendedUser.user_id)
+      const userIdForPermissions = extendedUser?.user_id && isValidUuid(extendedUser.user_id)
         ? extendedUser.user_id
-        : (isValidUuid(authState.user.id) ? authState.user.id : null);
+        : (authState.user?.id && isValidUuid(authState.user.id) ? authState.user.id : null);
       
       if (userIdForPermissions) {
         console.log("Using ID for permission checks:", userIdForPermissions);

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Role {
@@ -253,38 +254,58 @@ export const ensurePermissionsExist = async (): Promise<void> => {
       { name: 'view:resolution', description: 'Permission to view resolution feedback' }
     ];
     
-    // Get existing permissions
-    const { data: existingPermissions, error } = await supabase
-      .from('rbac_permissions')
-      .select('name');
-      
-    if (error) {
-      console.error('Error fetching existing permissions:', error);
-      return;
-    }
+    // Force refresh the database with all required permissions
+    console.log('Ensuring all required permissions exist in the database...');
     
-    // Create set of existing permission names
-    const existingPermissionNames = new Set(existingPermissions.map(p => p.name));
-    
-    // Add any missing permissions
     for (const perm of requiredPermissions) {
-      if (!existingPermissionNames.has(perm.name)) {
-        console.log(`Adding missing permission: ${perm.name}`);
+      console.log(`Checking permission: ${perm.name}`);
+      
+      // Check if permission exists
+      const { data: existingPerm, error: checkError } = await supabase
+        .from('rbac_permissions')
+        .select('id')
+        .eq('name', perm.name)
+        .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // Not found error
+        console.error(`Error checking for permission ${perm.name}:`, checkError);
+        continue;
+      }
+      
+      if (!existingPerm) {
+        console.log(`Creating permission: ${perm.name}`);
+        
+        // Insert the permission
         const { error: insertError } = await supabase
           .from('rbac_permissions')
           .insert({
             name: perm.name,
             description: perm.description
           });
-          
+        
         if (insertError) {
-          console.error(`Error adding permission ${perm.name}:`, insertError);
+          console.error(`Error creating permission ${perm.name}:`, insertError);
+        } else {
+          console.log(`Permission ${perm.name} created successfully`);
+        }
+      } else {
+        console.log(`Permission ${perm.name} already exists`);
+        
+        // Update the description if needed
+        const { error: updateError } = await supabase
+          .from('rbac_permissions')
+          .update({ description: perm.description })
+          .eq('id', existingPerm.id);
+        
+        if (updateError) {
+          console.error(`Error updating permission ${perm.name}:`, updateError);
         }
       }
     }
     
-    console.log('Permissions check complete');
+    console.log('Permission synchronization complete');
   } catch (error) {
     console.error('Error in ensurePermissionsExist:', error);
+    throw error;
   }
 };
