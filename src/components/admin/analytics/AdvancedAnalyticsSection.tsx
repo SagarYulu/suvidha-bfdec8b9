@@ -3,12 +3,12 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, City, Users } from "lucide-react";
+import { Calendar as CalendarIcon, Users } from "lucide-react";
 import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { Badge } from "@/components/ui/badge";
 import { AdvancedAnalyticsCharts } from "./AdvancedAnalyticsCharts";
-import { DateRangePicker } from "./DateRangePicker";
+import { DateRangePicker, DateRange } from "./DateRangePicker";
 import { Separator } from "@/components/ui/separator";
 
 export type ComparisonMode = 
@@ -17,11 +17,6 @@ export type ComparisonMode =
   | "month-on-month" 
   | "quarter-on-quarter" 
   | "year-on-year";
-
-export interface DateRange {
-  from?: Date;
-  to?: Date;
-}
 
 export interface AdvancedFilters {
   city: string | null;

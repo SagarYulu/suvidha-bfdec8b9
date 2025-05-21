@@ -6,7 +6,9 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { type DateRange as DayPickerDateRange } from "react-day-picker";
 
+// Define our own DateRange interface that matches what the rest of the application expects
 export interface DateRange {
   from?: Date;
   to?: Date;
@@ -18,6 +20,20 @@ interface DateRangePickerProps {
 }
 
 export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
+  // Convert our DateRange to the DayPickerDateRange expected by the Calendar component
+  const dayPickerValue: DayPickerDateRange | undefined = date.from ? {
+    from: date.from,
+    to: date.to ?? undefined
+  } : undefined;
+
+  // Handle calendar selection and convert back to our DateRange format
+  const handleSelect = (range: DayPickerDateRange | undefined) => {
+    onChange({
+      from: range?.from,
+      to: range?.to
+    });
+  };
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -47,8 +63,8 @@ export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
         <Calendar
           initialFocus
           mode="range"
-          selected={date}
-          onSelect={onChange}
+          selected={dayPickerValue}
+          onSelect={handleSelect}
           numberOfMonths={2}
           className="pointer-events-auto"
         />
