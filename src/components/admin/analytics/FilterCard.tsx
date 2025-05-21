@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +50,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* City filter */}
           <div className="space-y-2">
             <Label htmlFor="city">City</Label>
             <Select value={filters.city || ""} onValueChange={handleCityChange}>
@@ -66,6 +66,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             </Select>
           </div>
 
+          {/* Cluster filter */}
           <div className="space-y-2">
             <Label htmlFor="cluster">Cluster</Label>
             <Select 
@@ -85,6 +86,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             </Select>
           </div>
 
+          {/* Manager filter */}
           <div className="space-y-2">
             <Label htmlFor="manager">Manager</Label>
             <Select value={filters.manager || ""} onValueChange={handleManagerChange}>
@@ -100,6 +102,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             </Select>
           </div>
 
+          {/* Role filter */}
           <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <Select value={filters.role || ""} onValueChange={handleRoleChange}>
@@ -115,6 +118,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             </Select>
           </div>
 
+          {/* Issue Type filter */}
           <div className="space-y-2">
             <Label htmlFor="issueType">Issue Type</Label>
             <Select value={filters.issueType || ""} onValueChange={handleIssueTypeChange}>
@@ -130,6 +134,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
             </Select>
           </div>
 
+          {/* Date Range */}
           <div className="space-y-2">
             <Label>Date Range</Label>
             <DateRangePicker 

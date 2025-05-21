@@ -86,7 +86,7 @@ export const useAnalyticsFilters = () => {
   }, [pendingFilters]);
 
   const clearFilters = useCallback(() => {
-    const clearedFilters = {
+    const clearedFilters: AdvancedFilters = {
       city: null,
       cluster: null,
       manager: null,
@@ -97,7 +97,7 @@ export const useAnalyticsFilters = () => {
         to: new Date(),
       },
       isComparisonModeEnabled: false,
-      comparisonMode: "day-by-day",
+      comparisonMode: "day-by-day" as ComparisonMode,
     };
     setPendingFilters(clearedFilters);
     setAppliedFilters(clearedFilters);

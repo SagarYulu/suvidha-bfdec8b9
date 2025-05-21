@@ -35,10 +35,8 @@ export function DateRangePicker({ date, onChange }: DateRangePickerProps) {
       to: range?.to
     });
     
-    // Don't close the popover automatically - let user apply the filter
-    if (range?.from && range?.to) {
-      setIsOpen(false);
-    }
+    // Don't close the popover automatically when a range is selected
+    // Let the user close it explicitly or when they click "Apply Filters"
   };
 
   return (
