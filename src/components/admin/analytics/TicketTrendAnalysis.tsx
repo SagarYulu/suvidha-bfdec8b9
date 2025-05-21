@@ -244,6 +244,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       return acc;
     }, {} as Record<string, { total: number; reopened: number }>);
     
+    // Convert the accumulated data into the required format
     return Object.entries(issuesByIssueType).map(([type, counts]) => ({
       name: type === 'unknown' ? 'Other' : type,
       total: counts.total,
@@ -279,6 +280,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       return acc;
     }, {} as Record<string, { count: number; totalResolutionTime: number }>);
     
+    // Convert the accumulated data into the required format
     return Object.entries(closedIssuesByType).map(([type, stats]) => ({
       name: type === 'unknown' ? 'Other' : type,
       value: stats.count > 0 ? Math.round(stats.totalResolutionTime / stats.count) : 0,
