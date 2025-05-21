@@ -178,7 +178,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
                 className={filters.isComparisonModeEnabled ? "bg-blue-600" : ""}
               />
             </div>
-            {filters.isComparisonModeEnabled && comparisonModes && comparisonModes.length > 0 && (
+            {filters.isComparisonModeEnabled && comparisonModes && (
               <div className="pt-2">
                 <Select 
                   value={filters.comparisonMode} 
@@ -189,7 +189,7 @@ export const FilterCard: React.FC<FilterCardProps> = ({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {comparisonModes.map(mode => (
+                    {Array.isArray(comparisonModes) && comparisonModes.map(mode => (
                       <SelectItem key={mode.value} value={mode.value}>{mode.label}</SelectItem>
                     ))}
                   </SelectContent>

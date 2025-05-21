@@ -1,7 +1,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { AdvancedFilters, ComparisonMode } from "./types";
-import { CLUSTER_OPTIONS } from "@/data/formOptions";
+import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 import { DateRange } from "./DateRangePicker";
 import { supabase } from "@/integrations/supabase/client";
 

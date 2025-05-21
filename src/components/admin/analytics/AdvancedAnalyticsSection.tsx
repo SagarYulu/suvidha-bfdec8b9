@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterCard } from "./FilterCard";
 import { useAnalyticsFilters } from "./useAnalyticsFilters";
@@ -32,12 +32,12 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
   } = useAnalyticsFilters();
 
   // Effect to pass filters up to parent when they change
-  const handleFilterUpdate = () => {
+  useEffect(() => {
     if (onFilterChange) {
       console.log("Passing filters up from AdvancedAnalyticsSection:", filters);
       onFilterChange(filters);
     }
-  };
+  }, [filters, onFilterChange]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -46,47 +46,38 @@ export const AdvancedAnalyticsSection = ({ onFilterChange }: AdvancedAnalyticsSe
   // Whenever any filter changes, call the handlers
   const onCityChange = (city: string) => {
     handleCityChange(city);
-    handleFilterUpdate();
   };
   
   const onClusterChange = (cluster: string) => {
     handleClusterChange(cluster);
-    handleFilterUpdate();
   };
   
   const onManagerChange = (manager: string) => {
     handleManagerChange(manager);
-    handleFilterUpdate();
   };
   
   const onRoleChange = (role: string) => {
     handleRoleChange(role);
-    handleFilterUpdate();
   };
   
   const onIssueTypeChange = (issueType: string) => {
     handleIssueTypeChange(issueType);
-    handleFilterUpdate();
   };
   
   const onDateRangeChange = (dateRange: any) => {
     handleDateRangeChange(dateRange);
-    handleFilterUpdate();
   };
   
   const onComparisonModeToggle = (enabled: boolean) => {
     handleComparisonModeToggle(enabled);
-    handleFilterUpdate();
   };
   
   const onComparisonModeChange = (mode: string) => {
     handleComparisonModeChange(mode);
-    handleFilterUpdate();
   };
   
   const onClearFilters = () => {
     clearFilters();
-    handleFilterUpdate();
   };
 
   return (
