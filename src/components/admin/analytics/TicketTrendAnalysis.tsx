@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator"; 
 import { Button } from "@/components/ui/button";
-import { Donut, BarVertical, LineChart, ChartAreaLine, ChartBar } from "lucide-react";
+import { Donut, ChartBar, LineChart, ChartArea } from "lucide-react";
 import { 
   BarChart, Bar, LineChart as RechartsLineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -12,8 +12,7 @@ import {
 } from 'recharts';
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
-import { exportToCSV } from "@/utils/csvExportUtils";
-import { formatResolutionTimeDataForExport } from "@/utils/csvExportUtils";
+import { exportResolutionTimeTrendToCSV, exportChartDataToCSV } from "@/utils/csvExportUtils";
 
 interface TicketTrendAnalysisProps {
   filters: AdvancedFilters;
@@ -204,10 +203,10 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       return acc;
     }, {} as Record<string, { total: number; reopened: number }>);
     
-    return Object.entries(issuesByIssueType).map(([type, { total, reopened }]) => ({
+    return Object.entries(issuesByIssueType).map(([type, counts]) => ({
       name: type === 'unknown' ? 'Other' : type,
-      total,
-      reopened
+      total: counts.total,
+      reopened: counts.reopened
     }));
   };
   
@@ -239,10 +238,10 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       return acc;
     }, {} as Record<string, { count: number; totalResolutionTime: number }>);
     
-    return Object.entries(closedIssuesByType).map(([type, { count, totalResolutionTime }]) => ({
+    return Object.entries(closedIssuesByType).map(([type, stats]) => ({
       name: type === 'unknown' ? 'Other' : type,
-      value: count > 0 ? Math.round(totalResolutionTime / count) : 0,
-      count
+      value: stats.count > 0 ? Math.round(stats.totalResolutionTime / stats.count) : 0,
+      count: stats.count
     }));
   };
   
@@ -292,68 +291,68 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   };
 
   const exportStatusDistribution = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       statusDistribution.map(item => ({
         'Status': item.name,
         'Count': item.value
       })),
-      `ticket-status-distribution-${new Date().toISOString().split('T')[0]}.csv`
+      "ticket-status-distribution"
     );
   };
 
   const exportPriorityDistribution = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       priorityDistribution.map(item => ({
         'Priority': item.name,
         'Count': item.count
       })),
-      `ticket-priority-distribution-${new Date().toISOString().split('T')[0]}.csv`
+      "ticket-priority-distribution"
     );
   };
 
   const exportFirstResponseData = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       firstResponseTrend.map(item => ({
         'Month': item.name,
         'Average Response Time (hours)': item.time.toFixed(2),
         'Ticket Count': item.count
       })),
-      `first-response-time-trend-${new Date().toISOString().split('T')[0]}.csv`
+      "first-response-time-trend"
     );
   };
 
   const exportReopenedTicketsData = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       reopenedTickets.map(item => ({
         'Issue Type': item.name,
         'Total Tickets': item.total,
         'Reopened Tickets': item.reopened,
         'Reopened Rate (%)': item.total > 0 ? ((item.reopened / item.total) * 100).toFixed(1) : '0'
       })),
-      `reopened-tickets-analysis-${new Date().toISOString().split('T')[0]}.csv`
+      "reopened-tickets-analysis"
     );
   };
 
   const exportResolutionTimeByType = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       resolutionTimeByType.map(item => ({
         'Issue Type': item.name,
         'Average Resolution Time (hours)': item.value,
         'Ticket Count': item.count
       })),
-      `resolution-time-by-type-${new Date().toISOString().split('T')[0]}.csv`
+      "resolution-time-by-type"
     );
   };
 
   const exportCommentVolumeTrend = () => {
-    exportToCSV(
+    exportChartDataToCSV(
       commentVolumeTrend.map(item => ({
         'Week': item.week,
         'User Comments': item.userComments,
         'Admin Comments': item.adminComments,
         'Total Comments': item.userComments + item.adminComments
       })),
-      `comment-volume-trend-${new Date().toISOString().split('T')[0]}.csv`
+      "comment-volume-trend"
     );
   };
 
@@ -464,7 +463,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   background
                   clockWise={true}
                   dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}`}
                 />
                 <Legend 
                   iconSize={10} 
@@ -489,7 +487,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <BarVertical className="h-5 w-5" /> Ticket Priority
+                  <ChartBar className="h-5 w-5" /> Ticket Priority
                 </CardTitle>
                 <CardDescription>Distribution of tickets by priority level</CardDescription>
               </div>
@@ -527,7 +525,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartAreaLine className="h-5 w-5" /> First Response Time
+                  <ChartArea className="h-5 w-5" /> First Response Time
                 </CardTitle>
                 <CardDescription>Average time to first response (monthly)</CardDescription>
               </div>
@@ -705,11 +703,15 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   );
 };
 
-// Helper function to export resolution time trend to CSV
+// Export the resolution time trend to CSV function
 export const exportResolutionTimeTrendToCSV = (
-  data: Array<{ name: string, time: number, volume?: number }>,
+  data: Array<{ name: string, time: number, volume?: number, datasetType?: string }>,
   period: string
 ) => {
+  // Determine if this is a comparison export
+  const isComparisonExport = data.some(item => item.datasetType === 'comparison');
+  
+  // Format the data for CSV export
   const formattedData = data.map(item => ({
     'Period': item.name,
     'Average Resolution Time (hours)': parseFloat(item.time.toFixed(2)),
@@ -717,5 +719,5 @@ export const exportResolutionTimeTrendToCSV = (
   }));
   
   const filename = `resolution-time-trend-${period}-${new Date().toISOString().split('T')[0]}.csv`;
-  exportToCSV(formattedData, filename);
+  exportChartDataToCSV(formattedData, filename);
 };
