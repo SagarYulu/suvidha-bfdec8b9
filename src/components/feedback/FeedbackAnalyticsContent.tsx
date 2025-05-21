@@ -11,7 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, Responsi
 import { AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 
 interface FeedbackAnalyticsContentProps {
-  view: "overview" | "agent" | "resolution";
+  view: "overview" | "agent" | "solution";
   filters: FeedbackFilters;
 }
 
@@ -78,7 +78,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   // Get the appropriate title based on the view
   const getFeedbackTypeName = () => {
     if (view === "agent") return "Agent";
-    if (view === "resolution") return "Resolution";
+    if (view === "solution") return "Resolution";
     return "";
   };
 
@@ -253,7 +253,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryAnalysis = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>{view === "resolution" ? "Resolution Category Analysis" : "Category Analysis"}</CardTitle>
+        <CardTitle>{view === "solution" ? "Resolution Category Analysis" : "Category Analysis"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -278,7 +278,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
   const renderCategoryTable = () => (
     <Card className="mb-6">
       <CardHeader>
-        <CardTitle>{view === "resolution" ? "Resolution Category Ratings" : "Category Ratings"}</CardTitle>
+        <CardTitle>{view === "solution" ? "Resolution Category Ratings" : "Category Ratings"}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
@@ -341,7 +341,7 @@ const FeedbackAnalyticsContent: React.FC<FeedbackAnalyticsContentProps> = ({ vie
         </>
       )}
       
-      {view === "resolution" && (
+      {view === "solution" && (
         <>
           {renderOverviewMetrics()}
           {renderCategoryTable()}
