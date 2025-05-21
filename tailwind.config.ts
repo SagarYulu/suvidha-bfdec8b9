@@ -71,8 +71,8 @@ export default {
 					lightgray: "#E5E7EB",
 					cyan: "#22d3ee",
 					"cyan-dark": "#06b6d4",
-					// Dashboard blue colors
-					"dashboard-blue": "#1E40AF", // Pure blue color 
+					// Adding the dashboard blue color
+					"dashboard-blue": "#1E40AF", // Pure blue color from dashboard image
 					"dashboard-blue-light": "#3B82F6", // Lighter blue variant
 					"dashboard-blue-dark": "#1E3A8A" // Darker blue variant
 				}

@@ -13,7 +13,7 @@ interface AdminLayoutProps {
   title: string;
   className?: string;
   showBackButton?: boolean;
-  requiredPermission?: 'view:dashboard' | 'manage:users' | 'manage:issues' | 'manage:analytics' | 'manage:settings' | 'access:security' | 'create:dashboardUser' | 'manage:testdata';
+  requiredPermission?: 'view:dashboard' | 'manage:users' | 'manage:issues' | 'manage:analytics' | 'manage:settings' | 'access:security' | 'create:dashboardUser';
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ 
@@ -54,7 +54,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
       header={
         <AdminHeader 
           title={title} 
-          userName={authState.user?.name} 
+          userName={authState.user?.name || 'Administrator'} 
           showBackButton={showBackButton}
         />
       } 
