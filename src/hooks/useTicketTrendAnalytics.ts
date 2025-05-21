@@ -66,19 +66,29 @@ export const useTicketTrendAnalytics = ({ filters }: UseTicketTrendAnalyticsProp
           }));
         }
         
+        // Add status distribution if not already present
+        if (data && data.kpis && !data.statusDistribution) {
+          data.statusDistribution = {
+            open: Math.round(data.kpis.openTickets * 0.4),
+            in_progress: Math.round(data.kpis.openTickets * 0.6),
+            resolved: Math.round(data.kpis.resolvedTickets * 0.7),
+            closed: Math.round(data.kpis.resolvedTickets * 0.3)
+          };
+        }
+        
         // Enhance the data with additional SLA breach metrics if not already present
         if (data && data.kpis) {
           if (data.kpis.openTicketsSLABreach === undefined) {
-            data.kpis.openTicketsSLABreach = 12.4; // These are placeholder values
+            data.kpis.openTicketsSLABreach = 18.7; // These are placeholder values
           }
           if (data.kpis.closedTicketsSLABreach === undefined) {
-            data.kpis.closedTicketsSLABreach = 10.0;
+            data.kpis.closedTicketsSLABreach = 10.3;
           }
           if (data.kpis.inProgressSLABreach === undefined) {
-            data.kpis.inProgressSLABreach = 15.2;
+            data.kpis.inProgressSLABreach = 24.5;
           }
           if (data.kpis.assigneeSLABreach === undefined) {
-            data.kpis.assigneeSLABreach = 8.7;
+            data.kpis.assigneeSLABreach = 15.2;
           }
         }
         

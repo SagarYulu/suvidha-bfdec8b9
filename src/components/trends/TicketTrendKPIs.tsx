@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendKPIData } from "@/services/issues/ticketTrendService";
 import { TrendingUp, TrendingDown, AlertTriangle, Clock } from "lucide-react";
@@ -17,6 +18,7 @@ interface KPI {
   color?: string;
   background?: string;
   border?: string;
+  secondaryValue?: string;
 }
 
 const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) => {
@@ -37,6 +39,18 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
       </div>
     );
   }
+
+  // Calculate actual ticket counts for SLA breaches
+  const openInProgressTickets = data.openTickets; // Total open tickets from API
+  const activeBreachedTickets = Math.round((data.openTicketsSLABreach / 100) * openInProgressTickets);
+  const inProgressBreachedTickets = Math.round((data.inProgressSLABreach / 100) * data.statusDistribution?.in_progress || 0);
+  const closedResolvedTickets = data.resolvedTickets; // Total resolved tickets from API
+  const closedBreachedTickets = Math.round((data.closedTicketsSLABreach / 100) * closedResolvedTickets);
+  const totalBreachedTickets = activeBreachedTickets + closedBreachedTickets;
+  const totalTickets = data.totalTickets;
+  const overallSLABreachPercent = totalBreachedTickets > 0 ? 
+    ((totalBreachedTickets / totalTickets) * 100).toFixed(1) : 
+    data.resolutionSLABreach.toFixed(1);
 
   // Basic KPIs
   const basicKpis: KPI[] = [
@@ -95,32 +109,13 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
     }
   ];
 
-  // SLA breach KPIs (highlighted with colors and icons)
+  // SLA breach KPIs (reorganized and with counts + percentages)
   const slaBreachKpis: KPI[] = [
     {
-      title: "First Response SLA Breach",
-      value: data.firstResponseSLABreach.toFixed(1),
-      suffix: "%",
-      change: null,
-      icon: <AlertTriangle className="h-4 w-4 text-amber-500" />,
-      color: data.firstResponseSLABreach > 5 ? "text-amber-600" : "text-green-600",
-      background: data.firstResponseSLABreach > 5 ? "bg-amber-50" : "bg-green-50",
-      border: data.firstResponseSLABreach > 5 ? "border-amber-200" : "border-green-200",
-    },
-    {
-      title: "Overall SLA Breach",
-      value: data.resolutionSLABreach.toFixed(1),
-      suffix: "%",
-      change: null,
-      icon: <Clock className="h-4 w-4 text-red-500" />,
-      color: data.resolutionSLABreach > 8 ? "text-red-600" : "text-amber-600",
-      background: data.resolutionSLABreach > 8 ? "bg-red-50" : "bg-amber-50",
-      border: data.resolutionSLABreach > 8 ? "border-red-200" : "border-amber-200",
-    },
-    {
-      title: "Open Tickets SLA Breach",
-      value: data.openTicketsSLABreach.toFixed(1),
-      suffix: "%",
+      title: "Open & In Progress SLA Breach",
+      value: activeBreachedTickets.toString(),
+      suffix: "",
+      secondaryValue: `${data.openTicketsSLABreach.toFixed(1)}%`,
       change: null,
       icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
       color: "text-red-600",
@@ -128,9 +123,10 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
       border: "border-red-200",
     },
     {
-      title: "Closed Tickets SLA Breach",
-      value: data.closedTicketsSLABreach.toFixed(1),
-      suffix: "%",
+      title: "Closed & Resolved SLA Breach",
+      value: closedBreachedTickets.toString(),
+      suffix: "",
+      secondaryValue: `${data.closedTicketsSLABreach.toFixed(1)}%`,
       change: null,
       icon: <Clock className="h-4 w-4 text-amber-500" />,
       color: "text-amber-600",
@@ -138,19 +134,32 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
       border: "border-amber-200",
     },
     {
-      title: "In Progress SLA Breach",
-      value: data.inProgressSLABreach.toFixed(1),
-      suffix: "%",
+      title: "Overall SLA Breach",
+      value: totalBreachedTickets.toString(),
+      suffix: "",
+      secondaryValue: `${overallSLABreachPercent}%`,
       change: null,
       icon: <AlertTriangle className="h-4 w-4 text-red-500" />,
-      color: "text-red-600", 
+      color: "text-red-600",
       background: "bg-red-50",
       border: "border-red-200",
     },
     {
+      title: "First Response SLA Breach",
+      value: Math.round((data.firstResponseSLABreach / 100) * totalTickets).toString(),
+      suffix: "",
+      secondaryValue: `${data.firstResponseSLABreach.toFixed(1)}%`,
+      change: null,
+      icon: <Clock className="h-4 w-4 text-amber-500" />,
+      color: data.firstResponseSLABreach > 5 ? "text-amber-600" : "text-green-600",
+      background: data.firstResponseSLABreach > 5 ? "bg-amber-50" : "bg-green-50",
+      border: data.firstResponseSLABreach > 5 ? "border-amber-200" : "border-green-200",
+    },
+    {
       title: "Assignee SLA Breach",
-      value: data.assigneeSLABreach.toFixed(1),
-      suffix: "%",
+      value: Math.round((data.assigneeSLABreach / 100) * totalTickets).toString(),
+      suffix: "",
+      secondaryValue: `${data.assigneeSLABreach.toFixed(1)}%`,
       change: null,
       icon: <Clock className="h-4 w-4 text-amber-500" />,
       color: "text-amber-600",
@@ -195,6 +204,11 @@ const TicketTrendKPIs: React.FC<TicketTrendKPIsProps> = ({ data, isLoading }) =>
             <div className={`text-2xl font-bold ${kpi.color || ""}`}>
               {kpi.value}{kpi.suffix}
             </div>
+            {kpi.secondaryValue && (
+              <p className={`text-sm mt-1 ${kpi.color || ""}`}>
+                {kpi.secondaryValue}
+              </p>
+            )}
             {kpi.change !== null && (
               <p className={`text-xs flex items-center mt-1 ${kpi.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {kpi.change >= 0 ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
