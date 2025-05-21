@@ -30,7 +30,7 @@ interface PermissionProviderProps {
 }
 
 export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children }) => {
-  const { user, role } = useAuth();
+  const { user, authState } = useAuth();
   const [permissions, setPermissions] = useState<Permission[]>([]);
 
   useEffect(() => {
@@ -56,12 +56,12 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children
     }
 
     // Load permissions based on role or from API
-    if (user && role) {
+    if (user && authState?.role) {
       // In a real app, you might fetch permissions from an API
       const rolePermissions: Permission[] = [];
       
       // Simple role-based permissions for demo purposes
-      if (role === 'admin') {
+      if (authState.role === 'admin') {
         rolePermissions.push(
           'view:dashboard',
           'manage:issues',
@@ -72,13 +72,13 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children
           'manage:settings',
           'manage:testdata'
         );
-      } else if (role === 'manager') {
+      } else if (authState.role === 'manager') {
         rolePermissions.push(
           'view:dashboard',
           'manage:issues',
           'manage:analytics'
         );
-      } else if (role === 'agent') {
+      } else if (authState.role === 'agent') {
         rolePermissions.push(
           'view:dashboard',
           'manage:issues'
@@ -89,7 +89,7 @@ export const PermissionProvider: React.FC<PermissionProviderProps> = ({ children
     } else {
       setPermissions([]);
     }
-  }, [user, role]);
+  }, [user, authState?.role]);
 
   const hasPermission = (permission: Permission): boolean => {
     return permissions.includes(permission);
