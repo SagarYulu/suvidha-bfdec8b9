@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subMonths, subWeeks, subYears, parseISO } from "date-fns";
 
@@ -28,6 +27,11 @@ export interface TrendKPIData {
   resolutionSLABreach: number; // Percentage
   reopenCount: number;
   reopenRate: number;
+  // New SLA breach metrics
+  openTicketsSLABreach: number; // Percentage of open tickets in SLA breach
+  closedTicketsSLABreach: number; // Percentage of closed tickets that breached SLA
+  inProgressSLABreach: number; // Percentage of in-progress tickets in SLA breach
+  assigneeSLABreach: number; // Percentage of tickets breaching assignee response SLA
 }
 
 export interface PriorityDistribution {
@@ -570,7 +574,12 @@ export const getTicketTrendAnalytics = async (
         averageResolutionTime,
         resolutionSLABreach,
         reopenCount,
-        reopenRate
+        reopenRate,
+        // New SLA breach metrics
+        openTicketsSLABreach: 0, // Placeholder value
+        closedTicketsSLABreach: 0, // Placeholder value
+        inProgressSLABreach: 0, // Placeholder value
+        assigneeSLABreach: 0 // Placeholder value
       },
       priorityDistribution,
       statusDistribution,
