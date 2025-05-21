@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
@@ -32,7 +31,10 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         
         // Gather all unique employee UUIDs that don't have performer info
         const employeeIdsNeedingNames = logs
-          .filter(log => !log.details?.performer?.name)
+          .filter(log => {
+            // Check if details is an object and if performer is missing or doesn't have a name
+            return !log.details?.performer?.name && log.employee_uuid;
+          })
           .map(log => log.employee_uuid);
 
         const uniqueEmployeeIds = Array.from(new Set(employeeIdsNeedingNames));
@@ -90,8 +92,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   
   // Helper to get performer name from the log
   const getPerformerName = (log: any): string => {
-    // Check if performer info is available in details
-    if (log.details?.performer?.name) {
+    // Check if details is an object and if performer info is available
+    if (typeof log.details === 'object' && log.details !== null && log.details.performer?.name) {
       return log.details.performer.name;
     }
     
