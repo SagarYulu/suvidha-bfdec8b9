@@ -12,10 +12,51 @@ import {
 } from 'recharts';
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
-import { exportResolutionTimeTrendToCSV, exportChartDataToCSV } from "@/utils/csvExportUtils";
+import { exportChartDataToCSV } from "@/utils/csvExportUtils";
 
 interface TicketTrendAnalysisProps {
   filters: AdvancedFilters;
+}
+
+// Define strong TypeScript interfaces for our data
+interface ResolutionTimeData {
+  name: string;
+  time: number;
+  volume: number;
+}
+
+interface StatusDistributionData {
+  name: string;
+  value: number;
+}
+
+interface PriorityDistributionData {
+  name: string;
+  count: number;
+}
+
+interface FirstResponseData {
+  name: string;
+  time: number;
+  count: number;
+}
+
+interface ReopenedTicketData {
+  name: string;
+  total: number;
+  reopened: number;
+}
+
+interface ResolutionTimeByTypeData {
+  name: string;
+  value: number;
+  count: number;
+}
+
+interface CommentVolumeData {
+  week: string;
+  userComments: number;
+  adminComments: number;
 }
 
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
@@ -40,7 +81,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const issues = data.rawIssues;
 
   // 1. Issue Resolution Time Trend (Line Chart)
-  const getResolutionTimeTrend = () => {
+  const getResolutionTimeTrend = (): ResolutionTimeData[] => {
     const closedIssues = issues.filter(issue => 
       issue.status === 'closed' || issue.status === 'resolved'
     );
@@ -87,7 +128,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const resolutionTimeTrend = getResolutionTimeTrend();
   
   // 2. Ticket Volume by Status (Donut Chart)
-  const getStatusDistribution = () => {
+  const getStatusDistribution = (): StatusDistributionData[] => {
     const statusCounts = issues.reduce((acc, issue) => {
       const status = issue.status || 'unknown';
       acc[status] = (acc[status] || 0) + 1;
@@ -103,7 +144,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const statusDistribution = getStatusDistribution();
   
   // 3. Tickets by Priority (Vertical Bar Chart)
-  const getPriorityDistribution = () => {
+  const getPriorityDistribution = (): PriorityDistributionData[] => {
     const priorities = ['low', 'medium', 'high', 'critical'];
     const priorityCounts = issues.reduce((acc, issue) => {
       // Extract priority or calculate it
@@ -128,7 +169,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const priorityDistribution = getPriorityDistribution();
   
   // 4. First Response Time Trends (Area Chart)
-  const getFirstResponseTrend = () => {
+  const getFirstResponseTrend = (): FirstResponseData[] => {
     const issuesWithComments = issues.filter(issue => 
       issue.issue_comments && issue.issue_comments.length > 0
     );
@@ -179,7 +220,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const firstResponseTrend = getFirstResponseTrend();
   
   // 5. Reopened Tickets Analysis (Horizontal Bar Chart)
-  const getReopenedTicketsTrend = () => {
+  const getReopenedTicketsTrend = (): ReopenedTicketData[] => {
     // Sample implementation - in a real app, we'd use actual reopened data
     // Assumption: tickets with multiple status changes might be reopened
     const issuesByIssueType = issues.reduce((acc, issue) => {
@@ -213,7 +254,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const reopenedTickets = getReopenedTicketsTrend();
   
   // 6. Resolution Time by Issue Type (Radial Bar Chart)
-  const getResolutionTimeByType = () => {
+  const getResolutionTimeByType = (): ResolutionTimeByTypeData[] => {
     const closedIssuesByType = issues.filter(issue => 
       (issue.status === 'closed' || issue.status === 'resolved') && 
       issue.created_at && 
@@ -248,7 +289,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const resolutionTimeByType = getResolutionTimeByType();
   
   // 7. Comment Volume Trend (Line Chart with Multiple Lines)
-  const getCommentVolumeTrend = () => {
+  const getCommentVolumeTrend = (): CommentVolumeData[] => {
     const commentsByWeek = issues.reduce((acc, issue) => {
       if (!issue.created_at || !issue.issue_comments) return acc;
       
@@ -276,7 +317,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       });
       
       return acc;
-    }, {} as Record<string, { week: string; userComments: number; adminComments: number }>);
+    }, {} as Record<string, CommentVolumeData>);
     
     return Object.values(commentsByWeek)
       .sort((a, b) => a.week.localeCompare(b.week))
@@ -287,7 +328,14 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
 
   // Export functions
   const exportResolutionTimeData = () => {
-    exportResolutionTimeTrendToCSV(resolutionTimeTrend, "weekly");
+    exportChartDataToCSV(
+      resolutionTimeTrend.map(item => ({
+        'Period': item.name,
+        'Average Resolution Time (hours)': item.time.toFixed(2),
+        'Ticket Volume': item.volume
+      })),
+      "resolution-time-trend"
+    );
   };
 
   const exportStatusDistribution = () => {
@@ -459,9 +507,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                 endAngle={360}
               >
                 <RadialBar
-                  minAngle={15}
                   background
-                  clockWise={true}
                   dataKey="value"
                 />
                 <Legend 
@@ -701,23 +747,4 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       </div>
     </div>
   );
-};
-
-// Export the resolution time trend to CSV function
-export const exportResolutionTimeTrendToCSV = (
-  data: Array<{ name: string, time: number, volume?: number, datasetType?: string }>,
-  period: string
-) => {
-  // Determine if this is a comparison export
-  const isComparisonExport = data.some(item => item.datasetType === 'comparison');
-  
-  // Format the data for CSV export
-  const formattedData = data.map(item => ({
-    'Period': item.name,
-    'Average Resolution Time (hours)': parseFloat(item.time.toFixed(2)),
-    'Ticket Volume': item.volume || 0
-  }));
-  
-  const filename = `resolution-time-trend-${period}-${new Date().toISOString().split('T')[0]}.csv`;
-  exportChartDataToCSV(formattedData, filename);
 };
