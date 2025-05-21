@@ -4,7 +4,6 @@ import { Separator } from "@/components/ui/separator";
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { calculateWorkingHours, determinePriority } from "@/utils/workingTimeUtils";
-import { parseISO } from "date-fns";
 
 interface SLAMetricProps {
   icon: React.ReactNode;
@@ -79,6 +78,8 @@ const SLA_THRESHOLDS = {
 
 export const SLADashboard = ({ filters }: SLADashboardProps) => {
   const { data, isLoading, error } = useAdvancedAnalytics(filters);
+
+  console.log("SLA Dashboard Data:", { data, isLoading, error });
 
   if (isLoading) {
     return (
