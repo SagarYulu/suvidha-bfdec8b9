@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { AdvancedFilters } from "@/components/admin/analytics/types";
 import { supabase } from "@/integrations/supabase/client";
