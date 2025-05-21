@@ -85,7 +85,7 @@ const IssueTypeSelector = ({
               <SelectGroup>
                 {ISSUE_TYPES.find((type) => type.id === selectedType)
                   ?.subTypes.map((subType) => (
-                    <SelectItem key={subType.id} value={subType.id}>
+                    <SelectItem key={subType.id} value={subType.id || "unknown"}>
                       {showHindi && subType.labelHindi 
                         ? `${subType.label} / ${subType.labelHindi}` 
                         : subType.label}

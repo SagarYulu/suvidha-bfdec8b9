@@ -180,7 +180,9 @@ const FeedbackAnalytics = () => {
                   <SelectContent>
                     <SelectItem value="all">All Cities</SelectItem>
                     {cities.map(city => (
-                      <SelectItem key={city} value={city}>{city}</SelectItem>
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -196,7 +198,9 @@ const FeedbackAnalytics = () => {
                   <SelectContent>
                     <SelectItem value="all">All Clusters</SelectItem>
                     {clusters.map(cluster => (
-                      <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                      <SelectItem key={cluster} value={cluster}>
+                        {cluster}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -227,7 +231,9 @@ const FeedbackAnalytics = () => {
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {TICKET_CATEGORIES.map(category => (
-                      <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -245,7 +251,9 @@ const FeedbackAnalytics = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {FEEDBACK_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

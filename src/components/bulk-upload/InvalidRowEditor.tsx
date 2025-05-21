@@ -121,7 +121,9 @@ const InvalidRowEditor = ({
               </SelectTrigger>
               <SelectContent>
                 {CITY_OPTIONS.map((city, cityIdx) => (
-                  <SelectItem key={`city-${rowKey}-${cityIdx}`} value={city}>{city}</SelectItem>
+                  <SelectItem key={`city-${rowKey}-${cityIdx}`} value={city}>
+                    {city}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -140,7 +142,9 @@ const InvalidRowEditor = ({
               </SelectTrigger>
               <SelectContent>
                 {getClustersForCity(getRowValue(rowKey, 'city', item.rowData.city)).map((cluster, clusterIdx) => (
-                  <SelectItem key={`cluster-${rowKey}-${clusterIdx}`} value={cluster}>{cluster}</SelectItem>
+                  <SelectItem key={`cluster-${rowKey}-${clusterIdx}`} value={cluster}>
+                    {cluster}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -166,7 +170,9 @@ const InvalidRowEditor = ({
               </SelectTrigger>
               <SelectContent>
                 {ROLE_OPTIONS.map((role, roleIdx) => (
-                  <SelectItem key={`role-${rowKey}-${roleIdx}`} value={role}>{role}</SelectItem>
+                  <SelectItem key={`role-${rowKey}-${roleIdx}`} value={role || "default-role"}>
+                    {role}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

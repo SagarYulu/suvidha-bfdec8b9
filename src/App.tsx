@@ -140,6 +140,18 @@ const App = () => {
                   </CreateDashboardUserGuard>
                 } />
                 
+                <Route path="/admin/dashboard-users" element={
+                  <UserManagementGuard>
+                    <AdminUsers />
+                  </UserManagementGuard>
+                } />
+
+                <Route path="/admin/dashboard-users/security" element={
+                  <SecurityGuard>
+                    <AdminAccessControl />
+                  </SecurityGuard>
+                } />
+                
                 {/* Mobile Routes */}
                 <Route path="/mobile/login" element={<MobileLogin />} />
                 <Route path="/mobile/issues" element={<MobileIssues />} />
