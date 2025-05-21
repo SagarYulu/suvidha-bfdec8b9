@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   RadarChart,
@@ -10,14 +9,10 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+import { TopicDataItem } from '@/components/admin/analytics/types';
 
 interface TopicRadarChartProps {
-  data: Array<{
-    subject: string;
-    count: number;
-    previousCount?: number;
-    fullMark: number;
-  }>;
+  data: TopicDataItem[]; // Use the imported type
   showComparison?: boolean;
 }
 

@@ -18,3 +18,11 @@ export interface AdvancedFilters {
   isComparisonModeEnabled: boolean;
   comparisonMode: ComparisonMode;
 }
+
+// Add type for topic data with optional previousCount
+export interface TopicDataItem {
+  subject: string;
+  count: number;
+  previousCount?: number; // Make previousCount optional
+  fullMark: number;
+}

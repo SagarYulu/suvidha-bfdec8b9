@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdvancedFilters } from "./types";
+import { AdvancedFilters, TopicDataItem } from "./types";
 import {
   LineChart, Line, BarChart, Bar, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -64,9 +63,9 @@ const generateMockIssueTypeData = (enableComparison: boolean) => {
   return baseData;
 };
 
-// Mock data for topic analysis with optional comparison data
-const generateMockTopicData = (enableComparison: boolean) => {
-  const baseData = [
+// Update the generateMockTopicData function to use the TopicDataItem type
+const generateMockTopicData = (enableComparison: boolean): TopicDataItem[] => {
+  const baseData: TopicDataItem[] = [
     { subject: "Login Issues", count: 45, fullMark: 100 },
     { subject: "Payment Failures", count: 38, fullMark: 100 },
     { subject: "App Crashes", count: 65, fullMark: 100 },
