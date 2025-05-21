@@ -19,12 +19,13 @@ import ResolutionFeedback from "./pages/admin/ResolutionFeedback";
 import SentimentAnalysis from "./pages/admin/SentimentAnalysis";
 import FeedbackAnalytics from "./pages/FeedbackAnalytics";
 import AssignedIssues from "./pages/admin/AssignedIssues";
-// Include our new TicketTrendAnalysis page in imports
 import TicketTrendAnalysis from "./pages/TicketTrendAnalysis";
 import { AuthProvider } from "./contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 import { PermissionProvider } from "./contexts/PermissionContext";
 import Login from "./components/admin/Login";
+// Import the AddDashboardUser component
+import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 
 const App = () => {
   // Check if the current environment is the client-side
@@ -104,6 +105,11 @@ const App = () => {
     {
       path: "/admin/assigned-issues",
       element: <AssignedIssues />,
+    },
+    // Add the dashboard users route
+    {
+      path: "/admin/dashboard-users/add",
+      element: <AddDashboardUser />,
     },
   ]);
 
