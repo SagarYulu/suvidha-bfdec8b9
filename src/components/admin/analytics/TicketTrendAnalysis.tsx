@@ -8,8 +8,9 @@ import {
   BarChart, Bar, LineChart as RechartsLineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
   ResponsiveContainer, AreaChart, Area,
-  RadialBarChart, RadialBar, Cell, PieChart, Pie
+  RadialBarChart, RadialBar, Cell, PieChart, Pie, Label
 } from 'recharts';
+import { format } from 'date-fns';
 import { AdvancedFilters } from "./types";
 import { useAdvancedAnalytics } from "@/hooks/useAdvancedAnalytics";
 import { exportChartDataToCSV } from "@/utils/csvExportUtils";
@@ -28,6 +29,8 @@ interface ResolutionTimeData {
 interface StatusDistributionData {
   name: string;
   value: number;
+  color: string;
+  percentage?: string;
 }
 
 interface PriorityDistributionData {
@@ -69,7 +72,7 @@ interface ResolutionByTypeAcc {
 }
 
 interface CommentsByWeekAcc {
-  [key: string]: CommentVolumeData
+  [key: string]: { week: string; userComments: number; adminComments: number }
 }
 
 // Define issue-related interfaces for better type safety
@@ -100,6 +103,22 @@ const CHART_COLORS = {
   danger: '#EF4444',       // Red
   info: '#0EA5E9',         // Ocean Blue
   background: '#E5DEFF',   // Soft Purple
+  
+  // Status-specific colors (added for status distribution)
+  in_progress: '#3B82F6',  // Blue
+  open: '#F59E0B',         // Yellow/Orange
+  resolved: '#EF4444',     // Red
+  closed: '#10B981',       // Green
+};
+
+// Date formatter helper function
+const formatChartDate = (dateStr: string): string => {
+  try {
+    const date = new Date(dateStr);
+    return format(date, 'MMM dd, yyyy');
+  } catch (e) {
+    return dateStr;
+  }
 };
 
 export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filters }) => {
@@ -178,10 +197,20 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       return acc;
     }, {} as Record<string, number>);
     
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: status.charAt(0).toUpperCase() + status.slice(1),
-      value: count
-    }));
+    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    
+    return Object.entries(statusCounts).map(([status, count]) => {
+      const formattedStatus = status.replace('_', ' ');
+      const displayName = formattedStatus.charAt(0).toUpperCase() + formattedStatus.slice(1);
+      const percentage = ((count / total) * 100).toFixed(0) + '%';
+      
+      return {
+        name: displayName,
+        value: count,
+        color: CHART_COLORS[status as keyof typeof CHART_COLORS] || CHART_COLORS.neutral,
+        percentage
+      };
+    });
   };
   
   const statusDistribution = getStatusDistribution();
@@ -219,8 +248,14 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
     
     if (issuesWithComments.length === 0) return [];
     
-    // Group by month for first response time
-    const monthlyData = issuesWithComments.reduce((acc, issue) => {
+    // Get the current date and determine the start of the current week
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay()); // Set to Sunday
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    // Group by day for current week, otherwise by month
+    const timeData = issuesWithComments.reduce((acc, issue) => {
       if (!issue.created_at || !issue.issue_comments) return acc;
       
       // Sort comments and find first one
@@ -234,27 +269,36 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
       const firstResponseDate = new Date(sortedComments[0].created_at);
       const responseTime = (firstResponseDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60); // hours
       
-      // Get month
-      const monthKey = `${createdDate.getFullYear()}-${String(createdDate.getMonth() + 1).padStart(2, '0')}`;
+      // Determine if this issue is from the current week
+      const isCurrentWeek = createdDate >= startOfWeek;
       
-      if (!acc[monthKey]) {
-        acc[monthKey] = {
-          month: monthKey,
-          avgResponseTime: 0,
+      let timeKey;
+      if (isCurrentWeek) {
+        // For current week, group by day
+        timeKey = format(createdDate, 'yyyy-MM-dd');
+      } else {
+        // For older data, group by month
+        timeKey = format(createdDate, 'yyyy-MM');
+      }
+      
+      if (!acc[timeKey]) {
+        acc[timeKey] = {
+          timeKey,
+          totalResponseTime: 0,
           count: 0,
         };
       }
       
-      acc[monthKey].avgResponseTime += responseTime;
-      acc[monthKey].count += 1;
+      acc[timeKey].totalResponseTime += responseTime;
+      acc[timeKey].count += 1;
       
       return acc;
-    }, {} as Record<string, { month: string; avgResponseTime: number; count: number }>);
+    }, {} as Record<string, { timeKey: string; totalResponseTime: number; count: number }>);
     
-    return Object.values(monthlyData)
-      .map(({ month, avgResponseTime, count }) => ({
-        name: month,
-        time: avgResponseTime / count,
+    return Object.values(timeData)
+      .map(({ timeKey, totalResponseTime, count }) => ({
+        name: timeKey,
+        time: totalResponseTime / count,
         count
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -313,8 +357,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
         };
       }
       
-      const createdDate = new Date(issue.created_at);
-      const closedDate = new Date(issue.closed_at);
+      const createdDate = new Date(issue.created_at!);
+      const closedDate = new Date(issue.closed_at!);
       const resolutionTime = (closedDate.getTime() - createdDate.getTime()) / (1000 * 60 * 60); // hours
       
       acc[typeId].count += 1;
@@ -375,7 +419,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const exportResolutionTimeData = () => {
     exportChartDataToCSV(
       resolutionTimeTrend.map(item => ({
-        'Period': item.name,
+        'Period': formatChartDate(item.name),
         'Average Resolution Time (hours)': item.time.toFixed(2),
         'Ticket Volume': item.volume
       })),
@@ -387,7 +431,8 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
     exportChartDataToCSV(
       statusDistribution.map(item => ({
         'Status': item.name,
-        'Count': item.value
+        'Count': item.value,
+        'Percentage': item.percentage
       })),
       "ticket-status-distribution"
     );
@@ -406,7 +451,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const exportFirstResponseData = () => {
     exportChartDataToCSV(
       firstResponseTrend.map(item => ({
-        'Month': item.name,
+        'Period': formatChartDate(item.name),
         'Average Response Time (hours)': item.time.toFixed(2),
         'Ticket Count': item.count
       })),
@@ -440,7 +485,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
   const exportCommentVolumeTrend = () => {
     exportChartDataToCSV(
       commentVolumeTrend.map(item => ({
-        'Week': item.week,
+        'Week': formatChartDate(item.week),
         'User Comments': item.userComments,
         'Admin Comments': item.adminComments,
         'Total Comments': item.userComments + item.adminComments
@@ -477,7 +522,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
             <ResponsiveContainer width="100%" height="100%">
               <RechartsLineChart
                 data={resolutionTimeTrend}
-                margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
               >
                 <defs>
                   <linearGradient id="resolutionTimeGradient" x1="0" y1="0" x2="0" y2="1">
@@ -496,6 +541,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   textAnchor="end"
                   height={70}
                   tick={{ fontSize: 12 }}
+                  tickFormatter={formatChartDate}
                 />
                 <YAxis 
                   yAxisId="left"
@@ -511,6 +557,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                     if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Resolution Time'];
                     return [value, 'Ticket Volume'];
                   }}
+                  labelFormatter={(label) => formatChartDate(label as string)}
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     borderRadius: '8px',
@@ -543,7 +590,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
           </CardContent>
         </Card>
 
-        {/* 2. Ticket Status Distribution */}
+        {/* 2. Ticket Status Distribution - Reverted to previous design */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
@@ -570,13 +617,39 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   fill="#8884d8"
                   paddingAngle={2}
                   dataKey="value"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  labelLine={true}
+                  label={({ name, percent, x, y, midAngle }) => {
+                    // Calculate the position for the text labels
+                    const status = statusDistribution.find(s => s.name === name);
+                    if (!status) return null;
+                    
+                    const sin = Math.sin(-midAngle * Math.PI / 180);
+                    const cos = Math.cos(-midAngle * Math.PI / 180);
+                    const sx = x + (cos >= 0 ? 1 : -1) * 12;
+                    const sy = y;
+                    const mx = sx + (cos >= 0 ? 1 : -1) * 40;
+                    const my = sy;
+                    
+                    return (
+                      <g>
+                        <text 
+                          x={mx} 
+                          y={my} 
+                          fill={status.color}
+                          textAnchor={cos >= 0 ? 'start' : 'end'}
+                          dominantBaseline="central"
+                          fontWeight="bold"
+                        >
+                          {name}: {status.percentage}
+                        </text>
+                      </g>
+                    );
+                  }}
                 >
                   {statusDistribution.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={[CHART_COLORS.secondary, CHART_COLORS.success, CHART_COLORS.warning, CHART_COLORS.danger, CHART_COLORS.primary][index % 5]} 
+                      fill={entry.color} 
                     />
                   ))}
                 </Pie>
@@ -588,12 +661,6 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                     boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
                     border: '1px solid #eaeaea'
                   }} 
-                />
-                <Legend 
-                  layout="vertical" 
-                  align="right" 
-                  verticalAlign="middle"
-                  iconType="circle"
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -688,15 +755,15 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
           </CardContent>
         </Card>
 
-        {/* 4. First Response Time Trend */}
+        {/* 4. First Response Time Trend - Enhanced with curved line */}
         <Card className="shadow-md hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <ChartArea className="h-5 w-5 text-teal-500" /> First Response Time
+                  <ChartArea className="h-5 w-5 text-purple-500" /> First Response Time
                 </CardTitle>
-                <CardDescription>Average time to first response (monthly)</CardDescription>
+                <CardDescription>Average time to first response</CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={exportFirstResponseData}>
                 Export CSV
@@ -707,12 +774,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={firstResponseTrend}
-                margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
               >
                 <defs>
                   <linearGradient id="responseTimeGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.primary} stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor={CHART_COLORS.primary} stopOpacity={0.1}/>
+                    <stop offset="5%" stopColor="#9b87f5" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#9b87f5" stopOpacity={0.1}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -722,13 +789,12 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   textAnchor="end"
                   height={70}
                   tick={{ fontSize: 12 }}
+                  tickFormatter={formatChartDate}
                 />
-                <YAxis />
+                <YAxis label={{ value: 'Hours', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} />
                 <Tooltip 
-                  formatter={(value, name) => {
-                    if (name === 'time') return [`${Number(value).toFixed(1)} hours`, 'Avg. Response Time'];
-                    return [value, 'Ticket Count'];
-                  }}
+                  formatter={(value) => [`${Number(value).toFixed(1)} hours`, 'Avg. Response Time']}
+                  labelFormatter={(label) => formatChartDate(label as string)}
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     borderRadius: '8px',
@@ -741,11 +807,11 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   type="monotone" 
                   dataKey="time" 
                   name="Avg. Response Time" 
-                  stroke={CHART_COLORS.primary} 
+                  stroke="#9b87f5" 
                   fillOpacity={1}
                   fill="url(#responseTimeGradient)"
                   activeDot={{ r: 6 }}
-                  strokeWidth={2}
+                  strokeWidth={3}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -891,7 +957,7 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
             <ResponsiveContainer width="100%" height="100%">
               <RechartsLineChart
                 data={commentVolumeTrend}
-                margin={{ top: 5, right: 30, left: 20, bottom: 25 }}
+                margin={{ top: 5, right: 30, left: 20, bottom: 30 }}
               >
                 <defs>
                   <linearGradient id="userCommentGradient" x1="0" y1="0" x2="0" y2="1">
@@ -910,9 +976,11 @@ export const TicketTrendAnalysis: React.FC<TicketTrendAnalysisProps> = ({ filter
                   textAnchor="end"
                   height={70}
                   tick={{ fontSize: 12 }}
+                  tickFormatter={formatChartDate}
                 />
                 <YAxis />
                 <Tooltip 
+                  labelFormatter={(label) => formatChartDate(label as string)}
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
                     borderRadius: '8px',
