@@ -40,6 +40,16 @@ export const IssuesGuard: React.FC<GuardProps> = ({
   </RoleBasedGuard>
 );
 
+// Assigned Issues guard
+export const AssignedIssuesGuard: React.FC<GuardProps> = ({ 
+  children, 
+  redirectTo = '/admin/dashboard' 
+}) => (
+  <RoleBasedGuard permission="view:assigned_issues" redirectTo={redirectTo}>
+    {children}
+  </RoleBasedGuard>
+);
+
 // Analytics access guard
 export const AnalyticsGuard: React.FC<GuardProps> = ({ 
   children, 
@@ -56,6 +66,26 @@ export const SettingsGuard: React.FC<GuardProps> = ({
   redirectTo = '/admin/dashboard' 
 }) => (
   <RoleBasedGuard permission="manage:settings" redirectTo={redirectTo}>
+    {children}
+  </RoleBasedGuard>
+);
+
+// Feedback view guard
+export const FeedbackGuard: React.FC<GuardProps> = ({ 
+  children, 
+  redirectTo = '/admin/dashboard' 
+}) => (
+  <RoleBasedGuard permission="view:feedback" redirectTo={redirectTo}>
+    {children}
+  </RoleBasedGuard>
+);
+
+// Resolution feedback guard
+export const ResolutionFeedbackGuard: React.FC<GuardProps> = ({ 
+  children, 
+  redirectTo = '/admin/dashboard' 
+}) => (
+  <RoleBasedGuard permission="view:resolution" redirectTo={redirectTo}>
     {children}
   </RoleBasedGuard>
 );

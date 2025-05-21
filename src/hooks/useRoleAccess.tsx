@@ -96,7 +96,10 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser'
+        'create:dashboardUser',
+        'view:assigned_issues',
+        'view:feedback',
+        'view:resolution'
       ];
     case 'admin':
       return [
@@ -106,22 +109,39 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser'
+        'create:dashboardUser',
+        'view:assigned_issues',
+        'view:feedback',
+        'view:resolution'
       ];
     case 'City Head':
-      return ['view:dashboard', 'manage:issues'];
+      return ['view:dashboard', 'manage:issues', 'view:assigned_issues'];
     case 'Revenue and Ops Head':
-      return ['view:dashboard', 'manage:analytics'];
+      return ['view:dashboard', 'manage:analytics', 'manage:issues', 'view:assigned_issues'];
     case 'CRM':
-      return ['view:dashboard', 'manage:users'];
+      return ['view:dashboard', 'manage:users', 'manage:issues', 'view:assigned_issues'];
     case 'Cluster Head':
-      return ['view:dashboard', 'manage:issues'];
+      return ['view:dashboard', 'manage:issues', 'view:assigned_issues'];
     case 'Payroll Ops':
-      return ['view:dashboard', 'manage:issues', 'manage:settings']; // Explicitly includes manage:issues
+      return [
+        'view:dashboard', 
+        'manage:issues', 
+        'manage:settings', 
+        'view:assigned_issues',
+        'view:feedback',
+        'view:resolution'
+      ];
     case 'HR Admin':
-      return ['view:dashboard', 'manage:users', 'manage:issues']; // Explicitly includes manage:issues
+      return [
+        'view:dashboard', 
+        'manage:users', 
+        'manage:issues',
+        'view:assigned_issues',
+        'view:feedback',
+        'view:resolution'
+      ];
     case 'security-admin':
-      return ['view:dashboard', 'access:security'];
+      return ['view:dashboard', 'access:security', 'manage:users'];
     default:
       return [];
   }

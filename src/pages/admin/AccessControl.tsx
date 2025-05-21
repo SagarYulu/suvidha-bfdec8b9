@@ -241,6 +241,28 @@ const AccessControl = () => {
     setErrorMessage(null);
   };
 
+  // Add a new function to initialize permissions
+  const initializePermissions = useCallback(async () => {
+    try {
+      // Import the function dynamically to avoid circular dependencies
+      const { ensurePermissionsExist } = await import('@/services/rbacService');
+      await ensurePermissionsExist();
+      toast({
+        title: "Permissions Initialized",
+        description: "All required permissions have been added to the database",
+      });
+      // Refresh permissions cache after initialization
+      await refreshPermissions();
+    } catch (error) {
+      console.error("Error initializing permissions:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize permissions",
+        variant: "destructive",
+      });
+    }
+  }, [refreshPermissions]);
+
   return (
     <AdminLayout title="Access Control">
       <div className="space-y-6">
@@ -253,6 +275,10 @@ const AccessControl = () => {
             <Button onClick={() => loadDashboardUsers()} variant="outline">
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
+            </Button>
+            <Button onClick={initializePermissions} variant="outline">
+              <Settings className="mr-2 h-4 w-4" />
+              Initialize Permissions
             </Button>
           </div>
         </div>

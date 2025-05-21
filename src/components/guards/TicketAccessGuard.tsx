@@ -38,8 +38,14 @@ const TicketAccessGuard: React.FC<TicketAccessGuardProps> = ({
       if (hasIssuePermission) {
         // For "Assigned to Me" section - allow access to all users with issue management permission
         if (onlyForAssigned) {
-          hasTicketAccess = true;
-          console.log("Access granted to assigned tickets for user with issue management permission");
+          // For assigned tickets, check if user has view:assigned_issues permission
+          const hasAssignedPermission = hasPermission('view:assigned_issues');
+          hasTicketAccess = hasAssignedPermission;
+          console.log(`TicketAccessGuard: User has view:assigned_issues permission: ${hasAssignedPermission}`);
+          
+          if (hasAssignedPermission) {
+            console.log("Access granted to assigned tickets for user with assigned tickets permission");
+          }
         } else {
           // For "All Tickets" section - specific roles can access
           // HR Admin, Super Admin, and Payroll Ops can view all tickets

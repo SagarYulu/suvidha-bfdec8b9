@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Role {
@@ -234,5 +233,58 @@ export const checkUserRole = async (userId: string, roleName: string): Promise<b
   } catch (error) {
     console.error('Error in checkUserRole:', error);
     return false;
+  }
+};
+
+// Export new helper function to ensure permissions exist in the database
+export const ensurePermissionsExist = async (): Promise<void> => {
+  try {
+    // List of all expected permissions
+    const requiredPermissions = [
+      { name: 'view:dashboard', description: 'Access to view the admin dashboard' },
+      { name: 'manage:users', description: 'Access to manage users' },
+      { name: 'manage:issues', description: 'Access to manage issues' },
+      { name: 'manage:analytics', description: 'Access to view analytics' },
+      { name: 'manage:settings', description: 'Access to change settings' },
+      { name: 'access:security', description: 'Access to security features' },
+      { name: 'create:dashboardUser', description: 'Permission to create dashboard users' },
+      { name: 'view:assigned_issues', description: 'Permission to view assigned issues' },
+      { name: 'view:feedback', description: 'Permission to view feedback analytics' },
+      { name: 'view:resolution', description: 'Permission to view resolution feedback' }
+    ];
+    
+    // Get existing permissions
+    const { data: existingPermissions, error } = await supabase
+      .from('rbac_permissions')
+      .select('name');
+      
+    if (error) {
+      console.error('Error fetching existing permissions:', error);
+      return;
+    }
+    
+    // Create set of existing permission names
+    const existingPermissionNames = new Set(existingPermissions.map(p => p.name));
+    
+    // Add any missing permissions
+    for (const perm of requiredPermissions) {
+      if (!existingPermissionNames.has(perm.name)) {
+        console.log(`Adding missing permission: ${perm.name}`);
+        const { error: insertError } = await supabase
+          .from('rbac_permissions')
+          .insert({
+            name: perm.name,
+            description: perm.description
+          });
+          
+        if (insertError) {
+          console.error(`Error adding permission ${perm.name}:`, insertError);
+        }
+      }
+    }
+    
+    console.log('Permissions check complete');
+  } catch (error) {
+    console.error('Error in ensurePermissionsExist:', error);
   }
 };
