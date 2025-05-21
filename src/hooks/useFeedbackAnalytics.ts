@@ -1,6 +1,6 @@
 
-import { useState, useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect, useRef } from 'react';
+import { useToast } from "@/hooks/use-toast";
 import { 
   FeedbackFilters, 
   FeedbackOverview, 
@@ -38,9 +38,24 @@ export const useFeedbackAnalytics = ({
   const [categories, setCategories] = useState<CategoryStats[]>([]);
   const [trends, setTrends] = useState<TrendPoint[]>([]);
   const [error, setError] = useState<Error | null>(null);
+  
+  // Use a ref to track if we've already shown an error toast
+  // This prevents multiple error toasts from stacking
+  const errorToastShown = useRef(false);
+
+  // Use a ref to track if there's a fetch in progress
+  // This prevents redundant API calls
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
+    // Reset error toast flag when filters or view change
+    errorToastShown.current = false;
+    
     const fetchData = async () => {
+      // Don't start a new fetch if one is already in progress
+      if (isFetchingRef.current) return;
+      
+      isFetchingRef.current = true;
       setIsLoading(true);
       setError(null);
       
@@ -97,17 +112,27 @@ export const useFeedbackAnalytics = ({
         const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
         setError(err instanceof Error ? err : new Error(errorMessage));
         
-        toast({
-          title: "Data Loading Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        // Only show toast once per filter/view change
+        if (!errorToastShown.current) {
+          toast({
+            title: "Data Loading Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          errorToastShown.current = true;
+        }
       } finally {
         setIsLoading(false);
+        isFetchingRef.current = false;
       }
     };
     
     fetchData();
+    
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isFetchingRef.current = false;
+    };
   }, [filters, view, toast]);
 
   return {

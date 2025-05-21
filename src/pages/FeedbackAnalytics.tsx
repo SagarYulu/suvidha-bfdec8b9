@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -16,7 +17,7 @@ import {
   getCities, 
   getClusters 
 } from "@/services/feedbackAnalyticsService";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Properly typed comparison modes
 const COMPARISON_MODES: {value: "day" | "week" | "month" | "quarter" | "year"; label: string}[] = [
@@ -62,6 +63,7 @@ const FeedbackAnalytics = () => {
   const [clusters, setClusters] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fetchingMasterData, setFetchingMasterData] = useState(false);
 
   // Active tab state
   const [activeTab, setActiveTab] = useState<"overview" | "agent" | "resolution">("overview");
@@ -69,8 +71,13 @@ const FeedbackAnalytics = () => {
   // Fetch cities and clusters from master data
   useEffect(() => {
     const fetchMasterData = async () => {
+      // Prevent duplicate fetches
+      if (fetchingMasterData) return;
+      
+      setFetchingMasterData(true);
       setLoading(true);
       setError(null);
+      
       try {
         const citiesData = await getCities();
         setCities(citiesData);
@@ -88,6 +95,7 @@ const FeedbackAnalytics = () => {
         });
       } finally {
         setLoading(false);
+        setFetchingMasterData(false);
       }
     };
     
@@ -96,33 +104,38 @@ const FeedbackAnalytics = () => {
 
   // Update clusters when city changes
   useEffect(() => {
-    const updateClusters = async () => {
-      setError(null);
-      try {
-        if (selectedCity === "all") {
-          const allClusters = await getClusters();
+    if (selectedCity === "all") {
+      getClusters()
+        .then(allClusters => {
           setClusters(allClusters);
-        } else {
-          const filteredClusters = await getClusters(selectedCity);
+        })
+        .catch(err => {
+          console.error("Error fetching clusters:", err);
+          toast({
+            title: "Error",
+            description: "Failed to load clusters. Please try again later.",
+            variant: "destructive"
+          });
+        });
+    } else {
+      getClusters(selectedCity)
+        .then(filteredClusters => {
           setClusters(filteredClusters);
           // Reset cluster selection if the currently selected cluster is not in the new list
           if (filteredClusters.length > 0 && !filteredClusters.includes(selectedCluster) && selectedCluster !== "all") {
             setSelectedCluster("all");
           }
-        }
-      } catch (err) {
-        console.error("Error fetching clusters:", err);
-        setError(err instanceof Error ? err.message : "Failed to fetch clusters");
-        toast({
-          title: "Error",
-          description: "Failed to load clusters. Please try again later.",
-          variant: "destructive"
+        })
+        .catch(err => {
+          console.error("Error fetching clusters:", err);
+          toast({
+            title: "Error",
+            description: "Failed to load clusters. Please try again later.",
+            variant: "destructive"
+          });
         });
-      }
-    };
-    
-    updateClusters();
-  }, [selectedCity, toast]);
+    }
+  }, [selectedCity, toast, selectedCluster]);
 
   // Update active tab when feedback type changes
   useEffect(() => {
@@ -190,6 +203,21 @@ const FeedbackAnalytics = () => {
     const to = new Date();
     const from = addDays(to, -days + 1);
     setDateRange({ from, to });
+  };
+
+  // Handle tab change and update feedback type accordingly
+  const handleTabChange = (value: string) => {
+    if (value === "agent" || value === "resolution" || value === "overview") {
+      setActiveTab(value);
+      
+      // Update the feedback type dropdown to match the selected tab
+      if (value === "agent") {
+        setSelectedFeedbackType("agent");
+      } else if (value === "resolution") {
+        setSelectedFeedbackType("resolution");
+      }
+      // If overview, we don't need to change the feedback type
+    }
   };
 
   return (
@@ -351,12 +379,16 @@ const FeedbackAnalytics = () => {
           </CardContent>
         </Card>
 
-        {/* Analytics Tabs - Fixed width to prevent overlap */}
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "agent" | "resolution")}>
-          <TabsList className="w-full">
-            <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
-            <TabsTrigger value="agent" className="flex-1">Agent Feedback</TabsTrigger>
-            <TabsTrigger value="resolution" className="flex-1">Resolution Feedback</TabsTrigger>
+        {/* Analytics Tabs */}
+        <Tabs 
+          value={activeTab} 
+          onValueChange={handleTabChange}
+          className="w-full"
+        >
+          <TabsList className="w-full grid grid-cols-3">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="agent">Agent Feedback</TabsTrigger>
+            <TabsTrigger value="resolution">Resolution Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-6">

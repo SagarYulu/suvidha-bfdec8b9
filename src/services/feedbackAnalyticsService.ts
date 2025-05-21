@@ -66,74 +66,104 @@ export interface TrendPoint {
 
 // API functions that throw errors instead of falling back to mock data
 export const getCities = async (): Promise<string[]> => {
-  const response = await fetch('/api/analytics/cities');
-  if (!response.ok) {
-    throw new Error(`Failed to fetch cities: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch('/api/analytics/cities');
+    if (!response.ok) {
+      throw new Error(`Failed to fetch cities: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching cities:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  return await response.json();
 };
 
 export const getClusters = async (city?: string): Promise<string[]> => {
-  const url = city ? `/api/analytics/clusters?city=${encodeURIComponent(city)}` : '/api/analytics/clusters';
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch clusters: ${response.status} ${response.statusText}`);
+  try {
+    const url = city ? `/api/analytics/clusters?city=${encodeURIComponent(city)}` : '/api/analytics/clusters';
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch clusters: ${response.status} ${response.statusText}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching clusters:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  return await response.json();
 };
 
 export const getFeedbackOverview = async (filters: FeedbackFilters): Promise<FeedbackOverview> => {
-  const response = await fetch('/api/analytics/feedback/overview', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(filters)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch feedback overview: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch('/api/analytics/feedback/overview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch feedback overview: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching feedback overview:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  
-  return await response.json();
 };
 
 export const getResolverLeaderboard = async (filters: FeedbackFilters): Promise<ResolverStats[]> => {
-  const response = await fetch('/api/analytics/feedback/resolvers', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(filters)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch resolver leaderboard: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch('/api/analytics/feedback/resolvers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch resolver leaderboard: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching resolver leaderboard:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  
-  return await response.json();
 };
 
 export const getCategoryAnalysis = async (filters: FeedbackFilters): Promise<CategoryStats[]> => {
-  const response = await fetch('/api/analytics/feedback/categories', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(filters)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch category analysis: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch('/api/analytics/feedback/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch category analysis: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching category analysis:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  
-  return await response.json();
 };
 
 export const getFeedbackTrends = async (filters: FeedbackFilters): Promise<TrendPoint[]> => {
-  const response = await fetch('/api/analytics/feedback/trends', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(filters)
-  });
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch feedback trends: ${response.status} ${response.statusText}`);
+  try {
+    const response = await fetch('/api/analytics/feedback/trends', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filters)
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch feedback trends: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching feedback trends:', error);
+    throw error; // Re-throw the error to be handled by the caller
   }
-  
-  return await response.json();
 };
