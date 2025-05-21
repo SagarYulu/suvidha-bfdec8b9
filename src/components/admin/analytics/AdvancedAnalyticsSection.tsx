@@ -3,11 +3,9 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Calendar as CalendarIcon, Users } from "lucide-react";
 import { CITY_OPTIONS, CLUSTER_OPTIONS, ROLE_OPTIONS } from "@/data/formOptions";
 import { ISSUE_TYPES } from "@/config/issueTypes";
 import { Badge } from "@/components/ui/badge";
-import { AdvancedAnalyticsCharts } from "./AdvancedAnalyticsCharts";
 import { DateRangePicker, DateRange } from "./DateRangePicker";
 import { Separator } from "@/components/ui/separator";
 
@@ -244,8 +242,9 @@ export const AdvancedAnalyticsSection = () => {
         </CardContent>
       </Card>
 
-      {/* Charts will be loaded here */}
-      <AdvancedAnalyticsCharts filters={filters} />
+      <div className="py-8 text-center text-gray-500">
+        <p>Waiting for your instructions on which metrics to display.</p>
+      </div>
     </div>
   );
 };
