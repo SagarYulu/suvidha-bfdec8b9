@@ -54,10 +54,45 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       setIsLoading(true);
       try {
         const logs = await getAuditTrail(issue.id, 20);
-        setActivityLogs(logs);
+        
+        // Filter out duplicate logs - prioritize logs with performer info
+        const uniqueLogsByAction = new Map();
+        
+        // First, sort logs to prioritize ones with performer info
+        const sortedLogs = [...logs].sort((a, b) => {
+          const aHasPerformer = getPerformerFromJson(a.details) !== null;
+          const bHasPerformer = getPerformerFromJson(b.details) !== null;
+          
+          if (aHasPerformer && !bHasPerformer) return -1;
+          if (!aHasPerformer && bHasPerformer) return 1;
+          
+          // If both have or don't have performer info, sort by created_at (newer first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        
+        // Keep only the first (highest priority) log for each action+time combination
+        sortedLogs.forEach(log => {
+          // Create a key that identifies the action and approximate time (within 1 second)
+          const timestamp = new Date(log.created_at).getTime();
+          const roundedTime = Math.floor(timestamp / 1000) * 1000; // Round to nearest second
+          const key = `${log.action}_${roundedTime}_${log.employee_uuid}`;
+          
+          if (!uniqueLogsByAction.has(key)) {
+            uniqueLogsByAction.set(key, log);
+          }
+        });
+        
+        const dedupedLogs = Array.from(uniqueLogsByAction.values());
+        
+        // Sort logs by created_at (newest first)
+        dedupedLogs.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        setActivityLogs(dedupedLogs);
         
         // Gather all unique employee UUIDs that don't have performer info
-        const employeeIdsNeedingNames = logs
+        const employeeIdsNeedingNames = dedupedLogs
           .filter(log => {
             const performer = getPerformerFromJson(log.details);
             return !performer && log.employee_uuid;
@@ -119,6 +154,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   
   // Helper to get performer name from the log
   const getPerformerName = (log: any): string => {
+    // Prioritize performer info from details
     const performer = getPerformerFromJson(log.details);
     if (performer && performer.name) {
       return performer.name;
@@ -129,8 +165,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       return employeeNames[log.employee_uuid];
     }
     
-    // Last resort, try to extract from the field data 
-    return log.performer_name || employeeNames[log.employee_uuid] || "Unknown User";
+    // Last resort
+    return log.performer_name || "Unknown User";
   };
   
   // Helper to get activity label
