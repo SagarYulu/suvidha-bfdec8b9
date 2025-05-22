@@ -1,6 +1,6 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
+import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
 
 export type FeedbackSentiment = 'happy' | 'neutral' | 'sad';
 
@@ -30,7 +30,7 @@ export interface FeedbackFilters {
   sentiment?: FeedbackSentiment;
   employeeUuid?: string;
   agentId?: string; // New filter for agent (who closed the ticket)
-  comparisonMode?: 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
+  comparisonMode?: ComparisonMode;
 }
 
 // Helper to get comparison date based on mode

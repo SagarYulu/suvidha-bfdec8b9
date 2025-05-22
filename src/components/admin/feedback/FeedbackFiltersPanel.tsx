@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 import { FeedbackFilters } from '@/services/feedbackAnalyticsService';
 import { supabase } from '@/integrations/supabase/client';
+import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
 interface FeedbackFiltersPanelProps {
   filters: FeedbackFilters;
@@ -31,7 +31,7 @@ interface FeedbackFiltersPanelProps {
   onComparisonToggle: (enabled: boolean) => void;
 }
 
-const COMPARISON_OPTIONS = [
+const COMPARISON_OPTIONS: {value: ComparisonMode, label: string}[] = [
   { value: 'dod', label: 'Day on Day' },
   { value: 'wow', label: 'Week on Week' },
   { value: 'mom', label: 'Month on Month' },
@@ -263,8 +263,8 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </div>
             <Select 
               value={filters.comparisonMode || 'wow'}
-              onValueChange={(value) => onFilterChange({ 
-                comparisonMode: value || 'none' 
+              onValueChange={(value: string) => onFilterChange({ 
+                comparisonMode: value as ComparisonMode
               })}
               disabled={!isComparisonEnabled}
             >
