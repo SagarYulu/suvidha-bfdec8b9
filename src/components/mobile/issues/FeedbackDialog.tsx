@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Dialog,
@@ -140,8 +139,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       employee_uuid: employeeUuid,
       sentiment,
       feedback_option: selectedOption,
-      feedback_text: selectedFeedbackOption.label,
-      feedback_text_hindi: selectedFeedbackOption.labelHindi,
+      feedback_text: selectedFeedbackOption.label, // Only store the English text
     };
 
     try {

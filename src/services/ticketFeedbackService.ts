@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -8,8 +7,7 @@ export type TicketFeedback = {
   employee_uuid: string;
   sentiment: 'happy' | 'neutral' | 'sad';
   feedback_option: string;
-  feedback_text?: string;
-  feedback_text_hindi?: string;
+  feedback_text?: string; // Only keeping English text
   created_at?: string;
 };
 
@@ -61,8 +59,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
         employee_uuid: feedback.employee_uuid,
         sentiment: feedback.sentiment,
         feedback_option: feedback.feedback_option,
-        feedback_text: feedback.feedback_text || null,
-        feedback_text_hindi: feedback.feedback_text_hindi || null
+        feedback_text: feedback.feedback_text || null // Only store English text
       })
       .select();
     
