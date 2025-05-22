@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
 import { getFeedbackStatus } from "@/services/ticketFeedbackService";
 import { Issue } from "@/types";
 import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
-import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock, MessageSquareCheck } from "lucide-react";
+import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock, CheckSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Json } from "@/integrations/supabase/types";
@@ -171,7 +170,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
       case 'ticket_reopened':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
       case 'feedback_submitted':
-        return <MessageSquareCheck className="h-4 w-4 text-green-500" />;
+        return <CheckSquare className="h-4 w-4 text-green-500" />;
       default:
         return <Activity className="h-4 w-4 text-gray-500" />;
     }
