@@ -10,7 +10,9 @@ import FeedbackTrendChart from './FeedbackTrendChart';
 import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import SentimentDistributionChart from './SentimentDistributionChart';
+import SunburstChart from './SunburstChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
@@ -24,7 +26,8 @@ const FeedbackAnalyticsPage: React.FC = () => {
     rawData,
     filters,
     updateFilters,
-    toggleComparison
+    toggleComparison,
+    sunburstData
   } = useFeedbackAnalytics();
   
   // Mark as initialized after first load
@@ -86,6 +89,13 @@ const FeedbackAnalyticsPage: React.FC = () => {
           metrics={metrics} 
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
+        />
+        
+        {/* Sunburst Chart */}
+        <SunburstChart 
+          data={sunburstData} 
+          title="Feedback Breakdown by Sentiment and Reason"
+          totalCount={metrics.totalCount}
         />
         
         {/* Sentiment Distribution Chart */}

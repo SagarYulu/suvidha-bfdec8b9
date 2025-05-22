@@ -1,4 +1,3 @@
-
 import { format } from 'date-fns';
 
 // Common chart colors
@@ -8,6 +7,7 @@ export const SENTIMENT_COLORS = {
   'neutral': '#FBBF24',   // Lighter yellow
   'negative': '#F87171',   // Lighter red
   'happy': '#4ADE80',     // Same as positive
+  'neutral': '#FBBF24',    // Same as neutral
   'sad': '#F87171'        // Same as negative
 };
 
