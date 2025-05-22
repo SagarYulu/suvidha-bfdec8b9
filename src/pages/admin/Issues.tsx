@@ -7,6 +7,7 @@ import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
 import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
 import { updateAllIssuePriorities, usePriorityUpdater } from "@/services/issues/priorityUpdateService";
+import { getMultipleFeedbackStatuses } from "@/services/ticketFeedbackService";
 import { Issue } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,7 +26,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, RefreshCw, Clock, AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import {
+  Search, Eye, RefreshCw, Clock, AlertCircle, 
+  CheckCircle, XCircle, MessageSquare, MessageSquareOff
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateWorkingHours } from "@/utils/workingTimeUtils";
@@ -44,6 +48,7 @@ const AdminIssues = () => {
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [isUpdatingPriorities, setIsUpdatingPriorities] = useState(false);
   const [activeTab, setActiveTab] = useState("all-issues");
+  const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, boolean>>({});
   
   // Use the priority updater hook to update priorities more frequently - every 3 minutes
   usePriorityUpdater(3);
@@ -89,6 +94,12 @@ const AdminIssues = () => {
         }
         
         setUserNames(names);
+        
+        // Fetch feedback statuses for all issues
+        const issueIds = fetchedIssues.map(issue => issue.id);
+        const feedbackStatus = await getMultipleFeedbackStatuses(issueIds);
+        setFeedbackStatuses(feedbackStatus);
+        
       } catch (error) {
         console.error("Error fetching tickets:", error);
         toast({
@@ -109,6 +120,12 @@ const AdminIssues = () => {
         const fetchedAssignedIssues = await getAssignedIssues(authState.user.id);
         setAssignedToMeIssues(fetchedAssignedIssues);
         setFilteredAssignedIssues(fetchedAssignedIssues);
+        
+        // Fetch feedback statuses for assigned issues
+        const assignedIssueIds = fetchedAssignedIssues.map(issue => issue.id);
+        const assignedFeedbackStatus = await getMultipleFeedbackStatuses(assignedIssueIds);
+        setFeedbackStatuses(prevStatuses => ({ ...prevStatuses, ...assignedFeedbackStatus }));
+        
       } catch (error) {
         console.error("Error fetching assigned tickets:", error);
       } finally {
@@ -310,6 +327,27 @@ const AdminIssues = () => {
     };
   };
 
+  // Get feedback status badge and icon
+  const getFeedbackStatusBadge = (issueId: string) => {
+    const hasFeedback = feedbackStatuses[issueId];
+    
+    return (
+      <div className="flex items-center gap-1">
+        {hasFeedback ? (
+          <>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span className="text-xs text-green-600">Received</span>
+          </>
+        ) : (
+          <>
+            <XCircle className="h-4 w-4 text-gray-400" />
+            <span className="text-xs text-gray-500">Pending</span>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const RenderIssueTable = ({ issues, isLoading }: { issues: Issue[], isLoading: boolean }) => {
     // Check if there are any critical issues in the current view
     const hasCriticalIssues = issues.some(issue => 
@@ -344,6 +382,7 @@ const AdminIssues = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>SLA Adherence</TableHead>
+                  <TableHead>Feedback</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead>Actions</TableHead>
@@ -423,6 +462,12 @@ const AdminIssues = () => {
                           <span className="text-xs text-gray-500">N/A</span>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {(issue.status === "closed" || issue.status === "resolved") ? 
+                          getFeedbackStatusBadge(issue.id) : 
+                          <span className="text-xs text-gray-500">N/A</span>
+                        }
+                      </TableCell>
                       <TableCell>{formatDate(issue.createdAt)}</TableCell>
                       <TableCell>{formatDate(issue.updatedAt)}</TableCell>
                       <TableCell>
@@ -441,7 +486,7 @@ const AdminIssues = () => {
                 
                 {issues.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-6">
+                    <TableCell colSpan={11} className="text-center py-6">
                       {searchTerm || statusFilter !== "all"
                         ? "No tickets matching filters"
                         : "No tickets found"

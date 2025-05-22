@@ -2,9 +2,10 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
+import { getFeedbackStatus } from "@/services/ticketFeedbackService";
 import { Issue } from "@/types";
 import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
-import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock } from "lucide-react";
+import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock, MessageSquareCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Json } from "@/integrations/supabase/types";
@@ -49,6 +50,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [hasFeedback, setHasFeedback] = useState(false);
   
   useEffect(() => {
     const fetchActivityLogs = async () => {
@@ -110,6 +112,26 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         }
         
         setEmployeeNames(names);
+        
+        // Check for feedback
+        if (issue.status === "closed" || issue.status === "resolved") {
+          const feedbackExists = await getFeedbackStatus(issue.id);
+          setHasFeedback(feedbackExists);
+          
+          // Add a feedback activity log if feedback was submitted
+          if (feedbackExists) {
+            const feedbackLog = {
+              id: 'feedback-' + issue.id,
+              action: 'feedback_submitted',
+              employee_uuid: issue.employeeUuid,
+              created_at: new Date().toISOString(),
+              details: null
+            };
+            
+            // Add the feedback log to the activity logs
+            setActivityLogs(prevLogs => [feedbackLog, ...prevLogs]);
+          }
+        }
       } catch (error) {
         console.error("Error fetching activity logs:", error);
       } finally {
@@ -148,6 +170,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         return <Lock className="h-4 w-4 text-orange-500" />;
       case 'ticket_reopened':
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      case 'feedback_submitted':
+        return <MessageSquareCheck className="h-4 w-4 text-green-500" />;
       default:
         return <Activity className="h-4 w-4 text-gray-500" />;
     }
@@ -216,6 +240,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         return `${actorName} added an internal note`;
       case 'ticket_reopened':
         return `${actorName} reopened the ticket`;
+      case 'feedback_submitted':
+        return `${actorName} submitted feedback`;
       default:
         return `${actorName} performed action: ${log.action}`;
     }
@@ -236,6 +262,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         return "bg-orange-100 text-orange-800 border-orange-200";
       case 'ticket_reopened':
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case 'feedback_submitted':
+        return "bg-green-100 text-green-800 border-green-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -248,6 +276,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     if (action.includes('internal_comment')) return 'internal comment added';
     if (action.includes('comment')) return 'comment added';
     if (action.includes('reopen')) return 'ticket reopened';
+    if (action === 'feedback_submitted') return 'feedback received';
     return action.replace(/_/g, ' ');
   };
   

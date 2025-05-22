@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
+import { getMultipleFeedbackStatuses } from "@/services/ticketFeedbackService";
 import {
   Table,
   TableBody,
@@ -25,6 +26,7 @@ type RecentTicketsTableProps = {
 // Using memo to prevent unnecessary re-renders
 const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
+  const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, boolean>>({});
   const navigate = useNavigate(); // Add navigate hook
 
   // Fetch employee names when issues change
@@ -73,7 +75,19 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       setEmployeeNames(names);
     };
     
+    const fetchFeedbackStatuses = async () => {
+      if (recentIssues.length === 0) return;
+      
+      // Get all issue IDs
+      const issueIds = recentIssues.map(issue => issue.id);
+      
+      // Fetch feedback statuses
+      const statuses = await getMultipleFeedbackStatuses(issueIds);
+      setFeedbackStatuses(statuses);
+    };
+    
     fetchEmployeeNames();
+    fetchFeedbackStatuses();
   }, [recentIssues]);
 
   // Function to handle viewing issue details
@@ -162,6 +176,27 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     };
   };
 
+  // Get feedback status badge and icon
+  const getFeedbackStatusBadge = (issueId: string) => {
+    const hasFeedback = feedbackStatuses[issueId];
+    
+    return (
+      <div className="flex items-center gap-1">
+        {hasFeedback ? (
+          <>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+            <span className="text-xs text-green-600">Received</span>
+          </>
+        ) : (
+          <>
+            <XCircle className="h-4 w-4 text-gray-400" />
+            <span className="text-xs text-gray-500">Pending</span>
+          </>
+        )}
+      </div>
+    );
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -190,6 +225,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
                   <TableHead>SLA Adherence</TableHead>
+                  <TableHead>Feedback</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead>Actions</TableHead>
@@ -264,6 +300,12 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                         )}
                       </TableCell>
                       <TableCell>
+                        {(issue.status === "closed" || issue.status === "resolved") ? 
+                          getFeedbackStatusBadge(issue.id) : 
+                          <span className="text-xs text-gray-500">N/A</span>
+                        }
+                      </TableCell>
+                      <TableCell>
                         {formatDate(issue.createdAt)}
                       </TableCell>
                       <TableCell>
@@ -285,7 +327,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                 
                 {recentIssues.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-6">
+                    <TableCell colSpan={11} className="text-center py-6">
                       No tickets found
                     </TableCell>
                   </TableRow>

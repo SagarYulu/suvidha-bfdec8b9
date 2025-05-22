@@ -45,6 +45,64 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
   }
 };
 
+// Get feedback status for a ticket
+export const getFeedbackStatus = async (issueId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from('ticket_feedback')
+      .select('id')
+      .eq('issue_id', issueId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') { // PGRST116 is the "row not found" error
+      console.error("Error checking feedback status:", error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error("Error checking feedback status:", error);
+    return false;
+  }
+};
+
+// Get feedback statuses for multiple tickets
+export const getMultipleFeedbackStatuses = async (issueIds: string[]): Promise<Record<string, boolean>> => {
+  try {
+    if (!issueIds.length) return {};
+    
+    const { data, error } = await supabase
+      .from('ticket_feedback')
+      .select('issue_id')
+      .in('issue_id', issueIds);
+    
+    if (error) {
+      console.error("Error checking multiple feedback statuses:", error);
+      return {};
+    }
+    
+    // Create a map of issue_id -> has feedback
+    const feedbackMap: Record<string, boolean> = {};
+    
+    // Initialize all tickets as not having feedback
+    issueIds.forEach(id => {
+      feedbackMap[id] = false;
+    });
+    
+    // Update the ones that do have feedback
+    if (data) {
+      data.forEach(feedback => {
+        feedbackMap[feedback.issue_id] = true;
+      });
+    }
+    
+    return feedbackMap;
+  } catch (error) {
+    console.error("Error checking multiple feedback statuses:", error);
+    return {};
+  }
+};
+
 // Submit feedback for a ticket
 export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<boolean> => {
   try {
