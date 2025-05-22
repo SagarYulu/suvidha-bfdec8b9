@@ -1,155 +1,95 @@
 
-import React, { useState, useEffect } from 'react';
-import AdminLayout from "@/components/AdminLayout";
-import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { Card } from '@/components/ui/card';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
 import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
-import FeedbackTrendChart from './FeedbackTrendChart';
+import FeedbackTrendAnalysis from './FeedbackTrendAnalysis';
 import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import SentimentDistributionChart from './SentimentDistributionChart';
-import SunburstChart from './SunburstChart';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
+import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
+import EnhancedSunburstChart from './EnhancedSunburstChart';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 
-const FeedbackAnalyticsPage: React.FC = () => {
-  const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
-  
+const FeedbackAnalyticsPage = () => {
   const {
     isLoading,
     error,
     metrics,
     comparisonMetrics,
-    rawData,
     filters,
+    showComparison,
     updateFilters,
     toggleComparison,
     sunburstData
   } = useFeedbackAnalytics();
   
-  // Mark as initialized after first load
-  useEffect(() => {
-    if (!isInitialized && !isLoading) {
-      setIsInitialized(true);
-    }
-  }, [isLoading, isInitialized]);
+  const [activeTab, setActiveTab] = useState<'overview' | 'sentiment' | 'options'>('overview');
   
-  // Handle comparison toggle
-  const handleComparisonToggle = (enabled: boolean) => {
-    setIsComparisonEnabled(enabled);
-    toggleComparison(enabled);
-  };
-  
-  const renderContent = () => {
-    if (isLoading && !isInitialized) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg shadow p-6">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-          <span className="text-lg">Loading feedback data...</span>
-        </div>
-      );
-    }
-    
-    if (error) {
-      return (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            Error loading feedback data: {error.message}
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    
-    if (!metrics || metrics.totalCount === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center h-64 text-center bg-white rounded-lg shadow p-6">
-          <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-          <h3 className="text-xl font-medium">No feedback data available</h3>
-          <p className="text-muted-foreground mt-2">
-            Try changing your filters or check if feedback has been submitted for the selected period.
-          </p>
-        </div>
-      );
-    }
-    
+  if (error) {
     return (
-      <div className="space-y-6">
-        {/* Insights Summary */}
-        <FeedbackInsightsSummary 
-          insights={metrics.insightData || []}
-          showComparison={isComparisonEnabled}
-        />
-        
-        {/* Metrics Overview */}
-        <FeedbackMetricsOverview 
-          metrics={metrics} 
-          comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
-          comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
-        />
-        
-        {/* Sunburst Chart */}
-        <SunburstChart 
-          data={sunburstData} 
-          title="Feedback Breakdown by Sentiment and Reason"
-          totalCount={metrics.totalCount}
-        />
-        
-        {/* Sentiment Distribution Chart */}
-        <SentimentDistributionChart 
-          data={metrics.trendData} 
-          showComparison={isComparisonEnabled}
-          title="Sentiment Distribution Over Time"
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Trend Chart */}
-          <FeedbackTrendChart 
-            data={metrics.trendData} 
-            showComparison={isComparisonEnabled}
-            comparisonMode={filters.comparisonMode}
-          />
-          
-          {/* Feedback Option Breakdown */}
-          <FeedbackOptionBreakdown 
-            options={metrics.topOptions}
-            showComparison={isComparisonEnabled}
-          />
+      <div className="p-6">
+        <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-md">
+          <h2 className="font-semibold mb-2">Error Loading Data</h2>
+          <p>{error.message}</p>
         </div>
       </div>
     );
-  };
+  }
+  
+  if (isLoading && !metrics) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading feedback analytics...</span>
+      </div>
+    );
+  }
   
   return (
-    <AdminLayout title="Feedback Analytics">
-      <div className="space-y-6">
-        {/* Filters Panel */}
-        <FeedbackFiltersPanel 
-          filters={filters}
-          onFilterChange={updateFilters}
-          isComparisonEnabled={isComparisonEnabled}
-          onComparisonToggle={handleComparisonToggle}
+    <div className="space-y-6 p-6">
+      <FeedbackFiltersPanel 
+        filters={filters}
+        updateFilters={updateFilters}
+        showComparison={showComparison}
+        toggleComparison={toggleComparison}
+      />
+      
+      <FeedbackInsightsSummary 
+        currentMetrics={metrics} 
+        previousMetrics={comparisonMetrics} 
+        showComparison={showComparison} 
+      />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FeedbackTrendAnalysis 
+          metrics={metrics} 
+          comparisonMetrics={comparisonMetrics}
+          showComparison={showComparison}
+          isLoading={isLoading}
         />
         
-        {/* Loading state overlay for subsequent data loads */}
-        <div className="relative">
-          {isLoading && isInitialized && (
-            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
-              <div className="flex items-center space-x-2 px-6 py-3 bg-white border rounded-lg shadow-sm">
-                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-                <span className="font-medium">Updating data...</span>
-              </div>
-            </div>
-          )}
-          
-          {/* Main Content */}
-          {renderContent()}
-        </div>
+        <SentimentDistributionChart 
+          currentData={metrics?.sentimentCounts} 
+          previousData={comparisonMetrics?.sentimentCounts}
+          showComparison={showComparison}
+          isLoading={isLoading}
+        />
       </div>
-    </AdminLayout>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FeedbackOptionBreakdown 
+          data={metrics?.topOptions || []} 
+          isLoading={isLoading} 
+        />
+        
+        {/* Replace the old SunburstChart with our new EnhancedSunburstChart */}
+        <EnhancedSunburstChart 
+          data={sunburstData} 
+          totalCount={metrics?.totalCount || 0} 
+        />
+      </div>
+    </div>
   );
 };
 
