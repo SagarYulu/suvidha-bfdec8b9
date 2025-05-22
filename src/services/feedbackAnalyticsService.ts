@@ -19,6 +19,7 @@ export interface FeedbackMetrics {
   sentimentPercentages: Record<FeedbackSentiment, number>;
   topOptions: Array<{ option: string; count: number; sentiment: FeedbackSentiment }>;
   trendData: Array<{ date: string; happy: number; neutral: number; sad: number; total: number }>;
+  insightData?: Array<{ label: string; value: string; change: number }>;
 }
 
 export interface FeedbackFilters {
@@ -28,6 +29,7 @@ export interface FeedbackFilters {
   cluster?: string;
   sentiment?: FeedbackSentiment;
   employeeUuid?: string;
+  agentId?: string; // New filter for agent (who closed the ticket)
   comparisonMode?: 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
 }
 
@@ -80,13 +82,19 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     query = query.eq('employee_uuid', filters.employeeUuid);
   }
   
-  // For city and cluster filters, we need to join with the issues table
-  // and then with employees table to filter by city or cluster
-  if (filters.city || filters.cluster) {
-    // First get issues filtered by city/cluster through employees
+  // For city, cluster, and agent filters, we need to join with the issues table
+  if (filters.city || filters.cluster || filters.agentId) {
+    // First get issues filtered by city/cluster/agent
     let issuesQuery = supabase.from('issues')
-      .select('id')
-      .eq('status', 'closed');
+      .select('id');
+    
+    // Filter by agent (who closed the ticket)
+    if (filters.agentId) {
+      issuesQuery = issuesQuery.eq('assigned_to', filters.agentId);
+    }
+    
+    // Only include closed tickets for feedback analysis
+    issuesQuery = issuesQuery.eq('status', 'closed');
     
     if (filters.city || filters.cluster) {
       // Get employees matching city/cluster criteria
@@ -215,12 +223,37 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
     .map(([date, counts]) => ({ date, ...counts }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
+  // Generate key insight metrics
+  const insightData = [
+    {
+      label: "Response Rate",
+      value: `${totalCount} responses`,
+      change: 0 // Will be calculated in comparison
+    },
+    {
+      label: "Happy Sentiment",
+      value: `${sentimentPercentages.happy}%`,
+      change: 0
+    },
+    {
+      label: "Neutral Sentiment",
+      value: `${sentimentPercentages.neutral}%`,
+      change: 0
+    },
+    {
+      label: "Negative Sentiment",
+      value: `${sentimentPercentages.sad}%`,
+      change: 0
+    }
+  ];
+  
   return {
     totalCount,
     sentimentCounts,
     sentimentPercentages,
     topOptions,
-    trendData
+    trendData,
+    insightData
   };
 };
 
@@ -268,6 +301,21 @@ export const fetchComparisonData = async (
   // Calculate metrics
   const currentMetrics = calculateFeedbackMetrics(currentData);
   const previousMetrics = calculateFeedbackMetrics(previousData);
+  
+  // Calculate changes for insights
+  if (currentMetrics.insightData && previousMetrics.totalCount > 0) {
+    // Update change percentages
+    currentMetrics.insightData[0].change = ((currentMetrics.totalCount - previousMetrics.totalCount) / previousMetrics.totalCount) * 100;
+    
+    // Happy sentiment change
+    currentMetrics.insightData[1].change = currentMetrics.sentimentPercentages.happy - previousMetrics.sentimentPercentages.happy;
+    
+    // Neutral sentiment change
+    currentMetrics.insightData[2].change = currentMetrics.sentimentPercentages.neutral - previousMetrics.sentimentPercentages.neutral;
+    
+    // Sad sentiment change
+    currentMetrics.insightData[3].change = currentMetrics.sentimentPercentages.sad - previousMetrics.sentimentPercentages.sad;
+  }
   
   return {
     current: currentMetrics,

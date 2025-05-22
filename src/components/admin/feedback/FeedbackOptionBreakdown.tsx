@@ -11,12 +11,19 @@ import {
   Label
 } from 'recharts';
 
-// Define colors for different sentiments
-const COLORS = {
-  happy: '#22c55e',    // Green
-  neutral: '#f59e0b',  // Amber
-  sad: '#ef4444'       // Red
-};
+// Define visually distinct colors for the feedback options
+const COLORS = [
+  '#22c55e',    // Green
+  '#f59e0b',    // Amber
+  '#ef4444',    // Red
+  '#0ea5e9',    // Blue
+  '#8b5cf6',    // Purple
+  '#ec4899',    // Pink
+  '#14b8a6',    // Teal
+  '#f97316',    // Orange
+  '#6366f1',    // Indigo
+  '#d946ef'     // Fuchsia
+];
 
 interface FeedbackOptionBreakdownProps {
   options: Array<{ option: string; count: number; sentiment: 'happy' | 'neutral' | 'sad' }>;
@@ -32,14 +39,15 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
   const totalResponses = topOptions.reduce((sum, item) => sum + item.count, 0);
   
   // Format data for the donut chart
-  const chartData = topOptions.map(item => ({
+  const chartData = topOptions.map((item, index) => ({
     name: item.option,
     value: item.count,
     sentiment: item.sentiment,
-    percentage: ((item.count / totalResponses) * 100).toFixed(1)
+    percentage: ((item.count / totalResponses) * 100).toFixed(1),
+    color: COLORS[index % COLORS.length]
   }));
   
-  // Custom legend that shows sentiment color
+  // Custom legend that shows sentiment color and percentage
   const renderCustomLegend = (props: any) => {
     const { payload } = props;
     
@@ -100,7 +108,9 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
                   {chartData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={COLORS[entry.sentiment]} 
+                      fill={entry.color} 
+                      stroke="#FFFFFF"
+                      strokeWidth={2}
                     />
                   ))}
                   <Label

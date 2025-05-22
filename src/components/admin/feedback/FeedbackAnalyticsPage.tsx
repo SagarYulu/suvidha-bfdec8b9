@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackTrendChart from './FeedbackTrendChart';
 import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
+import FeedbackInsightsSummary from './FeedbackInsightsSummary';
+import FeedbackTrendAnalysis from './FeedbackTrendAnalysis';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
@@ -19,6 +21,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
     error,
     metrics,
     comparisonMetrics,
+    rawData,
     filters,
     updateFilters,
     toggleComparison
@@ -72,6 +75,12 @@ const FeedbackAnalyticsPage: React.FC = () => {
     
     return (
       <div className="space-y-6">
+        {/* Insights Summary (New) */}
+        <FeedbackInsightsSummary 
+          insights={metrics.insightData || []}
+          showComparison={isComparisonEnabled}
+        />
+        
         {/* Metrics Overview */}
         <FeedbackMetricsOverview 
           metrics={metrics} 
@@ -80,16 +89,25 @@ const FeedbackAnalyticsPage: React.FC = () => {
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Trend Chart */}
+          {/* Trend Chart (Enhanced) */}
           <FeedbackTrendChart 
             data={metrics.trendData} 
             showComparison={isComparisonEnabled}
             comparisonMode={filters.comparisonMode}
           />
           
-          {/* Feedback Option Breakdown */}
+          {/* Feedback Option Breakdown (Enhanced) */}
           <FeedbackOptionBreakdown 
             options={metrics.topOptions}
+            showComparison={isComparisonEnabled}
+          />
+        </div>
+        
+        {/* Additional analysis sections */}
+        <div className="grid grid-cols-1 gap-6">
+          {/* Trend Analysis (New) */}
+          <FeedbackTrendAnalysis 
+            data={metrics.trendData}
             showComparison={isComparisonEnabled}
           />
         </div>
@@ -100,7 +118,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
   return (
     <AdminLayout title="Feedback Analytics">
       <div className="space-y-6">
-        {/* Filters Panel */}
+        {/* Filters Panel (Enhanced) */}
         <FeedbackFiltersPanel 
           filters={filters}
           onFilterChange={updateFilters}
@@ -108,8 +126,20 @@ const FeedbackAnalyticsPage: React.FC = () => {
           onComparisonToggle={handleComparisonToggle}
         />
         
-        {/* Main Content */}
-        {renderContent()}
+        {/* Loading state overlay for subsequent data loads */}
+        <div className="relative">
+          {isLoading && isInitialized && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                <span>Updating data...</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Main Content */}
+          {renderContent()}
+        </div>
       </div>
     </AdminLayout>
   );

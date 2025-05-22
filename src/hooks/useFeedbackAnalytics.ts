@@ -9,12 +9,15 @@ import {
   FeedbackItem 
 } from '../services/feedbackAnalyticsService';
 import { format, subDays } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
 
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
   const today = new Date();
   const defaultStartDate = format(subDays(today, 30), 'yyyy-MM-dd');
   const defaultEndDate = format(today, 'yyyy-MM-dd');
+  
+  const { toast } = useToast();
   
   const [filters, setFilters] = useState<FeedbackFilters>({
     startDate: defaultStartDate,
@@ -30,15 +33,22 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [comparisonMetrics, setComparisonMetrics] = useState<FeedbackMetrics | null>(null);
   const [showComparison, setShowComparison] = useState<boolean>(false);
   const [dataFetched, setDataFetched] = useState(false);
+  const [activeDataFetch, setActiveDataFetch] = useState(false);
   
   // Update filters when user changes selection
   const updateFilters = (newFilters: Partial<FeedbackFilters>) => {
+    // Prevent race conditions by ignoring new filter requests during active fetch
+    if (activeDataFetch) return;
+    
     setFilters(prev => ({ ...prev, ...newFilters }));
     setDataFetched(false);
   };
   
   // Toggle comparison mode
   const toggleComparison = (enabled: boolean) => {
+    // Prevent race conditions by ignoring toggle requests during active fetch
+    if (activeDataFetch) return;
+    
     setShowComparison(enabled);
     if (!enabled) {
       // Turn off comparison mode
@@ -53,10 +63,11 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   // Fetch data when filters change
   useEffect(() => {
     const fetchData = async () => {
-      if (dataFetched) return;
+      if (dataFetched || activeDataFetch) return;
       
       setIsLoading(true);
       setError(null);
+      setActiveDataFetch(true);
       console.log("Fetching feedback data with filters:", filters);
       
       try {
@@ -82,14 +93,22 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         setDataFetched(true);
       } catch (err) {
         console.error('Error in useFeedbackAnalytics:', err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        setError(err instanceof Error ? err : new Error(errorMessage));
+        
+        toast({
+          title: "Error fetching feedback data",
+          description: errorMessage,
+          variant: "destructive"
+        });
       } finally {
         setIsLoading(false);
+        setActiveDataFetch(false);
       }
     };
     
     fetchData();
-  }, [filters, showComparison, dataFetched]);
+  }, [filters, showComparison, dataFetched, activeDataFetch, toast]);
   
   return {
     isLoading,

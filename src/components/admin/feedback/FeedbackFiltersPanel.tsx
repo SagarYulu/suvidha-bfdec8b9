@@ -52,9 +52,10 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   
   const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
   const [clusters, setClusters] = useState<{ id: string; name: string; city_id: string }[]>([]);
+  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Fetch cities and clusters from master data
+  // Fetch cities, clusters and agents from master data
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
@@ -75,6 +76,15 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
         
         if (clustersError) throw clustersError;
         setClusters(clustersData || []);
+        
+        // Fetch agents (employees who close tickets)
+        const { data: agentsData, error: agentsError } = await supabase
+          .from('dashboard_users')
+          .select('id, name')
+          .order('name');
+        
+        if (agentsError) throw agentsError;
+        setAgents(agentsData || []);
         
       } catch (error) {
         console.error('Error fetching filter options:', error);
@@ -204,23 +214,23 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </Select>
           </div>
           
-          {/* Sentiment Filter */}
+          {/* Agent Filter - NEW */}
           <div>
-            <Label className="mb-1 block">Sentiment</Label>
+            <Label className="mb-1 block">Agent</Label>
             <Select 
-              value={filters.sentiment || "all"}
-              onValueChange={(value) => onFilterChange({ 
-                sentiment: (value === "all" ? undefined : value) as any
-              })}
+              value={filters.agentId || "all"}
+              onValueChange={(value) => onFilterChange({ agentId: value === "all" ? undefined : value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Sentiments" />
+                <SelectValue placeholder="All Agents" />
               </SelectTrigger>
               <SelectContent className="bg-white">
-                <SelectItem value="all">All Sentiments</SelectItem>
-                <SelectItem value="happy">Happy</SelectItem>
-                <SelectItem value="neutral">Neutral</SelectItem>
-                <SelectItem value="sad">Sad</SelectItem>
+                <SelectItem value="all">All Agents</SelectItem>
+                {agents.map(agent => (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    {agent.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -256,6 +266,29 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           </div>
         </div>
         
+        {/* Sentiment Filter (moved to second row) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 mt-4">
+          <div>
+            <Label className="mb-1 block">Sentiment</Label>
+            <Select 
+              value={filters.sentiment || "all"}
+              onValueChange={(value) => onFilterChange({ 
+                sentiment: (value === "all" ? undefined : value) as any
+              })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Sentiments" />
+              </SelectTrigger>
+              <SelectContent className="bg-white">
+                <SelectItem value="all">All Sentiments</SelectItem>
+                <SelectItem value="happy">Happy</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
+                <SelectItem value="sad">Sad</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
         {/* Reset Filters Button */}
         <div className="flex justify-end mt-4">
           <Button 
@@ -266,6 +299,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                 city: undefined,
                 cluster: undefined,
                 sentiment: undefined,
+                agentId: undefined,
                 employeeUuid: undefined,
               });
               // Also reset comparison if enabled
