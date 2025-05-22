@@ -184,7 +184,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
         {/* City */}
         <div>
           <label className="text-sm font-medium mb-1 block">City</label>
-          <Select value={city} onValueChange={setCity}>
+          <Select value={city || "all-cities"} onValueChange={setCity}>
             <SelectTrigger>
               <SelectValue placeholder="Select city" />
             </SelectTrigger>
@@ -203,7 +203,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
         <div>
           <label className="text-sm font-medium mb-1 block">Cluster</label>
           <Select 
-            value={cluster} 
+            value={cluster || "all-clusters"} 
             onValueChange={setCluster}
             disabled={!city || city === 'all-cities'}
           >
@@ -224,7 +224,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
         {/* Role */}
         <div>
           <label className="text-sm font-medium mb-1 block">Role</label>
-          <Select value={role} onValueChange={setRole}>
+          <Select value={role || "all-roles"} onValueChange={setRole}>
             <SelectTrigger>
               <SelectValue placeholder="Select role" />
             </SelectTrigger>

@@ -35,8 +35,9 @@ const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
   
   console.log('RoleBasedGuard: Access result for', permission + ':', accessResult);
   
-  // If auth state is loading, show a loading screen
-  if (authState.loading && showLoadingScreen) {
+  // If auth state is still initializing, show a loading screen
+  // The 'loading' property might not exist in authState, so we check if isAuthenticated is null/undefined
+  if (isAuthenticated === undefined && showLoadingScreen) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />

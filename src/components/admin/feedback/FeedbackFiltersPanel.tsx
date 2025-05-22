@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -158,17 +159,17 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">City</Label>
             <Select 
-              value={filters.city || ""}
+              value={filters.city || "all"}
               onValueChange={(value) => {
                 // Reset cluster when city changes
-                onFilterChange({ city: value || undefined, cluster: undefined });
+                onFilterChange({ city: value === "all" ? undefined : value, cluster: undefined });
               }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Cities" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
+                <SelectItem value="all">All Cities</SelectItem>
                 {cities.map(city => (
                   <SelectItem key={city.id} value={city.name}>
                     {city.name}
@@ -182,8 +183,8 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">Cluster</Label>
             <Select 
-              value={filters.cluster || ""}
-              onValueChange={(value) => onFilterChange({ cluster: value || undefined })}
+              value={filters.cluster || "all"}
+              onValueChange={(value) => onFilterChange({ cluster: value === "all" ? undefined : value })}
               disabled={!filters.city || availableClusters.length === 0}
             >
               <SelectTrigger>
@@ -192,7 +193,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                 } />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Clusters</SelectItem>
+                <SelectItem value="all">All Clusters</SelectItem>
                 {availableClusters.map(cluster => (
                   <SelectItem key={cluster.id} value={cluster.name}>
                     {cluster.name}
@@ -206,16 +207,16 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">Sentiment</Label>
             <Select 
-              value={filters.sentiment || ""}
+              value={filters.sentiment || "all"}
               onValueChange={(value) => onFilterChange({ 
-                sentiment: (value as any) || undefined 
+                sentiment: (value === "all" ? undefined : value) as any
               })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Sentiments" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Sentiments</SelectItem>
+                <SelectItem value="all">All Sentiments</SelectItem>
                 <SelectItem value="happy">Happy</SelectItem>
                 <SelectItem value="neutral">Neutral</SelectItem>
                 <SelectItem value="sad">Sad</SelectItem>
