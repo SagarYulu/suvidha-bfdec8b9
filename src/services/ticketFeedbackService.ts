@@ -83,18 +83,22 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     if (issueData && !issueError) {
       // Perform proper type checking before accessing properties
       if (typeof issueData === 'object' && issueData !== null && 'employees' in issueData) {
+        // First, assign employeesData and handle the possibility of it being null
         const employeesData = issueData.employees;
         
-        // Check if employeesData exists and has the expected format
-        if (employeesData !== null && employeesData !== undefined && typeof employeesData === 'object') {
-          // Type-safe access to city property
-          if ('city' in employeesData && employeesData.city !== null && employeesData.city !== undefined) {
-            city = String(employeesData.city);
-          }
-          
-          // Type-safe access to cluster property
-          if ('cluster' in employeesData && employeesData.cluster !== null && employeesData.cluster !== undefined) {
-            cluster = String(employeesData.cluster);
+        if (employeesData !== null) {
+          // Now TypeScript knows employeesData is not null
+          // Check if employeesData is an object before accessing properties
+          if (typeof employeesData === 'object') {
+            // Type-safe access to city property
+            if ('city' in employeesData && employeesData.city !== null && employeesData.city !== undefined) {
+              city = String(employeesData.city);
+            }
+            
+            // Type-safe access to cluster property
+            if ('cluster' in employeesData && employeesData.cluster !== null && employeesData.cluster !== undefined) {
+              cluster = String(employeesData.cluster);
+            }
           }
         }
       }
