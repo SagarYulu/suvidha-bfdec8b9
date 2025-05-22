@@ -1,4 +1,3 @@
-
 import { IssueComment } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { logAuditTrail } from "./issueAuditService";
@@ -34,37 +33,81 @@ async function getUserInfoForComment(userUuid: string) {
     // Check dashboard users first
     const { data: dashboardUser } = await supabase
       .from('dashboard_users')
-      .select('name, role')
+      .select('name, role, email')
       .eq('id', userUuid)
       .single();
     
-    if (dashboardUser) {
+    if (dashboardUser && dashboardUser.name) {
       return {
         name: dashboardUser.name,
         role: dashboardUser.role,
-        id: userUuid
+        id: userUuid,
+        email: dashboardUser.email
       };
     }
 
     // Then check employees
     const { data: employee } = await supabase
       .from('employees')
-      .select('name, role')
+      .select('name, role, email')
       .eq('id', userUuid)
       .single();
     
-    if (employee) {
+    if (employee && employee.name) {
       return {
         name: employee.name,
         role: employee.role,
-        id: userUuid
+        id: userUuid,
+        email: employee.email
       };
     }
 
+    console.log(`Could not find user info for comment UUID: ${userUuid}`);
     return { name: "Unknown User", id: userUuid };
   } catch (error) {
     console.error('Error getting user info for comment:', error);
     return { name: "Unknown User", id: userUuid };
+  }
+}
+
+// Create notification for assignee when a comment is added
+async function createNotificationForAssignee(issueId: string, commenterId: string, commenterName: string) {
+  try {
+    // First, get the issue to find the assignee
+    const { data: issue, error: issueError } = await supabase
+      .from('issues')
+      .select('assigned_to')
+      .eq('id', issueId)
+      .single();
+    
+    if (issueError || !issue || !issue.assigned_to) {
+      console.log('No assignee found for notification');
+      return;
+    }
+    
+    // Don't notify if the commenter is the same as the assignee
+    if (issue.assigned_to === commenterId) {
+      console.log('Commenter is the assignee, no notification needed');
+      return;
+    }
+    
+    // Create notification for the assignee
+    const { error: notifError } = await supabase
+      .from('issue_notifications')
+      .insert({
+        user_id: issue.assigned_to,
+        issue_id: issueId,
+        content: `${commenterName} added a comment to a ticket assigned to you.`,
+        is_read: false
+      });
+    
+    if (notifError) {
+      console.error('Error creating notification:', notifError);
+    } else {
+      console.log(`Notification created for assignee ${issue.assigned_to}`);
+    }
+  } catch (error) {
+    console.error('Error creating notification:', error);
   }
 }
 
@@ -150,8 +193,9 @@ export const addNewComment = async (
     
     console.log('Final employeeUuid being used for comment:', validEmployeeUuid);
     
-    // Get user info for audit log
+    // Get user info for audit log with enhanced retrieval
     const userInfo = await getUserInfoForComment(validEmployeeUuid);
+    console.log(`User info retrieved for comment: ${userInfo.name}`);
     
     // Insert the comment with validated employee UUID
     const { data: dbComment, error } = await supabase
@@ -169,6 +213,9 @@ export const addNewComment = async (
       console.error('Error adding comment:', error);
       return undefined;
     }
+    
+    // Create notification for the assignee
+    await createNotificationForAssignee(issueId, validEmployeeUuid, userInfo.name);
     
     // Log audit trail for new comment using the same validated UUID
     await logAuditTrail(

@@ -41,36 +41,39 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
 // Get user info for audit logs
 async function getUserInfo(userUuid: string) {
   try {
-    // Check dashboard users first
-    const { data: dashboardUser } = await supabase
+    // Check dashboard users first with more comprehensive query
+    const { data: dashboardUser, error: dashboardError } = await supabase
       .from('dashboard_users')
-      .select('name, role')
+      .select('id, name, role, email')
       .eq('id', userUuid)
       .single();
     
-    if (dashboardUser) {
+    if (dashboardUser && dashboardUser.name) {
       return {
         name: dashboardUser.name,
         role: dashboardUser.role,
-        id: userUuid
+        id: userUuid,
+        email: dashboardUser.email
       };
     }
 
-    // Then check employees
-    const { data: employee } = await supabase
+    // Then check employees with more comprehensive query
+    const { data: employee, error: employeeError } = await supabase
       .from('employees')
-      .select('name, role')
+      .select('id, name, role, email')
       .eq('id', userUuid)
       .single();
     
-    if (employee) {
+    if (employee && employee.name) {
       return {
         name: employee.name,
         role: employee.role,
-        id: userUuid
+        id: userUuid,
+        email: employee.email
       };
     }
 
+    console.log(`Could not find user info for UUID: ${userUuid}`);
     return { name: "Unknown User", id: userUuid };
   } catch (error) {
     console.error('Error getting user info:', error);
@@ -85,10 +88,21 @@ export const addInternalComment = async (
   content: string
 ): Promise<InternalComment | null> => {
   try {
+    // Ensure we have valid user information
+    const userInfo = await getUserInfo(employeeUuid);
+    
+    // Generate UUID for the comment
+    const commentId = crypto.randomUUID();
+    
     const { data, error } = await supabase
       .from('issue_internal_comments')
       .insert([
-        { issue_id: issueId, employee_uuid: employeeUuid, content }
+        { 
+          id: commentId,
+          issue_id: issueId, 
+          employee_uuid: employeeUuid, 
+          content 
+        }
       ])
       .select()
       .single();
@@ -98,10 +112,9 @@ export const addInternalComment = async (
       return null;
     }
     
-    // Get commenter info for audit log
-    const userInfo = await getUserInfo(employeeUuid);
+    console.log(`Added internal comment by ${userInfo.name} (${employeeUuid})`);
     
-    // Create audit log entry
+    // Create audit log entry with detailed performer info
     await createAuditLog(
       issueId,
       employeeUuid,
@@ -109,8 +122,12 @@ export const addInternalComment = async (
       { 
         commentId: data.id,
         performer: userInfo
-      }
+      },
+      `Internal comment added by ${userInfo.name}`
     );
+    
+    // Create notification for the assignee
+    await createNotificationForAssignee(issueId, employeeUuid, userInfo.name);
     
     // Map the database response to our InternalComment interface
     return {
@@ -125,3 +142,44 @@ export const addInternalComment = async (
     return null;
   }
 };
+
+// Create notification for assignee when a comment is added
+async function createNotificationForAssignee(issueId: string, commenterId: string, commenterName: string) {
+  try {
+    // First, get the issue to find the assignee
+    const { data: issue, error: issueError } = await supabase
+      .from('issues')
+      .select('assigned_to')
+      .eq('id', issueId)
+      .single();
+    
+    if (issueError || !issue || !issue.assigned_to) {
+      console.log('No assignee found for notification');
+      return;
+    }
+    
+    // Don't notify if the commenter is the same as the assignee
+    if (issue.assigned_to === commenterId) {
+      console.log('Commenter is the assignee, no notification needed');
+      return;
+    }
+    
+    // Create notification for the assignee
+    const { error: notifError } = await supabase
+      .from('issue_notifications')
+      .insert({
+        user_id: issue.assigned_to,
+        issue_id: issueId,
+        content: `${commenterName} added an internal comment to a ticket assigned to you.`,
+        is_read: false
+      });
+    
+    if (notifError) {
+      console.error('Error creating notification:', notifError);
+    } else {
+      console.log(`Notification created for assignee ${issue.assigned_to}`);
+    }
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
+}

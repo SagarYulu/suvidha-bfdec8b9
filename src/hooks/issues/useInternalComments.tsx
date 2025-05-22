@@ -5,6 +5,7 @@ import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRBAC } from "@/contexts/RBACContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useInternalComments = (issueId: string | undefined, assigneeId: string | null) => {
   const [internalComments, setInternalComments] = useState<InternalComment[]>([]);
@@ -38,15 +39,45 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
         const comments = await getInternalComments(issueId);
         setInternalComments(comments);
         
-        // Get commenter names
+        // Get commenter names with enhanced reliability
         const uniqueCommenterIds = Array.from(
           new Set(comments.map(c => c.employeeUuid))
         );
         
         const names: Record<string, string> = {};
         for (const commenterId of uniqueCommenterIds) {
-          const name = await getEmployeeNameByUuid(commenterId);
-          names[commenterId] = name || "Unknown";
+          try {
+            // Enhanced fetch for user names
+            const { data: dashboardUser } = await supabase
+              .from('dashboard_users')
+              .select('name')
+              .eq('id', commenterId)
+              .single();
+            
+            if (dashboardUser && dashboardUser.name) {
+              names[commenterId] = dashboardUser.name;
+              continue;
+            }
+            
+            // Try employees table if not found in dashboard users
+            const { data: employee } = await supabase
+              .from('employees')
+              .select('name')
+              .eq('id', commenterId)
+              .single();
+            
+            if (employee && employee.name) {
+              names[commenterId] = employee.name;
+              continue;
+            }
+            
+            // Fallback to our utility function
+            const name = await getEmployeeNameByUuid(commenterId);
+            names[commenterId] = name || "Unknown User";
+          } catch (err) {
+            console.error(`Error fetching name for ${commenterId}:`, err);
+            names[commenterId] = "Unknown User";
+          }
         }
         
         // Add current user to names list
@@ -55,6 +86,7 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
           names[currentUserId] = currentUserName;
         }
         
+        console.log("Fetched commenter names:", names);
         setCommentersNames(names);
       } catch (error) {
         console.error("Error fetching internal comments:", error);
@@ -79,6 +111,8 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
     
     setIsSubmittingInternalComment(true);
     try {
+      console.log(`Adding internal comment as user: ${authState.user?.name || currentUserId}`);
+      
       const addedComment = await addInternalComment(
         issueId,
         currentUserId,

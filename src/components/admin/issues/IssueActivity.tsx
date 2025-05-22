@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
@@ -34,7 +33,7 @@ const getPerformerFromJson = (details: Json | null): PerformerInfo | null => {
   
   const performerObj = performer as Record<string, Json>;
   
-  if (typeof performerObj.name !== 'string') {
+  if (typeof performerObj.name !== 'string' || !performerObj.name) {
     return null;
   }
   
@@ -126,7 +125,12 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     }
     
     // Fall back to our fetched names
-    return employeeNames[log.employee_uuid] || "Unknown User";
+    if (employeeNames[log.employee_uuid]) {
+      return employeeNames[log.employee_uuid];
+    }
+    
+    // Last resort, try to extract from the field data 
+    return log.performer_name || employeeNames[log.employee_uuid] || "Unknown User";
   };
   
   // Helper to get activity label

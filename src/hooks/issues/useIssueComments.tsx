@@ -22,12 +22,14 @@ export const useIssueComments = (
       // Get current user info for better audit logs
       const { data: userData } = await supabase
         .from('dashboard_users')
-        .select('name, role')
+        .select('name, role, email')
         .eq('id', currentUserId)
         .single();
       
       const userName = userData?.name || "Unknown User";
       const userRole = userData?.role;
+      
+      console.log(`Adding comment as user: ${userName} (${currentUserId})`);
       
       // Create a comment object with the right structure
       const commentData = {
