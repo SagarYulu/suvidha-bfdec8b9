@@ -1,64 +1,63 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRoleAccess } from '@/hooks/useRoleAccess';
+import { Loader2 } from 'lucide-react';
 import { Permission } from '@/contexts/RBACContext';
 
 interface RoleBasedGuardProps {
   children: React.ReactNode;
   permission: Permission;
   redirectTo?: string;
+  showLoadingScreen?: boolean;
 }
 
 /**
- * A component that guards routes based on user permissions
+ * Component that protects routes based on user permissions
  */
 const RoleBasedGuard: React.FC<RoleBasedGuardProps> = ({
   children,
   permission,
-  redirectTo = '/'
+  redirectTo = '/admin/login',
+  showLoadingScreen = true
 }) => {
-  const { hasPermission, isAuthenticated } = useRoleAccess();
-  const [accessChecked, setAccessChecked] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
-
-  useEffect(() => {
-    // Only check access once authentication state is known and stable
-    if (isAuthenticated !== undefined) {
-      console.log(`RoleBasedGuard: Checking permission: ${permission}`);
-      
-      // Directly use the hasPermission function from useRoleAccess
-      const access = hasPermission(permission);
-      
-      console.log(`RoleBasedGuard: Access result for ${permission}: ${access}`);
-      setHasAccess(access);
-      setAccessChecked(true);
-    }
-  }, [isAuthenticated, permission, hasPermission]);
-
-  // Show loading indicator while checking access
-  if (!accessChecked) {
+  const { authState } = useAuth();
+  const { hasPermission } = useRoleAccess();
+  
+  console.log('RoleBasedGuard: Checking permission:', permission);
+  
+  // Check if user is authenticated
+  const isAuthenticated = authState.isAuthenticated;
+  
+  // Check if user has permission
+  const accessResult = hasPermission(permission);
+  
+  console.log('RoleBasedGuard: Access result for', permission + ':', accessResult);
+  
+  // If auth state is loading, show a loading screen
+  if (authState.loading && showLoadingScreen) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
-
-  // If not authenticated at all, redirect to login
-  if (isAuthenticated === false) {
-    console.log('RoleBasedGuard: User not authenticated, redirecting to login');
-    return <Navigate to="/admin/login" replace />;
-  }
-
-  // If authenticated but no permission, redirect to specified route
-  if (!hasAccess) {
-    console.log(`RoleBasedGuard: Access denied for ${permission}, redirecting to ${redirectTo}`);
+  
+  // If user is not authenticated, redirect to login
+  if (!isAuthenticated) {
+    console.log('RoleBasedGuard: User not authenticated, redirecting to', redirectTo);
     return <Navigate to={redirectTo} replace />;
   }
-
-  // If has access, render children
-  console.log(`RoleBasedGuard: Access granted for ${permission}, rendering children`);
+  
+  // If user doesn't have permission, redirect to specified path
+  if (!accessResult) {
+    console.log('RoleBasedGuard: Access denied for', permission, 'redirecting to', redirectTo);
+    return <Navigate to={redirectTo} replace />;
+  }
+  
+  // User has permission, render children
+  console.log('RoleBasedGuard: Access granted for', permission, 'rendering children');
   return <>{children}</>;
 };
 

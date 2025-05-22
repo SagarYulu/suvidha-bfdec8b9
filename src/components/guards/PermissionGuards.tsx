@@ -1,4 +1,3 @@
-
 import React from 'react';
 import RoleBasedGuard from './RoleBasedGuard';
 import { Permission } from '@/contexts/RBACContext';
@@ -46,6 +45,16 @@ export const AnalyticsGuard: React.FC<GuardProps> = ({
   redirectTo = '/admin/dashboard' 
 }) => (
   <RoleBasedGuard permission="manage:analytics" redirectTo={redirectTo}>
+    {children}
+  </RoleBasedGuard>
+);
+
+// Feedback Analytics access guard
+export const FeedbackAnalyticsGuard: React.FC<GuardProps> = ({ 
+  children, 
+  redirectTo = '/admin/dashboard' 
+}) => (
+  <RoleBasedGuard permission="view_analytics" redirectTo={redirectTo}>
     {children}
   </RoleBasedGuard>
 );

@@ -132,7 +132,11 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     throw error;
   }
   
-  return data || [];
+  // Ensure the data conforms to the FeedbackItem type by explicitly type casting sentiment
+  return (data || []).map(item => ({
+    ...item,
+    sentiment: item.sentiment as FeedbackSentiment
+  }));
 };
 
 // Calculate metrics from feedback data
@@ -231,7 +235,7 @@ export const fetchComparisonData = async (
   const previousStartDate = new Date(previousEndDate.getTime() - periodDuration);
   
   // Create new filters for previous period
-  const previousFilters = {
+  const previousFilters: FeedbackFilters = {
     ...filters,
     startDate: format(previousStartDate, 'yyyy-MM-dd'),
     endDate: format(previousEndDate, 'yyyy-MM-dd'),

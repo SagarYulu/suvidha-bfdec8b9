@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { checkUserPermission, getPermissions } from '@/services/rbacService';
@@ -12,7 +11,8 @@ export type Permission =
   | 'manage:analytics'
   | 'manage:settings'
   | 'access:security'
-  | 'create:dashboardUser';
+  | 'create:dashboardUser'
+  | 'view_analytics'; // Added view_analytics permission
 
 // Define context type
 type RBACContextType = {
@@ -83,7 +83,8 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           'manage:analytics': true,
           'manage:settings': true,
           'access:security': true,
-          'create:dashboardUser': true
+          'create:dashboardUser': true,
+          'view_analytics': true
         };
         setPermissionCache(allPermissions);
         setIsLoading(false);
@@ -101,7 +102,8 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           'manage:analytics': true,
           'manage:settings': true,
           'access:security': true,
-          'create:dashboardUser': true
+          'create:dashboardUser': true,
+          'view_analytics': true
         };
         setPermissionCache(demoPermissions);
         setIsLoading(false);
@@ -119,7 +121,8 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           'manage:analytics': true,
           'manage:settings': true,
           'access:security': true,
-          'create:dashboardUser': true
+          'create:dashboardUser': true,
+          'view_analytics': true
         };
         setPermissionCache(allPermissions);
         setIsLoading(false);

@@ -93,7 +93,8 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser'
+        'create:dashboardUser',
+        'view_analytics'
       ];
     case 'admin':
       return [
@@ -103,20 +104,21 @@ const getPermissionsForRole = (role: string): Permission[] => {
         'manage:analytics',
         'manage:settings',
         'access:security',
-        'create:dashboardUser'
+        'create:dashboardUser',
+        'view_analytics'
       ];
     case 'City Head':
-      return ['view:dashboard', 'manage:issues'];
+      return ['view:dashboard', 'manage:issues', 'view_analytics'];
     case 'Revenue and Ops Head':
-      return ['view:dashboard', 'manage:analytics'];
+      return ['view:dashboard', 'manage:analytics', 'view_analytics'];
     case 'CRM':
-      return ['view:dashboard', 'manage:users'];
+      return ['view:dashboard', 'manage:users', 'view_analytics'];
     case 'Cluster Head':
-      return ['view:dashboard', 'manage:issues'];
+      return ['view:dashboard', 'manage:issues', 'view_analytics'];
     case 'Payroll Ops':
       return ['view:dashboard', 'manage:settings'];
     case 'HR Admin':
-      return ['view:dashboard', 'manage:users', 'manage:issues', 'create:dashboardUser'];
+      return ['view:dashboard', 'manage:users', 'manage:issues', 'create:dashboardUser', 'view_analytics'];
     case 'security-admin':
       return ['view:dashboard', 'access:security'];
     default:
