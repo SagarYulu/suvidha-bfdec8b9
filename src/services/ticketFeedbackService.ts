@@ -73,14 +73,17 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     }
     
     // Extract city, cluster, and agent information
-    let city = feedback.city;
-    let cluster = feedback.cluster;
-    let agentId = feedback.agent_id;
+    let city = feedback.city || undefined;
+    let cluster = feedback.cluster || undefined;
+    let agentId = feedback.agent_id || undefined;
     
     // Use data from the issue if available
     if (issueData) {
-      city = issueData.employees?.city || city;
-      cluster = issueData.employees?.cluster || cluster;
+      // Check if employees data exists and has the properties we need
+      if (issueData.employees) {
+        city = issueData.employees.city || city;
+        cluster = issueData.employees.cluster || cluster;
+      }
       agentId = issueData.assigned_to || agentId;
     }
     

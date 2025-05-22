@@ -125,13 +125,24 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
   return data.map(item => {
     // Validate that sentiment is one of the allowed values
     let validSentiment: FeedbackSentiment = 'neutral';
-    if (item.sentiment === 'happy' || item.sentiment === 'sad' || item.sentiment === 'neutral') {
-      validSentiment = item.sentiment as FeedbackSentiment;
+    if (item && typeof item === 'object' && 'sentiment' in item) {
+      const sentimentValue = item.sentiment as string;
+      if (sentimentValue === 'happy' || sentimentValue === 'sad' || sentimentValue === 'neutral') {
+        validSentiment = sentimentValue as FeedbackSentiment;
+      }
     }
     
+    // Cast the item to the expected type
     return {
-      ...item,
-      sentiment: validSentiment
+      id: String(item.id || ''),
+      issue_id: String(item.issue_id || ''),
+      employee_uuid: String(item.employee_uuid || ''),
+      sentiment: validSentiment,
+      feedback_option: String(item.feedback_option || ''),
+      created_at: String(item.created_at || ''),
+      city: item.city ? String(item.city) : undefined,
+      cluster: item.cluster ? String(item.cluster) : undefined,
+      agent_id: item.agent_id ? String(item.agent_id) : undefined
     } as FeedbackItem;
   });
 };
