@@ -8,7 +8,7 @@ export type TicketFeedback = {
   employee_uuid: string;
   sentiment: 'happy' | 'neutral' | 'sad';
   feedback_option: string;
-  feedback_text?: string; // Full English feedback text
+  feedback_text?: string; // This is used internally but not stored directly
   created_at?: string;
 };
 
@@ -39,7 +39,6 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<boolean> => {
   try {
     console.log("Submitting feedback:", feedback);
-    console.log("Full feedback text to be stored:", feedback.feedback_text);
     
     // Check if feedback already exists
     const feedbackExists = await checkFeedbackExists(feedback.issue_id, feedback.employee_uuid);
@@ -53,15 +52,15 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       return true; // Return true since the feedback is already handled
     }
     
-    // We now have permissive RLS policies that allow anyone to submit feedback
+    // According to the database schema, we store the full text in the feedback_option field
+    // since there's no separate feedback_text column in the database
     const { data, error } = await supabase
       .from('ticket_feedback')
       .insert({
         issue_id: feedback.issue_id,
         employee_uuid: feedback.employee_uuid,
         sentiment: feedback.sentiment,
-        feedback_option: feedback.feedback_option,
-        feedback_text: feedback.feedback_text || null // Ensure the full English text is stored
+        feedback_option: feedback.feedback_text || feedback.feedback_option // Store the full text here
       })
       .select();
     

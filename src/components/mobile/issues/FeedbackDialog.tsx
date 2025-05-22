@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Dialog,
@@ -135,7 +134,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       return;
     }
     
-    // Explicitly log what we're sending to the backend to debug
+    // Explicitly log what we're sending to the backend for debugging
     console.log("Selected feedback option:", selectedFeedbackOption);
     console.log("Full feedback text being sent:", selectedFeedbackOption.label);
     
@@ -143,8 +142,8 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       issue_id: issueId,
       employee_uuid: employeeUuid,
       sentiment,
-      feedback_option: selectedOption, // Keep sending the option value for identification
-      feedback_text: selectedFeedbackOption.label, // Store the full English text
+      feedback_option: selectedOption, // The internal identifier code
+      feedback_text: selectedFeedbackOption.label, // The full English text to be stored
     };
 
     try {
@@ -191,7 +190,12 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-center text-lg">{getHeaderText()}</DialogTitle>
+          <DialogTitle className="text-center text-lg">
+            {sentiment === "happy" ? "What went well? / क्या अच्छा रहा?" : 
+             sentiment === "neutral" ? "What could have been better? / क्या बेहतर हो सकता था?" : 
+             sentiment === "sad" ? "What went wrong? / क्या गलत हुआ?" :
+             "Share your feedback / अपनी प्रतिक्रिया साझा करें"}
+          </DialogTitle>
           {step === "sentiment" && (
             <DialogDescription className="text-center">
               Please select how you feel about the service
