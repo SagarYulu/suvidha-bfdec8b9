@@ -8,6 +8,8 @@ export type TicketFeedback = {
   employee_uuid: string;
   sentiment: 'happy' | 'neutral' | 'sad';
   feedback_option: string;
+  feedback_text?: string;
+  feedback_text_hindi?: string;
   created_at?: string;
 };
 
@@ -54,7 +56,14 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // We now have permissive RLS policies that allow anyone to submit feedback
     const { data, error } = await supabase
       .from('ticket_feedback')
-      .insert(feedback)
+      .insert({
+        issue_id: feedback.issue_id,
+        employee_uuid: feedback.employee_uuid,
+        sentiment: feedback.sentiment,
+        feedback_option: feedback.feedback_option,
+        feedback_text: feedback.feedback_text || null,
+        feedback_text_hindi: feedback.feedback_text_hindi || null
+      })
       .select();
     
     if (error) {

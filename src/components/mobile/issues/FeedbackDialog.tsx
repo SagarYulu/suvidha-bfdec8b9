@@ -126,11 +126,22 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
     setIsSubmitting(true);
     setSubmitError(null);
     
+    // Find the selected option to get full text
+    const selectedFeedbackOption = feedbackOptions[sentiment].find(opt => opt.value === selectedOption);
+    
+    if (!selectedFeedbackOption) {
+      setSubmitError("Invalid feedback option selected");
+      setIsSubmitting(false);
+      return;
+    }
+    
     const feedback: TicketFeedback = {
       issue_id: issueId,
       employee_uuid: employeeUuid,
       sentiment,
       feedback_option: selectedOption,
+      feedback_text: selectedFeedbackOption.label,
+      feedback_text_hindi: selectedFeedbackOption.labelHindi,
     };
 
     try {
