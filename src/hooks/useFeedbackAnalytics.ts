@@ -37,9 +37,9 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [activeDataFetch, setActiveDataFetch] = useState(false);
   const [filterChangeCount, setFilterChangeCount] = useState(0);
   
-  // Helper function to ensure we have data points for each day in the date range
+  // Helper function to ensure we have data points for each day in the date range and all sentiment values are properly initialized
   const fillMissingDates = (data: any[], startDate: string, endDate: string) => {
-    if (!startDate || !endDate || data.length === 0) return data;
+    if (!startDate || !endDate) return data;
     
     try {
       // Create a map of existing data by date
@@ -54,10 +54,24 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
       
       const allDates = eachDayOfInterval({ start, end });
       
-      // Fill in missing dates with zero values
+      // Fill in missing dates with zero values, ensure all are numbers
       const filledData = allDates.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
-        return dataByDate[dateStr] || { 
+        const existingData = dataByDate[dateStr];
+        
+        if (existingData) {
+          // Ensure all sentiment properties exist and are numbers
+          return {
+            date: dateStr,
+            happy: Number(existingData.happy || 0),
+            neutral: Number(existingData.neutral || 0),
+            sad: Number(existingData.sad || 0),
+            total: Number(existingData.total || 0)
+          };
+        }
+        
+        // Return default structure with zeros for new date entries
+        return { 
           date: dateStr, 
           happy: 0, 
           neutral: 0, 
@@ -117,7 +131,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           // Fetch both current and comparison data
           const result = await fetchComparisonData(filters);
           
-          // Fill in missing dates for trend data
+          // Fill in missing dates for trend data and ensure proper number types
           if (result.current && result.current.trendData) {
             result.current.trendData = fillMissingDates(
               result.current.trendData,
@@ -148,16 +162,18 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           setRawData(data || []);
           const calculatedMetrics = calculateFeedbackMetrics(data || []);
           
-          // Fill in missing dates for trend data
+          // Fill in missing dates for trend data and ensure proper number types
           if (calculatedMetrics && calculatedMetrics.trendData) {
             calculatedMetrics.trendData = fillMissingDates(
               calculatedMetrics.trendData,
               filters.startDate || '',
               filters.endDate || ''
             );
+            
+            // Debug the trend data after filling
+            console.log("Trend data after filling:", calculatedMetrics.trendData);
           }
           
-          console.log("Calculated metrics with filled dates:", calculatedMetrics);
           setMetrics(calculatedMetrics);
           setComparisonMetrics(null);
         }

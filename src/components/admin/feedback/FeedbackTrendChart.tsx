@@ -1,219 +1,193 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  LineChart,
-  Line,
-  CartesianGrid,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
-  ComposedChart
+  Line,
+  LineChart
 } from 'recharts';
-import { format, parse } from 'date-fns';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import EmptyDataState from '@/components/charts/EmptyDataState';
+import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
+import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
 
-const COMPARISON_LABELS: Record<string, string> = {
-  'dod': 'Day on Day',
-  'wow': 'Week on Week',
-  'mom': 'Month on Month',
-  'qoq': 'Quarter on Quarter',
-  'yoy': 'Year on Year'
-};
-
-// Define visually appealing colors
-const CHART_COLORS = {
-  happy: '#22c55e',
-  neutral: '#f59e0b',
-  sad: '#ef4444',
-  grid: '#e2e8f0',
-  tooltip: '#ffffff',
-  happy_area: 'rgba(34, 197, 94, 0.1)',
-  neutral_area: 'rgba(245, 158, 11, 0.1)',
-  sad_area: 'rgba(239, 68, 68, 0.1)',
-};
-
-interface FeedbackTrendChartProps {
-  data: Array<{ date: string; happy: number; neutral: number; sad: number; total: number }>;
-  showComparison: boolean;
-  comparisonMode?: string;
+interface TrendData {
+  date: string;
+  happy: number;
+  neutral: number;
+  sad: number;
+  total?: number;
 }
 
-const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({ 
+interface FeedbackTrendChartProps {
+  data: TrendData[];
+  showComparison?: boolean;
+  comparisonMode?: ComparisonMode;
+}
+
+const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
   data,
-  showComparison,
-  comparisonMode = 'wow'
+  showComparison = false,
+  comparisonMode = 'none'
 }) => {
-  // Format dates for display and ensure all sentiment values are numbers
-  const formattedData = data
+  // Check if data is loading or empty
+  if (!data || data.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Feedback Trend</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <EmptyDataState message="No feedback trend data available for the selected period." />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  console.log("Trend chart raw data:", data);
+  
+  // Format the data to ensure dates are displayed correctly
+  const formattedData = [...data]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .map(item => ({
       ...item,
-      formattedDate: format(parse(item.date, 'yyyy-MM-dd', new Date()), 'MMM dd'),
-      happy: typeof item.happy === 'number' ? item.happy : 0,
-      neutral: typeof item.neutral === 'number' ? item.neutral : 0,
-      sad: typeof item.sad === 'number' ? item.sad : 0
+      // Format date for display
+      formattedDate: new Date(item.date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      }),
+      // Make sure all sentiment values exist (even if 0)
+      happy: typeof item.happy === 'number' ? Number(item.happy) : 0,
+      neutral: typeof item.neutral === 'number' ? Number(item.neutral) : 0,
+      sad: typeof item.sad === 'number' ? Number(item.sad) : 0
     }));
   
-  // Debug output to help diagnose the issue
-  console.log("Trend chart data:", formattedData);
-  
-  // Custom tooltip formatter
-  const tooltipFormatter = (value: number, name: string) => {
-    // Map internal names to display names
-    const displayNames: Record<string, string> = {
-      happy: 'Happy',
-      neutral: 'Neutral',
-      sad: 'Sad',
-      total: 'Total'
+  console.log("Trend chart formatted data:", formattedData);
+
+  // Calculate max value for Y-axis domain
+  const maxValue = Math.max(
+    ...formattedData.map(item => Math.max(
+      item.happy || 0,
+      item.neutral || 0,
+      item.sad || 0
+    ))
+  );
+
+  // Add some padding to the max value
+  const yAxisMax = Math.max(maxValue + 1, 5);
+
+  // Create a title based on comparison mode
+  let title = "Feedback Trend";
+  if (showComparison && comparisonMode !== 'none') {
+    const comparisonLabels: Record<ComparisonMode, string> = {
+      'dod': 'Day-over-Day',
+      'wow': 'Week-over-Week',
+      'mom': 'Month-over-Month',
+      'qoq': 'Quarter-over-Quarter',
+      'yoy': 'Year-over-Year',
+      'none': ''
     };
-    
-    return [`${value} responses`, displayNames[name] || name];
-  };
-  
-  // Custom dot renderer that only shows dots for non-zero values
-  const CustomDot = (props: any) => {
-    const { cx, cy, stroke, value } = props;
-    
-    // Only render dots for values greater than 0
-    if (value <= 0) return null;
-    
-    return (
-      <circle cx={cx} cy={cy} r={4} fill={stroke} stroke="#fff" strokeWidth={1} />
-    );
-  };
-  
+    title = `${title} (${comparisonLabels[comparisonMode]})`;
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>
-            Feedback Trend
-            {showComparison && comparisonMode && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                ({COMPARISON_LABELS[comparisonMode]})
-              </span>
-            )}
-          </span>
-        </CardTitle>
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
-          {data.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={formattedData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="colorHappy" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.happy} stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor={CHART_COLORS.happy} stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorNeutral" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.neutral} stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor={CHART_COLORS.neutral} stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorSad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={CHART_COLORS.sad} stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor={CHART_COLORS.sad} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
-                <XAxis 
-                  dataKey="formattedDate" 
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  allowDecimals={false}
-                />
-                <Tooltip 
-                  formatter={tooltipFormatter}
-                  labelFormatter={(label) => `Date: ${label}`}
-                  contentStyle={{ 
-                    backgroundColor: CHART_COLORS.tooltip, 
-                    borderRadius: '6px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    border: '1px solid #e2e8f0'
-                  }}
-                />
-                <Legend 
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  wrapperStyle={{ paddingTop: '10px' }}
-                />
-                
-                {/* Areas */}
-                <Area 
-                  type="monotone" 
-                  dataKey="happy" 
-                  stroke="transparent" 
-                  fillOpacity={1}
-                  fill="url(#colorHappy)" 
-                  stackId="1"
-                  name="Happy Area"
-                  hide={true} // Hide from legend but show area
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="neutral" 
-                  stroke="transparent" 
-                  fillOpacity={1}
-                  fill="url(#colorNeutral)"
-                  stackId="1"
-                  name="Neutral Area"
-                  hide={true} // Hide from legend but show area
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="sad" 
-                  stroke="transparent" 
-                  fillOpacity={1}
-                  fill="url(#colorSad)"
-                  stackId="1" 
-                  name="Sad Area"
-                  hide={true} // Hide from legend but show area
-                />
-                
-                {/* Lines */}
-                <Line 
-                  type="monotone" 
-                  dataKey="happy" 
-                  name="Happy"
-                  stroke={CHART_COLORS.happy} 
-                  activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.happy }}
-                  dot={<CustomDot />}
-                  strokeWidth={2.5}
-                  connectNulls={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="neutral" 
-                  name="Neutral"
-                  stroke={CHART_COLORS.neutral} 
-                  activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.neutral }}
-                  strokeWidth={2.5}
-                  dot={<CustomDot />}
-                  connectNulls={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="sad" 
-                  name="Sad"
-                  stroke={CHART_COLORS.sad} 
-                  activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.sad }}
-                  strokeWidth={2.5}
-                  dot={<CustomDot />}
-                  connectNulls={false}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              No trend data available for the selected period
-            </div>
-          )}
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={formattedData}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 5,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="formattedDate"
+                tick={{ fontSize: 12 }}
+                tickMargin={10}
+              />
+              <YAxis 
+                allowDecimals={false}
+                domain={[0, yAxisMax]}
+                tick={{ fontSize: 12 }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                  padding: '10px'
+                }}
+                formatter={(value, name) => {
+                  const displayNames = {
+                    happy: 'Happy',
+                    neutral: 'Neutral',
+                    sad: 'Sad'
+                  };
+                  return [value, displayNames[name as keyof typeof displayNames] || name];
+                }}
+                labelFormatter={(label) => `Date: ${label}`}
+              />
+              <Legend 
+                verticalAlign="bottom"
+                height={36}
+                iconType="circle"
+              />
+              
+              {/* Happy Line - Listed first to ensure it's rendered */}
+              <Line
+                type="monotone"
+                dataKey="happy"
+                name="Happy"
+                stroke={SENTIMENT_COLORS.happy}
+                fill={SENTIMENT_COLORS.happy}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 1, stroke: SENTIMENT_COLORS.happy }}
+                activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
+                isAnimationActive={false}
+              />
+              
+              {/* Neutral Line */}
+              <Line
+                type="monotone"
+                dataKey="neutral"
+                name="Neutral"
+                stroke={SENTIMENT_COLORS.neutral}
+                fill={SENTIMENT_COLORS.neutral}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 1, stroke: SENTIMENT_COLORS.neutral }}
+                activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
+                isAnimationActive={false}
+              />
+              
+              {/* Sad Line */}
+              <Line
+                type="monotone"
+                dataKey="sad"
+                name="Sad"
+                stroke={SENTIMENT_COLORS.sad}
+                fill={SENTIMENT_COLORS.sad}
+                strokeWidth={2}
+                dot={{ r: 4, strokeWidth: 1, stroke: SENTIMENT_COLORS.sad }}
+                activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>

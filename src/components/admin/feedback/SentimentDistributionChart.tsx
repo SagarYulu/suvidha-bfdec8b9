@@ -34,8 +34,8 @@ interface SentimentDistributionChartProps {
 const CustomDot = (props: any) => {
   const { cx, cy, stroke, payload, value, dataKey } = props;
   
-  // Only render dots for values greater than 0
-  if (value <= 0) return null;
+  // Only render dots for values that exist (even if 0)
+  if (value === null || value === undefined) return null;
   
   return (
     <Dot
@@ -68,22 +68,33 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
     );
   }
 
+  // Log data to debug happy values
+  console.log("Raw sentiment chart data:", JSON.stringify(data));
+
   // Format the data to ensure dates are displayed correctly
   // Sort by date to ensure chronological order
   const formattedData = [...data]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map(item => ({
-      ...item,
-      // Format date for display
-      formattedDate: new Date(item.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      }),
-      // Make sure all sentiment values exist (even if 0)
-      happy: typeof item.happy === 'number' ? item.happy : 0,
-      neutral: typeof item.neutral === 'number' ? item.neutral : 0,
-      sad: typeof item.sad === 'number' ? item.sad : 0
-    }));
+    .map(item => {
+      // Ensure all values are explicitly converted to numbers
+      const happyCount = Number(item.happy || 0);
+      const neutralCount = Number(item.neutral || 0);
+      const sadCount = Number(item.sad || 0);
+      
+      console.log(`Date: ${item.date}, Happy: ${happyCount}, Neutral: ${neutralCount}, Sad: ${sadCount}`);
+      
+      return {
+        date: item.date,
+        formattedDate: new Date(item.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric'
+        }),
+        happy: happyCount,
+        neutral: neutralCount,
+        sad: sadCount,
+        total: (happyCount + neutralCount + sadCount)
+      };
+    });
 
   // Calculate domain for Y-axis
   const maxValue = Math.max(
@@ -100,7 +111,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
   const yAxisDomain = [0, Math.max(maxValue + 2, 10)];
 
   // Debug output to help diagnose the issue
-  console.log("Sentiment chart data:", formattedData);
+  console.log("Formatted sentiment chart data:", formattedData);
 
   return (
     <Card>
@@ -156,6 +167,8 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 iconType="circle"
                 wrapperStyle={{ paddingTop: '10px' }}
               />
+              
+              {/* Happy line - priority first */}
               <Line 
                 type={CURVED_LINE_TYPE}
                 dataKey="happy"
@@ -167,6 +180,8 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 isAnimationActive={false}
                 connectNulls={false}
               />
+              
+              {/* Neutral line */}
               <Line 
                 type={CURVED_LINE_TYPE}
                 dataKey="neutral"
@@ -178,6 +193,8 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 isAnimationActive={false}
                 connectNulls={false}
               />
+              
+              {/* Sad line */}
               <Line 
                 type={CURVED_LINE_TYPE}
                 dataKey="sad"
