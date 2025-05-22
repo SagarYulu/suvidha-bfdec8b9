@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   Dialog,
@@ -134,11 +135,15 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       return;
     }
     
+    // Explicitly log what we're sending to the backend to debug
+    console.log("Selected feedback option:", selectedFeedbackOption);
+    console.log("Full feedback text being sent:", selectedFeedbackOption.label);
+    
     const feedback: TicketFeedback = {
       issue_id: issueId,
       employee_uuid: employeeUuid,
       sentiment,
-      feedback_option: selectedOption,
+      feedback_option: selectedOption, // Keep sending the option value for identification
       feedback_text: selectedFeedbackOption.label, // Store the full English text
     };
 

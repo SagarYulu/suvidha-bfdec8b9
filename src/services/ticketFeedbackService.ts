@@ -39,6 +39,7 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<boolean> => {
   try {
     console.log("Submitting feedback:", feedback);
+    console.log("Full feedback text to be stored:", feedback.feedback_text);
     
     // Check if feedback already exists
     const feedbackExists = await checkFeedbackExists(feedback.issue_id, feedback.employee_uuid);
@@ -60,7 +61,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
         employee_uuid: feedback.employee_uuid,
         sentiment: feedback.sentiment,
         feedback_option: feedback.feedback_option,
-        feedback_text: feedback.feedback_text || null // Store full English text
+        feedback_text: feedback.feedback_text || null // Ensure the full English text is stored
       })
       .select();
     
