@@ -82,21 +82,22 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Use data from the issue if available
     if (issueData && !issueError) {
       // Using a more careful approach to handle the type safety with proper null checks
-      const employees = issueData.employees;
-      
-      // First check if employees exists and is not null
-      if (employees !== null && employees !== undefined) {
-        // Now check if it's an object before accessing properties
-        if (typeof employees === 'object') {
-          // Handle city with proper null checking
-          if ('city' in employees && employees.city !== null && employees.city !== undefined) {
-            city = city || String(employees.city);
-          }
-          
-          // Handle cluster with proper null checking
-          if ('cluster' in employees && employees.cluster !== null && employees.cluster !== undefined) {
-            cluster = cluster || String(employees.cluster);
-          }
+      if (issueData.employees && issueData.employees !== null) {
+        // Type guard to ensure employees is an object
+        const employeesData = issueData.employees as Record<string, unknown>;
+        
+        // Handle city with proper null checking
+        if ('city' in employeesData && 
+            employeesData.city !== null && 
+            employeesData.city !== undefined) {
+          city = city || String(employeesData.city);
+        }
+        
+        // Handle cluster with proper null checking
+        if ('cluster' in employeesData && 
+            employeesData.cluster !== null && 
+            employeesData.cluster !== undefined) {
+          cluster = cluster || String(employeesData.cluster);
         }
       }
       
