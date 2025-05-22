@@ -43,11 +43,11 @@ const FeedbackTrendAnalysis: React.FC<FeedbackTrendAnalysisProps> = ({
   showComparison = false
 }) => {
   // Format data for the chart
-  const formattedData = data && data.length > 0 ? data.map(item => ({
+  const formattedData = data.map(item => ({
     ...item,
     // If formattedDate is already set, use it, otherwise format from date
     name: item.formattedDate || item.date,
-  })) : [];
+  }));
   
   // Custom tooltip formatter
   const tooltipFormatter = (value: number, name: string) => {
