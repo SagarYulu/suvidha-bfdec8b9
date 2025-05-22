@@ -11,8 +11,6 @@ import {
 import { format, subDays, eachDayOfInterval, parse } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
-import { SunburstItem } from '@/components/admin/feedback/SunburstChart';
-import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
 
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
@@ -38,7 +36,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [dataFetched, setDataFetched] = useState(false);
   const [activeDataFetch, setActiveDataFetch] = useState(false);
   const [filterChangeCount, setFilterChangeCount] = useState(0);
-  const [sunburstData, setSunburstData] = useState<SunburstItem[]>([]);
   
   // Helper function to ensure we have data points for each day in the date range and all sentiment values are properly initialized
   const fillMissingDates = (data: any[], startDate: string, endDate: string) => {
@@ -119,66 +116,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     setDataFetched(false);
   }, [activeDataFetch, updateFilters]);
   
-  // Generate sunburst chart data from raw feedback data
-  const generateSunburstData = (data: FeedbackItem[]): SunburstItem[] => {
-    if (!data || data.length === 0) return [];
-    
-    // Group feedback by sentiment and sub-reason (feedback_option)
-    const sentimentGroups: Record<string, {
-      count: number;
-      options: Record<string, number>;
-    }> = {};
-    
-    // Process the raw data
-    data.forEach(item => {
-      const sentiment = item.sentiment;
-      const option = item.feedback_option;
-      
-      if (!sentimentGroups[sentiment]) {
-        sentimentGroups[sentiment] = { count: 0, options: {} };
-      }
-      
-      sentimentGroups[sentiment].count++;
-      
-      if (!sentimentGroups[sentiment].options[option]) {
-        sentimentGroups[sentiment].options[option] = 0;
-      }
-      
-      sentimentGroups[sentiment].options[option]++;
-    });
-    
-    // Convert to sunburst format
-    const result: SunburstItem[] = Object.entries(sentimentGroups).map(([sentiment, data]) => {
-      // Get color based on sentiment
-      let color = "#999999";
-      if (sentiment === 'happy') color = SENTIMENT_COLORS.happy;
-      else if (sentiment === 'neutral') color = SENTIMENT_COLORS.neutral;
-      else if (sentiment === 'sad') color = SENTIMENT_COLORS.sad;
-      
-      // Convert options to children array
-      const children: SunburstItem[] = Object.entries(data.options)
-        .sort((a, b) => b[1] - a[1]) // Sort by count (descending)
-        .slice(0, 10) // Limit to top 10 options
-        .map(([option, count], index) => ({
-          id: `${sentiment}-${option}`,
-          name: option,
-          value: count,
-          color: "" // Will be generated in the component based on parent color
-        }));
-      
-      return {
-        id: sentiment,
-        name: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
-        value: data.count,
-        color,
-        children
-      };
-    });
-    
-    console.log("Generated sunburst data:", result);
-    return result;
-  };
-  
   // Fetch data when filters change
   useEffect(() => {
     const fetchData = async () => {
@@ -243,10 +180,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           setComparisonMetrics(null);
         }
         
-        // Generate sunburst data
-        const sunburst = generateSunburstData(currentData);
-        setSunburstData(sunburst);
-        
         setDataFetched(true);
       } catch (err) {
         console.error('Error in useFeedbackAnalytics:', err);
@@ -279,7 +212,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     filters,
     showComparison,
     updateFilters,
-    toggleComparison,
-    sunburstData
+    toggleComparison
   };
 };
