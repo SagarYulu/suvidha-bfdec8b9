@@ -15,6 +15,10 @@ export const updateIssueStatus = async (
   try {
     console.log(`Updating issue status. Issue ID: ${issueId}, New Status: ${newStatus}, Provided UserID: ${userId}`);
     
+    // Get current issue to capture the previous status
+    const currentIssue = await getIssueById(issueId);
+    const previousStatus = currentIssue?.status || 'unknown';
+    
     // Get performer info (the person changing the status)
     const { data: performerData } = await supabase
       .from('dashboard_users')
@@ -60,6 +64,7 @@ export const updateIssueStatus = async (
       'status_change',
       { 
         newStatus,
+        previous_status: previousStatus,
         performer: performerInfo
       },
       'Issue status updated'

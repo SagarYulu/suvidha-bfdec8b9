@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuditTrail } from "@/services/issues/issueAuditService";
@@ -169,14 +170,33 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     return log.performer_name || "Unknown User";
   };
   
+  // Helper to properly parse status values
+  const getStatusValue = (log: any, statusField: string): string => {
+    // Try to get status from details first
+    if (log.details && typeof log.details === 'object') {
+      const detailsObj = log.details as Record<string, any>;
+      if (detailsObj[statusField] && typeof detailsObj[statusField] === 'string') {
+        return detailsObj[statusField];
+      }
+    }
+    
+    // Fall back to direct field
+    return log[statusField] || "unknown";
+  };
+  
   // Helper to get activity label
   const getActivityLabel = (log: any) => {
     const actorName = getPerformerName(log);
     
     switch (log.action) {
       case 'ticket_status_changed':
-      case 'status_change':
-        return `${actorName} changed status from ${log.previous_status || 'unknown'} to ${log.new_status}`;
+      case 'status_change': {
+        // Get status values with improved handling
+        const previousStatus = getStatusValue(log, 'previous_status') || log.previous_status;
+        const newStatus = getStatusValue(log, 'newStatus') || log.new_status;
+        
+        return `${actorName} changed status from ${previousStatus || 'unknown'} to ${newStatus}`;
+      }
       case 'ticket_assigned':
       case 'assignment':
         // Safely get assignee name from details
