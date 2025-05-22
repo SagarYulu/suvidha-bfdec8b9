@@ -81,27 +81,30 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     // Use data from the issue if available
     if (issueData && !issueError) {
-      // Proper null checking with employees now explicitly checked before accessing
+      // Handle employees data with comprehensive null checking
+      // First ensure issueData.employees exists and is a valid object
       if (issueData.employees !== null && 
-          issueData.employees !== undefined && 
-          typeof issueData.employees === 'object' && 
-          !('error' in issueData.employees)) {
+          issueData.employees !== undefined) {
         
-        // Safely cast to unknown first, then to our expected type
-        const employeesData = (issueData.employees as unknown) as Record<string, unknown>;
+        // Now safely cast and check if it's a proper object and not an error
+        const employeesData = issueData.employees;
         
-        // Handle city with proper null checking
-        if ('city' in employeesData && 
-            employeesData.city !== null && 
-            employeesData.city !== undefined) {
-          city = city || String(employeesData.city);
-        }
+        // Only proceed if it's an object and not an error object
+        if (typeof employeesData === 'object' && 
+            !('error' in employeesData)) {
         
-        // Handle cluster with proper null checking
-        if ('cluster' in employeesData && 
-            employeesData.cluster !== null && 
-            employeesData.cluster !== undefined) {
-          cluster = cluster || String(employeesData.cluster);
+          // Now safely access properties
+          if (employeesData && 'city' in employeesData && 
+              employeesData.city !== null && 
+              employeesData.city !== undefined) {
+            city = city || String(employeesData.city);
+          }
+          
+          if (employeesData && 'cluster' in employeesData && 
+              employeesData.cluster !== null && 
+              employeesData.cluster !== undefined) {
+            cluster = cluster || String(employeesData.cluster);
+          }
         }
       }
       
