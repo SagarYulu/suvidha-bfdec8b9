@@ -9,7 +9,6 @@ import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackTrendChart from './FeedbackTrendChart';
 import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
-import FeedbackTrendAnalysis from './FeedbackTrendAnalysis';
 import SentimentDistributionChart from './SentimentDistributionChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -89,7 +88,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
         
-        {/* Sentiment Distribution Over Time */}
+        {/* Sentiment Distribution Chart - Only showing this one, removing the duplicate */}
         <SentimentDistributionChart 
           data={metrics.trendData} 
           showComparison={isComparisonEnabled}
@@ -107,15 +106,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
           {/* Feedback Option Breakdown */}
           <FeedbackOptionBreakdown 
             options={metrics.topOptions}
-            showComparison={isComparisonEnabled}
-          />
-        </div>
-        
-        {/* Additional analysis sections */}
-        <div className="grid grid-cols-1 gap-6">
-          {/* Trend Analysis */}
-          <FeedbackTrendAnalysis 
-            data={metrics.trendData}
             showComparison={isComparisonEnabled}
           />
         </div>

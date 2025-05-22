@@ -8,7 +8,7 @@ import {
   FeedbackMetrics,
   FeedbackItem 
 } from '../services/feedbackAnalyticsService';
-import { format, subDays } from 'date-fns';
+import { format, subDays, eachDayOfInterval, parse } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
@@ -36,6 +36,40 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [dataFetched, setDataFetched] = useState(false);
   const [activeDataFetch, setActiveDataFetch] = useState(false);
   const [filterChangeCount, setFilterChangeCount] = useState(0);
+  
+  // Helper function to ensure we have data points for each day in the date range
+  const fillMissingDates = (data: any[], startDate: string, endDate: string) => {
+    if (!startDate || !endDate || data.length === 0) return data;
+    
+    try {
+      // Create a map of existing data by date
+      const dataByDate = data.reduce((acc: Record<string, any>, item) => {
+        acc[item.date] = item;
+        return acc;
+      }, {});
+      
+      // Generate all dates in the range
+      const start = parse(startDate, 'yyyy-MM-dd', new Date());
+      const end = parse(endDate, 'yyyy-MM-dd', new Date());
+      
+      const allDates = eachDayOfInterval({ start, end });
+      
+      // Fill in missing dates with zero values
+      return allDates.map(date => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        return dataByDate[dateStr] || { 
+          date: dateStr, 
+          happy: 0, 
+          neutral: 0, 
+          sad: 0, 
+          total: 0 
+        };
+      });
+    } catch (err) {
+      console.error("Error filling missing dates:", err);
+      return data;
+    }
+  };
   
   // Update filters when user changes selection
   const updateFilters = useCallback((newFilters: Partial<FeedbackFilters>) => {
@@ -79,6 +113,25 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         if (showComparison && filters.comparisonMode && filters.comparisonMode !== 'none') {
           // Fetch both current and comparison data
           const result = await fetchComparisonData(filters);
+          
+          // Fill in missing dates for trend data
+          if (result.current && result.current.trendData) {
+            result.current.trendData = fillMissingDates(
+              result.current.trendData,
+              filters.startDate || '',
+              filters.endDate || ''
+            );
+          }
+          
+          if (result.previous && result.previous.trendData) {
+            result.previous.trendData = fillMissingDates(
+              result.previous.trendData,
+              // We use the same date range length for previous period
+              filters.startDate || '',
+              filters.endDate || ''
+            );
+          }
+          
           setMetrics(result.current);
           setComparisonMetrics(result.previous);
           
@@ -91,7 +144,17 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           console.log("Fetched feedback data:", data?.length || 0, "items");
           setRawData(data || []);
           const calculatedMetrics = calculateFeedbackMetrics(data || []);
-          console.log("Calculated metrics:", calculatedMetrics);
+          
+          // Fill in missing dates for trend data
+          if (calculatedMetrics && calculatedMetrics.trendData) {
+            calculatedMetrics.trendData = fillMissingDates(
+              calculatedMetrics.trendData,
+              filters.startDate || '',
+              filters.endDate || ''
+            );
+          }
+          
+          console.log("Calculated metrics with filled dates:", calculatedMetrics);
           setMetrics(calculatedMetrics);
           setComparisonMetrics(null);
         }
