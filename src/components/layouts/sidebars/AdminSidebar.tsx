@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRBAC } from '@/contexts/RBACContext';
@@ -14,6 +13,7 @@ import {
   ChevronDown,
   UserPlus,
   Ticket,
+  BarChart2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -267,6 +267,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         {/* Settings - Available to users with manage:settings permission */}
         {hasPermission("manage:settings") && (
           <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
+        )}
+        
+        {/* Feedback Analytics - Available to users with view_analytics permission */}
+        {hasPermission("view_analytics") && (
+          <SidebarLink 
+            href="/admin/feedback-analytics" 
+            icon={<BarChart2 className="w-5 h-5" />} 
+            label="Feedback Analytics" 
+            isActive={location.pathname === "/admin/feedback-analytics"}
+          />
         )}
       </div>
 

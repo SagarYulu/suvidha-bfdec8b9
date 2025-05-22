@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -25,6 +24,7 @@ import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
 import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
 import TestDataGenerator from "./pages/admin/TestDataGenerator";
+import FeedbackAnalytics from "./pages/admin/FeedbackAnalytics";
 
 // Import guards
 import {
@@ -141,6 +141,9 @@ const App = () => {
                 {/* Add a catchall route to redirect users from /admin/sentiment to the dashboard */}
                 <Route path="/admin/sentiment" element={<Navigate to="/admin/dashboard" replace />} />
                 <Route path="/mobile/sentiment" element={<Navigate to="/mobile/issues" replace />} />
+                
+                {/* Add a route for the new FeedbackAnalytics page */}
+                <Route path="/admin/feedback-analytics" element={<FeedbackAnalytics />} />
                 
                 {/* Fallback route */}
                 <Route path="*" element={<NotFound />} />
