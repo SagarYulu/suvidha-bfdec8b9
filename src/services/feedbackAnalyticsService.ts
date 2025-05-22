@@ -121,7 +121,7 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
   
   console.log(`Found ${data.length} feedback items`);
   
-  // Ensure the data conforms to the FeedbackItem type by explicitly type casting sentiment
+  // Ensure the data conforms to the FeedbackItem type
   return data.map(item => {
     // Validate that sentiment is one of the allowed values
     let validSentiment: FeedbackSentiment = 'neutral';
@@ -132,7 +132,7 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     return {
       ...item,
       sentiment: validSentiment
-    };
+    } as FeedbackItem;
   });
 };
 

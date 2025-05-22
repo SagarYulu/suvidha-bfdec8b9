@@ -73,9 +73,16 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     }
     
     // Extract city, cluster, and agent information
-    const city = issueData?.employees?.city;
-    const cluster = issueData?.employees?.cluster;
-    const agentId = issueData?.assigned_to;
+    let city = feedback.city;
+    let cluster = feedback.cluster;
+    let agentId = feedback.agent_id;
+    
+    // Use data from the issue if available
+    if (issueData) {
+      city = issueData.employees?.city || city;
+      cluster = issueData.employees?.cluster || cluster;
+      agentId = issueData.assigned_to || agentId;
+    }
     
     // Prepare feedback data with additional information
     const feedbackData = {
@@ -83,9 +90,9 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       employee_uuid: feedback.employee_uuid,
       sentiment: feedback.sentiment,
       feedback_option: feedback.feedback_text || feedback.feedback_option, // Store the full text here
-      city: city || feedback.city,
-      cluster: cluster || feedback.cluster,
-      agent_id: agentId || feedback.agent_id
+      city,
+      cluster,
+      agent_id: agentId
     };
     
     console.log("Submitting enriched feedback data:", feedbackData);
