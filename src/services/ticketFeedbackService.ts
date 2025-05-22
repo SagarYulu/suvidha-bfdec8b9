@@ -82,7 +82,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Use data from the issue if available
     if (issueData && !issueError) {
       // First check if employees exists and is not null or an error object
-      if (issueData.employees && 
+      if (issueData.employees != null && 
           typeof issueData.employees === 'object' && 
           !('error' in issueData.employees)) {
         
