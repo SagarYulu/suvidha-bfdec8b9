@@ -1,10 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueFilters";
 import { getIssues } from "./issueFilters";
 import { getAuditTrail } from "./issueAuditService";
-import { calculateFirstResponseTime } from "@/utils/workingTimeUtils";
+import { calculateFirstResponseTime, calculateWorkingHours } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { format, subDays, subWeeks, subMonths, subQuarters, startOfWeek, startOfMonth, startOfQuarter, endOfWeek, endOfMonth, endOfQuarter, differenceInDays, parseISO, addDays } from "date-fns";
 
@@ -47,19 +46,20 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     const resolvedIssues = issues.filter(i => i.status === "closed" || i.status === "resolved").length;
     const openIssues = totalIssues - resolvedIssues;
     
-    // Average resolution time (for closed issues)
+    // UPDATED: Average resolution time using working hours calculation
     const closedIssues = issues.filter(i => i.closedAt);
     let avgResolutionTime = 0;
     
     if (closedIssues.length > 0) {
       const totalResolutionTime = closedIssues.reduce((total, issue) => {
-        const createdDate = new Date(issue.createdAt);
-        const closedDate = new Date(issue.closedAt!);
-        const timeDiff = closedDate.getTime() - createdDate.getTime();
-        return total + timeDiff;
+        // Use the working hours calculation instead of raw time difference
+        const workingHours = calculateWorkingHours(issue.createdAt, issue.closedAt!);
+        console.log(`Issue ${issue.id}: ${workingHours.toFixed(2)} working hours to resolve`);
+        return total + workingHours;
       }, 0);
       
-      avgResolutionTime = totalResolutionTime / closedIssues.length / (1000 * 60 * 60); // hours
+      avgResolutionTime = totalResolutionTime / closedIssues.length;
+      console.log(`Average resolution time: ${avgResolutionTime.toFixed(2)} working hours across ${closedIssues.length} issues`);
     }
     
     // Calculate First Response Time (FRT) with improved working-hours logic
@@ -210,7 +210,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
 
 /**
  * Get historical resolution time data for the last 7 days
- * Returns average resolution time per day
+ * Returns average resolution time per day in working hours
  */
 export const getResolutionTimeHistory = async (): Promise<{ name: string; time: number }[]> => {
   try {
@@ -250,18 +250,18 @@ export const getResolutionTimeHistory = async (): Promise<{ name: string; time: 
         return closedDate === dayStr;
       });
       
-      // Calculate average resolution time for this day
+      // Calculate average resolution time for this day using working hours
       let avgTimeForDay = 0;
       
       if (issuesClosedOnDay.length > 0) {
         const totalTime = issuesClosedOnDay.reduce((sum, issue) => {
-          const createdTime = new Date(issue.created_at).getTime();
-          const closedTime = new Date(issue.closed_at).getTime();
-          return sum + (closedTime - createdTime);
+          // Calculate working hours between creation and resolution
+          const workingHours = calculateWorkingHours(issue.created_at, issue.closed_at);
+          return sum + workingHours;
         }, 0);
         
-        // Convert to hours
-        avgTimeForDay = totalTime / issuesClosedOnDay.length / (1000 * 60 * 60);
+        // Average working hours
+        avgTimeForDay = totalTime / issuesClosedOnDay.length;
         
         // Round to 1 decimal place
         avgTimeForDay = Math.round(avgTimeForDay * 10) / 10;
@@ -408,24 +408,23 @@ const getDailyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'co
       return closedDate === dayStr;
     });
     
-    // Calculate average resolution time for this day
+    // Calculate average working hours resolution time for this day
     let avgTimeForDay = 0;
     
     if (issuesClosedOnDay.length > 0) {
       const totalTime = issuesClosedOnDay.reduce((sum, issue) => {
-        const createdTime = new Date(issue.created_at).getTime();
-        const closedTime = new Date(issue.closed_at).getTime();
-        return sum + (closedTime - createdTime);
+        const workingHours = calculateWorkingHours(issue.created_at, issue.closed_at);
+        return sum + workingHours;
       }, 0);
       
-      // Convert to hours and consider only working hours
-      avgTimeForDay = (totalTime / issuesClosedOnDay.length / (1000 * 60 * 60)) * (8/24);
+      // Get average
+      avgTimeForDay = totalTime / issuesClosedOnDay.length;
       
       // Round to 1 decimal place
       avgTimeForDay = Math.round(avgTimeForDay * 10) / 10;
     }
     
-    // Tag as outlier if resolution time exceeds 72 hours
+    // Tag as outlier if resolution time exceeds 72 working hours
     const isOutlier = avgTimeForDay > 72;
     
     result.push({
@@ -464,23 +463,12 @@ const getWeeklyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | 'c
     
     if (issuesClosedInWeek.length > 0) {
       const totalTime = issuesClosedInWeek.reduce((sum, issue) => {
-        const createdTime = new Date(issue.created_at).getTime();
-        const closedTime = new Date(issue.closed_at).getTime();
-        return sum + (closedTime - createdTime);
+        const workingHours = calculateWorkingHours(issue.created_at, issue.closed_at);
+        return sum + workingHours;
       }, 0);
       
-      // Convert to hours and consider only working hours
-      avgTimeForWeek = (totalTime / issuesClosedInWeek.length / (1000 * 60 * 60)) * (8/24);
-      
-      // Adjust for weekends (approximately)
-      const avgDaysPerTicket = issuesClosedInWeek.reduce((sum, issue) => {
-        const createdDate = new Date(issue.created_at);
-        const closedDate = new Date(issue.closed_at);
-        return sum + differenceInDays(closedDate, createdDate);
-      }, 0) / issuesClosedInWeek.length;
-      
-      // Subtract weekend time (approximately 2/7 of total time)
-      avgTimeForWeek = avgTimeForWeek * (5/7);
+      // Get average
+      avgTimeForWeek = totalTime / issuesClosedInWeek.length;
       
       // Round to 1 decimal place
       avgTimeForWeek = Math.round(avgTimeForWeek * 10) / 10;
@@ -525,16 +513,12 @@ const getMonthlyResolutionTimeTrend = (issues: any[], datasetType: 'primary' | '
     
     if (issuesClosedInMonth.length > 0) {
       const totalTime = issuesClosedInMonth.reduce((sum, issue) => {
-        const createdTime = new Date(issue.created_at).getTime();
-        const closedTime = new Date(issue.closed_at).getTime();
-        return sum + (closedTime - createdTime);
+        const workingHours = calculateWorkingHours(issue.created_at, issue.closed_at);
+        return sum + workingHours;
       }, 0);
       
-      // Convert to hours and consider only working hours
-      avgTimeForMonth = (totalTime / issuesClosedInMonth.length / (1000 * 60 * 60)) * (8/24);
-      
-      // Adjust for weekends (approximately)
-      avgTimeForMonth = avgTimeForMonth * (5/7);
+      // Get average
+      avgTimeForMonth = totalTime / issuesClosedInMonth.length;
       
       // Round to 1 decimal place
       avgTimeForMonth = Math.round(avgTimeForMonth * 10) / 10;
@@ -579,16 +563,12 @@ const getQuarterlyResolutionTimeTrend = (issues: any[], datasetType: 'primary' |
     
     if (issuesClosedInQuarter.length > 0) {
       const totalTime = issuesClosedInQuarter.reduce((sum, issue) => {
-        const createdTime = new Date(issue.created_at).getTime();
-        const closedTime = new Date(issue.closed_at).getTime();
-        return sum + (closedTime - createdTime);
+        const workingHours = calculateWorkingHours(issue.created_at, issue.closed_at);
+        return sum + workingHours;
       }, 0);
       
-      // Convert to hours and consider only working hours
-      avgTimeForQuarter = (totalTime / issuesClosedInQuarter.length / (1000 * 60 * 60)) * (8/24);
-      
-      // Adjust for weekends (approximately)
-      avgTimeForQuarter = avgTimeForQuarter * (5/7);
+      // Get average
+      avgTimeForQuarter = totalTime / issuesClosedInQuarter.length;
       
       // Round to 1 decimal place
       avgTimeForQuarter = Math.round(avgTimeForQuarter * 10) / 10;

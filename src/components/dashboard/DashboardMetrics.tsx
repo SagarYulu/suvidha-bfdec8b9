@@ -46,7 +46,7 @@ const DashboardMetrics = memo(({ analytics, userCount, isLoading }: DashboardMet
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{analytics?.avgResolutionTime || '0'} hrs</div>
-          <p className="text-xs text-muted-foreground">Average time to resolve tickets</p>
+          <p className="text-xs text-muted-foreground">Working hours (9AM-5PM, Mon-Sat)</p>
         </CardContent>
       </Card>
       

@@ -10,9 +10,14 @@ interface PublicHoliday {
 const PUBLIC_HOLIDAYS: PublicHoliday[] = [
   { date: '2025-01-01', name: 'New Year\'s Day' },
   { date: '2025-01-26', name: 'Republic Day' },
+  { date: '2025-03-15', name: 'Ugadi' },
   { date: '2025-08-15', name: 'Independence Day' },
+  { date: '2025-09-07', name: 'Ganesh Chaturthi' },
   { date: '2025-10-02', name: 'Gandhi Jayanti' },
+  { date: '2025-10-22', name: 'Dussehra' },
+  { date: '2025-11-12', name: 'Deepawali' },
   { date: '2025-12-25', name: 'Christmas' },
+  { date: '2025-01-14', name: 'Makara Sankranti' },
   // Add more holidays as needed
 ];
 
@@ -75,7 +80,7 @@ export const getWorkingDayStart = (date: Date): Date => {
 
 /**
  * Calculate working hours between two timestamps
- * Excludes Sundays and public holidays
+ * Excludes Sundays and public holidays, and only counts hours between 9 AM and 5 PM
  */
 export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string): number => {
   try {
@@ -93,25 +98,25 @@ export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string):
       return 0;
     }
     
-    // For a simple implementation, we'll count only working days
-    // and multiply by 8 hours per working day
     let totalWorkingMinutes = 0;
     let currentDate = new Date(startTime);
     
     // Calculate minutes within the same day for the start date
     if (isWorkingDay(currentDate)) {
-      const endOfDay = new Date(currentDate);
-      endOfDay.setHours(17, 0, 0, 0); // End of working day (5 PM)
-      
-      const startOfDay = new Date(currentDate);
-      startOfDay.setHours(9, 0, 0, 0); // Start of working day (9 AM)
+      const endOfDay = getWorkingDayEnd(currentDate);
+      const startOfDay = getWorkingDayStart(currentDate);
       
       // If start time is before work hours, adjust to 9 AM
       const effectiveStartTime = currentDate < startOfDay ? startOfDay : currentDate;
       
       // If end time is on the same day and before end of day
       if (endTime <= endOfDay && endTime.getDate() === currentDate.getDate()) {
-        totalWorkingMinutes += differenceInMinutes(endTime, effectiveStartTime);
+        // If end time is after working hours, cap at end of working day (5 PM)
+        const effectiveEndTime = endTime > endOfDay ? endOfDay : endTime;
+        // If end time is before working hours, no minutes counted
+        if (effectiveEndTime > startOfDay) {
+          totalWorkingMinutes += differenceInMinutes(effectiveEndTime, effectiveStartTime);
+        }
         return totalWorkingMinutes / 60; // Convert to hours
       } else {
         // Add minutes until end of this working day
@@ -140,20 +145,15 @@ export const calculateWorkingHours = (startTimeStr: string, endTimeStr: string):
     
     // Add time for the last day if it's a working day
     if (isWorkingDay(endTime)) {
-      const startOfLastDay = new Date(endTime);
-      startOfLastDay.setHours(9, 0, 0, 0); // Start of working day (9 AM)
-      
-      const endOfLastDay = new Date(endTime);
-      endOfLastDay.setHours(17, 0, 0, 0); // End of working day (5 PM)
+      const startOfLastDay = getWorkingDayStart(endTime);
+      const endOfLastDay = getWorkingDayEnd(endTime);
       
       // If end time is after work hours, cap at 5 PM
       const effectiveEndTime = endTime > endOfLastDay ? endOfLastDay : endTime;
       
       // If end time is before work hours, no additional time
       if (effectiveEndTime > startOfLastDay) {
-        const effectiveStartOfLastDay = 
-          currentDate < startOfLastDay ? startOfLastDay : currentDate;
-        totalWorkingMinutes += differenceInMinutes(effectiveEndTime, effectiveStartOfLastDay);
+        totalWorkingMinutes += differenceInMinutes(effectiveEndTime, startOfLastDay);
       }
     }
     
