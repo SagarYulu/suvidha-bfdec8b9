@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import EmptyDataState from '@/components/charts/EmptyDataState';
@@ -21,7 +21,7 @@ interface SunburstChartProps {
   totalCount: number;
 }
 
-// Custom tooltip for the Sunburst chart
+// Custom tooltip for the Sunburst chart with enhanced styling
 const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -32,18 +32,22 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     const percentage = isChild 
       ? `${((value / data.parentValue) * 100).toFixed(1)}% of ${parentName}`
       : `${((value / data.totalValue) * 100).toFixed(1)}% of total`;
+    const totalPercentage = `${((value / data.totalValue) * 100).toFixed(1)}% of total feedback`;
 
     return (
       <div className="bg-white p-3 border rounded-lg shadow-md">
         {isChild && (
-          <div className="font-medium mb-1 text-gray-600">{parentName} &gt; {name}</div>
+          <div className="font-medium mb-1 text-gray-600">
+            <span className="text-gray-800">{parentName}</span> &gt; {name}
+          </div>
         )}
         {!isChild && (
           <div className="font-medium mb-1">{name}</div>
         )}
-        <div className="text-sm">
-          <div><span className="font-medium">Count:</span> {value}</div>
-          <div><span className="font-medium">Percentage:</span> {percentage}</div>
+        <div className="text-sm space-y-1">
+          <div><span className="font-semibold">Count:</span> {value}</div>
+          {isChild && <div><span className="font-semibold">Category:</span> {percentage}</div>}
+          <div><span className="font-semibold">Overall:</span> {totalPercentage}</div>
         </div>
       </div>
     );
@@ -51,12 +55,21 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
   return null;
 };
 
-// Define active shape for hover effect
+// Define active shape for hover effect with enhanced styling
 const renderActiveShape = (props: any) => {
   const { 
     cx, cy, innerRadius, outerRadius, startAngle, endAngle,
-    fill, payload, value
+    fill, payload, value, totalValue, parentValue
   } = props;
+  
+  // Calculate percentage for label
+  const isMainCategory = innerRadius === 0;
+  const percentage = isMainCategory 
+    ? ((value / totalValue) * 100).toFixed(0) + '%'
+    : ((value / parentValue) * 100).toFixed(0) + '%';
+  
+  // Only show percentage on outer ring if segment is large enough
+  const showPercentage = !isMainCategory && ((value / parentValue) * 100) >= 10;
   
   return (
     <g>
@@ -71,7 +84,9 @@ const renderActiveShape = (props: any) => {
         stroke="#fff"
         strokeWidth={2}
       />
-      {innerRadius === 0 && (
+      
+      {/* Show label for main categories */}
+      {isMainCategory && (startAngle - endAngle) <= -30 && (
         <text 
           x={cx} 
           y={cy} 
@@ -79,34 +94,151 @@ const renderActiveShape = (props: any) => {
           fill="#333"
           fontSize={12}
           fontWeight="bold"
+          dominantBaseline="middle"
         >
           {payload.name}
+        </text>
+      )}
+      
+      {/* Show percentage for outer ring segments if large enough */}
+      {showPercentage && (
+        <text
+          x={
+            cx +
+            (outerRadius - (outerRadius - innerRadius) / 2) *
+            Math.sin((startAngle + endAngle) / 2 * Math.PI / 180)
+          }
+          y={
+            cy -
+            (outerRadius - (outerRadius - innerRadius) / 2) *
+            Math.cos((startAngle + endAngle) / 2 * Math.PI / 180)
+          }
+          textAnchor="middle"
+          fill="#fff"
+          fontSize={10}
+          fontWeight="bold"
+        >
+          {percentage}
         </text>
       )}
     </g>
   );
 };
 
+// Legend item component
+const LegendItem = ({ color, name, value, total }: { color: string, name: string, value: number, total: number }) => {
+  const percentage = ((value / total) * 100).toFixed(1);
+  
+  return (
+    <div className="flex items-center gap-2">
+      <div 
+        className="h-3 w-3 rounded-full" 
+        style={{ backgroundColor: color }}
+      />
+      <span className="text-sm font-medium">{name}</span>
+      <span className="text-xs text-gray-500">({value} | {percentage}%)</span>
+    </div>
+  );
+};
+
 const SunburstChart: React.FC<SunburstChartProps> = ({ 
   data, 
-  title = "Feedback Breakdown",
+  title = "Feedback Breakdown by Sentiment and Reason",
   totalCount
 }) => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   
-  // Flatten data for simpler rendering
-  const processData = (data: SunburstItem[]) => {
+  // Function to generate gradient colors within a sentiment family
+  const generateGradientShades = (baseColor: string, childCount: number, index: number) => {
+    // Convert hex to HSL for easier manipulation
+    const hexToHSL = (hex: string) => {
+      // Remove the # if present
+      hex = hex.replace(/^#/, '');
+      
+      // Convert hex to RGB
+      const r = parseInt(hex.substring(0, 2), 16) / 255;
+      const g = parseInt(hex.substring(2, 4), 16) / 255;
+      const b = parseInt(hex.substring(4, 6), 16) / 255;
+      
+      // Find greatest and smallest channel values
+      const cmin = Math.min(r, g, b);
+      const cmax = Math.max(r, g, b);
+      const delta = cmax - cmin;
+      
+      let h = 0;
+      let s = 0;
+      let l = 0;
+      
+      // Calculate hue
+      if (delta === 0) h = 0;
+      else if (cmax === r) h = ((g - b) / delta) % 6;
+      else if (cmax === g) h = (b - r) / delta + 2;
+      else h = (r - g) / delta + 4;
+      
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      
+      // Calculate lightness
+      l = (cmax + cmin) / 2;
+      
+      // Calculate saturation
+      s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+      
+      // Convert to percentages
+      s = +(s * 100).toFixed(1);
+      l = +(l * 100).toFixed(1);
+      
+      return { h, s, l };
+    };
+    
+    // Create an array of colors from lighter to darker
+    const hsl = hexToHSL(baseColor);
+    
+    // Adjust lightness based on index and count
+    // We'll make higher values darker (lower lightness)
+    const minLightness = Math.max(hsl.l - 15, 25); // Don't go too dark
+    const maxLightness = Math.min(hsl.l + 15, 75); // Don't go too light
+    
+    // For small datasets, we make a more noticeable difference
+    const lightnessRange = maxLightness - minLightness;
+    const lightness = maxLightness - (index / Math.max(childCount - 1, 1)) * lightnessRange;
+    
+    // Convert back to hex
+    const hslToHex = (h: number, s: number, l: number) => {
+      l /= 100;
+      const a = s * Math.min(l, 1 - l) / 100;
+      const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+        return Math.round(255 * color).toString(16).padStart(2, '0');
+      };
+      return `#${f(0)}${f(8)}${f(4)}`;
+    };
+    
+    return hslToHex(hsl.h, hsl.s, lightness);
+  };
+  
+  // Process data for the chart
+  const processData = useCallback((data: SunburstItem[]) => {
     const totalValue = data.reduce((sum, item) => sum + item.value, 0);
     const outerRingData: any[] = [];
+    
+    // Process inner ring (sentiment categories)
     const innerRingData = data.map((item, index) => {
-      // Process children if they exist
-      if (item.children && item.children.length > 0) {
-        item.children.forEach((child, childIndex) => {
+      // Sort children by value (descending) to ensure consistent color assignment
+      // Higher values get darker colors
+      const sortedChildren = item.children 
+        ? [...item.children].sort((a, b) => b.value - a.value)
+        : [];
+      
+      // Process children (sub-reasons)
+      if (sortedChildren && sortedChildren.length > 0) {
+        sortedChildren.forEach((child, childIndex) => {
           outerRingData.push({
             id: `${item.id}-${child.id}`,
             name: child.name,
             value: child.value,
-            color: child.color || generateShade(item.color, childIndex),
+            color: generateGradientShades(item.color, sortedChildren.length, childIndex),
             parent: item.name,
             parentValue: item.value,
             totalValue,
@@ -125,37 +257,18 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     });
     
     return { innerRingData, outerRingData };
+  }, []);
+  
+  // Handle pie enter/leave events
+  const onPieEnter = (_, index: number) => {
+    setActiveIndex(index);
   };
   
-  // Generate shade variants for sub-categories
-  const generateShade = (baseColor: string, index: number) => {
-    // Simple shade generation based on index
-    switch(index % 3) {
-      case 0: return baseColor; // Same as base
-      case 1: return lightenDarkenColor(baseColor, 30); // Lighter
-      case 2: return lightenDarkenColor(baseColor, -20); // Darker
-      default: return baseColor;
-    }
+  const onPieLeave = () => {
+    setActiveIndex(null);
   };
   
-  // Helper function to lighten or darken a hex color
-  const lightenDarkenColor = (color: string, percent: number) => {
-    let R = parseInt(color.substring(1, 3), 16);
-    let G = parseInt(color.substring(3, 5), 16);
-    let B = parseInt(color.substring(5, 7), 16);
-
-    R = Math.min(255, Math.max(0, R + percent));
-    G = Math.min(255, Math.max(0, G + percent));
-    B = Math.min(255, Math.max(0, B + percent));
-
-    const RR = ((R.toString(16).length === 1) ? "0" + R.toString(16) : R.toString(16));
-    const GG = ((G.toString(16).length === 1) ? "0" + G.toString(16) : G.toString(16));
-    const BB = ((B.toString(16).length === 1) ? "0" + B.toString(16) : B.toString(16));
-
-    return "#" + RR + GG + BB;
-  };
-  
-  // Check if data is loading or empty
+  // Check if data is empty
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -168,16 +281,16 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       </Card>
     );
   }
-
+  
   const { innerRingData, outerRingData } = processData(data);
   
-  const onPieEnter = (data: any, index: number) => {
-    setActiveIndex(index);
-  };
-  
-  const onPieLeave = () => {
-    setActiveIndex(null);
-  };
+  // Create legend data from inner ring
+  const legendData = innerRingData.map(item => ({
+    name: item.name,
+    color: item.color,
+    value: item.value,
+    total: item.totalValue
+  }));
 
   return (
     <Card>
@@ -202,7 +315,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                 </tspan>
               </text>
               
-              {/* Inner ring - Main categories */}
+              {/* Inner ring - Main categories (Sentiment) */}
               <Pie
                 data={innerRingData}
                 dataKey="value"
@@ -227,7 +340,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                 ))}
               </Pie>
               
-              {/* Outer ring - Sub-categories */}
+              {/* Outer ring - Sub-reasons */}
               <Pie
                 data={outerRingData}
                 dataKey="value"
@@ -235,7 +348,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                 cx="50%"
                 cy="50%"
                 innerRadius={80}
-                outerRadius={120}
+                outerRadius={140}
                 paddingAngle={1}
                 activeShape={renderActiveShape}
                 onMouseEnter={onPieEnter}
@@ -246,7 +359,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                     key={`cell-outer-${index}`} 
                     fill={entry.color} 
                     stroke="#fff" 
-                    strokeWidth={1}
+                    strokeWidth={1.5}
                   />
                 ))}
               </Pie>
@@ -254,6 +367,19 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
               <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+        
+        {/* Legend */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 px-2">
+          {legendData.map((item, index) => (
+            <LegendItem 
+              key={`legend-${index}`} 
+              color={item.color} 
+              name={item.name} 
+              value={item.value} 
+              total={item.total} 
+            />
+          ))}
         </div>
       </CardContent>
     </Card>
