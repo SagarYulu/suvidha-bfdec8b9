@@ -81,13 +81,23 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     // Use data from the issue if available
     if (issueData && !issueError) {
-      // Using a more straightforward approach to handle the type safety
+      // Using a more careful approach to handle the type safety with proper null checks
       const employees = issueData.employees;
       
-      if (employees && typeof employees === 'object') {
-        // Now we're sure employees exists and is an object
-        city = city || (employees.city ? String(employees.city) : undefined);
-        cluster = cluster || (employees.cluster ? String(employees.cluster) : undefined);
+      // First check if employees exists and is not null
+      if (employees !== null && employees !== undefined) {
+        // Now check if it's an object before accessing properties
+        if (typeof employees === 'object') {
+          // Handle city with proper null checking
+          if ('city' in employees && employees.city !== null && employees.city !== undefined) {
+            city = city || String(employees.city);
+          }
+          
+          // Handle cluster with proper null checking
+          if ('cluster' in employees && employees.cluster !== null && employees.cluster !== undefined) {
+            cluster = cluster || String(employees.cluster);
+          }
+        }
       }
       
       // This should be safe as it's directly on the issue
