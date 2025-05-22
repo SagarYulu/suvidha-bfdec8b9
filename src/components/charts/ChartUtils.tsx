@@ -6,7 +6,9 @@ export const CHART_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d
 export const SENTIMENT_COLORS = {
   'positive': '#4ADE80',  // Lighter green
   'neutral': '#FBBF24',   // Lighter yellow
-  'negative': '#F87171'   // Lighter red
+  'negative': '#F87171',   // Lighter red
+  'happy': '#4ADE80',     // Same as positive
+  'sad': '#F87171'        // Same as negative
 };
 
 // Helper function to get sentiment color based on name with safe fallback
@@ -14,8 +16,8 @@ export const getSentimentColor = (name: string | undefined): string => {
   if (!name) return CHART_COLORS[0]; // Default color if name is undefined
   
   const lowerName = name.toLowerCase();
-  if (lowerName.includes('positive')) return SENTIMENT_COLORS.positive;
-  if (lowerName.includes('negative')) return SENTIMENT_COLORS.negative;
+  if (lowerName.includes('positive') || lowerName.includes('happy')) return SENTIMENT_COLORS.positive;
+  if (lowerName.includes('negative') || lowerName.includes('sad')) return SENTIMENT_COLORS.negative;
   if (lowerName.includes('neutral')) return SENTIMENT_COLORS.neutral;
   return CHART_COLORS[0]; // Default color
 };
@@ -114,3 +116,6 @@ export const getPlaceholderChartData = () => {
     { name: 'No Data', value: 1 }
   ];
 };
+
+// Add a curved line setting for sentiment distribution chart
+export const CURVED_LINE_TYPE = "monotone"; // Options: 'basis', 'linear', 'natural', 'monotone', 'step'

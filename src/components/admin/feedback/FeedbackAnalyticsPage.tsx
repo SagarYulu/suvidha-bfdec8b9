@@ -10,6 +10,7 @@ import FeedbackTrendChart from './FeedbackTrendChart';
 import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import FeedbackTrendAnalysis from './FeedbackTrendAnalysis';
+import SentimentDistributionChart from './SentimentDistributionChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
@@ -43,9 +44,9 @@ const FeedbackAnalyticsPage: React.FC = () => {
   const renderContent = () => {
     if (isLoading && !isInitialized) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-          <span className="ml-2">Loading feedback data...</span>
+        <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg shadow p-6">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+          <span className="text-lg">Loading feedback data...</span>
         </div>
       );
     }
@@ -63,7 +64,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
     
     if (!metrics || metrics.totalCount === 0) {
       return (
-        <div className="flex flex-col items-center justify-center h-64 text-center">
+        <div className="flex flex-col items-center justify-center h-64 text-center bg-white rounded-lg shadow p-6">
           <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
           <h3 className="text-xl font-medium">No feedback data available</h3>
           <p className="text-muted-foreground mt-2">
@@ -86,6 +87,13 @@ const FeedbackAnalyticsPage: React.FC = () => {
           metrics={metrics} 
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
+        />
+        
+        {/* Sentiment Distribution Over Time */}
+        <SentimentDistributionChart 
+          data={metrics.trendData} 
+          showComparison={isComparisonEnabled}
+          title="Sentiment Distribution Over Time"
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -130,9 +138,9 @@ const FeedbackAnalyticsPage: React.FC = () => {
         <div className="relative">
           {isLoading && isInitialized && (
             <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
-              <div className="flex items-center space-x-2">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                <span>Updating data...</span>
+              <div className="flex items-center space-x-2 px-6 py-3 bg-white border rounded-lg shadow-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                <span className="font-medium">Updating data...</span>
               </div>
             </div>
           )}

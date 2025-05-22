@@ -96,6 +96,55 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
     return null;
   };
 
+  // Custom label for the donut chart
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.6;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    return percent > 0.05 ? (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="bold"
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    ) : null;
+  };
+
+  // Custom legend that displays unique items only
+  const CustomLegend = ({ payload }: any) => {
+    // Filter out duplicate legend items
+    const uniqueNames = new Set();
+    const uniqueItems = payload.filter((entry: any) => {
+      if (uniqueNames.has(entry.value)) {
+        return false;
+      }
+      uniqueNames.add(entry.value);
+      return true;
+    });
+
+    return (
+      <ul className="flex justify-center flex-wrap mt-4">
+        {uniqueItems.map((entry: any, index: number) => (
+          <li key={`legend-${index}`} className="flex items-center mx-2 mb-1">
+            <span 
+              className="inline-block w-3 h-3 mr-1 rounded-sm" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-xs">{entry.value}</span>
+          </li>
+        ))}
+      </ul>
+    );
+  };
+
   return (
     <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
@@ -135,8 +184,8 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
             fill="#8884d8"
             dataKey="value"
             paddingAngle={3}
-            labelLine={{ strokeWidth: 1, stroke: '#9CA3AF' }}
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+            labelLine={false}
+            label={renderCustomizedLabel}
           >
             {data.map((entry, index) => (
               <Cell 
@@ -149,13 +198,7 @@ const SentimentPieChart: React.FC<SentimentPieChartProps> = ({
           </Pie>
           
           <Tooltip content={<CustomTooltip />} />
-          
-          <Legend 
-            verticalAlign="bottom" 
-            formatter={(value) => {
-              return <span className="text-sm">{value}</span>;
-            }}
-          />
+          <Legend content={<CustomLegend />} />
         </PieChart>
       </ResponsiveContainer>
     </div>

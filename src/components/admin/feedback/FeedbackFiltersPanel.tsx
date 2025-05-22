@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -174,7 +175,9 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                 <Calendar
                   mode="range"
                   selected={dateRange}
-                  onSelect={setDateRange}
+                  onSelect={(range) => {
+                    setDateRange(range);
+                  }}
                   initialFocus
                   numberOfMonths={2}
                   className="pointer-events-auto"
@@ -196,7 +199,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="All Cities" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent className="bg-white max-h-60 overflow-y-auto">
                 <SelectItem value="all">All Cities</SelectItem>
                 {cities.map(city => (
                   <SelectItem key={city.id} value={city.name}>
@@ -220,7 +223,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                   filters.city ? "All Clusters" : "Select City First"
                 } />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent className="bg-white max-h-60 overflow-y-auto">
                 <SelectItem value="all">All Clusters</SelectItem>
                 {availableClusters.map(cluster => (
                   <SelectItem key={cluster.id} value={cluster.name}>
@@ -241,7 +244,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="All Agents" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent className="bg-white max-h-60 overflow-y-auto">
                 <SelectItem value="all">All Agents</SelectItem>
                 {agents.map(agent => (
                   <SelectItem key={agent.id} value={agent.id}>
@@ -264,7 +267,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </div>
             <Select 
               value={filters.comparisonMode || 'wow'}
-              onValueChange={(value: string) => onFilterChange({ 
+              onValueChange={(value) => onFilterChange({ 
                 comparisonMode: value as ComparisonMode
               })}
               disabled={!isComparisonEnabled}
