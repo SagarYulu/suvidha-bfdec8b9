@@ -88,7 +88,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
         
-        {/* Sentiment Distribution Chart - Only showing this one, removing the duplicate */}
+        {/* Sentiment Distribution Chart - Only show this one, removed duplicate */}
         <SentimentDistributionChart 
           data={metrics.trendData} 
           showComparison={isComparisonEnabled}

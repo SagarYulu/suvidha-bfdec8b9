@@ -34,14 +34,14 @@ interface SentimentDistributionChartProps {
 const CustomDot = (props: any) => {
   const { cx, cy, stroke, payload, value, dataKey } = props;
   
-  // Always render dots, even for zero values (with smaller radius)
-  const radius = value === 0 ? 3 : 5;
+  // Only render dots for values greater than 0
+  if (value <= 0) return null;
   
   return (
     <Dot
       cx={cx}
       cy={cy}
-      r={radius}
+      r={5}
       fill={stroke}
       stroke="#fff"
       strokeWidth={1}
@@ -80,20 +80,27 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
         day: 'numeric'
       }),
       // Make sure all sentiment values exist (even if 0)
-      happy: item.happy || 0,
-      neutral: item.neutral || 0,
-      sad: item.sad || 0
+      happy: typeof item.happy === 'number' ? item.happy : 0,
+      neutral: typeof item.neutral === 'number' ? item.neutral : 0,
+      sad: typeof item.sad === 'number' ? item.sad : 0
     }));
 
   // Calculate domain for Y-axis
   const maxValue = Math.max(
     ...formattedData.map(item => 
-      Math.max(item.happy, item.neutral, item.sad)
+      Math.max(
+        item.happy || 0, 
+        item.neutral || 0, 
+        item.sad || 0
+      )
     )
   );
   
   // Ensure Y-axis has some padding above max value
   const yAxisDomain = [0, Math.max(maxValue + 2, 10)];
+
+  // Debug output to help diagnose the issue
+  console.log("Sentiment chart data:", formattedData);
 
   return (
     <Card>
@@ -158,6 +165,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 dot={<CustomDot />}
                 strokeWidth={3}
                 isAnimationActive={false}
+                connectNulls={false}
               />
               <Line 
                 type={CURVED_LINE_TYPE}
@@ -168,6 +176,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 dot={<CustomDot />}
                 strokeWidth={3}
                 isAnimationActive={false}
+                connectNulls={false}
               />
               <Line 
                 type={CURVED_LINE_TYPE}
@@ -178,6 +187,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 dot={<CustomDot />}
                 strokeWidth={3}
                 isAnimationActive={false}
+                connectNulls={false}
               />
             </LineChart>
           </ResponsiveContainer>

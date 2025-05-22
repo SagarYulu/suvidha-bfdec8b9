@@ -46,11 +46,19 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
   showComparison,
   comparisonMode = 'wow'
 }) => {
-  // Format dates for display
-  const formattedData = data.map(item => ({
-    ...item,
-    formattedDate: format(parse(item.date, 'yyyy-MM-dd', new Date()), 'MMM dd')
-  }));
+  // Format dates for display and ensure all sentiment values are numbers
+  const formattedData = data
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map(item => ({
+      ...item,
+      formattedDate: format(parse(item.date, 'yyyy-MM-dd', new Date()), 'MMM dd'),
+      happy: typeof item.happy === 'number' ? item.happy : 0,
+      neutral: typeof item.neutral === 'number' ? item.neutral : 0,
+      sad: typeof item.sad === 'number' ? item.sad : 0
+    }));
+  
+  // Debug output to help diagnose the issue
+  console.log("Trend chart data:", formattedData);
   
   // Custom tooltip formatter
   const tooltipFormatter = (value: number, name: string) => {
@@ -63,6 +71,18 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
     };
     
     return [`${value} responses`, displayNames[name] || name];
+  };
+  
+  // Custom dot renderer that only shows dots for non-zero values
+  const CustomDot = (props: any) => {
+    const { cx, cy, stroke, value } = props;
+    
+    // Only render dots for values greater than 0
+    if (value <= 0) return null;
+    
+    return (
+      <circle cx={cx} cy={cy} r={4} fill={stroke} stroke="#fff" strokeWidth={1} />
+    );
   };
   
   return (
@@ -104,7 +124,10 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
                   dataKey="formattedDate" 
                   tick={{ fontSize: 12 }}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  allowDecimals={false}
+                />
                 <Tooltip 
                   formatter={tooltipFormatter}
                   labelFormatter={(label) => `Date: ${label}`}
@@ -125,31 +148,31 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
                 <Area 
                   type="monotone" 
                   dataKey="happy" 
-                  stroke={CHART_COLORS.happy} 
+                  stroke="transparent" 
                   fillOpacity={1}
                   fill="url(#colorHappy)" 
                   stackId="1"
-                  name="Happy"
+                  name="Happy Area"
                   hide={true} // Hide from legend but show area
                 />
                 <Area 
                   type="monotone" 
                   dataKey="neutral" 
-                  stroke={CHART_COLORS.neutral} 
+                  stroke="transparent" 
                   fillOpacity={1}
                   fill="url(#colorNeutral)"
                   stackId="1"
-                  name="Neutral"
+                  name="Neutral Area"
                   hide={true} // Hide from legend but show area
                 />
                 <Area 
                   type="monotone" 
                   dataKey="sad" 
-                  stroke={CHART_COLORS.sad} 
+                  stroke="transparent" 
                   fillOpacity={1}
                   fill="url(#colorSad)"
                   stackId="1" 
-                  name="Sad"
+                  name="Sad Area"
                   hide={true} // Hide from legend but show area
                 />
                 
@@ -160,8 +183,9 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
                   name="Happy"
                   stroke={CHART_COLORS.happy} 
                   activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.happy }}
+                  dot={<CustomDot />}
                   strokeWidth={2.5}
-                  dot={{ fill: CHART_COLORS.happy, r: 4, strokeWidth: 0 }}
+                  connectNulls={false}
                 />
                 <Line 
                   type="monotone" 
@@ -170,7 +194,8 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
                   stroke={CHART_COLORS.neutral} 
                   activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.neutral }}
                   strokeWidth={2.5}
-                  dot={{ fill: CHART_COLORS.neutral, r: 4, strokeWidth: 0 }}
+                  dot={<CustomDot />}
+                  connectNulls={false}
                 />
                 <Line 
                   type="monotone" 
@@ -179,7 +204,8 @@ const FeedbackTrendChart: React.FC<FeedbackTrendChartProps> = ({
                   stroke={CHART_COLORS.sad} 
                   activeDot={{ r: 8, strokeWidth: 0, fill: CHART_COLORS.sad }}
                   strokeWidth={2.5}
-                  dot={{ fill: CHART_COLORS.sad, r: 4, strokeWidth: 0 }}
+                  dot={<CustomDot />}
+                  connectNulls={false}
                 />
               </ComposedChart>
             </ResponsiveContainer>

@@ -55,7 +55,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
       const allDates = eachDayOfInterval({ start, end });
       
       // Fill in missing dates with zero values
-      return allDates.map(date => {
+      const filledData = allDates.map(date => {
         const dateStr = format(date, 'yyyy-MM-dd');
         return dataByDate[dateStr] || { 
           date: dateStr, 
@@ -65,6 +65,9 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           total: 0 
         };
       });
+      
+      console.log("After filling missing dates:", filledData);
+      return filledData;
     } catch (err) {
       console.error("Error filling missing dates:", err);
       return data;
