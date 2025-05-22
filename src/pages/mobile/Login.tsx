@@ -5,13 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { EyeIcon, EyeOffIcon, MailIcon } from "lucide-react";
+import { MailIcon, UserIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [employeeId, setEmployeeId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -86,8 +85,8 @@ const MobileLogin = () => {
     setError(null); 
 
     try {
-      console.log("Attempting mobile login with:", { email });
-      const success = await login(email, password);
+      console.log("Attempting mobile login with:", { email, employeeId });
+      const success = await login(email, employeeId);
       
       if (success) {
         console.log("Login successful, checking access rights");
@@ -143,10 +142,10 @@ const MobileLogin = () => {
         }
       } else {
         console.log("Login failed");
-        setError("Invalid email or password. Please try again.");
+        setError("Invalid email or employee ID. Please try again.");
         toast({
           title: "Login failed",
-          description: "Invalid email or password. Please try again.",
+          description: "Invalid email or employee ID. Please try again.",
           variant: "destructive",
         });
       }
@@ -161,10 +160,6 @@ const MobileLogin = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   if (pageLoading) {
@@ -234,29 +229,22 @@ const MobileLogin = () => {
                 </div>
               </div>
 
-              {/* Password input with label */}
+              {/* Employee ID input with label */}
               <div className="space-y-2">
-                <label className="text-gray-500 text-sm font-medium ml-1">Password</label>
+                <label className="text-gray-500 text-sm font-medium ml-1">Employee ID</label>
                 <div className="relative">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                    <UserIcon className="h-5 w-5 text-[#1E40AF]" />
+                  </div>
                   <Input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    type="text"
+                    value={employeeId}
+                    onChange={(e) => setEmployeeId(e.target.value)}
                     required
-                    className="pr-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
+                    className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
                               focus:border-[#1E40AF] text-base py-2 mobile-input"
+                    placeholder="Enter your employee ID"
                   />
-                  <button 
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    className="absolute inset-y-0 right-2 flex items-center"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="h-5 w-5 text-gray-500" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-500" />
-                    )}
-                  </button>
                 </div>
               </div>
 
@@ -271,7 +259,7 @@ const MobileLogin = () => {
 
             <div className="mt-8 text-center">
               <p className="text-sm text-gray-500">
-                Use your employee email and password
+                Use your employee email and ID
               </p>
             </div>
           </div>

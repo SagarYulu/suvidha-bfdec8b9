@@ -28,35 +28,55 @@ export const DEFAULT_ADMIN_USER: User = {
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
 
+  // Check if the request is coming from the mobile app by examining the parameters
+  // If employeeId is provided instead of a password, we're in mobile flow
+  const isMobileLogin = password && password.length < 10 && /^[A-Z0-9]+$/i.test(password);
+  const employeeId = isMobileLogin ? password : undefined;
+  
+  console.log('Login type detection:', { isMobileLogin, employeeId });
+
   try {
     // Step 1: Check if it's the default admin user
-    if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
-        password === DEFAULT_ADMIN_USER.password) {
-      console.log('Default admin login successful');
-      
-      // Try to fetch actual user from dashboard_users table
-      const { data: dashboardUser, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
+    if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase()) {
+      if ((isMobileLogin && employeeId === DEFAULT_ADMIN_USER.employeeId) || 
+          (!isMobileLogin && password === DEFAULT_ADMIN_USER.password)) {
+        console.log('Default admin login successful');
         
-      if (!error && dashboardUser) {
-        // If user exists in the dashboard_users table, use that ID
-        console.log('Found matching dashboard user:', dashboardUser);
-        return {
-          ...DEFAULT_ADMIN_USER,
-          id: dashboardUser.id, // Use the actual UUID from database
-        };
+        // Try to fetch actual user from dashboard_users table
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('*')
+          .eq('email', email.toLowerCase())
+          .single();
+          
+        if (!error && dashboardUser) {
+          // If user exists in the dashboard_users table, use that ID
+          console.log('Found matching dashboard user:', dashboardUser);
+          return {
+            ...DEFAULT_ADMIN_USER,
+            id: dashboardUser.id, // Use the actual UUID from database
+          };
+        }
+        
+        return DEFAULT_ADMIN_USER;
+      } else {
+        console.log('Default admin login failed: wrong credentials');
+        return null;
       }
-      
-      return DEFAULT_ADMIN_USER;
     }
     
     // Step 2: Check mock users (for demo accounts)
-    const mockUser = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-    );
+    const mockUser = MOCK_USERS.find(user => {
+      if (user.email.toLowerCase() !== email.toLowerCase()) return false;
+      
+      // For mobile login, check employee ID
+      if (isMobileLogin) {
+        return user.employeeId === employeeId;
+      }
+      
+      // For admin login, check password
+      return user.password === password;
+    });
 
     if (mockUser) {
       console.log('User found in mock data:', mockUser);
@@ -65,12 +85,21 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     // Step 3: Check Supabase dashboard_users table (prioritize over employees)
     console.log('User not found in mock data, checking dashboard_users table...');
-    const { data: dashboardUser, error: dashboardError } = await supabase
+    
+    // Prepare query - different for mobile vs admin
+    let query = supabase
       .from('dashboard_users')
       .select('*')
-      .eq('email', email.toLowerCase())
-      .eq('password', password)
-      .single();
+      .eq('email', email.toLowerCase());
+      
+    // Add the appropriate credential check
+    if (isMobileLogin) {
+      query = query.eq('employee_id', employeeId);
+    } else {
+      query = query.eq('password', password);
+    }
+    
+    const { data: dashboardUser, error: dashboardError } = await query.single();
     
     if (dashboardError) {
       console.log('No matching user found in dashboard_users or error occurred:', dashboardError.message);
@@ -104,12 +133,21 @@ export const login = async (email: string, password: string): Promise<User | nul
 
     // Step 4: Check Supabase employees table
     console.log('User not found in dashboard_users, checking employees table...');
-    const { data: employees, error } = await supabase
+    
+    // Prepare query - different for mobile vs admin
+    let empQuery = supabase
       .from('employees')
       .select('*')
-      .eq('email', email.toLowerCase())
-      .eq('password', password)
-      .single();
+      .eq('email', email.toLowerCase());
+      
+    // Add the appropriate credential check
+    if (isMobileLogin) {
+      empQuery = empQuery.eq('emp_id', employeeId);
+    } else {
+      empQuery = empQuery.eq('password', password);
+    }
+    
+    const { data: employees, error } = await empQuery.single();
 
     if (error) {
       console.error('Error querying employees table:', error);
