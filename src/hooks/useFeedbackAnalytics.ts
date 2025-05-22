@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   fetchFeedbackData,
@@ -11,6 +12,7 @@ import { format, subDays, eachDayOfInterval, parse } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 import { SunburstItem } from '@/components/admin/feedback/SunburstChart';
+import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
 
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
