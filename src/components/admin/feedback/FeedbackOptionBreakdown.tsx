@@ -11,18 +11,18 @@ import {
   Label
 } from 'recharts';
 
-// Define visually distinct colors for the feedback options
+// Define visually distinct colors for the feedback options with an enhanced palette
 const COLORS = [
-  '#22c55e',    // Green
-  '#f59e0b',    // Amber
-  '#ef4444',    // Red
-  '#0ea5e9',    // Blue
-  '#8b5cf6',    // Purple
-  '#ec4899',    // Pink
-  '#14b8a6',    // Teal
-  '#f97316',    // Orange
-  '#6366f1',    // Indigo
-  '#d946ef'     // Fuchsia
+  '#8B5CF6',    // Vivid Purple
+  '#F59E0B',    // Amber
+  '#EC4899',    // Magenta Pink
+  '#0EA5E9',    // Sky Blue
+  '#6366F1',    // Indigo
+  '#14B8A6',    // Teal
+  '#F97316',    // Orange
+  '#D946EF',    // Fuchsia
+  '#22C55E',    // Green
+  '#64748B'     // Slate
 ];
 
 interface FeedbackOptionBreakdownProps {
@@ -72,7 +72,7 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
   const renderCustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-background border rounded-lg p-2 shadow-md">
+        <div className="bg-white border rounded-lg p-2 shadow-md">
           <p className="font-medium">{payload[0].name}</p>
           <p className="text-sm">Count: <span className="font-medium">{payload[0].value}</span></p>
           <p className="text-sm">
@@ -83,6 +83,29 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
     }
     
     return null;
+  };
+  
+  // Custom label for showing percentages directly on the chart
+  const renderCustomLabel = (props: any) => {
+    const { cx, cy, midAngle, innerRadius, outerRadius, percent, index, name } = props;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+    
+    // Only show percentage if it's large enough to be readable
+    return percent > 0.05 ? (
+      <text 
+        x={x} 
+        y={y} 
+        fill="#fff" 
+        textAnchor="middle" 
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="bold"
+      >
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    ) : null;
   };
   
   return (
@@ -104,6 +127,8 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
                   paddingAngle={2}
                   dataKey="value"
                   nameKey="name"
+                  labelLine={false}
+                  label={renderCustomLabel}
                 >
                   {chartData.map((entry, index) => (
                     <Cell 

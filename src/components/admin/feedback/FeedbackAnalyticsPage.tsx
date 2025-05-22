@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
@@ -32,7 +32,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
     if (!isInitialized && !isLoading) {
       setIsInitialized(true);
     }
-  }, [isLoading]);
+  }, [isLoading, isInitialized]);
   
   // Handle comparison toggle
   const handleComparisonToggle = (enabled: boolean) => {
@@ -75,7 +75,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
     
     return (
       <div className="space-y-6">
-        {/* Insights Summary (New) */}
+        {/* Insights Summary */}
         <FeedbackInsightsSummary 
           insights={metrics.insightData || []}
           showComparison={isComparisonEnabled}
@@ -89,14 +89,14 @@ const FeedbackAnalyticsPage: React.FC = () => {
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Trend Chart (Enhanced) */}
+          {/* Trend Chart */}
           <FeedbackTrendChart 
             data={metrics.trendData} 
             showComparison={isComparisonEnabled}
             comparisonMode={filters.comparisonMode}
           />
           
-          {/* Feedback Option Breakdown (Enhanced) */}
+          {/* Feedback Option Breakdown */}
           <FeedbackOptionBreakdown 
             options={metrics.topOptions}
             showComparison={isComparisonEnabled}
@@ -105,7 +105,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
         
         {/* Additional analysis sections */}
         <div className="grid grid-cols-1 gap-6">
-          {/* Trend Analysis (New) */}
+          {/* Trend Analysis */}
           <FeedbackTrendAnalysis 
             data={metrics.trendData}
             showComparison={isComparisonEnabled}
@@ -118,7 +118,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
   return (
     <AdminLayout title="Feedback Analytics">
       <div className="space-y-6">
-        {/* Filters Panel (Enhanced) */}
+        {/* Filters Panel */}
         <FeedbackFiltersPanel 
           filters={filters}
           onFilterChange={updateFilters}

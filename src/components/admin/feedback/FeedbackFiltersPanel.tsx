@@ -54,6 +54,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   const [clusters, setClusters] = useState<{ id: string; name: string; city_id: string }[]>([]);
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   // Fetch cities, clusters and agents from master data
   useEffect(() => {
@@ -103,6 +104,13 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
         startDate: format(dateRange.from, 'yyyy-MM-dd'),
         endDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : format(dateRange.from, 'yyyy-MM-dd')
       });
+      
+      // If a complete range is selected, close the calendar
+      if (dateRange.to) {
+        setTimeout(() => {
+          setIsCalendarOpen(false);
+        }, 300); // Slight delay to allow state updates
+      }
     }
   }, [dateRange, onFilterChange]);
   
@@ -130,7 +138,10 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           {/* Date Range */}
           <div>
             <Label className="mb-1 block">Date Range</Label>
-            <Popover>
+            <Popover 
+              open={isCalendarOpen} 
+              onOpenChange={setIsCalendarOpen}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
@@ -154,12 +165,17 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-white">
+              <PopoverContent 
+                className="w-auto p-0" 
+                align="start"
+                style={{ zIndex: 50 }}
+              >
                 <Calendar
                   mode="range"
                   selected={dateRange}
                   onSelect={setDateRange}
                   initialFocus
+                  numberOfMonths={2}
                   className="pointer-events-auto"
                 />
               </PopoverContent>
@@ -214,7 +230,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </Select>
           </div>
           
-          {/* Agent Filter - NEW */}
+          {/* Agent Filter */}
           <div>
             <Label className="mb-1 block">Agent</Label>
             <Select 
@@ -247,7 +263,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </div>
             <Select 
               value={filters.comparisonMode || 'wow'}
-              onValueChange={(value: any) => onFilterChange({ 
+              onValueChange={(value) => onFilterChange({ 
                 comparisonMode: value || 'none' 
               })}
               disabled={!isComparisonEnabled}
@@ -255,7 +271,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select comparison" />
               </SelectTrigger>
-              <SelectContent className="bg-white">
+              <SelectContent className="bg-white z-50">
                 {COMPARISON_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -273,7 +289,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             <Select 
               value={filters.sentiment || "all"}
               onValueChange={(value) => onFilterChange({ 
-                sentiment: (value === "all" ? undefined : value) as any
+                sentiment: (value === "all" ? undefined : value) as 'happy' | 'neutral' | 'sad' | undefined
               })}
             >
               <SelectTrigger>

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   fetchFeedbackData,
   calculateFeedbackMetrics,
@@ -34,18 +34,20 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [showComparison, setShowComparison] = useState<boolean>(false);
   const [dataFetched, setDataFetched] = useState(false);
   const [activeDataFetch, setActiveDataFetch] = useState(false);
+  const [filterChangeCount, setFilterChangeCount] = useState(0);
   
   // Update filters when user changes selection
-  const updateFilters = (newFilters: Partial<FeedbackFilters>) => {
+  const updateFilters = useCallback((newFilters: Partial<FeedbackFilters>) => {
     // Prevent race conditions by ignoring new filter requests during active fetch
     if (activeDataFetch) return;
     
     setFilters(prev => ({ ...prev, ...newFilters }));
     setDataFetched(false);
-  };
+    setFilterChangeCount(prev => prev + 1);
+  }, [activeDataFetch]);
   
   // Toggle comparison mode
-  const toggleComparison = (enabled: boolean) => {
+  const toggleComparison = useCallback((enabled: boolean) => {
     // Prevent race conditions by ignoring toggle requests during active fetch
     if (activeDataFetch) return;
     
@@ -58,7 +60,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
       updateFilters({ comparisonMode: 'wow' });
     }
     setDataFetched(false);
-  };
+  }, [activeDataFetch, updateFilters]);
   
   // Fetch data when filters change
   useEffect(() => {
@@ -71,7 +73,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
       console.log("Fetching feedback data with filters:", filters);
       
       try {
-        if (showComparison && filters.comparisonMode !== 'none') {
+        if (showComparison && filters.comparisonMode && filters.comparisonMode !== 'none') {
           // Fetch both current and comparison data
           const result = await fetchComparisonData(filters);
           setMetrics(result.current);
@@ -79,13 +81,13 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           
           // Get raw data for current period only
           const data = await fetchFeedbackData(filters);
-          setRawData(data);
+          setRawData(data || []);
         } else {
           // Fetch only current data
           const data = await fetchFeedbackData(filters);
           console.log("Fetched feedback data:", data?.length || 0, "items");
-          setRawData(data);
-          const calculatedMetrics = calculateFeedbackMetrics(data);
+          setRawData(data || []);
+          const calculatedMetrics = calculateFeedbackMetrics(data || []);
           console.log("Calculated metrics:", calculatedMetrics);
           setMetrics(calculatedMetrics);
           setComparisonMetrics(null);
@@ -102,13 +104,16 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
-        setActiveDataFetch(false);
+        // Small delay before turning off loading indicator to prevent flickering
+        setTimeout(() => {
+          setIsLoading(false);
+          setActiveDataFetch(false);
+        }, 300);
       }
     };
     
     fetchData();
-  }, [filters, showComparison, dataFetched, activeDataFetch, toast]);
+  }, [filters, showComparison, dataFetched, activeDataFetch, toast, filterChangeCount]);
   
   return {
     isLoading,
