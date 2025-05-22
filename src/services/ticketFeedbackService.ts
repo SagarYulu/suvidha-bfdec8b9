@@ -16,6 +16,12 @@ export type TicketFeedback = {
   agent_name?: string; // Added agent name
 };
 
+// Define a more specific type for the employee data we expect
+interface EmployeeData {
+  city?: string | null;
+  cluster?: string | null;
+}
+
 // Check if feedback already exists for a ticket
 export const checkFeedbackExists = async (issueId: string, employeeUuid: string): Promise<boolean> => {
   try {
@@ -81,30 +87,18 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     // Use data from the issue if available
     if (issueData && !issueError) {
-      // Handle employees data with comprehensive null checking
-      // First ensure issueData.employees exists and is a valid object
-      if (issueData.employees !== null && 
-          issueData.employees !== undefined) {
+      // Safely access and extract employee data
+      const employees = issueData.employees as EmployeeData | null;
+      
+      if (employees !== null && employees !== undefined) {
+        // Safe access to city
+        if (employees.city !== null && employees.city !== undefined) {
+          city = city || String(employees.city);
+        }
         
-        // Now safely cast and check if it's a proper object and not an error
-        const employeesData = issueData.employees;
-        
-        // Only proceed if it's an object and not an error object
-        if (typeof employeesData === 'object' && 
-            !('error' in employeesData)) {
-        
-          // Now safely access properties
-          if (employeesData && 'city' in employeesData && 
-              employeesData.city !== null && 
-              employeesData.city !== undefined) {
-            city = city || String(employeesData.city);
-          }
-          
-          if (employeesData && 'cluster' in employeesData && 
-              employeesData.cluster !== null && 
-              employeesData.cluster !== undefined) {
-            cluster = cluster || String(employeesData.cluster);
-          }
+        // Safe access to cluster
+        if (employees.cluster !== null && employees.cluster !== undefined) {
+          cluster = cluster || String(employees.cluster);
         }
       }
       
