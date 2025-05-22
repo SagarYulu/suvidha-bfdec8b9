@@ -10,6 +10,7 @@ import {
 } from '../services/feedbackAnalyticsService';
 import { format, subDays } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
@@ -41,6 +42,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     // Prevent race conditions by ignoring new filter requests during active fetch
     if (activeDataFetch) return;
     
+    console.log("Updating filters:", newFilters);
     setFilters(prev => ({ ...prev, ...newFilters }));
     setDataFetched(false);
     setFilterChangeCount(prev => prev + 1);
@@ -51,6 +53,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     // Prevent race conditions by ignoring toggle requests during active fetch
     if (activeDataFetch) return;
     
+    console.log("Toggling comparison mode:", enabled);
     setShowComparison(enabled);
     if (!enabled) {
       // Turn off comparison mode
@@ -108,7 +111,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         setTimeout(() => {
           setIsLoading(false);
           setActiveDataFetch(false);
-        }, 300);
+        }, 500);
       }
     };
     

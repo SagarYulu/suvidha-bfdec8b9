@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +56,12 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [tempFilters, setTempFilters] = useState<Partial<FeedbackFilters>>({});
+  
+  // Initialize temp filters with current filters
+  useEffect(() => {
+    setTempFilters(filters);
+  }, [filters]);
   
   // Fetch cities, clusters and agents from master data
   useEffect(() => {
@@ -99,36 +104,54 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
     fetchFilterOptions();
   }, []);
   
-  // Update date range when selection changes
-  useEffect(() => {
-    if (dateRange?.from) {
-      onFilterChange({
-        startDate: format(dateRange.from, 'yyyy-MM-dd'),
-        endDate: dateRange.to ? format(dateRange.to, 'yyyy-MM-dd') : format(dateRange.from, 'yyyy-MM-dd')
+  // Handle date range selection without immediately applying filter
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    setDateRange(range);
+    if (range?.from) {
+      setTempFilters({
+        ...tempFilters,
+        startDate: format(range.from, 'yyyy-MM-dd'),
+        endDate: range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from, 'yyyy-MM-dd')
       });
       
-      // If a complete range is selected, close the calendar
-      if (dateRange.to) {
-        setTimeout(() => {
-          setIsCalendarOpen(false);
-        }, 300); // Slight delay to allow state updates
+      // Don't close the calendar until user clicks Apply
+      if (range.to) {
+        // Optional: close calendar when a complete range is selected
+        // setIsCalendarOpen(false);
       }
     }
-  }, [dateRange, onFilterChange]);
+  };
+  
+  // Apply all filters
+  const handleApplyFilters = () => {
+    onFilterChange(tempFilters);
+    setIsCalendarOpen(false); // Close calendar after applying
+  };
   
   // Handle comparison mode toggle
   const handleComparisonToggle = (checked: boolean) => {
     onComparisonToggle(checked);
     if (checked && (!filters.comparisonMode || filters.comparisonMode === 'none')) {
       // Default to week on week comparison when enabling
-      onFilterChange({ comparisonMode: 'wow' });
+      setTempFilters({
+        ...tempFilters,
+        comparisonMode: 'wow'
+      });
     }
   };
   
+  // Update temp filters for select changes
+  const handleFilterChange = (key: keyof FeedbackFilters, value: any) => {
+    setTempFilters({
+      ...tempFilters,
+      [key]: value === "all" ? undefined : value
+    });
+  };
+  
   // Get available clusters based on selected city
-  const availableClusters = filters.city
+  const availableClusters = tempFilters.city
     ? clusters.filter(cluster => {
-        const cityObj = cities.find(c => c.name === filters.city);
+        const cityObj = cities.find(c => c.name === tempFilters.city);
         return cityObj && cluster.city_id === cityObj.id;
       })
     : clusters;
@@ -172,16 +195,35 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                 align="start"
                 style={{ zIndex: 50 }}
               >
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={(range) => {
-                    setDateRange(range);
-                  }}
-                  initialFocus
-                  numberOfMonths={2}
-                  className="pointer-events-auto"
-                />
+                <div>
+                  <Calendar
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleDateRangeChange}
+                    initialFocus
+                    numberOfMonths={2}
+                    className="pointer-events-auto"
+                  />
+                  <div className="p-3 border-t flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setIsCalendarOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => {
+                        if (dateRange && dateRange.from) {
+                          handleApplyFilters();
+                        }
+                      }}
+                    >
+                      Apply Date
+                    </Button>
+                  </div>
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -190,10 +232,11 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">City</Label>
             <Select 
-              value={filters.city || "all"}
+              value={tempFilters.city || "all"}
               onValueChange={(value) => {
                 // Reset cluster when city changes
-                onFilterChange({ city: value === "all" ? undefined : value, cluster: undefined });
+                handleFilterChange('city', value);
+                handleFilterChange('cluster', undefined);
               }}
             >
               <SelectTrigger>
@@ -214,13 +257,13 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">Cluster</Label>
             <Select 
-              value={filters.cluster || "all"}
-              onValueChange={(value) => onFilterChange({ cluster: value === "all" ? undefined : value })}
-              disabled={!filters.city || availableClusters.length === 0}
+              value={tempFilters.cluster || "all"}
+              onValueChange={(value) => handleFilterChange('cluster', value)}
+              disabled={!tempFilters.city || availableClusters.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder={
-                  filters.city ? "All Clusters" : "Select City First"
+                  tempFilters.city ? "All Clusters" : "Select City First"
                 } />
               </SelectTrigger>
               <SelectContent className="bg-white max-h-60 overflow-y-auto">
@@ -238,8 +281,8 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">Agent</Label>
             <Select 
-              value={filters.agentId || "all"}
-              onValueChange={(value) => onFilterChange({ agentId: value === "all" ? undefined : value })}
+              value={tempFilters.agentId || "all"}
+              onValueChange={(value) => handleFilterChange('agentId', value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Agents" />
@@ -266,10 +309,8 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               />
             </div>
             <Select 
-              value={filters.comparisonMode || 'wow'}
-              onValueChange={(value) => onFilterChange({ 
-                comparisonMode: value as ComparisonMode
-              })}
+              value={tempFilters.comparisonMode || 'wow'}
+              onValueChange={(value) => handleFilterChange('comparisonMode', value as ComparisonMode)}
               disabled={!isComparisonEnabled}
             >
               <SelectTrigger>
@@ -291,10 +332,8 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           <div>
             <Label className="mb-1 block">Sentiment</Label>
             <Select 
-              value={filters.sentiment || "all"}
-              onValueChange={(value) => onFilterChange({ 
-                sentiment: (value === "all" ? undefined : value) as 'happy' | 'neutral' | 'sad' | undefined
-              })}
+              value={tempFilters.sentiment || "all"}
+              onValueChange={(value) => handleFilterChange('sentiment', value === "all" ? undefined : value as 'happy' | 'neutral' | 'sad' | undefined)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All Sentiments" />
@@ -307,6 +346,17 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               </SelectContent>
             </Select>
           </div>
+          
+          {/* Apply Filters button */}
+          <div className="flex items-end">
+            <Button 
+              variant="default"
+              onClick={handleApplyFilters}
+              className="ml-2 mt-2"
+            >
+              Apply Filters
+            </Button>
+          </div>
         </div>
         
         {/* Reset Filters Button */}
@@ -315,13 +365,19 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             variant="outline"
             onClick={() => {
               // Reset all filters but keep date range
-              onFilterChange({
+              const resetFilters = {
+                startDate: filters.startDate,
+                endDate: filters.endDate,
                 city: undefined,
                 cluster: undefined,
                 sentiment: undefined,
                 agentId: undefined,
                 employeeUuid: undefined,
-              });
+              };
+              
+              setTempFilters(resetFilters);
+              onFilterChange(resetFilters);
+              
               // Also reset comparison if enabled
               if (isComparisonEnabled) {
                 onComparisonToggle(false);

@@ -53,6 +53,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
   showComparison = false,
   title = "Sentiment Distribution Over Time"
 }) => {
+  // Check if data is loading or empty
   if (!data || data.length === 0) {
     return (
       <Card>
@@ -121,6 +122,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
                 dot={<CustomDot />}
                 strokeWidth={2}
+                isAnimationActive={false} // Disable animation to reduce flickering
               />
               <Line 
                 type={CURVED_LINE_TYPE}
@@ -130,6 +132,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
                 dot={<CustomDot />}
                 strokeWidth={2}
+                isAnimationActive={false} // Disable animation to reduce flickering
               />
               <Line 
                 type={CURVED_LINE_TYPE}
@@ -139,6 +142,7 @@ const SentimentDistributionChart: React.FC<SentimentDistributionChartProps> = ({
                 activeDot={{ r: 6, strokeWidth: 1, stroke: '#fff' }}
                 dot={<CustomDot />}
                 strokeWidth={2}
+                isAnimationActive={false} // Disable animation to reduce flickering
               />
             </LineChart>
           </ResponsiveContainer>

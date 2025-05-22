@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
@@ -11,6 +12,9 @@ export interface FeedbackItem {
   sentiment: FeedbackSentiment;
   feedback_option: string;
   created_at: string;
+  city?: string;
+  cluster?: string;
+  agent_id?: string;
 }
 
 export interface FeedbackMetrics {
@@ -29,7 +33,7 @@ export interface FeedbackFilters {
   cluster?: string;
   sentiment?: FeedbackSentiment;
   employeeUuid?: string;
-  agentId?: string; // New filter for agent (who closed the ticket)
+  agentId?: string; // Agent who closed the ticket
   comparisonMode?: ComparisonMode;
 }
 
@@ -57,7 +61,10 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
       employee_uuid,
       sentiment,
       feedback_option,
-      created_at
+      created_at,
+      city,
+      cluster,
+      agent_id
     `);
   
   // Apply date filters if provided
@@ -82,52 +89,19 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     query = query.eq('employee_uuid', filters.employeeUuid);
   }
   
-  // For city, cluster, and agent filters, we need to join with the issues table
-  if (filters.city || filters.cluster || filters.agentId) {
-    // First get issues filtered by city/cluster/agent
-    let issuesQuery = supabase.from('issues')
-      .select('id');
-    
-    // Filter by agent (who closed the ticket)
-    if (filters.agentId) {
-      issuesQuery = issuesQuery.eq('assigned_to', filters.agentId);
-    }
-    
-    // Only include closed tickets for feedback analysis
-    issuesQuery = issuesQuery.eq('status', 'closed');
-    
-    if (filters.city || filters.cluster) {
-      // Get employees matching city/cluster criteria
-      let employeesQuery = supabase.from('employees').select('emp_id');
-      
-      if (filters.city) {
-        employeesQuery = employeesQuery.eq('city', filters.city);
-      }
-      
-      if (filters.cluster) {
-        employeesQuery = employeesQuery.eq('cluster', filters.cluster);
-      }
-      
-      const { data: employees } = await employeesQuery;
-      
-      if (employees && employees.length > 0) {
-        const employeeIds = employees.map(e => e.emp_id);
-        issuesQuery = issuesQuery.in('employee_uuid', employeeIds);
-      } else {
-        // No employees match the criteria, return empty result
-        return [];
-      }
-    }
-    
-    const { data: filteredIssues } = await issuesQuery;
-    
-    if (filteredIssues && filteredIssues.length > 0) {
-      const issueIds = filteredIssues.map(issue => issue.id);
-      query = query.in('issue_id', issueIds);
-    } else {
-      // No issues match the criteria, return empty result
-      return [];
-    }
+  // Apply city filter directly if provided
+  if (filters.city) {
+    query = query.eq('city', filters.city);
+  }
+  
+  // Apply cluster filter directly if provided
+  if (filters.cluster) {
+    query = query.eq('cluster', filters.cluster);
+  }
+  
+  // Apply agent filter directly if provided
+  if (filters.agentId) {
+    query = query.eq('agent_id', filters.agentId);
   }
   
   // Order by created_at to ensure consistent results

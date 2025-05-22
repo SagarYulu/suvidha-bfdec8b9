@@ -10,6 +10,9 @@ export type TicketFeedback = {
   feedback_option: string;
   feedback_text?: string; // This is used internally but not stored directly
   created_at?: string;
+  city?: string;       // Added city
+  cluster?: string;    // Added cluster
+  agent_id?: string;   // Added agent (who closed the ticket)
 };
 
 // Check if feedback already exists for a ticket
@@ -52,16 +55,45 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       return true; // Return true since the feedback is already handled
     }
     
+    // Get the issue details to capture city, cluster, and agent information
+    const { data: issueData, error: issueError } = await supabase
+      .from('issues')
+      .select(`
+        *,
+        employees!issues_employee_uuid_fkey (
+          city,
+          cluster
+        )
+      `)
+      .eq('id', feedback.issue_id)
+      .single();
+    
+    if (issueError) {
+      console.error("Error fetching issue data:", issueError);
+    }
+    
+    // Extract city, cluster, and agent information
+    const city = issueData?.employees?.city;
+    const cluster = issueData?.employees?.cluster;
+    const agentId = issueData?.assigned_to;
+    
+    // Prepare feedback data with additional information
+    const feedbackData = {
+      issue_id: feedback.issue_id,
+      employee_uuid: feedback.employee_uuid,
+      sentiment: feedback.sentiment,
+      feedback_option: feedback.feedback_text || feedback.feedback_option, // Store the full text here
+      city: city || feedback.city,
+      cluster: cluster || feedback.cluster,
+      agent_id: agentId || feedback.agent_id
+    };
+    
+    console.log("Submitting enriched feedback data:", feedbackData);
+    
     // According to the database schema, we store the full text in the feedback_option field
-    // since there's no separate feedback_text column in the database
     const { data, error } = await supabase
       .from('ticket_feedback')
-      .insert({
-        issue_id: feedback.issue_id,
-        employee_uuid: feedback.employee_uuid,
-        sentiment: feedback.sentiment,
-        feedback_option: feedback.feedback_text || feedback.feedback_option // Store the full text here
-      })
+      .insert(feedbackData)
       .select();
     
     if (error) {
