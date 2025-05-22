@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/table";
 import { useNavigate } from "react-router-dom"; 
 import { Button } from "@/components/ui/button";
-import { Eye, AlertCircle } from "lucide-react";
+import { Eye, AlertCircle, Clock, CheckCircle, XCircle } from "lucide-react";
+import { calculateWorkingHours } from "@/utils/workingTimeUtils";
 
 type RecentTicketsTableProps = {
   recentIssues: Issue[];
@@ -120,6 +121,47 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     }
   };
 
+  // Function to check if a closed/resolved ticket adhered to SLA or breached it
+  const getSlaAdherence = (issue: Issue) => {
+    // Only check SLA adherence for closed/resolved tickets
+    if (issue.status !== "closed" && issue.status !== "resolved") {
+      return null;
+    }
+
+    // If closedAt timestamp is missing, we can't determine SLA adherence
+    if (!issue.closedAt || !issue.createdAt) {
+      return {
+        status: "unknown",
+        text: "N/A"
+      };
+    }
+
+    // Calculate working hours between creation and closure
+    const resolutionTime = calculateWorkingHours(issue.createdAt, issue.closedAt);
+    
+    // Check if resolution time exceeded SLA thresholds
+    // Critical SLA: 40 hours, High SLA: 24 hours, Medium SLA: 16 hours
+    let breached = false;
+    
+    // Check specific issue types that might have different SLAs
+    const highPriorityTypes = ['health', 'insurance', 'advance', 'esi', 'medical'];
+    const isHighPriorityType = issue.typeId && highPriorityTypes.some(type => issue.typeId.toLowerCase().includes(type));
+    
+    if (isHighPriorityType && resolutionTime > 24) {
+      breached = true;
+    } else if (issue.typeId.toLowerCase().includes('facility') && resolutionTime > 24) {
+      breached = true;
+    } else if (resolutionTime > 40) { // Critical SLA
+      breached = true;
+    }
+    
+    return {
+      status: breached ? "breached" : "adhered",
+      text: breached ? "SLA Breached" : "Closed within TAT",
+      hours: resolutionTime.toFixed(1)
+    };
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -147,6 +189,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                   <TableHead>Description</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>SLA Adherence</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
                   <TableHead>Actions</TableHead>
@@ -158,6 +201,9 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                   const isBreachedSLA = issue.priority === 'critical' && 
                     issue.status !== 'closed' && 
                     issue.status !== 'resolved';
+                  
+                  // Get SLA adherence for closed/resolved tickets
+                  const slaAdherence = getSlaAdherence(issue);
                   
                   return (
                     <TableRow 
@@ -197,6 +243,27 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                         )}
                       </TableCell>
                       <TableCell>
+                        {slaAdherence ? (
+                          <div className="flex items-center">
+                            {slaAdherence.status === "breached" ? (
+                              <div className="flex items-center">
+                                <XCircle className="h-4 w-4 text-red-500 mr-1" />
+                                <span className="text-xs text-red-600">{slaAdherence.text}</span>
+                              </div>
+                            ) : slaAdherence.status === "adhered" ? (
+                              <div className="flex items-center">
+                                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                                <span className="text-xs text-green-600">{slaAdherence.text}</span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">N/A</span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-500">N/A</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         {formatDate(issue.createdAt)}
                       </TableCell>
                       <TableCell>
@@ -218,7 +285,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                 
                 {recentIssues.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-6">
+                    <TableCell colSpan={10} className="text-center py-6">
                       No tickets found
                     </TableCell>
                   </TableRow>
