@@ -121,7 +121,7 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
   
   console.log(`Found ${data.length} feedback items`);
   
-  // Ensure the data conforms to the FeedbackItem type
+  // Process and validate the data to ensure it conforms to FeedbackItem type
   return data.map(item => {
     // Validate that sentiment is one of the allowed values
     let validSentiment: FeedbackSentiment = 'neutral';

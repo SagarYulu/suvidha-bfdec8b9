@@ -78,12 +78,24 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     let agentId = feedback.agent_id || undefined;
     
     // Use data from the issue if available
-    if (issueData) {
-      // Check if employees data exists and has the properties we need
-      if (issueData.employees) {
-        city = issueData.employees.city || city;
-        cluster = issueData.employees.cluster || cluster;
+    if (issueData && !issueError) {
+      // Perform proper type checking before accessing properties
+      if (typeof issueData === 'object' && issueData !== null && 'employees' in issueData && issueData.employees !== null) {
+        const employeesData = issueData.employees;
+        
+        // Check if the properties exist before accessing them
+        if (typeof employeesData === 'object' && employeesData !== null) {
+          if ('city' in employeesData && employeesData.city) {
+            city = employeesData.city as string;
+          }
+          
+          if ('cluster' in employeesData && employeesData.cluster) {
+            cluster = employeesData.cluster as string;
+          }
+        }
       }
+      
+      // This should be safe as it's directly on the issue
       agentId = issueData.assigned_to || agentId;
     }
     
