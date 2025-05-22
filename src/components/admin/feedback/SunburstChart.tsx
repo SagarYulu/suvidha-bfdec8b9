@@ -29,24 +29,26 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     const name = data.name;
     const value = data.value;
     const parentName = isChild ? data.parent : null;
-    const percentage = isChild 
-      ? `${((value / data.parentValue) * 100).toFixed(1)}% of ${parentName}`
-      : `${((value / data.totalValue) * 100).toFixed(1)}% of total`;
+    const parentValue = isChild ? data.parentValue : data.totalValue;
+    
+    // Calculate percentages correctly based on whether it's a parent or child segment
+    const categoryPercentage = isChild 
+      ? `${((value / parentValue) * 100).toFixed(1)}% of ${parentName}`
+      : '';
     const totalPercentage = `${((value / data.totalValue) * 100).toFixed(1)}% of total feedback`;
 
     return (
       <div className="bg-white p-3 border rounded-lg shadow-md">
-        {isChild && (
+        {isChild ? (
           <div className="font-medium mb-1 text-gray-600">
             <span className="text-gray-800">{parentName}</span> &gt; {name}
           </div>
-        )}
-        {!isChild && (
+        ) : (
           <div className="font-medium mb-1">{name}</div>
         )}
         <div className="text-sm space-y-1">
           <div><span className="font-semibold">Count:</span> {value}</div>
-          {isChild && <div><span className="font-semibold">Category:</span> {percentage}</div>}
+          {isChild && <div><span className="font-semibold">Category:</span> {categoryPercentage}</div>}
           <div><span className="font-semibold">Overall:</span> {totalPercentage}</div>
         </div>
       </div>
@@ -59,17 +61,21 @@ const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
 const renderActiveShape = (props: any) => {
   const { 
     cx, cy, innerRadius, outerRadius, startAngle, endAngle,
-    fill, payload, value, totalValue, parentValue
+    fill, payload, value, totalValue, parentValue, parent
   } = props;
   
   // Calculate percentage for label
-  const isMainCategory = innerRadius === 0;
-  const percentage = isMainCategory 
-    ? ((value / totalValue) * 100).toFixed(0) + '%'
-    : ((value / parentValue) * 100).toFixed(0) + '%';
+  const isMainCategory = !parent;
+  let percentage = '';
+  
+  if (isMainCategory) {
+    percentage = ((value / totalValue) * 100).toFixed(0) + '%';
+  } else if (parentValue) {
+    percentage = ((value / parentValue) * 100).toFixed(0) + '%';
+  }
   
   // Only show percentage on outer ring if segment is large enough
-  const showPercentage = !isMainCategory && ((value / parentValue) * 100) >= 10;
+  const showPercentage = (endAngle - startAngle) > 15;
   
   return (
     <g>
@@ -85,47 +91,52 @@ const renderActiveShape = (props: any) => {
         strokeWidth={2}
       />
       
-      {/* Show label for main categories */}
-      {isMainCategory && (startAngle - endAngle) <= -30 && (
-        <text 
-          x={cx} 
-          y={cy} 
-          textAnchor="middle" 
-          fill="#333"
-          fontSize={12}
-          fontWeight="bold"
-          dominantBaseline="middle"
-        >
-          {payload.name}
-        </text>
-      )}
-      
-      {/* Show percentage for outer ring segments if large enough */}
+      {/* Show percentage label if segment is large enough */}
       {showPercentage && (
         <text
           x={
             cx +
-            (outerRadius - (outerRadius - innerRadius) / 2) *
-            Math.sin((startAngle + endAngle) / 2 * Math.PI / 180)
-          }
-          y={
-            cy -
-            (outerRadius - (outerRadius - innerRadius) / 2) *
+            (outerRadius + (isMainCategory ? 0 : 15) - (outerRadius - innerRadius) / 2) *
             Math.cos((startAngle + endAngle) / 2 * Math.PI / 180)
           }
+          y={
+            cy +
+            (outerRadius + (isMainCategory ? 0 : 15) - (outerRadius - innerRadius) / 2) *
+            Math.sin((startAngle + endAngle) / 2 * Math.PI / 180)
+          }
           textAnchor="middle"
-          fill="#fff"
-          fontSize={10}
+          fill={isMainCategory ? "#333" : "#fff"}
+          fontSize={isMainCategory ? 12 : 10}
           fontWeight="bold"
         >
           {percentage}
         </text>
       )}
+      
+      {/* Optional: Show label for small segments as a line to outside */}
+      {!showPercentage && !isMainCategory && (
+        <>
+          <path
+            d={`M${
+              cx + outerRadius * Math.cos((startAngle + endAngle) / 2 * Math.PI / 180)
+            },${
+              cy + outerRadius * Math.sin((startAngle + endAngle) / 2 * Math.PI / 180)
+            }L${
+              cx + (outerRadius + 20) * Math.cos((startAngle + endAngle) / 2 * Math.PI / 180)
+            },${
+              cy + (outerRadius + 20) * Math.sin((startAngle + endAngle) / 2 * Math.PI / 180)
+            }`}
+            stroke="#fff"
+            strokeWidth={1}
+            fill="none"
+          />
+        </>
+      )}
     </g>
   );
 };
 
-// Legend item component
+// Legend item component - Enhanced for better readability
 const LegendItem = ({ color, name, value, total }: { color: string, name: string, value: number, total: number }) => {
   const percentage = ((value / total) * 100).toFixed(1);
   
@@ -191,17 +202,20 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return { h, s, l };
     };
     
-    // Create an array of colors from lighter to darker
+    // Create distinct gradient colors for each child
     const hsl = hexToHSL(baseColor);
     
-    // Adjust lightness based on index and count
-    // We'll make higher values darker (lower lightness)
-    const minLightness = Math.max(hsl.l - 15, 25); // Don't go too dark
-    const maxLightness = Math.min(hsl.l + 15, 75); // Don't go too light
-    
+    // Adjust saturation and lightness based on index to create visually distinct segments
     // For small datasets, we make a more noticeable difference
+    const minLightness = Math.max(hsl.l - 18, 25); // Darker for higher values
+    const maxLightness = Math.min(hsl.l + 10, 70); // Don't go too light
+    
+    // Calculate unique lightness and saturation values for each child
     const lightnessRange = maxLightness - minLightness;
     const lightness = maxLightness - (index / Math.max(childCount - 1, 1)) * lightnessRange;
+    
+    // Adjust saturation to enhance visual distinction
+    const saturation = Math.min(hsl.s + (index * 5), 100);
     
     // Convert back to hex
     const hslToHex = (h: number, s: number, l: number) => {
@@ -215,7 +229,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
       return `#${f(0)}${f(8)}${f(4)}`;
     };
     
-    return hslToHex(hsl.h, hsl.s, lightness);
+    return hslToHex(hsl.h, saturation, lightness);
   };
   
   // Process data for the chart
@@ -226,7 +240,6 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
     // Process inner ring (sentiment categories)
     const innerRingData = data.map((item, index) => {
       // Sort children by value (descending) to ensure consistent color assignment
-      // Higher values get darker colors
       const sortedChildren = item.children 
         ? [...item.children].sort((a, b) => b.value - a.value)
         : [];
@@ -308,6 +321,7 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
                 textAnchor="middle"
                 dominantBaseline="middle"
                 className="text-sm font-medium"
+                fill="#333"
               >
                 <tspan x="50%" dy="-10">Total Feedback</tspan>
                 <tspan x="50%" dy="20" fontSize="18" fontWeight="bold">
@@ -369,8 +383,8 @@ const SunburstChart: React.FC<SunburstChartProps> = ({
           </ResponsiveContainer>
         </div>
         
-        {/* Legend */}
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 px-2">
+        {/* Legend - Enhanced for better visualization */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-4 px-2 bg-gray-50 py-3 rounded-md">
           {legendData.map((item, index) => (
             <LegendItem 
               key={`legend-${index}`} 
