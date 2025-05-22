@@ -45,42 +45,79 @@ const FeedbackAnalyticsPage = () => {
       </div>
     );
   }
+
+  // Generate insights for the FeedbackInsightsSummary component
+  const generateInsights = () => {
+    if (!metrics || !comparisonMetrics) return [];
+    
+    // Convert to the format expected by FeedbackInsightsSummary
+    return [
+      {
+        label: 'Happiness Score',
+        value: `${metrics.happinessScore.toFixed(1)}%`,
+        change: calculatePercentChange(metrics.happinessScore, comparisonMetrics.happinessScore)
+      },
+      {
+        label: 'Response Rate',
+        value: `${metrics.responseRate.toFixed(1)}%`,
+        change: calculatePercentChange(metrics.responseRate, comparisonMetrics.responseRate)
+      },
+      {
+        label: 'Negative Feedback',
+        value: `${metrics.sentimentCounts.sad || 0}`,
+        change: calculatePercentChange(
+          metrics.sentimentCounts.sad || 0, 
+          comparisonMetrics.sentimentCounts.sad || 0
+        )
+      },
+      {
+        label: 'Average Resolution Time',
+        value: `${metrics.avgResolutionTime || 0} hrs`,
+        change: calculatePercentChange(
+          metrics.avgResolutionTime || 0, 
+          comparisonMetrics.avgResolutionTime || 0
+        )
+      }
+    ];
+  };
+  
+  // Helper function to calculate percent change
+  const calculatePercentChange = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
   
   return (
     <div className="space-y-6 p-6">
       <FeedbackFiltersPanel 
         filters={filters}
-        updateFilters={updateFilters}
-        showComparison={showComparison}
-        toggleComparison={toggleComparison}
+        onFilterChange={updateFilters}
+        isComparisonEnabled={showComparison}
+        onComparisonToggle={toggleComparison}
       />
       
       <FeedbackInsightsSummary 
-        currentMetrics={metrics} 
-        previousMetrics={comparisonMetrics} 
+        insights={generateInsights()} 
         showComparison={showComparison} 
       />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FeedbackTrendAnalysis 
-          metrics={metrics} 
-          comparisonMetrics={comparisonMetrics}
+          data={metrics?.trendData || []} 
           showComparison={showComparison}
-          isLoading={isLoading}
         />
         
         <SentimentDistributionChart 
-          currentData={metrics?.sentimentCounts} 
-          previousData={comparisonMetrics?.sentimentCounts}
+          data={metrics?.trendData || []} 
           showComparison={showComparison}
-          isLoading={isLoading}
+          title="Sentiment Distribution Over Time"
         />
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <FeedbackOptionBreakdown 
-          data={metrics?.topOptions || []} 
-          isLoading={isLoading} 
+          options={metrics?.topOptions || []} 
+          showComparison={showComparison} 
         />
         
         {/* Replace the old SunburstChart with our new EnhancedSunburstChart */}

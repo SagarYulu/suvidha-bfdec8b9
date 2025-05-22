@@ -27,7 +27,7 @@ const COLORS = [
 
 interface FeedbackOptionBreakdownProps {
   options: Array<{ option: string; count: number; sentiment: 'happy' | 'neutral' | 'sad' }>;
-  showComparison: boolean;
+  showComparison?: boolean;
 }
 
 // Custom active shape for better interaction
@@ -65,7 +65,7 @@ const renderActiveShape = (props: any) => {
 
 const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
   options,
-  showComparison
+  showComparison = false
 }) => {
   const [activeIndex, setActiveIndex] = React.useState<number | undefined>(undefined);
 
@@ -78,7 +78,7 @@ const FeedbackOptionBreakdown: React.FC<FeedbackOptionBreakdownProps> = ({
   };
 
   // Take the top options for the chart to avoid clutter
-  const topOptions = options.slice(0, 8);
+  const topOptions = options && options.length > 0 ? options.slice(0, 8) : [];
   const totalResponses = topOptions.reduce((sum, item) => sum + item.count, 0);
   
   // Format data for the donut chart
