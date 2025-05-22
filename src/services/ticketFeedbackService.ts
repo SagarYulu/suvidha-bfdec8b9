@@ -81,10 +81,13 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     // Use data from the issue if available
     if (issueData && !issueError) {
-      // Using a more careful approach to handle the type safety with proper null checks
-      if (issueData.employees && issueData.employees !== null) {
-        // Type guard to ensure employees is an object
-        const employeesData = issueData.employees as Record<string, unknown>;
+      // First check if employees exists and is not null or an error object
+      if (issueData.employees && 
+          typeof issueData.employees === 'object' && 
+          !('error' in issueData.employees)) {
+        
+        // Safely cast to unknown first, then to our expected type
+        const employeesData = (issueData.employees as unknown) as Record<string, unknown>;
         
         // Handle city with proper null checking
         if ('city' in employeesData && 
