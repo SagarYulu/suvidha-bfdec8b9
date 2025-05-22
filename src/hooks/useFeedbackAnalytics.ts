@@ -29,10 +29,12 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [metrics, setMetrics] = useState<FeedbackMetrics | null>(null);
   const [comparisonMetrics, setComparisonMetrics] = useState<FeedbackMetrics | null>(null);
   const [showComparison, setShowComparison] = useState<boolean>(false);
+  const [dataFetched, setDataFetched] = useState(false);
   
   // Update filters when user changes selection
   const updateFilters = (newFilters: Partial<FeedbackFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
+    setDataFetched(false);
   };
   
   // Toggle comparison mode
@@ -41,14 +43,21 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     if (!enabled) {
       // Turn off comparison mode
       updateFilters({ comparisonMode: 'none' });
+    } else {
+      // Default to week on week if turning on
+      updateFilters({ comparisonMode: 'wow' });
     }
+    setDataFetched(false);
   };
   
   // Fetch data when filters change
   useEffect(() => {
     const fetchData = async () => {
+      if (dataFetched) return;
+      
       setIsLoading(true);
       setError(null);
+      console.log("Fetching feedback data with filters:", filters);
       
       try {
         if (showComparison && filters.comparisonMode !== 'none') {
@@ -63,10 +72,14 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         } else {
           // Fetch only current data
           const data = await fetchFeedbackData(filters);
+          console.log("Fetched feedback data:", data?.length || 0, "items");
           setRawData(data);
-          setMetrics(calculateFeedbackMetrics(data));
+          const calculatedMetrics = calculateFeedbackMetrics(data);
+          console.log("Calculated metrics:", calculatedMetrics);
+          setMetrics(calculatedMetrics);
           setComparisonMetrics(null);
         }
+        setDataFetched(true);
       } catch (err) {
         console.error('Error in useFeedbackAnalytics:', err);
         setError(err instanceof Error ? err : new Error('Unknown error occurred'));
@@ -76,7 +89,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     };
     
     fetchData();
-  }, [filters, showComparison]);
+  }, [filters, showComparison, dataFetched]);
   
   return {
     isLoading,

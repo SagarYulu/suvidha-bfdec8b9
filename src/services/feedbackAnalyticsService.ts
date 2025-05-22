@@ -132,11 +132,26 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     throw error;
   }
   
+  if (!data || data.length === 0) {
+    console.log("No feedback data found for the given filters");
+    return [];
+  }
+  
+  console.log(`Found ${data.length} feedback items`);
+  
   // Ensure the data conforms to the FeedbackItem type by explicitly type casting sentiment
-  return (data || []).map(item => ({
-    ...item,
-    sentiment: item.sentiment as FeedbackSentiment
-  }));
+  return data.map(item => {
+    // Validate that sentiment is one of the allowed values
+    let validSentiment: FeedbackSentiment = 'neutral';
+    if (item.sentiment === 'happy' || item.sentiment === 'sad' || item.sentiment === 'neutral') {
+      validSentiment = item.sentiment as FeedbackSentiment;
+    }
+    
+    return {
+      ...item,
+      sentiment: validSentiment
+    };
+  });
 };
 
 // Calculate metrics from feedback data
@@ -153,7 +168,7 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
   // Count by sentiment
   feedbackData.forEach(item => {
     if (item.sentiment in sentimentCounts) {
-      sentimentCounts[item.sentiment as FeedbackSentiment]++;
+      sentimentCounts[item.sentiment]++;
     }
   });
   
@@ -170,7 +185,7 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
   feedbackData.forEach(item => {
     const option = item.feedback_option;
     if (!optionCounts[option]) {
-      optionCounts[option] = { count: 0, sentiment: item.sentiment as FeedbackSentiment };
+      optionCounts[option] = { count: 0, sentiment: item.sentiment };
     }
     optionCounts[option].count++;
   });
@@ -191,7 +206,7 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
       trendDataMap[date] = { happy: 0, neutral: 0, sad: 0, total: 0 };
     }
     
-    trendDataMap[date][item.sentiment as FeedbackSentiment]++;
+    trendDataMap[date][item.sentiment]++;
     trendDataMap[date].total++;
   });
   

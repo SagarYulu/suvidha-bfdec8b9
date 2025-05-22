@@ -99,7 +99,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   // Handle comparison mode toggle
   const handleComparisonToggle = (checked: boolean) => {
     onComparisonToggle(checked);
-    if (checked && !filters.comparisonMode) {
+    if (checked && (!filters.comparisonMode || filters.comparisonMode === 'none')) {
       // Default to week on week comparison when enabling
       onFilterChange({ comparisonMode: 'wow' });
     }
@@ -144,12 +144,13 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
+              <PopoverContent className="w-auto p-0 bg-white">
                 <Calendar
                   mode="range"
                   selected={dateRange}
                   onSelect={setDateRange}
                   initialFocus
+                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
@@ -168,7 +169,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="All Cities" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="all">All Cities</SelectItem>
                 {cities.map(city => (
                   <SelectItem key={city.id} value={city.name}>
@@ -192,7 +193,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                   filters.city ? "All Clusters" : "Select City First"
                 } />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="all">All Clusters</SelectItem>
                 {availableClusters.map(cluster => (
                   <SelectItem key={cluster.id} value={cluster.name}>
@@ -215,7 +216,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="All Sentiments" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="all">All Sentiments</SelectItem>
                 <SelectItem value="happy">Happy</SelectItem>
                 <SelectItem value="neutral">Neutral</SelectItem>
@@ -236,15 +237,15 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             </div>
             <Select 
               value={filters.comparisonMode || 'wow'}
-              onValueChange={(value) => onFilterChange({ 
-                comparisonMode: (value as any) || 'none' 
+              onValueChange={(value: any) => onFilterChange({ 
+                comparisonMode: value || 'none' 
               })}
               disabled={!isComparisonEnabled}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select comparison" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 {COMPARISON_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const {
     isLoading,
@@ -23,6 +24,13 @@ const FeedbackAnalyticsPage: React.FC = () => {
     toggleComparison
   } = useFeedbackAnalytics();
   
+  // Mark as initialized after first load
+  useEffect(() => {
+    if (!isInitialized && !isLoading) {
+      setIsInitialized(true);
+    }
+  }, [isLoading]);
+  
   // Handle comparison toggle
   const handleComparisonToggle = (enabled: boolean) => {
     setIsComparisonEnabled(enabled);
@@ -30,10 +38,11 @@ const FeedbackAnalyticsPage: React.FC = () => {
   };
   
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading && !isInitialized) {
       return (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          <span className="ml-2">Loading feedback data...</span>
         </div>
       );
     }

@@ -29,6 +29,7 @@ interface SentimentFilterBarProps {
     city?: string;
     cluster?: string;
     role?: string;
+    comparisonMode?: string;
   }) => void;
 }
 
@@ -40,9 +41,10 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     from: undefined,
     to: undefined,
   });
+  const [isFiltering, setIsFiltering] = useState(false);
 
   // Fetch cities
-  const { data: cities } = useQuery({
+  const { data: cities, isLoading: loadingCities } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,7 +58,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   // Fetch clusters based on selected city
-  const { data: clusters } = useQuery({
+  const { data: clusters, isLoading: loadingClusters } = useQuery({
     queryKey: ['clusters', city],
     queryFn: async () => {
       if (!city || city === 'all-cities') return [];
@@ -74,7 +76,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   // Fetch roles
-  const { data: roles } = useQuery({
+  const { data: roles, isLoading: loadingRoles } = useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -88,6 +90,10 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   });
 
   const handleApplyFilters = () => {
+    // Prevent multiple rapid filter applications
+    if (isFiltering) return;
+    setIsFiltering(true);
+    
     // Find the city name if a city is selected
     let cityName: string | undefined = undefined;
     
@@ -127,6 +133,9 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     console.log("Applying filters:", filters);
     
     onFilterChange(filters);
+    
+    // Reset filtering flag after a short delay
+    setTimeout(() => setIsFiltering(false), 500);
   };
 
   const handleResetFilters = () => {
@@ -176,6 +185,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
                 selected={dateRange}
                 onSelect={setDateRange}
                 initialFocus
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -188,7 +198,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectTrigger>
               <SelectValue placeholder="Select city" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               <SelectItem value="all-cities">All Cities</SelectItem>
               {cities?.map((city) => (
                 <SelectItem key={city.id} value={city.id}>
@@ -210,7 +220,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectTrigger>
               <SelectValue placeholder={city && city !== 'all-cities' ? "Select cluster" : "Select city first"} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               <SelectItem value="all-clusters">All Clusters</SelectItem>
               {clusters?.map((cluster) => (
                 <SelectItem key={cluster.id} value={cluster.id}>
@@ -228,7 +238,7 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
             <SelectTrigger>
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-white">
               <SelectItem value="all-roles">All Roles</SelectItem>
               {roles?.map((role) => (
                 <SelectItem key={role.id} value={role.id}>
@@ -241,10 +251,10 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
       </div>
 
       <div className="flex justify-end space-x-2 mt-4">
-        <Button variant="outline" onClick={handleResetFilters}>
+        <Button variant="outline" onClick={handleResetFilters} disabled={isFiltering}>
           <X className="w-4 h-4 mr-1" /> Reset Filters
         </Button>
-        <Button onClick={handleApplyFilters}>
+        <Button onClick={handleApplyFilters} disabled={isFiltering}>
           Apply Filters
         </Button>
       </div>
