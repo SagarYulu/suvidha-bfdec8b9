@@ -13,6 +13,7 @@ export type TicketFeedback = {
   city?: string;       // Added city
   cluster?: string;    // Added cluster
   agent_id?: string;   // Added agent (who closed the ticket)
+  agent_name?: string; // Added agent name
 };
 
 // Check if feedback already exists for a ticket
@@ -72,10 +73,11 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       console.error("Error fetching issue data:", issueError);
     }
     
-    // Extract city, cluster, and agent information
+    // Extract city, cluster, agent ID and agent name information
     let city = feedback.city || undefined;
     let cluster = feedback.cluster || undefined;
     let agentId = feedback.agent_id || undefined;
+    let agentName = feedback.agent_name || undefined;
     
     // Use data from the issue if available
     if (issueData && !issueError) {
@@ -97,6 +99,19 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       
       // This should be safe as it's directly on the issue
       agentId = issueData.assigned_to || agentId;
+      
+      // If we have an agent ID but no name, try to get the name from dashboard_users
+      if (agentId && !agentName) {
+        const { data: agentData, error: agentError } = await supabase
+          .from('dashboard_users')
+          .select('name')
+          .eq('id', agentId)
+          .single();
+          
+        if (!agentError && agentData) {
+          agentName = agentData.name;
+        }
+      }
     }
     
     // Prepare feedback data with additional information
@@ -107,7 +122,8 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       feedback_option: feedback.feedback_text || feedback.feedback_option, // Store the full text here
       city,
       cluster,
-      agent_id: agentId
+      agent_id: agentId,
+      agent_name: agentName
     };
     
     console.log("Submitting enriched feedback data:", feedbackData);

@@ -587,6 +587,7 @@ export type Database = {
       ticket_feedback: {
         Row: {
           agent_id: string | null
+          agent_name: string | null
           city: string | null
           cluster: string | null
           created_at: string
@@ -598,6 +599,7 @@ export type Database = {
         }
         Insert: {
           agent_id?: string | null
+          agent_name?: string | null
           city?: string | null
           cluster?: string | null
           created_at?: string
@@ -609,6 +611,7 @@ export type Database = {
         }
         Update: {
           agent_id?: string | null
+          agent_name?: string | null
           city?: string | null
           cluster?: string | null
           created_at?: string

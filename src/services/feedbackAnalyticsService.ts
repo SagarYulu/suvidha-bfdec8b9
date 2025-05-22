@@ -15,6 +15,7 @@ export interface FeedbackItem {
   city?: string;
   cluster?: string;
   agent_id?: string;
+  agent_name?: string; // Added agent name
 }
 
 export interface FeedbackMetrics {
@@ -34,6 +35,7 @@ export interface FeedbackFilters {
   sentiment?: FeedbackSentiment;
   employeeUuid?: string;
   agentId?: string; // Agent who closed the ticket
+  agentName?: string; // Agent name for filtering
   comparisonMode?: ComparisonMode;
 }
 
@@ -64,7 +66,8 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
       created_at,
       city,
       cluster,
-      agent_id
+      agent_id,
+      agent_name
     `);
   
   // Apply date filters if provided
@@ -102,6 +105,11 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
   // Apply agent filter directly if provided
   if (filters.agentId) {
     query = query.eq('agent_id', filters.agentId);
+  }
+  
+  // Apply agent name filter if provided
+  if (filters.agentName) {
+    query = query.eq('agent_name', filters.agentName);
   }
   
   // Order by created_at to ensure consistent results
@@ -142,7 +150,8 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
       created_at: String(item.created_at || ''),
       city: item.city ? String(item.city) : undefined,
       cluster: item.cluster ? String(item.cluster) : undefined,
-      agent_id: item.agent_id ? String(item.agent_id) : undefined
+      agent_id: item.agent_id ? String(item.agent_id) : undefined,
+      agent_name: item.agent_name ? String(item.agent_name) : undefined
     } as FeedbackItem;
   });
 };
