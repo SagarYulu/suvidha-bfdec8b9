@@ -82,16 +82,18 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Use data from the issue if available
     if (issueData && !issueError) {
       // Perform proper type checking before accessing properties
-      if (typeof issueData === 'object' && issueData !== null && 'employees' in issueData && issueData.employees !== null) {
+      if (typeof issueData === 'object' && issueData !== null && 'employees' in issueData) {
         const employeesData = issueData.employees;
         
-        // Check if the properties exist before accessing them
-        if (typeof employeesData === 'object' && employeesData !== null) {
-          if ('city' in employeesData && employeesData.city) {
+        // Check if employeesData exists and has the properties we need
+        if (employeesData && typeof employeesData === 'object') {
+          // Check if city exists in employeesData before accessing it
+          if ('city' in employeesData && employeesData.city !== null) {
             city = employeesData.city as string;
           }
           
-          if ('cluster' in employeesData && employeesData.cluster) {
+          // Check if cluster exists in employeesData before accessing it
+          if ('cluster' in employeesData && employeesData.cluster !== null) {
             cluster = employeesData.cluster as string;
           }
         }
