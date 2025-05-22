@@ -139,7 +139,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
       employee_uuid: employeeUuid,
       sentiment,
       feedback_option: selectedOption,
-      feedback_text: selectedFeedbackOption.label, // Only store the English text
+      feedback_text: selectedFeedbackOption.label, // Store the full English text
     };
 
     try {
