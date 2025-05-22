@@ -31,6 +31,7 @@ interface FeedbackFiltersPanelProps {
   onComparisonToggle: (enabled: boolean) => void;
 }
 
+// Make sure all values match exactly with the ComparisonMode type
 const COMPARISON_OPTIONS: {value: ComparisonMode, label: string}[] = [
   { value: 'dod', label: 'Day on Day' },
   { value: 'wow', label: 'Week on Week' },

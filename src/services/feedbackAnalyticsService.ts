@@ -34,7 +34,7 @@ export interface FeedbackFilters {
 }
 
 // Helper to get comparison date based on mode
-export const getComparisonDate = (date: Date, mode: string): Date => {
+export const getComparisonDate = (date: Date, mode: ComparisonMode): Date => {
   switch (mode) {
     case 'dod': return subDays(date, 1);
     case 'wow': return subWeeks(date, 1);

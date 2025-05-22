@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Select,
@@ -8,10 +7,11 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 
-export type ComparisonMode = 'none' | 'wow' | 'mom' | 'qoq' | 'yoy';
+export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
 
 export const COMPARISON_MODE_LABELS: Record<ComparisonMode, string> = {
   'none': 'No Comparison',
+  'dod': 'Day-on-Day',
   'wow': 'Week-on-Week',
   'mom': 'Month-on-Month',
   'qoq': 'Quarter-on-Quarter',
