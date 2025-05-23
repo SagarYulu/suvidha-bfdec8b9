@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { Loader2, AlertTriangle, Download, FileExport } from 'lucide-react';
+import { Loader2, AlertTriangle, Download, FileText } from 'lucide-react';
 import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
@@ -155,7 +155,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
             className="ml-auto" 
             disabled={!rawData || rawData.length === 0 || isLoading}
           >
-            <FileExport className="mr-2 h-4 w-4" />
+            <FileText className="mr-2 h-4 w-4" />
             Export Data
           </Button>
         </div>
