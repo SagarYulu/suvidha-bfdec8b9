@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector 
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
@@ -13,7 +13,6 @@ export interface SubReasonItem {
   value: number;
   sentiment: string;
   percentage: number;
-  sentimentIndex: number;
 }
 
 export interface SentimentGroup {
@@ -105,6 +104,34 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
           outerRadius={outerRadius + 10}
           fill={fill}
         />
+        <text 
+          x={cx} 
+          y={cy - 15} 
+          textAnchor="middle" 
+          fill="#333"
+          fontSize={14}
+          fontWeight="bold"
+        >
+          {payload.name}
+        </text>
+        <text 
+          x={cx} 
+          y={cy + 8} 
+          textAnchor="middle" 
+          fill="#666"
+          fontSize={12}
+        >
+          {payload.value} responses
+        </text>
+        <text 
+          x={cx} 
+          y={cy + 24} 
+          textAnchor="middle" 
+          fill="#666"
+          fontSize={12}
+        >
+          {payload.percentage.toFixed(1)}% of total
+        </text>
       </g>
     );
   };
@@ -113,7 +140,7 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
   const renderActiveSubReasonShape = (props: any) => {
     const { 
       cx, cy, innerRadius, outerRadius, startAngle, endAngle,
-      fill
+      fill, payload
     } = props;
     
     return (
@@ -163,22 +190,26 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
     return null;
   };
 
-  // Render text-based breakdown of sentiment and sub-reasons
-  const renderTextualBreakdown = () => {
+  // Custom legend that shows count and percentage
+  const renderCustomLegend = (props: any) => {
+    const { payload } = props;
+    
     return (
-      <div className="mt-8 space-y-6">
-        {data.map((sentiment) => (
-          <div key={sentiment.id} className="space-y-2">
-            <h3 className="text-lg font-semibold" style={{ color: sentiment.color }}>
-              {sentiment.name} ({sentiment.value} | {sentiment.percentage.toFixed(1)}%)
-            </h3>
-            <div className="pl-5 space-y-1">
-              {sentiment.subReasons.map((reason) => (
-                <p key={reason.id} className="text-sm">
-                  &gt; {reason.name} ({reason.value} | {reason.percentage.toFixed(1)}%)
-                </p>
-              ))}
-            </div>
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
+        {payload.map((entry: any, index: number) => (
+          <div 
+            key={`legend-${index}`}
+            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
+            onClick={() => setActiveIndex({ outer: entry.payload.sentimentIndex || null, inner: null })}
+          >
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm font-medium mr-1">{entry.value}</span>
+            <span className="text-xs text-gray-500">
+              ({entry.payload.value} | {entry.payload.percentage.toFixed(1)}%)
+            </span>
           </div>
         ))}
       </div>
@@ -214,7 +245,7 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-80 md:h-[400px] w-full">
+        <div className="h-96 md:h-[440px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               {/* Outer pie chart for sentiment categories */}
@@ -254,6 +285,8 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
                 onMouseLeave={onPieLeave}
                 activeIndex={activeIndex.inner}
                 activeShape={renderActiveSubReasonShape}
+                label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={{ stroke: '#666', strokeWidth: 0.5 }}
               >
                 {subReasonsData.map((entry, index) => (
                   <Cell 
@@ -265,14 +298,16 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
                 ))}
               </Pie>
               
-              {/* Tooltip */}
+              {/* Tooltips and Legend */}
               <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                content={renderCustomLegend}
+                verticalAlign="bottom"
+                align="center"
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>
-        
-        {/* Text-based breakdown showing the format requested by the user */}
-        {renderTextualBreakdown()}
       </CardContent>
     </Card>
   );

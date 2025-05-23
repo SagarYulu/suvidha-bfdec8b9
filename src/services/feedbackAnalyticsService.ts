@@ -112,20 +112,18 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     query = query.eq('employee_uuid', filters.employeeUuid);
   }
   
-  // Apply city filter properly - fix the issue here
-  if (filters.city && filters.city !== "all") {
-    console.log("Filtering by city:", filters.city);
+  // Apply city filter directly if provided
+  if (filters.city) {
     query = query.eq('city', filters.city);
   }
   
-  // Apply cluster filter properly
-  if (filters.cluster && filters.cluster !== "all") {
-    console.log("Filtering by cluster:", filters.cluster);
+  // Apply cluster filter directly if provided
+  if (filters.cluster) {
     query = query.eq('cluster', filters.cluster);
   }
   
   // Apply agent filter directly if provided
-  if (filters.agentId && filters.agentId !== "all") {
+  if (filters.agentId) {
     query = query.eq('agent_id', filters.agentId);
   }
   

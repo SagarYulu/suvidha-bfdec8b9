@@ -157,14 +157,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     if (activeDataFetch) return;
     
     console.log("Updating filters:", newFilters);
-    
-    // Clear "all" values to undefined to ensure filters work correctly
-    const processedFilters = {...newFilters};
-    if (processedFilters.city === "all") processedFilters.city = undefined;
-    if (processedFilters.cluster === "all") processedFilters.cluster = undefined;
-    if (processedFilters.agentId === "all") processedFilters.agentId = undefined;
-    
-    setFilters(prev => ({ ...prev, ...processedFilters }));
+    setFilters(prev => ({ ...prev, ...newFilters }));
     setDataFetched(false);
     setFilterChangeCount(prev => prev + 1);
   }, [activeDataFetch]);
