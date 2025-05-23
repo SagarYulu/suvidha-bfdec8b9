@@ -1,29 +1,25 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { 
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
-  SelectValue 
+  SelectValue,
 } from '@/components/ui/select';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { format } from 'date-fns';
-import { CalendarIcon, FilterIcon, ChevronDown, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { DateRange } from 'react-day-picker';
 import { FeedbackFilters } from '@/services/feedbackAnalyticsService';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, ChevronDown, BarChartHorizontalBig, BarChart3, Users } from 'lucide-react';
+import { format } from 'date-fns';
+import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
+import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
 import { supabase } from '@/integrations/supabase/client';
-import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
 interface FeedbackFiltersPanelProps {
   filters: FeedbackFilters;
@@ -32,368 +28,207 @@ interface FeedbackFiltersPanelProps {
   onComparisonToggle: (enabled: boolean) => void;
 }
 
-// Make sure all values match exactly with the ComparisonMode type
-const COMPARISON_OPTIONS: {value: ComparisonMode, label: string}[] = [
-  { value: 'dod', label: 'Day on Day' },
-  { value: 'wow', label: 'Week on Week' },
-  { value: 'mom', label: 'Month on Month' },
-  { value: 'qoq', label: 'Quarter on Quarter' },
-  { value: 'yoy', label: 'Year on Year' }
-];
-
-const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
-  filters,
+const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({ 
+  filters, 
   onFilterChange,
   isComparisonEnabled,
   onComparisonToggle
 }) => {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: filters.startDate ? new Date(filters.startDate) : undefined,
-    to: filters.endDate ? new Date(filters.endDate) : undefined
-  });
+  const [date, setDate] = useState<Date | undefined>(filters.startDate ? new Date(filters.startDate) : undefined);
+  const [toDate, setToDate] = useState<Date | undefined>(filters.endDate ? new Date(filters.endDate) : undefined);
+  const [open, setOpen] = React.useState(false);
+  const [openTo, setOpenTo] = React.useState(false);
   
-  const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
-  const [clusters, setClusters] = useState<{ id: string; name: string; city_id: string }[]>([]);
-  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [tempFilters, setTempFilters] = useState<Partial<FeedbackFilters>>(filters || {});
+  // Add state for available agents
+  const [agents, setAgents] = useState<{id: string, name: string}[]>([]);
   
-  // Initialize temp filters with current filters
+  // Fetch agent data
   useEffect(() => {
-    setTempFilters({...filters});
-  }, [filters]);
-  
-  // Fetch cities, clusters and agents from master data
-  useEffect(() => {
-    const fetchFilterOptions = async () => {
+    const fetchAgents = async () => {
       try {
-        // Fetch cities
-        const { data: citiesData, error: citiesError } = await supabase
-          .from('master_cities')
-          .select('id, name')
-          .order('name');
-        
-        if (citiesError) throw citiesError;
-        setCities(citiesData || []);
-        
-        // Fetch clusters
-        const { data: clustersData, error: clustersError } = await supabase
-          .from('master_clusters')
-          .select('id, name, city_id')
-          .order('name');
-        
-        if (clustersError) throw clustersError;
-        setClusters(clustersData || []);
-        
-        // Fetch agents (employees who close tickets)
-        const { data: agentsData, error: agentsError } = await supabase
+        const { data, error } = await supabase
           .from('dashboard_users')
           .select('id, name')
           .order('name');
+          
+        if (error) {
+          console.error('Error fetching agents:', error);
+          return;
+        }
         
-        if (agentsError) throw agentsError;
-        setAgents(agentsData || []);
-        
-      } catch (error) {
-        console.error('Error fetching filter options:', error);
-      } finally {
-        setLoading(false);
+        setAgents(data || []);
+      } catch (err) {
+        console.error('Failed to fetch agents:', err);
       }
     };
     
-    fetchFilterOptions();
+    fetchAgents();
   }, []);
   
-  // Handle date range selection without immediately applying filter
-  const handleDateRangeChange = (range: DateRange | undefined) => {
-    setDateRange(range);
-    if (range?.from) {
-      setTempFilters({
-        ...tempFilters,
-        startDate: format(range.from, 'yyyy-MM-dd'),
-        endDate: range.to ? format(range.to, 'yyyy-MM-dd') : format(range.from, 'yyyy-MM-dd')
-      });
-      
-      // Don't close the calendar until user clicks Apply
-      if (range.to) {
-        // Optional: close calendar when a complete range is selected
-        // setIsCalendarOpen(false);
-      }
+  const formattedDate = date ? format(date, 'yyyy-MM-dd') : '';
+  const formattedToDate = toDate ? format(toDate, 'yyyy-MM-dd') : '';
+  
+  const handleDateChange = (newDate: Date | undefined) => {
+    setDate(newDate);
+    if (newDate) {
+      const formatted = format(newDate, 'yyyy-MM-dd');
+      onFilterChange({ startDate: formatted });
+    } else {
+      onFilterChange({ startDate: undefined });
     }
   };
   
-  // Apply all filters
-  const handleApplyFilters = () => {
-    console.log("Applying filters:", tempFilters);
-    onFilterChange(tempFilters);
-    setIsCalendarOpen(false); // Close calendar after applying
-  };
-  
-  // Handle comparison mode toggle
-  const handleComparisonToggle = (checked: boolean) => {
-    onComparisonToggle(checked);
-    if (checked && (!filters.comparisonMode || filters.comparisonMode === 'none')) {
-      // Default to week on week comparison when enabling
-      setTempFilters({
-        ...tempFilters,
-        comparisonMode: 'wow'
-      });
+  const handleToDateChange = (newToDate: Date | undefined) => {
+    setToDate(newToDate);
+    if (newToDate) {
+      const formatted = format(newToDate, 'yyyy-MM-dd');
+      onFilterChange({ endDate: formatted });
+    } else {
+      onFilterChange({ endDate: undefined });
     }
   };
   
-  // Update temp filters for select changes
-  const handleFilterChange = (key: keyof FeedbackFilters, value: any) => {
-    console.log(`Setting ${key} to:`, value);
-    setTempFilters({
-      ...tempFilters,
-      [key]: value === "all" ? undefined : value
+  // Add agent filter handler
+  const handleAgentChange = (agentId: string | null) => {
+    onFilterChange({
+      agentId: agentId === 'all' ? undefined : agentId || undefined,
+      // Also update agent name for display purposes
+      agentName: agentId === 'all' ? undefined : 
+        agents.find(a => a.id === agentId)?.name
     });
   };
   
-  // Get available clusters based on selected city
-  const availableClusters = tempFilters.city
-    ? clusters.filter(cluster => {
-        const cityObj = cities.find(c => c.name === tempFilters.city);
-        return cityObj && cluster.city_id === cityObj.id;
-      })
-    : clusters;
+  const handleComparisonToggle = (checked: boolean) => {
+    onComparisonToggle(checked);
+  };
+  
+  const handleComparisonModeChange = (mode: ComparisonMode) => {
+    onFilterChange({ comparisonMode: mode });
+  };
+  
+  const handleApplyFilters = () => {
+    // Apply any additional logic here before applying filters
+    console.log('Applying filters:', filters);
+  };
   
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {/* Date Range */}
+    <Card className="mb-6">
+      <CardContent className="pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Date Range Filter */}
           <div>
-            <Label className="mb-1 block">Date Range</Label>
-            <Popover 
-              open={isCalendarOpen} 
-              onOpenChange={setIsCalendarOpen}
-            >
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !dateRange?.from && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd, y")} -{" "}
-                        {format(dateRange.to, "LLL dd, y")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Select date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent 
-                className="w-auto p-0" 
-                align="start"
-                style={{ zIndex: 50 }}
-              >
-                <div>
+            <Label htmlFor="date-range" className="mb-2 block">Date Range</Label>
+            <div className="flex space-x-2">
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={'outline'}
+                    className={
+                      'w-[140px] justify-start text-left font-normal' +
+                      (date ? ' text-foreground' : ' text-muted-foreground')
+                    }
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formattedDate ? formattedDate : <span>Pick a date</span>}
+                    <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={handleDateRangeChange}
+                    mode="single"
+                    selected={date}
+                    onSelect={handleDateChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date('2023-01-01')
+                    }
                     initialFocus
-                    numberOfMonths={2}
-                    className="pointer-events-auto"
                   />
-                  <div className="p-3 border-t flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => setIsCalendarOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        if (dateRange && dateRange.from) {
-                          handleApplyFilters();
-                        }
-                      }}
-                    >
-                      Apply Date
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverContent>
+              </Popover>
+              <Popover open={openTo} onOpenChange={setOpenTo}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={'outline'}
+                    className={
+                      'w-[140px] justify-start text-left font-normal' +
+                      (toDate ? ' text-foreground' : ' text-muted-foreground')
+                    }
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {formattedToDate ? formattedToDate : <span>Pick a date</span>}
+                    <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={toDate}
+                    onSelect={handleToDateChange}
+                    disabled={(date) =>
+                      date > new Date() || date < new Date('2023-01-01')
+                    }
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
           
           {/* City Filter */}
           <div>
-            <Label className="mb-1 block">City</Label>
-            <Select 
-              value={tempFilters.city || "all"}
-              onValueChange={(value) => {
-                // Reset cluster when city changes
-                const newFilters = {
-                  ...tempFilters,
-                  city: value === "all" ? undefined : value,
-                  cluster: undefined
-                };
-                setTempFilters(newFilters);
-                console.log("Updated tempFilters after city change:", newFilters);
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Cities" />
-              </SelectTrigger>
-              <SelectContent className="bg-white max-h-60 overflow-y-auto">
-                <SelectItem value="all">All Cities</SelectItem>
-                {cities.map(city => (
-                  <SelectItem key={city.id} value={city.name}>
-                    {city.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="city-filter" className="mb-2 block">City</Label>
+            <Input 
+              type="text" 
+              id="city-filter" 
+              placeholder="Enter city" 
+              value={filters.city || ''}
+              onChange={(e) => onFilterChange({ city: e.target.value })}
+            />
           </div>
           
-          {/* Cluster Filter */}
+          {/* Agent Filter - NEW */}
           <div>
-            <Label className="mb-1 block">Cluster</Label>
+            <Label htmlFor="agent-filter" className="mb-2 block">Agent</Label>
             <Select 
-              value={tempFilters.cluster || "all"}
-              onValueChange={(value) => handleFilterChange('cluster', value)}
-              disabled={!tempFilters.city || availableClusters.length === 0}
+              value={filters.agentId || 'all'} 
+              onValueChange={handleAgentChange}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={
-                  tempFilters.city ? "All Clusters" : "Select City First"
-                } />
-              </SelectTrigger>
-              <SelectContent className="bg-white max-h-60 overflow-y-auto">
-                <SelectItem value="all">All Clusters</SelectItem>
-                {availableClusters.map(cluster => (
-                  <SelectItem key={cluster.id} value={cluster.name}>
-                    {cluster.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Agent Filter */}
-          <div>
-            <Label className="mb-1 block">Agent</Label>
-            <Select 
-              value={tempFilters.agentId || "all"}
-              onValueChange={(value) => handleFilterChange('agentId', value)}
-            >
-              <SelectTrigger>
+              <SelectTrigger id="agent-filter" className="w-full">
                 <SelectValue placeholder="All Agents" />
               </SelectTrigger>
-              <SelectContent className="bg-white max-h-60 overflow-y-auto">
-                <SelectItem value="all">All Agents</SelectItem>
-                {agents.map(agent => (
-                  <SelectItem key={agent.id} value={agent.id}>
-                    {agent.name}
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2" /> All Agents
+                    </div>
                   </SelectItem>
-                ))}
+                  {agents.map(agent => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
           
-          {/* Comparison Mode */}
-          <div className="flex flex-col">
-            <div className="flex items-center justify-between mb-1.5">
-              <Label htmlFor="comparison-toggle">Comparison</Label>
+          {/* Comparison Control */}
+          <div>
+            <Label htmlFor="comparison-toggle" className="mb-2 block">Enable Comparison</Label>
+            <div className="flex items-center space-x-2">
               <Switch 
-                id="comparison-toggle" 
-                checked={isComparisonEnabled} 
+                id="comparison-toggle"
+                checked={isComparisonEnabled}
                 onCheckedChange={handleComparisonToggle}
               />
+              <ComparisonModeDropdown 
+                value={filters.comparisonMode || 'none'}
+                onChange={handleComparisonModeChange}
+                disabled={!isComparisonEnabled}
+              />
             </div>
-            <Select 
-              value={tempFilters.comparisonMode || 'wow'}
-              onValueChange={(value) => handleFilterChange('comparisonMode', value as ComparisonMode)}
-              disabled={!isComparisonEnabled}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select comparison" />
-              </SelectTrigger>
-              <SelectContent className="bg-white z-50">
-                {COMPARISON_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
-        </div>
-        
-        {/* Sentiment Filter (moved to second row) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 mt-4">
-          <div>
-            <Label className="mb-1 block">Sentiment</Label>
-            <Select 
-              value={tempFilters.sentiment || "all"}
-              onValueChange={(value) => handleFilterChange('sentiment', value === "all" ? undefined : value as 'happy' | 'neutral' | 'sad' | undefined)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Sentiments" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="all">All Sentiments</SelectItem>
-                <SelectItem value="happy">Happy</SelectItem>
-                <SelectItem value="neutral">Neutral</SelectItem>
-                <SelectItem value="sad">Sad</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Apply Filters button */}
-          <div className="flex items-end">
-            <Button 
-              variant="default"
-              onClick={handleApplyFilters}
-              className="ml-2 mt-2"
-            >
-              Apply Filters
-            </Button>
-          </div>
-        </div>
-        
-        {/* Reset Filters Button */}
-        <div className="flex justify-end mt-4">
-          <Button 
-            variant="outline"
-            onClick={() => {
-              // Reset all filters but keep date range
-              const resetFilters = {
-                startDate: filters.startDate,
-                endDate: filters.endDate,
-                city: undefined,
-                cluster: undefined,
-                sentiment: undefined,
-                agentId: undefined,
-                employeeUuid: undefined,
-              };
-              
-              setTempFilters(resetFilters);
-              onFilterChange(resetFilters);
-              
-              // Also reset comparison if enabled
-              if (isComparisonEnabled) {
-                onComparisonToggle(false);
-              }
-            }}
-          >
-            <X className="w-4 h-4 mr-1" /> Reset Filters
-          </Button>
         </div>
       </CardContent>
     </Card>

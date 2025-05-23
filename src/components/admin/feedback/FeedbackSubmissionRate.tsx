@@ -3,7 +3,18 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AgentFeedbackStats } from '@/services/feedbackAnalyticsService';
-import { ChartPie, AlertTriangle, BarChart3 } from 'lucide-react';
+import { BarChart3, AlertTriangle } from 'lucide-react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 
 interface FeedbackSubmissionRateProps {
   totalFeedback: number;
@@ -11,6 +22,27 @@ interface FeedbackSubmissionRateProps {
   submissionRate: number;
   agentStats?: AgentFeedbackStats[];
 }
+
+// Custom tooltip for the chart
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 rounded-md shadow-lg border border-gray-200">
+        <p className="font-medium">{`${label}`}</p>
+        <p className="text-sm mt-1">
+          <span className="text-blue-600 font-medium">Closed Tickets:</span> {payload[0].payload.closedTickets}
+        </p>
+        <p className="text-sm">
+          <span className="text-green-600 font-medium">Feedback Received:</span> {payload[0].payload.receivedFeedback}
+        </p>
+        <p className="text-sm">
+          <span className="text-purple-600 font-medium">Submission Rate:</span> {payload[0].payload.feedbackPercentage.toFixed(1)}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
   totalFeedback,
@@ -41,6 +73,14 @@ const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
       </Card>
     );
   }
+  
+  // Prepare chart data for agents
+  const chartData = topAgents.map((agent, index) => ({
+    name: `Agent ${index + 1}`,
+    feedbackPercentage: agent.feedbackPercentage,
+    closedTickets: agent.closedTickets,
+    receivedFeedback: agent.receivedFeedback,
+  }));
   
   return (
     <Card>
@@ -77,12 +117,54 @@ const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
           </div>
         </div>
         
-        {/* Agent Feedback Rates */}
+        {/* Agent Feedback Charts */}
         {topAgents.length > 0 && (
-          <div>
+          <div className="mt-8">
             <h3 className="text-base font-medium mb-3">Top Agent Feedback Rates</h3>
             
-            <div className="space-y-4">
+            {/* Bar chart for agent comparison */}
+            <div className="h-64 mt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={chartData}
+                  margin={{
+                    top: 5,
+                    right: 30,
+                    left: 20,
+                    bottom: 5,
+                  }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                  <XAxis dataKey="name" />
+                  <YAxis
+                    yAxisId="left"
+                    orientation="left"
+                    stroke="#8884d8"
+                    label={{ value: 'Count', angle: -90, position: 'insideLeft' }}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#82ca9d"
+                    label={{ value: 'Rate (%)', angle: 90, position: 'insideRight' }}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Bar yAxisId="left" name="Closed Tickets" dataKey="closedTickets" fill="#8884d8" />
+                  <Bar yAxisId="left" name="Feedback Received" dataKey="receivedFeedback" fill="#82ca9d" />
+                  <Bar yAxisId="right" name="Submission Rate %" dataKey="feedbackPercentage" fill="#ff7300">
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={`hsl(${140 + index * 40}, 80%, 60%)`} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Simple list with percentage bars for quick scanning */}
+            <div className="space-y-4 mt-8">
+              <h4 className="text-sm font-medium text-gray-500">Agent Submission Rates</h4>
               {topAgents.map((agent, index) => (
                 <div key={agent.agentId} className="group">
                   <div className="flex justify-between items-center mb-1">
