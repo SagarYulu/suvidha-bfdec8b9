@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   
   // Apply all filters
   const handleApplyFilters = () => {
+    console.log("Applying filters:", tempFilters);
     onFilterChange(tempFilters);
     setIsCalendarOpen(false); // Close calendar after applying
   };
@@ -259,11 +261,11 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
             <Select 
               value={tempFilters.cluster || "all"}
               onValueChange={(value) => handleFilterChange('cluster', value)}
-              disabled={!tempFilters.city || availableClusters.length === 0}
+              disabled={!tempFilters.city || tempFilters.city === "all" || availableClusters.length === 0}
             >
               <SelectTrigger>
                 <SelectValue placeholder={
-                  tempFilters.city ? "All Clusters" : "Select City First"
+                  tempFilters.city && tempFilters.city !== "all" ? "All Clusters" : "Select City First"
                 } />
               </SelectTrigger>
               <SelectContent className="bg-white max-h-60 overflow-y-auto">
