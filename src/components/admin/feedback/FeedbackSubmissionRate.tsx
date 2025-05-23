@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { AgentFeedbackStats } from '@/services/feedbackAnalyticsService';
-import { ChartPie, AlertTriangle } from 'lucide-react';
+import { ChartPie, AlertTriangle, BarChart3 } from 'lucide-react';
 
 interface FeedbackSubmissionRateProps {
   totalFeedback: number;
@@ -26,7 +26,7 @@ const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center">
-            <ChartPie className="mr-2 h-5 w-5" />
+            <BarChart3 className="mr-2 h-5 w-5" />
             Feedback Submission Rate
           </CardTitle>
         </CardHeader>
@@ -46,7 +46,7 @@ const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center">
-          <ChartPie className="mr-2 h-5 w-5" />
+          <BarChart3 className="mr-2 h-5 w-5" />
           Feedback Submission Rate
         </CardTitle>
       </CardHeader>
@@ -78,37 +78,31 @@ const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
         </div>
         
         {/* Agent Feedback Rates */}
-        <div>
-          <h3 className="text-base font-medium mb-3">Top Agent Feedback Rates</h3>
-          
-          {topAgents.length > 0 ? (
+        {topAgents.length > 0 && (
+          <div>
+            <h3 className="text-base font-medium mb-3">Top Agent Feedback Rates</h3>
+            
             <div className="space-y-4">
               {topAgents.map((agent, index) => (
                 <div key={agent.agentId} className="group">
                   <div className="flex justify-between items-center mb-1">
                     <div className="flex items-center">
-                      <span className="font-medium text-sm">{agent.agentName}</span>
+                      <span className="font-medium text-sm">Agent {index + 1}</span>
                       <span className="text-xs text-slate-500 ml-2">
                         ({agent.receivedFeedback}/{agent.closedTickets})
                       </span>
                     </div>
                     <span className="text-sm font-bold">{agent.feedbackPercentage.toFixed(1)}%</span>
                   </div>
-                  <div className="relative">
-                    <Progress 
-                      value={agent.feedbackPercentage} 
-                      className="h-2 group-hover:h-3 transition-all" 
-                    />
-                  </div>
+                  <Progress 
+                    value={agent.feedbackPercentage} 
+                    className="h-2 group-hover:h-3 transition-all" 
+                  />
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="text-center py-4 text-slate-500">
-              No agent statistics available.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

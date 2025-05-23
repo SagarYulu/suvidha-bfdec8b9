@@ -87,26 +87,25 @@ const FeedbackAnalyticsPage: React.FC = () => {
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
         
-        {/* Feedback Submission Rate - New Component */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <FeedbackHierarchyChart 
-            data={metrics.hierarchyData || []}
-            totalCount={metrics.totalCount}
-          />
-          
-          <FeedbackSubmissionRate
-            totalFeedback={metrics.totalCount}
-            totalClosedTickets={metrics.totalClosedTickets || 0}
-            submissionRate={metrics.feedbackSubmissionRate || 0}
-            agentStats={metrics.agentStats}
-          />
-        </div>
+        {/* Feedback Hierarchy Chart */}
+        <FeedbackHierarchyChart 
+          data={metrics.hierarchyData || []}
+          totalCount={metrics.totalCount}
+        />
         
         {/* Sentiment Distribution Chart */}
         <SentimentDistributionChart 
           data={metrics.trendData} 
           showComparison={isComparisonEnabled}
           title="Sentiment Distribution Over Time"
+        />
+        
+        {/* Feedback Submission Rate - Moved below Sentiment Distribution */}
+        <FeedbackSubmissionRate
+          totalFeedback={metrics.totalCount}
+          totalClosedTickets={metrics.totalClosedTickets || 0}
+          submissionRate={metrics.feedbackSubmissionRate || 0}
+          agentStats={metrics.agentStats}
         />
       </div>
     );
