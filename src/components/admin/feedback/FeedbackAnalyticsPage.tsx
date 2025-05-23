@@ -100,7 +100,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
           title="Sentiment Distribution Over Time"
         />
         
-        {/* Feedback Submission Rate - Moved below Sentiment Distribution */}
+        {/* Feedback Submission Rate - Positioned after Sentiment Distribution */}
         <FeedbackSubmissionRate
           totalFeedback={metrics.totalCount}
           totalClosedTickets={metrics.totalClosedTickets || 0}
