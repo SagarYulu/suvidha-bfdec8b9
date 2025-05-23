@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend 
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Sector 
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertTriangle } from 'lucide-react';
@@ -29,14 +29,193 @@ interface FeedbackHierarchyChartProps {
   totalCount: number;
 }
 
-// Color map for the dot indicators
+// Color palettes for each sentiment
 const colorMap = {
-  happy: '#4ade80',  // Green
-  neutral: '#fde047', // Yellow
-  sad: '#f87171'     // Red
+  happy: ['#4ade80', '#22c55e', '#16a34a'],  // Green shades
+  neutral: ['#fde047', '#facc15', '#eab308'], // Yellow shades
+  sad: ['#f87171', '#ef4444', '#dc2626']      // Red shades
 };
 
 const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, totalCount }) => {
+  const [activeIndex, setActiveIndex] = useState<{ outer: number | null, inner: number | null }>({
+    outer: null,
+    inner: null
+  });
+  
+  // Function to handle mouse hover on outer pie (sentiments)
+  const onOuterPieEnter = (_: any, index: number) => {
+    setActiveIndex({ outer: index, inner: null });
+  };
+  
+  // Function to handle mouse hover on inner pie (sub-reasons)
+  const onInnerPieEnter = (_: any, index: number) => {
+    setActiveIndex({ ...activeIndex, inner: index });
+  };
+  
+  // Function to handle mouse leave
+  const onPieLeave = () => {
+    setActiveIndex({ outer: null, inner: null });
+  };
+
+  // Prepare data for sub-reasons pie chart (flattened)
+  const prepareSubReasonData = () => {
+    const result: Array<SubReasonItem & { sentimentColor: string, fill: string }> = [];
+    
+    data.forEach((sentiment, sentimentIndex) => {
+      const colorPalette = colorMap[sentiment.name.toLowerCase() as keyof typeof colorMap] || ['#cbd5e1', '#94a3b8', '#64748b'];
+      
+      sentiment.subReasons.forEach((subReason, subIndex) => {
+        result.push({
+          ...subReason,
+          sentimentColor: sentiment.color,
+          fill: colorPalette[subIndex % colorPalette.length]
+        });
+      });
+    });
+    
+    return result;
+  };
+
+  // Custom shape for active sentiment segments
+  const renderActiveShape = (props: any) => {
+    const { 
+      cx, cy, innerRadius, outerRadius, startAngle, endAngle,
+      fill, payload
+    } = props;
+    
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius + 8}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          opacity={0.9}
+        />
+        <Sector
+          cx={cx}
+          cy={cy}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          innerRadius={outerRadius + 8}
+          outerRadius={outerRadius + 10}
+          fill={fill}
+        />
+        <text 
+          x={cx} 
+          y={cy - 15} 
+          textAnchor="middle" 
+          fill="#333"
+          fontSize={14}
+          fontWeight="bold"
+        >
+          {payload.name}
+        </text>
+        <text 
+          x={cx} 
+          y={cy + 8} 
+          textAnchor="middle" 
+          fill="#666"
+          fontSize={12}
+        >
+          {payload.value} responses
+        </text>
+        <text 
+          x={cx} 
+          y={cy + 24} 
+          textAnchor="middle" 
+          fill="#666"
+          fontSize={12}
+        >
+          {payload.percentage.toFixed(1)}% of total
+        </text>
+      </g>
+    );
+  };
+
+  // Custom shape for active sub-reason segments
+  const renderActiveSubReasonShape = (props: any) => {
+    const { 
+      cx, cy, innerRadius, outerRadius, startAngle, endAngle,
+      fill, payload
+    } = props;
+    
+    return (
+      <g>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius - 3}
+          outerRadius={outerRadius + 3}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          opacity={0.9}
+        />
+      </g>
+    );
+  };
+
+  // Custom tooltip for both pies
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      
+      return (
+        <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 text-sm">
+          {data.sentiment && (
+            <div className="font-medium mb-1 pb-1 border-b">
+              {data.sentiment}: {data.name}
+            </div>
+          )}
+          {!data.sentiment && (
+            <div className="font-medium mb-1 pb-1 border-b">
+              {data.name}
+            </div>
+          )}
+          <div className="space-y-1">
+            <div><span className="font-semibold">Count:</span> {data.value}</div>
+            <div>
+              <span className="font-semibold">Percentage:</span> {data.percentage.toFixed(1)}% 
+              {data.sentiment ? ' of total' : ' within category'}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  // Custom legend that shows count and percentage
+  const renderCustomLegend = (props: any) => {
+    const { payload } = props;
+    
+    return (
+      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
+        {payload.map((entry: any, index: number) => (
+          <div 
+            key={`legend-${index}`}
+            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
+            onClick={() => setActiveIndex({ outer: entry.payload.sentimentIndex || null, inner: null })}
+          >
+            <div 
+              className="w-3 h-3 rounded-full" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm font-medium mr-1">{entry.value}</span>
+            <span className="text-xs text-gray-500">
+              ({entry.payload.value} | {entry.payload.percentage.toFixed(1)}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // Check if we have data to display
   if (!data || data.length === 0) {
     return (
@@ -54,27 +233,8 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
     );
   }
 
-  // Transform data for the pie chart
-  const pieChartData = data.map(sentiment => ({
-    name: sentiment.name,
-    value: sentiment.value,
-    color: sentiment.color
-  }));
-
-  // Custom tooltip for the pie chart
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-2 border shadow-sm rounded-md">
-          <p className="font-medium">{data.name}</p>
-          <p>Count: {data.value}</p>
-          <p>Percentage: {(data.value / totalCount * 100).toFixed(1)}%</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Prepare sub-reasons data
+  const subReasonsData = prepareSubReasonData();
 
   return (
     <Card>
@@ -85,70 +245,68 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Chart visualization */}
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Textual breakdown */}
-          <div className="space-y-6">
-            {data.sort((a, b) => {
-              // Custom sort: Happy first, then Neutral, then Sad
-              const order = { "happy": 0, "neutral": 1, "sad": 2 };
-              return order[a.id as keyof typeof order] - order[b.id as keyof typeof order];
-            }).map((sentiment) => (
-              <div key={sentiment.id} className="space-y-2">
-                {/* Sentiment header */}
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: sentiment.color }}
+        <div className="h-96 md:h-[440px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              {/* Outer pie chart for sentiment categories */}
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                outerRadius={90}
+                innerRadius={65}
+                dataKey="value"
+                onMouseEnter={onOuterPieEnter}
+                onMouseLeave={onPieLeave}
+                activeIndex={activeIndex.outer}
+                activeShape={renderActiveShape}
+                paddingAngle={2}
+              >
+                {data.map((entry, index) => (
+                  <Cell 
+                    key={`sentiment-${index}`} 
+                    fill={entry.color} 
+                    stroke="#fff"
+                    strokeWidth={1}
                   />
-                  <span className="font-medium">
-                    {sentiment.name} ({sentiment.value} | {sentiment.percentage.toFixed(1)}%)
-                  </span>
-                </div>
-                
-                {/* Sub-reasons list */}
-                <div className="ml-5 space-y-2">
-                  {sentiment.subReasons.sort((a, b) => b.value - a.value).map((subReason) => (
-                    <div key={subReason.id} className="flex items-start">
-                      <span className="text-gray-400 mr-2">{'>'}</span>
-                      <span>
-                        {subReason.name} ({subReason.value} | {subReason.percentage.toFixed(1)}%)
-                      </span>
-                    </div>
-                  ))}
-                  
-                  {/* Show message when no sub-reasons */}
-                  {sentiment.subReasons.length === 0 && (
-                    <div className="text-gray-400 italic ml-2">
-                      No specific reasons provided
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+                ))}
+              </Pie>
+              
+              {/* Inner pie chart for sub-reasons */}
+              <Pie
+                data={subReasonsData}
+                cx="50%"
+                cy="50%"
+                innerRadius={100}
+                outerRadius={140}
+                dataKey="value"
+                paddingAngle={0.5}
+                onMouseEnter={onInnerPieEnter}
+                onMouseLeave={onPieLeave}
+                activeIndex={activeIndex.inner}
+                activeShape={renderActiveSubReasonShape}
+                label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={{ stroke: '#666', strokeWidth: 0.5 }}
+              >
+                {subReasonsData.map((entry, index) => (
+                  <Cell 
+                    key={`subreason-${index}`} 
+                    fill={entry.fill}
+                    stroke="#fff"
+                    strokeWidth={1}
+                  />
+                ))}
+              </Pie>
+              
+              {/* Tooltips and Legend */}
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                content={renderCustomLegend}
+                verticalAlign="bottom"
+                align="center"
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   fetchFeedbackData,
@@ -192,6 +193,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         let currentData: FeedbackItem[] = [];
         
         if (showComparison && filters.comparisonMode && filters.comparisonMode !== 'none') {
+          // Fetch both current and comparison data
           const result = await fetchComparisonData(filters);
           
           // Fill in missing dates for trend data and ensure proper number types
