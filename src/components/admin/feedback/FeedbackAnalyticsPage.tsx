@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { Loader2, AlertTriangle, Download, FileText } from 'lucide-react';
+import { Loader2, AlertTriangle, FileText } from 'lucide-react';
 import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
@@ -12,6 +12,7 @@ import FeedbackSubmissionRate from './FeedbackSubmissionRate';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { exportToCSV } from '@/utils/csvExportUtils';
+import { formatDateToDDMMYYYY } from '@/utils/dateUtils';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
@@ -45,19 +46,24 @@ const FeedbackAnalyticsPage: React.FC = () => {
   const handleExportData = () => {
     if (!rawData || rawData.length === 0) return;
     
-    // Format data for export
-    const formattedData = rawData.map(item => ({
-      'Feedback ID': item.id,
-      'Issue ID': item.issue_id,
-      'Employee ID': item.employee_uuid,
-      'Sentiment': item.sentiment,
-      'Feedback Option': item.feedback_option,
-      'Created At': item.created_at,
-      'City': item.city || 'N/A',
-      'Cluster': item.cluster || 'N/A',
-      'Agent ID': item.agent_id || 'N/A',
-      'Agent Name': item.agent_name || 'N/A'
-    }));
+    // Format data for export with date in DD-MM-YYYY format
+    const formattedData = rawData.map(item => {
+      // Convert date from ISO to DD-MM-YYYY
+      const formattedDate = item.created_at ? formatDateToDDMMYYYY(item.created_at) : 'N/A';
+      
+      return {
+        'Feedback ID': item.id,
+        'Issue ID': item.issue_id,
+        'Employee ID': item.employee_uuid,
+        'Date': formattedDate,
+        'Sentiment': item.sentiment,
+        'Feedback Option': item.feedback_option,
+        'Cluster': item.cluster || 'N/A',
+        'City': item.city || 'N/A',
+        'Agent ID': item.agent_id || 'N/A',
+        'Agent Name': item.agent_name || 'N/A'
+      };
+    });
     
     // Generate filename with current date
     const today = new Date();
