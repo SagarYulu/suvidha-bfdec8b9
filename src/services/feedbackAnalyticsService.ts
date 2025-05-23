@@ -18,6 +18,25 @@ export interface FeedbackItem {
   agent_name?: string; // Added agent name
 }
 
+// Add interface for hierarchical chart data
+export interface SubReasonItem {
+  id: string;
+  name: string;
+  value: number;
+  sentiment: string;
+  percentage: number;
+  sentimentIndex: number;
+}
+
+export interface SentimentGroup {
+  id: string;
+  name: string;
+  value: number;
+  percentage: number;
+  color: string;
+  subReasons: SubReasonItem[];
+}
+
 export interface FeedbackMetrics {
   totalCount: number;
   sentimentCounts: Record<FeedbackSentiment, number>;
@@ -25,6 +44,7 @@ export interface FeedbackMetrics {
   topOptions: Array<{ option: string; count: number; sentiment: FeedbackSentiment }>;
   trendData: Array<{ date: string; happy: number; neutral: number; sad: number; total: number }>;
   insightData?: Array<{ label: string; value: string; change: number }>;
+  hierarchyData?: SentimentGroup[]; // Add hierarchical data structure for visualization
 }
 
 export interface FeedbackFilters {

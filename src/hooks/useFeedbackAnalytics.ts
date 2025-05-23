@@ -12,6 +12,13 @@ import { format, subDays, eachDayOfInterval, parse } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
+// Colors for sentiment categories
+const SENTIMENT_COLORS = {
+  happy: '#4ade80',  // Green
+  neutral: '#fde047', // Yellow
+  sad: '#f87171'     // Red
+};
+
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
   const today = new Date();
@@ -88,6 +95,62 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     }
   };
   
+  // Generate hierarchical data structure for the feedback visualization
+  const generateHierarchyData = (feedbackData: FeedbackItem[]) => {
+    if (!feedbackData || feedbackData.length === 0) return [];
+    
+    const totalCount = feedbackData.length;
+    
+    // Group by sentiment
+    const sentimentGroups: Record<string, {
+      count: number,
+      subReasons: Record<string, number>
+    }> = {};
+    
+    // First pass: count the occurrences
+    feedbackData.forEach(item => {
+      const sentiment = item.sentiment;
+      const reason = item.feedback_option;
+      
+      if (!sentimentGroups[sentiment]) {
+        sentimentGroups[sentiment] = {
+          count: 0,
+          subReasons: {}
+        };
+      }
+      
+      sentimentGroups[sentiment].count++;
+      
+      if (!sentimentGroups[sentiment].subReasons[reason]) {
+        sentimentGroups[sentiment].subReasons[reason] = 0;
+      }
+      
+      sentimentGroups[sentiment].subReasons[reason]++;
+    });
+    
+    // Second pass: convert to the required format
+    return Object.entries(sentimentGroups).map(([sentiment, data], sentimentIndex) => {
+      // Format sub-reasons
+      const subReasons = Object.entries(data.subReasons).map(([reason, count], index) => ({
+        id: `${sentiment}-${reason}`,
+        name: reason,
+        value: count,
+        sentiment: sentiment,
+        percentage: (count / totalCount) * 100,
+        sentimentIndex: sentimentIndex
+      })).sort((a, b) => b.value - a.value); // Sort by count descending
+      
+      return {
+        id: sentiment,
+        name: sentiment.charAt(0).toUpperCase() + sentiment.slice(1),
+        value: data.count,
+        percentage: (data.count / totalCount) * 100,
+        color: SENTIMENT_COLORS[sentiment as keyof typeof SENTIMENT_COLORS] || '#94a3b8',
+        subReasons
+      };
+    }).sort((a, b) => b.value - a.value); // Sort by count descending
+  };
+  
   // Update filters when user changes selection
   const updateFilters = useCallback((newFilters: Partial<FeedbackFilters>) => {
     // Prevent race conditions by ignoring new filter requests during active fetch
@@ -151,11 +214,15 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
             );
           }
           
+          // Generate hierarchical data for the visualization
+          currentData = await fetchFeedbackData(filters);
+          const hierarchyData = generateHierarchyData(currentData);
+          
+          // Add hierarchy data to metrics
+          result.current.hierarchyData = hierarchyData;
+          
           setMetrics(result.current);
           setComparisonMetrics(result.previous);
-          
-          // Get raw data for current period only
-          currentData = await fetchFeedbackData(filters);
           setRawData(currentData || []);
         } else {
           // Fetch only current data
@@ -175,6 +242,12 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
             // Debug the trend data after filling
             console.log("Trend data after filling:", calculatedMetrics.trendData);
           }
+          
+          // Generate hierarchical data for the visualization
+          const hierarchyData = generateHierarchyData(currentData);
+          
+          // Add hierarchy data to metrics
+          calculatedMetrics.hierarchyData = hierarchyData;
           
           setMetrics(calculatedMetrics);
           setComparisonMetrics(null);

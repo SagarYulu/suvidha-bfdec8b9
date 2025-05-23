@@ -7,6 +7,7 @@ import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import SentimentDistributionChart from './SentimentDistributionChart';
+import FeedbackHierarchyChart from './FeedbackHierarchyChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
@@ -83,6 +84,12 @@ const FeedbackAnalyticsPage: React.FC = () => {
           metrics={metrics} 
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
+        />
+        
+        {/* Feedback Hierarchy Chart */}
+        <FeedbackHierarchyChart 
+          data={metrics.hierarchyData || []}
+          totalCount={metrics.totalCount}
         />
         
         {/* Sentiment Distribution Chart */}
