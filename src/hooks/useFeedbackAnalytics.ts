@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { 
   fetchFeedbackData,
@@ -157,7 +156,18 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
     if (activeDataFetch) return;
     
     console.log("Updating filters:", newFilters);
-    setFilters(prev => ({ ...prev, ...newFilters }));
+    
+    // Ensure we don't reset filters to undefined if they're already set
+    setFilters(prev => {
+      // Create a new object with the updated filters
+      const updatedFilters = { ...prev, ...newFilters };
+      
+      // Log the final filters for debugging
+      console.log("Final filters after update:", updatedFilters);
+      
+      return updatedFilters;
+    });
+    
     setDataFetched(false);
     setFilterChangeCount(prev => prev + 1);
   }, [activeDataFetch]);

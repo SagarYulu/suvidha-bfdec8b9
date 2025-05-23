@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,11 +57,11 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [tempFilters, setTempFilters] = useState<Partial<FeedbackFilters>>({});
+  const [tempFilters, setTempFilters] = useState<Partial<FeedbackFilters>>(filters || {});
   
   // Initialize temp filters with current filters
   useEffect(() => {
-    setTempFilters(filters);
+    setTempFilters({...filters});
   }, [filters]);
   
   // Fetch cities, clusters and agents from master data
@@ -124,6 +125,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   
   // Apply all filters
   const handleApplyFilters = () => {
+    console.log("Applying filters:", tempFilters);
     onFilterChange(tempFilters);
     setIsCalendarOpen(false); // Close calendar after applying
   };
@@ -142,6 +144,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   
   // Update temp filters for select changes
   const handleFilterChange = (key: keyof FeedbackFilters, value: any) => {
+    console.log(`Setting ${key} to:`, value);
     setTempFilters({
       ...tempFilters,
       [key]: value === "all" ? undefined : value
@@ -235,8 +238,13 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
               value={tempFilters.city || "all"}
               onValueChange={(value) => {
                 // Reset cluster when city changes
-                handleFilterChange('city', value);
-                handleFilterChange('cluster', undefined);
+                const newFilters = {
+                  ...tempFilters,
+                  city: value === "all" ? undefined : value,
+                  cluster: undefined
+                };
+                setTempFilters(newFilters);
+                console.log("Updated tempFilters after city change:", newFilters);
               }}
             >
               <SelectTrigger>
