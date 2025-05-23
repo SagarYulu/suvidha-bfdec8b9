@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   fetchFeedbackData,
@@ -239,7 +240,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           currentData = await fetchFeedbackData(filters);
           console.log("Fetched feedback data:", currentData?.length || 0, "items");
           setRawData(currentData || []);
-          const calculatedMetrics = calculateFeedbackMetrics(currentData || []);
+          const calculatedMetrics = await calculateFeedbackMetrics(currentData || [], filters);
           
           // Fill in missing dates for trend data and ensure proper number types
           if (calculatedMetrics && calculatedMetrics.trendData) {

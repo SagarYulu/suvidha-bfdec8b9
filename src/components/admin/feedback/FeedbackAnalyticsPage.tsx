@@ -8,6 +8,7 @@ import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import SentimentDistributionChart from './SentimentDistributionChart';
 import FeedbackHierarchyChart from './FeedbackHierarchyChart';
+import FeedbackSubmissionRate from './FeedbackSubmissionRate';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
@@ -86,11 +87,20 @@ const FeedbackAnalyticsPage: React.FC = () => {
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
         
-        {/* Feedback Hierarchy Chart */}
-        <FeedbackHierarchyChart 
-          data={metrics.hierarchyData || []}
-          totalCount={metrics.totalCount}
-        />
+        {/* Feedback Submission Rate - New Component */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <FeedbackHierarchyChart 
+            data={metrics.hierarchyData || []}
+            totalCount={metrics.totalCount}
+          />
+          
+          <FeedbackSubmissionRate
+            totalFeedback={metrics.totalCount}
+            totalClosedTickets={metrics.totalClosedTickets || 0}
+            submissionRate={metrics.feedbackSubmissionRate || 0}
+            agentStats={metrics.agentStats}
+          />
+        </div>
         
         {/* Sentiment Distribution Chart */}
         <SentimentDistributionChart 

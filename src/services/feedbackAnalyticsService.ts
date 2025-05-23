@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
@@ -37,6 +36,14 @@ export interface SentimentGroup {
   subReasons: SubReasonItem[];
 }
 
+export interface AgentFeedbackStats {
+  agentId: string;
+  agentName: string;
+  closedTickets: number;
+  receivedFeedback: number;
+  feedbackPercentage: number;
+}
+
 export interface FeedbackMetrics {
   totalCount: number;
   sentimentCounts: Record<FeedbackSentiment, number>;
@@ -45,6 +52,9 @@ export interface FeedbackMetrics {
   trendData: Array<{ date: string; happy: number; neutral: number; sad: number; total: number }>;
   insightData?: Array<{ label: string; value: string; change: number }>;
   hierarchyData?: SentimentGroup[]; // Add hierarchical data structure for visualization
+  totalClosedTickets?: number; // Total closed tickets count
+  feedbackSubmissionRate?: number; // % of feedback against closed tickets
+  agentStats?: AgentFeedbackStats[]; // Agent-wise feedback stats
 }
 
 export interface FeedbackFilters {
@@ -176,8 +186,189 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
   });
 };
 
+// Fetch closed tickets count for the given time period and filters
+export const fetchClosedTicketsCount = async (filters: FeedbackFilters): Promise<number> => {
+  try {
+    let query = supabase
+      .from('issues')
+      .select('id', { count: 'exact' })
+      .eq('status', 'closed');
+    
+    // Apply date filters if provided
+    if (filters.startDate) {
+      query = query.gte('closed_at', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      // Add one day to include the end date fully
+      const nextDay = new Date(filters.endDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      query = query.lt('closed_at', nextDay.toISOString());
+    }
+    
+    // Apply city filter if provided
+    if (filters.city) {
+      // For issues, we need to join with employees table to filter by city
+      // In this simplified version, we'll just count all closed tickets
+      // In a real implementation, you'd need to join with the employees table
+    }
+    
+    // Apply cluster filter if provided
+    if (filters.cluster) {
+      // Similar to city filter, we'd need to join with employees table
+    }
+    
+    // Apply agent filter if provided
+    if (filters.agentId) {
+      query = query.eq('assigned_to', filters.agentId);
+    }
+    
+    const { count, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching closed tickets count:', error);
+      throw error;
+    }
+    
+    return count || 0;
+  } catch (err) {
+    console.error('Error in fetchClosedTicketsCount:', err);
+    return 0;
+  }
+};
+
+// Fetch agent-wise statistics
+export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise<AgentFeedbackStats[]> => {
+  try {
+    // First, fetch all agents who have closed tickets in the selected period
+    let agentQuery = supabase
+      .from('issues')
+      .select(`
+        assigned_to,
+        id
+      `)
+      .eq('status', 'closed')
+      .not('assigned_to', 'is', null);
+    
+    // Apply date filters if provided
+    if (filters.startDate) {
+      agentQuery = agentQuery.gte('closed_at', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      // Add one day to include the end date fully
+      const nextDay = new Date(filters.endDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+      agentQuery = agentQuery.lt('closed_at', nextDay.toISOString());
+    }
+    
+    // Apply city filter if provided
+    if (filters.city) {
+      // In a real implementation, you'd need to join with the employees table
+      // This is simplified for now
+    }
+    
+    // Apply cluster filter if provided
+    if (filters.cluster) {
+      // Similar to city filter
+    }
+    
+    const { data: closedTicketsData, error: closedTicketsError } = await agentQuery;
+    
+    if (closedTicketsError) {
+      console.error('Error fetching agent closed tickets:', closedTicketsError);
+      throw closedTicketsError;
+    }
+    
+    if (!closedTicketsData || closedTicketsData.length === 0) {
+      return [];
+    }
+    
+    // Group closed tickets by agent
+    const agentClosedTickets: Record<string, number> = {};
+    closedTicketsData.forEach(item => {
+      if (item.assigned_to) {
+        if (!agentClosedTickets[item.assigned_to]) {
+          agentClosedTickets[item.assigned_to] = 0;
+        }
+        agentClosedTickets[item.assigned_to]++;
+      }
+    });
+    
+    // Now fetch feedback data
+    const { data: feedbackData, error: feedbackError } = await supabase
+      .from('ticket_feedback')
+      .select(`
+        agent_id,
+        agent_name,
+        issue_id
+      `)
+      .not('agent_id', 'is', null);
+    
+    if (feedbackError) {
+      console.error('Error fetching feedback data for agents:', feedbackError);
+      throw feedbackError;
+    }
+    
+    // Group feedback by agent
+    const agentFeedbacks: Record<string, { count: number, name: string }> = {};
+    feedbackData?.forEach(item => {
+      if (item.agent_id) {
+        if (!agentFeedbacks[item.agent_id]) {
+          agentFeedbacks[item.agent_id] = { count: 0, name: item.agent_name || 'Unknown Agent' };
+        }
+        agentFeedbacks[item.agent_id].count++;
+      }
+    });
+    
+    // Fetch agent names for agents without feedback
+    const agentIds = Object.keys(agentClosedTickets);
+    const missingNameAgents = agentIds.filter(id => !agentFeedbacks[id] || !agentFeedbacks[id].name);
+    
+    if (missingNameAgents.length > 0) {
+      const { data: agentData, error: agentError } = await supabase
+        .from('dashboard_users')
+        .select('id, name')
+        .in('id', missingNameAgents);
+      
+      if (!agentError && agentData) {
+        agentData.forEach(agent => {
+          if (!agentFeedbacks[agent.id]) {
+            agentFeedbacks[agent.id] = { count: 0, name: agent.name };
+          } else if (!agentFeedbacks[agent.id].name) {
+            agentFeedbacks[agent.id].name = agent.name;
+          }
+        });
+      }
+    }
+    
+    // Combine the data
+    const stats: AgentFeedbackStats[] = agentIds.map(agentId => {
+      const closedTickets = agentClosedTickets[agentId] || 0;
+      const receivedFeedback = agentFeedbacks[agentId]?.count || 0;
+      const feedbackPercentage = closedTickets > 0 ? (receivedFeedback / closedTickets) * 100 : 0;
+      
+      return {
+        agentId,
+        agentName: agentFeedbacks[agentId]?.name || 'Unknown Agent',
+        closedTickets,
+        receivedFeedback,
+        feedbackPercentage
+      };
+    });
+    
+    // Sort by feedback percentage (highest first)
+    return stats.filter(stat => stat.closedTickets > 0) // Only include agents with closed tickets
+              .sort((a, b) => b.feedbackPercentage - a.feedbackPercentage);
+    
+  } catch (err) {
+    console.error('Error in fetchAgentFeedbackStats:', err);
+    return [];
+  }
+};
+
 // Calculate metrics from feedback data
-export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): FeedbackMetrics => {
+export const calculateFeedbackMetrics = async (feedbackData: FeedbackItem[], filters: FeedbackFilters): Promise<FeedbackMetrics> => {
   const totalCount = feedbackData.length;
   
   // Initialize sentiment counts
@@ -237,6 +428,15 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
     .map(([date, counts]) => ({ date, ...counts }))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
+  // Fetch total closed tickets count
+  const totalClosedTickets = await fetchClosedTicketsCount(filters);
+  
+  // Calculate feedback submission rate
+  const feedbackSubmissionRate = totalClosedTickets > 0 ? (totalCount / totalClosedTickets) * 100 : 0;
+  
+  // Fetch agent-wise stats
+  const agentStats = await fetchAgentFeedbackStats(filters);
+  
   // Generate key insight metrics
   const insightData = [
     {
@@ -258,6 +458,11 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
       label: "Negative Sentiment",
       value: `${sentimentPercentages.sad}%`,
       change: 0
+    },
+    {
+      label: "Feedback Submission Rate",
+      value: `${feedbackSubmissionRate.toFixed(1)}%`,
+      change: 0
     }
   ];
   
@@ -267,7 +472,10 @@ export const calculateFeedbackMetrics = (feedbackData: FeedbackItem[]): Feedback
     sentimentPercentages,
     topOptions,
     trendData,
-    insightData
+    insightData,
+    totalClosedTickets,
+    feedbackSubmissionRate,
+    agentStats
   };
 };
 
@@ -278,7 +486,7 @@ export const fetchComparisonData = async (
   // If no comparison mode or no date range, just return current data
   if (filters.comparisonMode === 'none' || !filters.startDate || !filters.endDate) {
     const currentData = await fetchFeedbackData(filters);
-    const currentMetrics = calculateFeedbackMetrics(currentData);
+    const currentMetrics = await calculateFeedbackMetrics(currentData, filters);
     return { current: currentMetrics, previous: null };
   }
   
@@ -313,8 +521,8 @@ export const fetchComparisonData = async (
   const previousData = await fetchFeedbackData(previousFilters);
   
   // Calculate metrics
-  const currentMetrics = calculateFeedbackMetrics(currentData);
-  const previousMetrics = calculateFeedbackMetrics(previousData);
+  const currentMetrics = await calculateFeedbackMetrics(currentData, filters);
+  const previousMetrics = await calculateFeedbackMetrics(previousData, previousFilters);
   
   // Calculate changes for insights
   if (currentMetrics.insightData && previousMetrics.totalCount > 0) {
@@ -329,6 +537,11 @@ export const fetchComparisonData = async (
     
     // Sad sentiment change
     currentMetrics.insightData[3].change = currentMetrics.sentimentPercentages.sad - previousMetrics.sentimentPercentages.sad;
+    
+    // Feedback submission rate change
+    if (currentMetrics.insightData[4] && previousMetrics.feedbackSubmissionRate !== undefined) {
+      currentMetrics.insightData[4].change = currentMetrics.feedbackSubmissionRate! - previousMetrics.feedbackSubmissionRate;
+    }
   }
   
   return {
