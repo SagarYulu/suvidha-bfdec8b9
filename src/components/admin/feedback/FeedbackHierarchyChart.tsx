@@ -190,28 +190,108 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
     return null;
   };
 
+  // Generate labels for sentiment categories and sub-reasons
+  const renderLabels = () => {
+    const chartWidth = 440; // Approximate chart width
+    const chartHeight = 340; // Approximate chart height
+    const centerX = chartWidth / 2;
+    const centerY = chartHeight / 2;
+    const labelItems = [];
+    
+    // Render sentiment category labels
+    data.forEach((sentiment, sentimentIndex) => {
+      const angle = (sentimentIndex * 2 * Math.PI) / data.length;
+      const x = centerX + Math.sin(angle) * 25; // Adjust position for sentiment labels
+      const y = centerY - Math.cos(angle) * 25;
+      
+      // Add sentiment label with percentage
+      labelItems.push(
+        <div 
+          key={`sentiment-label-${sentimentIndex}`}
+          className="absolute flex items-center gap-1.5" 
+          style={{ 
+            left: x + 'px',
+            top: y + 'px',
+            transform: 'translate(-50%, -50%)'
+          }}
+        >
+          <span className="flex items-center">
+            <span 
+              className="inline-block w-3 h-3 rounded-full mr-1" 
+              style={{ backgroundColor: sentiment.color }}
+            />
+            <span className="font-medium">
+              {sentiment.name} ({sentiment.percentage.toFixed(1)}%)
+            </span>
+          </span>
+        </div>
+      );
+    });
+    
+    return (
+      <div className="absolute inset-0 pointer-events-none">
+        {labelItems}
+      </div>
+    );
+  };
+
   // Custom legend that shows count and percentage
   const renderCustomLegend = (props: any) => {
     const { payload } = props;
     
+    // Group legend items by sentiment
+    const legendByCategory: Record<string, any[]> = {};
+    
+    payload.forEach((entry: any) => {
+      const sentimentName = entry.payload.sentiment || entry.value;
+      if (!legendByCategory[sentimentName]) {
+        legendByCategory[sentimentName] = [];
+      }
+      legendByCategory[sentimentName].push(entry);
+    });
+    
     return (
-      <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mt-6">
-        {payload.map((entry: any, index: number) => (
-          <div 
-            key={`legend-${index}`}
-            className="flex items-center gap-2 px-2 py-1 rounded hover:bg-gray-100 cursor-pointer"
-            onClick={() => setActiveIndex({ outer: entry.payload.sentimentIndex || null, inner: null })}
-          >
-            <div 
-              className="w-3 h-3 rounded-full" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-sm font-medium mr-1">{entry.value}</span>
-            <span className="text-xs text-gray-500">
-              ({entry.payload.value} | {entry.payload.percentage.toFixed(1)}%)
-            </span>
-          </div>
-        ))}
+      <div className="pt-6">
+        {Object.entries(legendByCategory).map(([sentiment, entries], catIndex) => {
+          const mainEntry = entries.find(entry => !entry.payload.sentiment) || entries[0];
+          const sentimentColor = mainEntry?.color || '#888';
+          
+          return (
+            <div key={`legend-category-${catIndex}`} className="mb-2">
+              {/* Main sentiment category */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: sentimentColor }}
+                />
+                <span className="text-sm font-medium">
+                  {sentiment} ({mainEntry?.payload?.percentage?.toFixed(1)}%)
+                </span>
+              </div>
+              
+              {/* Sub-reasons */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-1.5 pl-5">
+                {entries.filter(entry => entry.payload.sentiment).map((entry, index) => (
+                  <div 
+                    key={`legend-item-${catIndex}-${index}`}
+                    className="flex items-center gap-1.5 text-xs"
+                  >
+                    <div 
+                      className="w-2.5 h-2.5 rounded-full" 
+                      style={{ backgroundColor: entry.color }}
+                    />
+                    <span className="truncate max-w-[180px]" title={entry.value}>
+                      {entry.value}
+                    </span>
+                    <span className="text-gray-500 whitespace-nowrap">
+                      ({entry.payload.value} | {entry.payload.percentage.toFixed(1)}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -285,8 +365,7 @@ const FeedbackHierarchyChart: React.FC<FeedbackHierarchyChartProps> = ({ data, t
                 onMouseLeave={onPieLeave}
                 activeIndex={activeIndex.inner}
                 activeShape={renderActiveSubReasonShape}
-                label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                labelLine={{ stroke: '#666', strokeWidth: 0.5 }}
+                labelLine={false}
               >
                 {subReasonsData.map((entry, index) => (
                   <Cell 
