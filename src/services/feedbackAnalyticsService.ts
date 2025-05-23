@@ -1,7 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
+import { SunburstItem } from "@/components/admin/feedback/FeedbackSunburstChart";
 
 export type FeedbackSentiment = 'happy' | 'neutral' | 'sad';
 
@@ -25,6 +25,7 @@ export interface FeedbackMetrics {
   topOptions: Array<{ option: string; count: number; sentiment: FeedbackSentiment }>;
   trendData: Array<{ date: string; happy: number; neutral: number; sad: number; total: number }>;
   insightData?: Array<{ label: string; value: string; change: number }>;
+  sunburstData?: SunburstItem[]; // Added sunburst data for the visualization
 }
 
 export interface FeedbackFilters {
