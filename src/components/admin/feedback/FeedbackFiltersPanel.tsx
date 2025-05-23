@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
 import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
 import { supabase } from '@/integrations/supabase/client';
+import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 interface FeedbackFiltersPanelProps {
   filters: FeedbackFilters;
@@ -87,6 +88,22 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
       onFilterChange({ endDate: undefined });
     }
   };
+
+  // Add city filter handler
+  const handleCityChange = (city: string) => {
+    const newCity = city === 'all' ? undefined : city;
+    // Reset cluster when city changes
+    onFilterChange({
+      city: newCity,
+      cluster: undefined
+    });
+  };
+
+  // Add cluster filter handler
+  const handleClusterChange = (cluster: string) => {
+    const newCluster = cluster === 'all' ? undefined : cluster;
+    onFilterChange({ cluster: newCluster });
+  };
   
   // Add agent filter handler
   const handleAgentChange = (agentId: string | null) => {
@@ -106,30 +123,30 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
     onFilterChange({ comparisonMode: mode });
   };
   
-  const handleApplyFilters = () => {
-    // Apply any additional logic here before applying filters
-    console.log('Applying filters:', filters);
-  };
-  
+  // Get available clusters based on selected city
+  const availableClusters = filters.city && CLUSTER_OPTIONS[filters.city] 
+    ? CLUSTER_OPTIONS[filters.city] 
+    : [];
+
   return (
     <Card className="mb-6">
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Date Range Filter */}
-          <div>
-            <Label htmlFor="date-range" className="mb-2 block">Date Range</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {/* Date Range Filter - Now split into two columns */}
+          <div className="flex flex-col lg:col-span-2">
+            <Label className="mb-2 block">Date Range</Label>
             <div className="flex space-x-2">
               <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={'outline'}
+                    variant={"outline"}
                     className={
-                      'w-[140px] justify-start text-left font-normal' +
+                      'w-full justify-start text-left font-normal' +
                       (date ? ' text-foreground' : ' text-muted-foreground')
                     }
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formattedDate ? formattedDate : <span>Pick a date</span>}
+                    {formattedDate ? formattedDate : <span>Start date</span>}
                     <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -142,20 +159,21 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                       date > new Date() || date < new Date('2023-01-01')
                     }
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
               <Popover open={openTo} onOpenChange={setOpenTo}>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={'outline'}
+                    variant={"outline"}
                     className={
-                      'w-[140px] justify-start text-left font-normal' +
+                      'w-full justify-start text-left font-normal' +
                       (toDate ? ' text-foreground' : ' text-muted-foreground')
                     }
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formattedToDate ? formattedToDate : <span>Pick a date</span>}
+                    {formattedToDate ? formattedToDate : <span>End date</span>}
                     <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
                   </Button>
                 </PopoverTrigger>
@@ -168,6 +186,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                       date > new Date() || date < new Date('2023-01-01')
                     }
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -177,16 +196,47 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
           {/* City Filter */}
           <div>
             <Label htmlFor="city-filter" className="mb-2 block">City</Label>
-            <Input 
-              type="text" 
-              id="city-filter" 
-              placeholder="Enter city" 
-              value={filters.city || ''}
-              onChange={(e) => onFilterChange({ city: e.target.value })}
-            />
+            <Select 
+              value={filters.city || 'all'} 
+              onValueChange={handleCityChange}
+            >
+              <SelectTrigger id="city-filter" className="w-full">
+                <SelectValue placeholder="All Cities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {CITY_OPTIONS.map(city => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
           
-          {/* Agent Filter - NEW */}
+          {/* Cluster Filter - Restored */}
+          <div>
+            <Label htmlFor="cluster-filter" className="mb-2 block">Cluster</Label>
+            <Select 
+              value={filters.cluster || 'all'} 
+              onValueChange={handleClusterChange}
+              disabled={!filters.city || availableClusters.length === 0}
+            >
+              <SelectTrigger id="cluster-filter" className="w-full">
+                <SelectValue placeholder={filters.city ? "All Clusters" : "Select City First"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Clusters</SelectItem>
+                  {availableClusters.map(cluster => (
+                    <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Agent Filter */}
           <div>
             <Label htmlFor="agent-filter" className="mb-2 block">Agent</Label>
             <Select 

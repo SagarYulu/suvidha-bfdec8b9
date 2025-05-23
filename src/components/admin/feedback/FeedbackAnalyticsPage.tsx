@@ -80,7 +80,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
           showComparison={isComparisonEnabled}
         />
         
-        {/* Feedback Submission Rate - Moved above Metrics Overview */}
+        {/* Feedback Submission Rate - Positioned above Metrics Overview */}
         <FeedbackSubmissionRate
           totalFeedback={metrics.totalCount}
           totalClosedTickets={metrics.totalClosedTickets || 0}
