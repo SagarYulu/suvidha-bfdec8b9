@@ -7,7 +7,6 @@ import FeedbackFiltersPanel from './FeedbackFiltersPanel';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 import SentimentDistributionChart from './SentimentDistributionChart';
-import FeedbackSunburstChart from './FeedbackSunburstChart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const FeedbackAnalyticsPage: React.FC = () => {
@@ -85,14 +84,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
           comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
-        
-        {/* Feedback Sunburst Chart */}
-        {metrics.sunburstData && metrics.sunburstData.length > 0 && (
-          <FeedbackSunburstChart 
-            data={metrics.sunburstData}
-            totalCount={metrics.totalCount}
-          />
-        )}
         
         {/* Sentiment Distribution Chart */}
         <SentimentDistributionChart 

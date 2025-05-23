@@ -11,8 +11,6 @@ import {
 import { format, subDays, eachDayOfInterval, parse } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
-import { SunburstItem } from '@/components/admin/feedback/FeedbackSunburstChart';
-import { SENTIMENT_COLORS } from '@/components/charts/ChartUtils';
 
 export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) => {
   // Default to last 30 days if no dates provided
@@ -39,74 +37,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   const [activeDataFetch, setActiveDataFetch] = useState(false);
   const [filterChangeCount, setFilterChangeCount] = useState(0);
   
-  // Helper function to generate sunburst data from feedback items
-  const generateSunburstData = (feedbackData: FeedbackItem[]): SunburstItem[] => {
-    if (!feedbackData || feedbackData.length === 0) return [];
-    
-    // Group feedbacks by sentiment
-    const sentimentGroups: Record<string, FeedbackItem[]> = {
-      happy: [],
-      neutral: [],
-      sad: []
-    };
-    
-    feedbackData.forEach(item => {
-      if (item.sentiment in sentimentGroups) {
-        sentimentGroups[item.sentiment].push(item);
-      }
-    });
-    
-    // Create sunburst data structure
-    return Object.entries(sentimentGroups).map(([sentiment, items]) => {
-      // Group by feedback option within each sentiment
-      const optionGroups: Record<string, number> = {};
-      
-      items.forEach(item => {
-        const option = item.feedback_option;
-        if (!optionGroups[option]) {
-          optionGroups[option] = 0;
-        }
-        optionGroups[option]++;
-      });
-      
-      // Sort options by count (descending)
-      const sortedOptions = Object.entries(optionGroups)
-        .sort(([, countA], [, countB]) => countB - countA)
-        .slice(0, 5); // Limit to top 5 options per sentiment
-      
-      // Create children for this sentiment
-      const children = sortedOptions.map(([option, count], index) => ({
-        id: `${sentiment}-${index}`,
-        name: option,
-        value: count,
-        color: '' // Will be assigned by the chart component based on parent color
-      }));
-      
-      // Friendly sentiment name mapping
-      const sentimentNames: Record<string, string> = {
-        happy: 'Happy',
-        neutral: 'Neutral',
-        sad: 'Unhappy'
-      };
-      
-      // Sentiment colors
-      const sentimentColorMap: Record<string, string> = {
-        happy: SENTIMENT_COLORS.happy,
-        neutral: SENTIMENT_COLORS.neutral,
-        sad: SENTIMENT_COLORS.sad
-      };
-      
-      return {
-        id: sentiment,
-        name: sentimentNames[sentiment] || sentiment,
-        value: items.length,
-        color: sentimentColorMap[sentiment] || '#cccccc',
-        children: children
-      };
-    }).filter(item => item.value > 0); // Only include sentiments with data
-  };
-  
-  // Helper function to ensure we have data points for each day
+  // Helper function to ensure we have data points for each day in the date range and all sentiment values are properly initialized
   const fillMissingDates = (data: any[], startDate: string, endDate: string) => {
     if (!startDate || !endDate) return data;
     
@@ -202,7 +133,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           // Fetch both current and comparison data
           const result = await fetchComparisonData(filters);
           
-          // Fill in missing dates for trend data
+          // Fill in missing dates for trend data and ensure proper number types
           if (result.current && result.current.trendData) {
             result.current.trendData = fillMissingDates(
               result.current.trendData,
@@ -214,20 +145,17 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           if (result.previous && result.previous.trendData) {
             result.previous.trendData = fillMissingDates(
               result.previous.trendData,
+              // We use the same date range length for previous period
               filters.startDate || '',
               filters.endDate || ''
             );
           }
           
-          // Generate sunburst data for current period
-          currentData = await fetchFeedbackData(filters);
-          const sunburstData = generateSunburstData(currentData);
-          
-          // Add sunburst data to metrics
-          result.current.sunburstData = sunburstData;
-          
           setMetrics(result.current);
           setComparisonMetrics(result.previous);
+          
+          // Get raw data for current period only
+          currentData = await fetchFeedbackData(filters);
           setRawData(currentData || []);
         } else {
           // Fetch only current data
@@ -236,17 +164,16 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           setRawData(currentData || []);
           const calculatedMetrics = calculateFeedbackMetrics(currentData || []);
           
-          // Generate and add sunburst data
-          const sunburstData = generateSunburstData(currentData);
-          calculatedMetrics.sunburstData = sunburstData;
-          
-          // Fill in missing dates for trend data
+          // Fill in missing dates for trend data and ensure proper number types
           if (calculatedMetrics && calculatedMetrics.trendData) {
             calculatedMetrics.trendData = fillMissingDates(
               calculatedMetrics.trendData,
               filters.startDate || '',
               filters.endDate || ''
             );
+            
+            // Debug the trend data after filling
+            console.log("Trend data after filling:", calculatedMetrics.trendData);
           }
           
           setMetrics(calculatedMetrics);
