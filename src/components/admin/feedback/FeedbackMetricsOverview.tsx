@@ -50,9 +50,16 @@ const FeedbackMetricsOverview: React.FC<FeedbackMetricsOverviewProps> = ({
         ? 'text-red-600' 
         : 'text-gray-500';
   };
+
+  // For neutral sentiment, use neutral styling
+  const getNeutralChangeStyle = (change: number) => {
+    return change !== 0
+      ? 'text-blue-600'
+      : 'text-gray-500';
+  };
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {/* Total Feedback Count */}
       <Card>
         <CardContent className="p-6">
@@ -120,6 +127,50 @@ const FeedbackMetricsOverview: React.FC<FeedbackMetricsOverviewProps> = ({
                       comparisonMetrics?.sentimentPercentages.happy || 0
                     );
                     const changeStyle = getHappyChangeStyle(change);
+                    
+                    return (
+                      <div className={`flex items-center ${changeStyle}`}>
+                        {change > 0 ? (
+                          <ArrowUpIcon className="h-4 w-4 mr-1" />
+                        ) : change < 0 ? (
+                          <ArrowDownIcon className="h-4 w-4 mr-1" />
+                        ) : null}
+                        <span className="text-sm font-medium">
+                          {change > 0 ? '+' : ''}{change.toFixed(1)}%
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Neutral Sentiment Percentage */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-muted-foreground">
+              Neutral Sentiment
+            </span>
+            <div className="mt-2 flex items-baseline">
+              <span className="text-3xl font-bold tracking-tight text-amber-500">
+                {metrics.sentimentPercentages.neutral}%
+              </span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                ({metrics.sentimentCounts.neutral} responses)
+              </span>
+              
+              {showComparison && (
+                <div className="ml-4 flex items-baseline">
+                  {(() => {
+                    const change = calculateChange(
+                      metrics.sentimentPercentages.neutral, 
+                      comparisonMetrics?.sentimentPercentages.neutral || 0
+                    );
+                    const changeStyle = getNeutralChangeStyle(change);
                     
                     return (
                       <div className={`flex items-center ${changeStyle}`}>
