@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
@@ -112,17 +111,17 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     query = query.eq('employee_uuid', filters.employeeUuid);
   }
   
-  // Apply city filter directly if provided
+  // Apply city filter if provided - fix for exact city matching
   if (filters.city) {
     query = query.eq('city', filters.city);
   }
   
-  // Apply cluster filter directly if provided
+  // Apply cluster filter if provided
   if (filters.cluster) {
     query = query.eq('cluster', filters.cluster);
   }
   
-  // Apply agent filter directly if provided
+  // Apply agent filter if provided
   if (filters.agentId) {
     query = query.eq('agent_id', filters.agentId);
   }
