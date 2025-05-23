@@ -18,6 +18,15 @@ export interface ComparisonModeDropdownProps {
   disabled?: boolean;
 }
 
+export const COMPARISON_MODE_LABELS: Record<string, string> = {
+  'none': 'No Comparison',
+  'dod': 'Day over Day',
+  'wow': 'Week over Week',
+  'mom': 'Month over Month',
+  'qoq': 'Quarter over Quarter',
+  'yoy': 'Year over Year'
+};
+
 const ComparisonModeDropdown: React.FC<ComparisonModeDropdownProps> = ({
   value,
   onChange,

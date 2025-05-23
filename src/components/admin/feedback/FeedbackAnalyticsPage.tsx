@@ -80,6 +80,13 @@ const FeedbackAnalyticsPage: React.FC = () => {
           showComparison={isComparisonEnabled}
         />
         
+        {/* Feedback Submission Rate - Moved above Metrics Overview */}
+        <FeedbackSubmissionRate
+          totalFeedback={metrics.totalCount}
+          totalClosedTickets={metrics.totalClosedTickets || 0}
+          submissionRate={metrics.feedbackSubmissionRate || 0}
+        />
+        
         {/* Metrics Overview */}
         <FeedbackMetricsOverview 
           metrics={metrics} 
@@ -98,14 +105,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
           data={metrics.trendData} 
           showComparison={isComparisonEnabled}
           title="Sentiment Distribution Over Time"
-        />
-        
-        {/* Feedback Submission Rate - Positioned after Sentiment Distribution */}
-        <FeedbackSubmissionRate
-          totalFeedback={metrics.totalCount}
-          totalClosedTickets={metrics.totalClosedTickets || 0}
-          submissionRate={metrics.feedbackSubmissionRate || 0}
-          agentStats={metrics.agentStats}
         />
       </div>
     );
