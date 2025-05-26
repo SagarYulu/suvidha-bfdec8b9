@@ -25,10 +25,53 @@ const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({ filters }) => {
   } = useSLAAnalytics(filters);
 
   const SLA_COLORS = {
-    onTime: '#10B981',
-    breached: '#EF4444',
-    atRisk: '#F59E0B',
-    pending: '#6B7280'
+    'On Time': '#10B981',
+    'Breached': '#EF4444',
+    'At Risk': '#F59E0B',
+    'Pending': '#6B7280'
+  };
+
+  // Custom label for the donut chart
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+    if (percent < 0.05) return null; // Don't show labels for very small slices
+    
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 1.2; // Position outside the donut
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="#374151" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="500"
+      >
+        {`${name} ${(percent * 100).toFixed(1)}%`}
+      </text>
+    );
+  };
+
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{data.name}</p>
+          <p className="text-sm text-gray-600">
+            Count: <span className="font-medium">{data.value}</span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Percentage: <span className="font-medium">{((data.value / slaOverviewData.reduce((sum, item) => sum + item.value, 0)) * 100).toFixed(1)}%</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
   };
 
   if (isLoading) {
@@ -117,7 +160,7 @@ const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({ filters }) => {
             </TabsList>
             
             <TabsContent value="overview" className="mt-6">
-              <div className="h-[350px]">
+              <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -125,27 +168,29 @@ const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({ filters }) => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={120}
+                      label={renderCustomLabel}
+                      outerRadius={140}
+                      innerRadius={60}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
+                      paddingAngle={2}
                     >
                       {slaOverviewData.map((entry, index) => (
                         <Cell 
                           key={`cell-${index}`} 
-                          fill={SLA_COLORS[entry.name.toLowerCase().replace(' ', '') as keyof typeof SLA_COLORS] || '#6B7280'} 
+                          fill={SLA_COLORS[entry.name as keyof typeof SLA_COLORS] || '#6B7280'} 
+                          stroke="#ffffff"
+                          strokeWidth={2}
                         />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      formatter={(value: number) => [`${value} tickets`, 'Count']}
-                      contentStyle={{ 
-                        backgroundColor: 'white', 
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)' 
-                      }}
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      iconType="circle"
+                      wrapperStyle={{ paddingTop: '20px' }}
                     />
-                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -188,6 +233,15 @@ const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({ filters }) => {
                       dot={{ r: 4, fill: '#10B981' }}
                       activeDot={{ r: 6, stroke: '#10B981', strokeWidth: 2, fill: 'white' }}
                       name="On Time"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="atRisk"
+                      stroke="#F59E0B"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: '#F59E0B' }}
+                      activeDot={{ r: 6, stroke: '#F59E0B', strokeWidth: 2, fill: 'white' }}
+                      name="At Risk"
                     />
                   </LineChart>
                 </ResponsiveContainer>
