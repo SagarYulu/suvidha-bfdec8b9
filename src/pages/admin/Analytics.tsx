@@ -11,28 +11,20 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { ISSUE_TYPES } from "@/config/issueTypes";
+import FilterBar from "@/components/dashboard/FilterBar";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import TrendAnalysisSection from "@/components/admin/analytics/TrendAnalysisSection";
+import SLAAnalysisSection from "@/components/admin/analytics/SLAAnalysisSection";
 
 const AdminAnalytics = () => {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      setIsLoading(true);
-      try {
-        console.log("Fetching analytics data...");
-        const analyticsData = await getAnalytics();
-        console.log("Analytics data received:", analyticsData);
-        setAnalytics(analyticsData);
-      } catch (error) {
-        console.error("Error fetching analytics data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAnalyticsData();
-  }, []);
+  const { 
+    analytics, 
+    isLoading, 
+    filters, 
+    handleFilterChange,
+    typePieData,
+    cityBarData
+  } = useDashboardData();
 
   const COLORS = [
     '#1E40AF', '#3B82F6', '#93C5FD', '#BFDBFE', 
@@ -43,25 +35,6 @@ const AdminAnalytics = () => {
   const getIssueTypeLabel = (typeId: string) => {
     const issueType = ISSUE_TYPES.find(type => type.id === typeId);
     return issueType?.label || typeId;
-  };
-
-  // Format data for charts
-  const getTypePieData = () => {
-    if (!analytics?.typeCounts) return [];
-    
-    return Object.entries(analytics.typeCounts).map(([typeId, count]: [string, any]) => ({
-      name: getIssueTypeLabel(typeId),
-      value: count
-    }));
-  };
-
-  const getCityBarData = () => {
-    if (!analytics?.cityCounts) return [];
-    
-    return Object.entries(analytics.cityCounts).map(([name, value]: [string, any]) => ({
-      name,
-      value
-    }));
   };
 
   const getClusterBarData = () => {
@@ -84,12 +57,21 @@ const AdminAnalytics = () => {
 
   return (
     <AdminLayout title="Analytics">
+      {/* Filter Bar */}
+      <div className="mb-6">
+        <FilterBar 
+          onFilterChange={handleFilterChange}
+          initialFilters={filters}
+        />
+      </div>
+
       {isLoading ? (
         <div className="flex justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yulu-blue"></div>
         </div>
       ) : (
         <div className="space-y-6">
+          {/* Key Metrics Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             <Card>
               <CardHeader className="pb-2">
@@ -144,6 +126,13 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
+          {/* Trend Analysis Section */}
+          <TrendAnalysisSection filters={filters} />
+
+          {/* SLA Analysis Section */}
+          <SLAAnalysisSection filters={filters} />
+
+          {/* Main Charts */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <Card>
               <CardHeader>
@@ -154,7 +143,7 @@ const AdminAnalytics = () => {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={getTypePieData()}
+                      data={typePieData}
                       cx="50%"
                       cy="50%"
                       labelLine={false}
@@ -163,7 +152,7 @@ const AdminAnalytics = () => {
                       dataKey="value"
                       label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                     >
-                      {getTypePieData().map((entry, index) => (
+                      {typePieData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -181,7 +170,7 @@ const AdminAnalytics = () => {
               <CardContent className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={getCityBarData()}
+                    data={cityBarData}
                     layout="vertical"
                     margin={{
                       top: 5,
@@ -202,34 +191,8 @@ const AdminAnalytics = () => {
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Issues by City</CardTitle>
-              </CardHeader>
-              <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={getCityBarData()}
-                    layout="vertical"
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 50,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis type="category" dataKey="name" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="value" name="Issues" fill="#1E40AF" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            
+          {/* Secondary Charts */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Issues by Cluster</CardTitle>
