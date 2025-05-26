@@ -212,4 +212,17 @@ COMMIT;
     const blob = new Blob([sqlContent], { type: 'text/sql;charset=utf-8' });
     saveAs(blob, `complete_mysql_script_${new Date().toISOString().split('T')[0]}.sql`);
   }
+
+  // New method to directly generate complete script without needing export first
+  async downloadCompleteMySQLScriptDirect(): Promise<void> {
+    try {
+      console.log('Starting direct complete MySQL script generation...');
+      const results = await this.exportAllTables();
+      await this.exportAsCompleteSQLScript(results);
+      console.log('Complete MySQL script generated successfully!');
+    } catch (error) {
+      console.error('Failed to generate complete MySQL script:', error);
+      throw error;
+    }
+  }
 }

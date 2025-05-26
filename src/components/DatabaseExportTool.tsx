@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ const DatabaseExportTool = () => {
   const [exportResults, setExportResults] = useState<ExportResult[]>([]);
   const [progress, setProgress] = useState(0);
   const [currentTable, setCurrentTable] = useState('');
+  const [isGeneratingComplete, setIsGeneratingComplete] = useState(false);
 
   const exporter = new DatabaseExporter();
 
@@ -47,6 +49,32 @@ const DatabaseExportTool = () => {
         description: "Failed to download complete SQL script.",
         variant: "destructive",
       });
+    }
+  };
+
+  const downloadCompleteSQLScriptDirect = async () => {
+    setIsGeneratingComplete(true);
+    try {
+      toast({
+        title: "Generating Complete Script",
+        description: "Fetching data and generating complete MySQL script...",
+      });
+
+      await exporter.downloadCompleteMySQLScriptDirect();
+      
+      toast({
+        title: "Complete Script Downloaded!",
+        description: "Complete MySQL script with schema and all data has been downloaded.",
+      });
+    } catch (error) {
+      console.error('Direct complete SQL script download failed:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to generate complete SQL script. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingComplete(false);
     }
   };
 
@@ -176,6 +204,32 @@ const DatabaseExportTool = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Direct Complete Script Download - MAIN FEATURE */}
+          <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-2 text-green-800">🎯 Complete MySQL Script (Recommended)</h3>
+            <p className="text-sm text-green-700 mb-4">
+              Download one single script that creates all tables AND inserts all your data. This is what you need!
+            </p>
+            <Button 
+              onClick={downloadCompleteSQLScriptDirect} 
+              disabled={isGeneratingComplete}
+              size="lg"
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              {isGeneratingComplete ? (
+                <>
+                  <Database className="h-4 w-4 mr-2 animate-spin" />
+                  Generating Complete Script...
+                </>
+              ) : (
+                <>
+                  <Package className="h-4 w-4 mr-2" />
+                  Download Complete MySQL Script (Tables + Data)
+                </>
+              )}
+            </Button>
+          </div>
+
           {/* Export Button */}
           <div className="flex flex-col gap-4">
             <Button 
@@ -183,6 +237,7 @@ const DatabaseExportTool = () => {
               disabled={isExporting}
               size="lg"
               className="w-full"
+              variant="outline"
             >
               {isExporting ? (
                 <>
@@ -192,7 +247,7 @@ const DatabaseExportTool = () => {
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Start Database Export
+                  Alternative: Start Database Export (for separate files)
                 </>
               )}
             </Button>
@@ -211,26 +266,26 @@ const DatabaseExportTool = () => {
 
           {/* MySQL Schema Download */}
           <div className="border-t pt-4">
-            <h3 className="text-lg font-semibold mb-2">Database Schema</h3>
+            <h3 className="text-lg font-semibold mb-2">Database Schema Only</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Download the MySQL CREATE TABLE statements to recreate your database structure in MySQL.
+              Download only the MySQL CREATE TABLE statements (no data included).
             </p>
             <Button variant="outline" onClick={downloadMySQLSchema} className="w-full">
               <Code className="h-4 w-4 mr-2" />
-              Download MySQL Schema Script
+              Download MySQL Schema Script (Tables Only)
             </Button>
           </div>
 
           {/* Complete SQL Script Download */}
           {hasData && (
             <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold mb-2">Complete MySQL Script</h3>
+              <h3 className="text-lg font-semibold mb-2">Complete MySQL Script (from exported data)</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Download a complete MySQL script that creates tables and inserts all data in one go.
+                Download a complete MySQL script that creates tables and inserts all exported data.
               </p>
               <Button onClick={downloadCompleteSQLScript} className="w-full">
                 <Package className="h-4 w-4 mr-2" />
-                Download Complete SQL Script (Schema + Data)
+                Download Complete SQL Script (Schema + Exported Data)
               </Button>
             </div>
           )}
@@ -260,7 +315,7 @@ const DatabaseExportTool = () => {
                   <div className="text-center">
                     <Database className="h-6 w-6 mx-auto mb-2" />
                     <div className="font-medium">Download SQL File</div>
-                    <div className="text-xs text-gray-500">Ready for database import</div>
+                    <div className="text-xs text-gray-500">Data only (no tables)</div>
                   </div>
                 </Button>
 
