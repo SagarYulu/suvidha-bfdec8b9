@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 import type { Database } from "@/integrations/supabase/types";
+import { MySQLSchemaGenerator } from "./mysqlSchemaGenerator";
 
 type TableName = keyof Database['public']['Tables'];
 
@@ -159,5 +160,56 @@ export class DatabaseExporter {
     const jsonContent = JSON.stringify(exportData, null, 2);
     const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8' });
     saveAs(blob, `database_export_${new Date().toISOString().split('T')[0]}.json`);
+  }
+
+  async exportAsCompleteSQLScript(results: ExportResult[]): Promise<void> {
+    let sqlContent = `-- Complete MySQL Database Script
+-- Generated on ${new Date().toISOString()}
+-- 
+-- This script creates all tables and inserts all data in one go
+-- Instructions:
+-- 1. Create a new MySQL database
+-- 2. Run this complete script in your MySQL database
+-- 3. All tables will be created and populated with data
+
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
+START TRANSACTION;
+
+-- ========================================
+-- CREATE TABLES
+-- ========================================
+
+${MySQLSchemaGenerator.generateCreateTableStatements()}
+
+-- ========================================
+-- INSERT DATA
+-- ========================================
+
+`;
+
+    for (const result of results) {
+      if (result.data.length > 0) {
+        sqlContent += `\n-- Inserting data into ${result.tableName}\n`;
+        sqlContent += this.generateSQLInserts(result.tableName, result.data);
+      }
+    }
+
+    sqlContent += `
+-- ========================================
+-- FINALIZE
+-- ========================================
+
+SET FOREIGN_KEY_CHECKS = 1;
+COMMIT;
+
+-- Script completed successfully!
+-- Total tables: ${results.length}
+-- Total records: ${results.reduce((sum, r) => sum + r.count, 0)}
+`;
+
+    const blob = new Blob([sqlContent], { type: 'text/sql;charset=utf-8' });
+    saveAs(blob, `complete_mysql_script_${new Date().toISOString().split('T')[0]}.sql`);
   }
 }
