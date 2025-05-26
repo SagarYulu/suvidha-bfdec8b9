@@ -3,7 +3,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, authenticateEmployee } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -18,7 +18,7 @@ router.post('/admin/login', async (req, res) => {
 
     // Get user from database
     const [users] = await pool.execute(
-      'SELECT id, email, name, role, password_hash FROM dashboard_users WHERE email = ? AND is_active = 1',
+      'SELECT id, email, name, role, password FROM dashboard_users WHERE email = ? AND is_active = 1',
       [email.toLowerCase()]
     );
 
@@ -29,8 +29,8 @@ router.post('/admin/login', async (req, res) => {
     const user = users[0];
 
     // For demo purposes, also check for plain text passwords
-    const isValidPassword = password === 'admin123' || 
-      (user.password_hash && await bcrypt.compare(password, user.password_hash));
+    const isValidPassword = password === 'password' || 
+      (user.password && await bcrypt.compare(password, user.password));
 
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
@@ -80,9 +80,8 @@ router.post('/employee/login', async (req, res) => {
 
     const employee = employees[0];
 
-    // For demo purposes, accept any password for employees
-    // In production, implement proper password hashing
-    if (password !== '123456') {
+    // For demo purposes, accept 'password' for employees
+    if (password !== 'password') {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 

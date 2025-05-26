@@ -14,6 +14,7 @@ interface AuthContextType {
   authState: AuthState;
   signIn: (email: string, password: string, isEmployee?: boolean) => Promise<boolean>;
   signOut: () => void;
+  logout: () => void;
   refreshAuth: () => Promise<void>;
 }
 
@@ -67,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const logout = signOut;
+
   const refreshAuth = async () => {
     try {
       if (authService.isAuthenticated()) {
@@ -110,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ authState, signIn, signOut, refreshAuth }}>
+    <AuthContext.Provider value={{ authState, signIn, signOut, logout, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );
