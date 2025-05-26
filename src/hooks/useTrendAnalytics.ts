@@ -26,6 +26,7 @@ export const useTrendAnalytics = (filters: IssueFilters) => {
       try {
         // Fetch all issues with current filters
         const allIssues = await getIssues(filters);
+        console.log("Trend analytics processing", allIssues.length, "issues");
         
         // Generate data for the last 14 days
         const last14Days = Array.from({ length: 14 }, (_, i) => {
@@ -58,33 +59,82 @@ export const useTrendAnalytics = (filters: IssueFilters) => {
           };
         });
 
-        // Process response time data using real data from issues with comments
+        // Enhanced response time calculation using multiple approaches
         const responseData: ResponseTimeData[] = last14Days.map(({ date, start, end }) => {
+          // Get all issues created on this day
           const dayIssues = allIssues.filter(issue => {
             const createdDate = new Date(issue.createdAt);
             return createdDate >= start && createdDate <= end;
           });
 
-          // Calculate actual response times from issues that have comments
-          const responseTimes = dayIssues
-            .filter(issue => issue.comments && issue.comments.length > 0)
-            .map(issue => {
-              const firstComment = issue.comments[0];
+          console.log(`Processing ${dayIssues.length} issues for date ${date}`);
+
+          let responseTimes: number[] = [];
+
+          // Method 1: Calculate from issue comments
+          dayIssues.forEach(issue => {
+            if (issue.comments && issue.comments.length > 0) {
+              // Sort comments by creation time to get the first response
+              const sortedComments = [...issue.comments].sort((a, b) => 
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+              );
+              
+              const firstComment = sortedComments[0];
               const createdTime = new Date(issue.createdAt);
               const firstResponseTime = new Date(firstComment.createdAt);
-              return differenceInHours(firstResponseTime, createdTime);
-            })
-            .filter(time => time >= 0); // Only positive response times
+              const responseTimeHours = differenceInHours(firstResponseTime, createdTime);
+              
+              console.log(`Issue ${issue.id}: Response time = ${responseTimeHours} hours`);
+              
+              if (responseTimeHours >= 0 && responseTimeHours <= 168) { // Max 1 week response time
+                responseTimes.push(responseTimeHours);
+              }
+            }
+          });
+
+          // Method 2: If no comment-based data, use assignment time as response
+          if (responseTimes.length === 0) {
+            dayIssues.forEach(issue => {
+              if (issue.assignedTo && issue.updatedAt !== issue.createdAt) {
+                const createdTime = new Date(issue.createdAt);
+                const assignedTime = new Date(issue.updatedAt);
+                const responseTimeHours = differenceInHours(assignedTime, createdTime);
+                
+                if (responseTimeHours >= 0 && responseTimeHours <= 168) {
+                  responseTimes.push(responseTimeHours);
+                }
+              }
+            });
+          }
+
+          // Method 3: If still no data, use status change as response indicator
+          if (responseTimes.length === 0) {
+            dayIssues.forEach(issue => {
+              if (issue.status !== 'open' && issue.updatedAt !== issue.createdAt) {
+                const createdTime = new Date(issue.createdAt);
+                const statusChangeTime = new Date(issue.updatedAt);
+                const responseTimeHours = differenceInHours(statusChangeTime, createdTime);
+                
+                if (responseTimeHours >= 0 && responseTimeHours <= 168) {
+                  responseTimes.push(responseTimeHours);
+                }
+              }
+            });
+          }
 
           const avgResponseTime = responseTimes.length > 0 
             ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
             : 0;
+
+          console.log(`Date ${date}: ${responseTimes.length} valid response times, avg = ${avgResponseTime}`);
 
           return {
             date,
             avgResponseTime: Math.round(avgResponseTime * 10) / 10 // Round to 1 decimal
           };
         });
+
+        console.log("Final response time data:", responseData);
 
         setTicketTrendData(trendData);
         setResponseTimeData(responseData);
