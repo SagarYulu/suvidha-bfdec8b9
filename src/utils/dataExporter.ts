@@ -1,6 +1,9 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
+import type { Database } from "@/integrations/supabase/types";
+
+type TableName = keyof Database['public']['Tables'];
 
 export interface ExportResult {
   tableName: string;
@@ -9,7 +12,7 @@ export interface ExportResult {
 }
 
 export class DatabaseExporter {
-  private async exportTable(tableName: string): Promise<ExportResult> {
+  private async exportTable(tableName: TableName): Promise<ExportResult> {
     console.log(`Exporting table: ${tableName}`);
     
     const { data, error } = await supabase
@@ -77,7 +80,7 @@ export class DatabaseExporter {
   }
 
   async exportAllTables(): Promise<ExportResult[]> {
-    const tables = [
+    const tables: TableName[] = [
       'employees',
       'issues',
       'dashboard_users',
