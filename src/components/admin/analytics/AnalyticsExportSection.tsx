@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,23 +24,23 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
   const formatIssueForExport = (issue: any) => {
     return {
       'Issue ID': issue.id,
-      'Employee UUID': issue.employee_uuid,
-      'Type ID': issue.type_id,
-      'Sub Type ID': issue.sub_type_id,
+      'Employee UUID': issue.employee_uuid || issue.employeeUuid,
+      'Type ID': issue.type_id || issue.typeId,
+      'Sub Type ID': issue.sub_type_id || issue.subTypeId,
       'Description': issue.description,
       'Status': issue.status,
       'Priority': issue.priority,
-      'Created At': format(new Date(issue.created_at), 'yyyy-MM-dd HH:mm:ss'),
-      'Updated At': format(new Date(issue.updated_at), 'yyyy-MM-dd HH:mm:ss'),
-      'Closed At': issue.closed_at ? format(new Date(issue.closed_at), 'yyyy-MM-dd HH:mm:ss') : '',
-      'Assigned To': issue.assigned_to || '',
-      'Mapped Type ID': issue.mapped_type_id || '',
-      'Mapped Sub Type ID': issue.mapped_sub_type_id || '',
-      'Mapped At': issue.mapped_at ? format(new Date(issue.mapped_at), 'yyyy-MM-dd HH:mm:ss') : '',
-      'Mapped By': issue.mapped_by || '',
+      'Created At': format(new Date(issue.created_at || issue.createdAt), 'yyyy-MM-dd HH:mm:ss'),
+      'Updated At': format(new Date(issue.updated_at || issue.updatedAt), 'yyyy-MM-dd HH:mm:ss'),
+      'Closed At': issue.closed_at || issue.closedAt ? format(new Date(issue.closed_at || issue.closedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+      'Assigned To': issue.assigned_to || issue.assignedTo || '',
+      'Mapped Type ID': issue.mapped_type_id || issue.mappedTypeId || '',
+      'Mapped Sub Type ID': issue.mapped_sub_type_id || issue.mappedSubTypeId || '',
+      'Mapped At': issue.mapped_at || issue.mappedAt ? format(new Date(issue.mapped_at || issue.mappedAt), 'yyyy-MM-dd HH:mm:ss') : '',
+      'Mapped By': issue.mapped_by || issue.mappedBy || '',
       'Comments Count': issue.comments ? issue.comments.length : 0,
       'Has Attachments': issue.attachments ? 'Yes' : 'No',
-      'Attachment URL': issue.attachment_url || ''
+      'Attachment URL': issue.attachment_url || issue.attachmentUrl || ''
     };
   };
 
@@ -49,7 +50,7 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
     // Apply date range filter
     if (dateRange.from || dateRange.to) {
       filteredIssues = filteredIssues.filter(issue => {
-        const issueDate = new Date(issue.created_at);
+        const issueDate = new Date(issue.created_at || issue.createdAt);
         
         if (dateRange.from && issueDate < dateRange.from) {
           return false;
@@ -69,6 +70,12 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
   const exportAllIssues = () => {
     try {
       const filteredIssues = getFilteredIssues();
+      
+      if (filteredIssues.length === 0) {
+        toast.error('No issues found to export');
+        return;
+      }
+      
       const formattedData = filteredIssues.map(formatIssueForExport);
       
       let filename = 'issues-export';
@@ -83,12 +90,13 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
       // Add current date
       filename += `-${format(new Date(), 'yyyy-MM-dd')}.csv`;
       
+      console.log('Exporting issues:', formattedData.length, 'issues');
       exportToCSV(formattedData, filename);
       
       toast.success(`Exported ${formattedData.length} issues successfully!`);
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Failed to export data');
+      toast.error('Failed to export data. Please try again.');
     }
   };
 
@@ -99,74 +107,98 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
         return;
       }
 
-      const summaryData = [
-        {
-          'Metric': 'Total Issues',
-          'Value': analytics.totalIssues || 0,
-          'Description': 'Total number of issues in the system'
-        },
-        {
-          'Metric': 'Open Issues',
-          'Value': analytics.openIssues || 0,
-          'Description': 'Number of issues currently open'
-        },
-        {
-          'Metric': 'Resolution Rate',
-          'Value': `${analytics.resolutionRate?.toFixed(1) || 0}%`,
-          'Description': 'Percentage of issues that have been resolved'
-        },
-        {
-          'Metric': 'Average Resolution Time',
-          'Value': `${analytics.avgResolutionTime || 0} hours`,
-          'Description': 'Average time taken to resolve issues'
-        },
-        {
-          'Metric': 'Average First Response Time',
-          'Value': `${analytics.avgFirstResponseTime || 0} hours`,
-          'Description': 'Average time taken for first response to issues'
-        }
-      ];
+      // Create properly structured data with clear headers and sections
+      const summaryData = [];
 
-      // Add type counts
+      // Main Metrics Section
+      summaryData.push({
+        'Section': 'Main Metrics',
+        'Metric': 'Total Issues',
+        'Value': analytics.totalIssues || 0,
+        'Description': 'Total number of issues in the system',
+        'Unit': 'count'
+      });
+      
+      summaryData.push({
+        'Section': 'Main Metrics',
+        'Metric': 'Open Issues',
+        'Value': analytics.openIssues || 0,
+        'Description': 'Number of issues currently open',
+        'Unit': 'count'
+      });
+      
+      summaryData.push({
+        'Section': 'Main Metrics',
+        'Metric': 'Resolution Rate',
+        'Value': analytics.resolutionRate?.toFixed(1) || 0,
+        'Description': 'Percentage of issues that have been resolved',
+        'Unit': 'percentage'
+      });
+      
+      summaryData.push({
+        'Section': 'Main Metrics',
+        'Metric': 'Average Resolution Time',
+        'Value': analytics.avgResolutionTime || 0,
+        'Description': 'Average time taken to resolve issues',
+        'Unit': 'hours'
+      });
+      
+      summaryData.push({
+        'Section': 'Main Metrics',
+        'Metric': 'Average First Response Time',
+        'Value': analytics.avgFirstResponseTime || 0,
+        'Description': 'Average time taken for first response to issues',
+        'Unit': 'hours'
+      });
+
+      // Issues by Type Section
       if (analytics.typeCounts) {
         Object.entries(analytics.typeCounts).forEach(([type, count]: [string, any]) => {
           summaryData.push({
-            'Metric': `Issues by Type - ${type}`,
+            'Section': 'Issues by Type',
+            'Metric': type,
             'Value': count,
-            'Description': `Number of issues of type ${type}`
+            'Description': `Number of issues of type ${type}`,
+            'Unit': 'count'
           });
         });
       }
 
-      // Add city counts
+      // Issues by City Section
       if (analytics.cityCounts) {
         Object.entries(analytics.cityCounts).forEach(([city, count]: [string, any]) => {
           summaryData.push({
-            'Metric': `Issues by City - ${city}`,
+            'Section': 'Issues by City',
+            'Metric': city,
             'Value': count,
-            'Description': `Number of issues from ${city}`
+            'Description': `Number of issues from ${city}`,
+            'Unit': 'count'
           });
         });
       }
 
-      // Add cluster counts
+      // Issues by Cluster Section
       if (analytics.clusterCounts) {
         Object.entries(analytics.clusterCounts).forEach(([cluster, count]: [string, any]) => {
           summaryData.push({
-            'Metric': `Issues by Cluster - ${cluster}`,
+            'Section': 'Issues by Cluster',
+            'Metric': cluster,
             'Value': count,
-            'Description': `Number of issues from ${cluster} cluster`
+            'Description': `Number of issues from ${cluster} cluster`,
+            'Unit': 'count'
           });
         });
       }
 
       const filename = `analytics-summary-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+      
+      console.log('Exporting analytics summary:', summaryData.length, 'rows');
       exportToCSV(summaryData, filename);
       
       toast.success('Analytics summary exported successfully!');
     } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export analytics summary');
+      console.error('Analytics export failed:', error);
+      toast.error('Failed to export analytics summary. Please try again.');
     }
   };
 
@@ -193,6 +225,7 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
           onClick={exportAllIssues}
           className="w-full"
           variant="default"
+          disabled={filteredCount === 0}
         >
           <Download className="mr-2 h-4 w-4" />
           Export All Issues Data
@@ -202,6 +235,7 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
           onClick={exportAnalyticsSummary}
           className="w-full"
           variant="outline"
+          disabled={!analytics}
         >
           <Download className="mr-2 h-4 w-4" />
           Export Analytics Summary
