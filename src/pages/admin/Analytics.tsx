@@ -55,6 +55,50 @@ const AdminAnalytics = () => {
     }));
   };
 
+  // Custom label for the donut chart
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+    if (percent < 0.05) return null; // Don't show labels for very small slices
+    
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 1.2; // Position outside the donut
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="#374151" 
+        textAnchor={x > cx ? 'start' : 'end'} 
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight="500"
+      >
+        {`${name} ${(percent * 100).toFixed(1)}%`}
+      </text>
+    );
+  };
+
+  // Custom tooltip for issues by type
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0];
+      const total = typePieData.reduce((sum, item) => sum + item.value, 0);
+      return (
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900">{data.name}</p>
+          <p className="text-sm text-gray-600">
+            Count: <span className="font-medium">{data.value}</span>
+          </p>
+          <p className="text-sm text-gray-600">
+            Percentage: <span className="font-medium">{((data.value / total) * 100).toFixed(1)}%</span>
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <AdminLayout title="Analytics">
       {/* Filter Bar */}
@@ -147,16 +191,29 @@ const AdminAnalytics = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      outerRadius={120}
+                      label={renderCustomLabel}
+                      outerRadius={140}
+                      innerRadius={60}
                       fill="#8884d8"
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      paddingAngle={2}
                     >
                       {typePieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[index % COLORS.length]} 
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                        />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend 
+                      verticalAlign="bottom" 
+                      height={36}
+                      iconType="circle"
+                      wrapperStyle={{ paddingTop: '20px' }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
