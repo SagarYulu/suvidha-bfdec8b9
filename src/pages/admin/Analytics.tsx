@@ -15,6 +15,8 @@ import FilterBar from "@/components/dashboard/FilterBar";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import TrendAnalysisSection from "@/components/admin/analytics/TrendAnalysisSection";
 import SLAAnalysisSection from "@/components/admin/analytics/SLAAnalysisSection";
+import AnalyticsDateRangeFilter from "@/components/admin/analytics/AnalyticsDateRangeFilter";
+import AnalyticsExportSection from "@/components/admin/analytics/AnalyticsExportSection";
 
 const AdminAnalytics = () => {
   const { 
@@ -23,8 +25,11 @@ const AdminAnalytics = () => {
     filters, 
     handleFilterChange,
     typePieData,
-    cityBarData
+    cityBarData,
+    issues
   } = useDashboardData();
+
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
 
   const COLORS = [
     '#1E40AF', '#3B82F6', '#93C5FD', '#BFDBFE', 
@@ -106,6 +111,20 @@ const AdminAnalytics = () => {
         <FilterBar 
           onFilterChange={handleFilterChange}
           initialFilters={filters}
+        />
+      </div>
+
+      {/* Date Range Filter and Export Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <AnalyticsDateRangeFilter 
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+        />
+        <AnalyticsExportSection 
+          issues={issues}
+          analytics={analytics}
+          filters={filters}
+          dateRange={dateRange}
         />
       </div>
 
