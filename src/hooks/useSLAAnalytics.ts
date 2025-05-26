@@ -81,6 +81,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
       try {
         // Fetch all issues with current filters - using real data only
         const allIssues = await getIssues(filters);
+        console.log("SLA Analytics: Processing", allIssues.length, "issues");
         
         if (allIssues.length === 0) {
           // If no issues found, set empty data
@@ -103,16 +104,22 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
         }
         
         // Calculate SLA status for each issue using real data
-        const issuesWithSLA = allIssues.map(issue => ({
-          ...issue,
-          slaStatus: calculateSLAStatus(issue)
-        }));
+        const issuesWithSLA = allIssues.map(issue => {
+          const slaStatus = calculateSLAStatus(issue);
+          console.log(`Issue ${issue.id}: Status = ${slaStatus}, Type = ${issue.typeId}`);
+          return {
+            ...issue,
+            slaStatus
+          };
+        });
 
         // Generate overview data from real calculations
         const slaStatusCounts = issuesWithSLA.reduce((acc, issue) => {
           acc[issue.slaStatus] = (acc[issue.slaStatus] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
+
+        console.log("SLA Status Counts:", slaStatusCounts);
 
         const overview: SLAOverviewData[] = [
           { name: 'On Time', value: slaStatusCounts.onTime || 0 },
@@ -146,15 +153,54 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
         });
 
         const trendData: SLABreachTrendData[] = last14Days.map(({ date, start, end }) => {
-          const dayIssues = issuesWithSLA.filter(issue => {
+          // Get all issues that existed on this date (created before end of day)
+          const relevantIssues = issuesWithSLA.filter(issue => {
             const createdDate = new Date(issue.createdAt);
-            return createdDate >= start && createdDate <= end;
+            return createdDate <= end; // Include all issues that existed by this date
           });
 
-          const counts = dayIssues.reduce((acc, issue) => {
-            acc[issue.slaStatus] = (acc[issue.slaStatus] || 0) + 1;
+          // For each relevant issue, calculate what its SLA status would have been on this specific date
+          const counts = relevantIssues.reduce((acc, issue) => {
+            const createdAt = new Date(issue.createdAt);
+            const threshold = getSLAThreshold(issue.typeId);
+            
+            // Calculate the age of the issue on this specific date
+            const ageOnDate = differenceInHours(end, createdAt);
+            
+            let statusOnDate: string;
+            
+            if (issue.closedAt) {
+              const closedAt = new Date(issue.closedAt);
+              if (closedAt <= end) {
+                // Issue was already closed by this date
+                const resolutionTime = differenceInHours(closedAt, createdAt);
+                statusOnDate = resolutionTime <= threshold ? 'onTime' : 'breached';
+              } else {
+                // Issue was still open on this date
+                if (ageOnDate > threshold) {
+                  statusOnDate = 'breached';
+                } else if (ageOnDate > threshold * 0.8) {
+                  statusOnDate = 'atRisk';
+                } else {
+                  statusOnDate = 'pending';
+                }
+              }
+            } else {
+              // Issue is still open
+              if (ageOnDate > threshold) {
+                statusOnDate = 'breached';
+              } else if (ageOnDate > threshold * 0.8) {
+                statusOnDate = 'atRisk';
+              } else {
+                statusOnDate = 'pending';
+              }
+            }
+
+            acc[statusOnDate] = (acc[statusOnDate] || 0) + 1;
             return acc;
           }, {} as Record<string, number>);
+
+          console.log(`Date ${date}: Relevant issues = ${relevantIssues.length}, Counts =`, counts);
 
           return {
             date,
@@ -164,6 +210,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           };
         });
 
+        console.log("Final trend data:", trendData);
         setSlaBreachTrendData(trendData);
 
         // Generate performance by type data using real data

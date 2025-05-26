@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, FileExport } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import { exportToCSV } from '@/utils/csvExportUtils';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -177,7 +176,7 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <FileExport className="h-5 w-5" />
+          <FileText className="h-5 w-5" />
           Export Data
         </CardTitle>
       </CardHeader>
