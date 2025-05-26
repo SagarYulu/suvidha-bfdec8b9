@@ -79,16 +79,36 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
     const fetchSLAData = async () => {
       setIsLoading(true);
       try {
-        // Fetch all issues with current filters
+        // Fetch all issues with current filters - using real data only
         const allIssues = await getIssues(filters);
         
-        // Calculate SLA status for each issue
+        if (allIssues.length === 0) {
+          // If no issues found, set empty data
+          setSlaOverviewData([
+            { name: 'On Time', value: 0 },
+            { name: 'Breached', value: 0 },
+            { name: 'At Risk', value: 0 },
+            { name: 'Pending', value: 0 }
+          ]);
+          setSlaMetrics({
+            onTime: 0,
+            breached: 0,
+            atRisk: 0,
+            compliance: '0%'
+          });
+          setSlaBreachTrendData([]);
+          setSlaPerformanceData([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Calculate SLA status for each issue using real data
         const issuesWithSLA = allIssues.map(issue => ({
           ...issue,
           slaStatus: calculateSLAStatus(issue)
         }));
 
-        // Generate overview data
+        // Generate overview data from real calculations
         const slaStatusCounts = issuesWithSLA.reduce((acc, issue) => {
           acc[issue.slaStatus] = (acc[issue.slaStatus] || 0) + 1;
           return acc;
@@ -103,7 +123,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
 
         setSlaOverviewData(overview);
 
-        // Calculate metrics
+        // Calculate real metrics
         const totalIssues = issuesWithSLA.length;
         const onTimeCount = slaStatusCounts.onTime || 0;
         const compliance = totalIssues > 0 ? ((onTimeCount / totalIssues) * 100).toFixed(1) + '%' : '0%';
@@ -115,7 +135,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           compliance
         });
 
-        // Generate trend data for the last 14 days
+        // Generate trend data for the last 14 days using real data
         const last14Days = Array.from({ length: 14 }, (_, i) => {
           const date = subDays(new Date(), 13 - i);
           return {
@@ -146,7 +166,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
 
         setSlaBreachTrendData(trendData);
 
-        // Generate performance by type data
+        // Generate performance by type data using real data
         const typeGroups = issuesWithSLA.reduce((acc, issue) => {
           const typeLabel = getIssueTypeLabel(issue.typeId);
           if (!acc[typeLabel]) {
@@ -164,7 +184,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           const complianceRate = total > 0 ? (onTimeCount / total) * 100 : 0;
           const breachRate = total > 0 ? (breachedCount / total) * 100 : 0;
 
-          // Calculate average resolution time for closed issues
+          // Calculate average resolution time for closed issues using real data
           const closedIssues = issues.filter(i => i.closedAt);
           const avgResolutionTime = closedIssues.length > 0 
             ? closedIssues.reduce((sum, issue) => {
@@ -185,6 +205,11 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
 
       } catch (error) {
         console.error('Error fetching SLA analytics:', error);
+        // Set empty data on error instead of mock data
+        setSlaOverviewData([]);
+        setSlaBreachTrendData([]);
+        setSlaPerformanceData([]);
+        setSlaMetrics(null);
       } finally {
         setIsLoading(false);
       }

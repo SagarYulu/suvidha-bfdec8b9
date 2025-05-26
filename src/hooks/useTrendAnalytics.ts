@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { IssueFilters } from '@/services/issues/issueFilters';
 import { getIssues } from '@/services/issues/issueFilters';
-import { subDays, format, startOfDay, endOfDay } from 'date-fns';
+import { subDays, format, startOfDay, endOfDay, differenceInHours } from 'date-fns';
 
 interface TrendData {
   date: string;
@@ -38,7 +38,7 @@ export const useTrendAnalytics = (filters: IssueFilters) => {
           };
         });
 
-        // Process ticket trend data
+        // Process ticket trend data - only using real data
         const trendData: TrendData[] = last14Days.map(({ date, start, end }) => {
           const createdOnDay = allIssues.filter(issue => {
             const createdDate = new Date(issue.createdAt);
@@ -58,14 +58,31 @@ export const useTrendAnalytics = (filters: IssueFilters) => {
           };
         });
 
-        // Process response time data (mock data for now - would need audit trail data)
-        const responseData: ResponseTimeData[] = last14Days.map(({ date }) => {
-          // Mock response time data - replace with actual calculation from audit trail
-          const baseTime = 4 + Math.random() * 6; // 4-10 hours base
-          const variation = (Math.random() - 0.5) * 4; // ±2 hours variation
+        // Process response time data using real data from issues with comments
+        const responseData: ResponseTimeData[] = last14Days.map(({ date, start, end }) => {
+          const dayIssues = allIssues.filter(issue => {
+            const createdDate = new Date(issue.createdAt);
+            return createdDate >= start && createdDate <= end;
+          });
+
+          // Calculate actual response times from issues that have comments
+          const responseTimes = dayIssues
+            .filter(issue => issue.comments && issue.comments.length > 0)
+            .map(issue => {
+              const firstComment = issue.comments[0];
+              const createdTime = new Date(issue.createdAt);
+              const firstResponseTime = new Date(firstComment.createdAt);
+              return differenceInHours(firstResponseTime, createdTime);
+            })
+            .filter(time => time >= 0); // Only positive response times
+
+          const avgResponseTime = responseTimes.length > 0 
+            ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+            : 0;
+
           return {
             date,
-            avgResponseTime: Math.max(0.5, baseTime + variation)
+            avgResponseTime: Math.round(avgResponseTime * 10) / 10 // Round to 1 decimal
           };
         });
 
@@ -73,6 +90,9 @@ export const useTrendAnalytics = (filters: IssueFilters) => {
         setResponseTimeData(responseData);
       } catch (error) {
         console.error('Error fetching trend analytics:', error);
+        // Set empty arrays on error instead of mock data
+        setTicketTrendData([]);
+        setResponseTimeData([]);
       } finally {
         setIsLoading(false);
       }
