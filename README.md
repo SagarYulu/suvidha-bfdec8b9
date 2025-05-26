@@ -1,73 +1,116 @@
-# Welcome to your Lovable project
 
-## Project info
+# Yulu Grievance Portal - Complete Local Deployment
 
-**URL**: https://lovable.dev/projects/0a55d2f1-8d75-4dda-a1f6-17726799c37c
+## Overview
+This is a complete grievance management system with separate frontend and backend applications designed for local deployment.
 
-## How can I edit this code?
+## Architecture
+- **Frontend**: React application running on port 3000
+- **Backend**: Express.js API server running on port 5000
+- **Database**: MySQL database with imported schema
 
-There are several ways of editing your application.
+## Quick Start
 
-**Use Lovable**
+### 1. Database Setup
+1. Install MySQL and start the service
+2. Create a new database: `CREATE DATABASE grievance_portal;`
+3. Import the provided SQL schema file (generated from the export tool)
+4. Verify all tables are created successfully
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/0a55d2f1-8d75-4dda-a1f6-17726799c37c) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 2. Backend Setup
+```bash
+cd backend
+npm install
 npm run dev
 ```
+The API will be available at `http://localhost:5000`
 
-**Edit a file directly in GitHub**
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
+The application will be available at `http://localhost:3000`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Features
 
-**Use GitHub Codespaces**
+### ✅ Complete Grievance Management
+- Issue creation and tracking
+- Status management (open, in_progress, resolved, closed)
+- Priority levels (low, medium, high, critical)
+- Assignment to agents/admins
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### ✅ User Management
+- Admin dashboard access
+- Employee mobile interface
+- Role-based authentication
+- JWT token management
 
-## What technologies are used for this project?
+### ✅ Feedback System
+- Happy/sad/neutral sentiment
+- Reason collection
+- Analytics dashboard
 
-This project is built with:
+### ✅ Analytics & Reporting
+- Dashboard metrics
+- Filter capabilities
+- Chart visualizations
+- Export functionality
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### ✅ Communication
+- Comment threads
+- Internal admin comments
+- Status notifications
+- Audit trail
 
-## How can I deploy this project?
+## Default Credentials
 
-Simply open [Lovable](https://lovable.dev/projects/0a55d2f1-8d75-4dda-a1f6-17726799c37c) and click on Share -> Publish.
+### Admin Access
+- Email: admin@yulu.com
+- Password: admin123
 
-## Can I connect a custom domain to my Lovable project?
+### Employee Access
+- Employee ID: Any valid ID from the database
+- Password: 123456
 
-Yes, you can!
+## Deployment Architecture
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```
+Frontend (Port 3000)
+    ↓ API Calls
+Backend (Port 5000)
+    ↓ Database Queries
+MySQL Database (Port 3306)
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Environment Configuration
+
+### Backend (.env)
+```
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=Yulu@123
+DB_NAME=grievance_portal
+PORT=5000
+JWT_SECRET=your-secret-key
+FRONTEND_URL=http://localhost:3000
+```
+
+### Frontend (.env)
+```
+VITE_API_URL=http://localhost:5000/api
+```
+
+## Health Checks
+- Backend API: `http://localhost:5000/health`
+- Frontend: `http://localhost:3000`
+
+## Production Deployment
+1. Update environment variables for production
+2. Build frontend: `npm run build`
+3. Configure reverse proxy (nginx/apache)
+4. Set up SSL certificates
+5. Configure production database
+
+This setup preserves all functionality from the original Lovable application while providing a clean separation between frontend and backend for local development and deployment.
