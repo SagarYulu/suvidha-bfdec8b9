@@ -59,7 +59,7 @@ router.post('/admin/login', async (req, res) => {
   }
 });
 
-// Employee login
+// Employee login - Updated to accept employee ID as password
 router.post('/employee/login', async (req, res) => {
   try {
     const { employeeId, password } = req.body;
@@ -68,10 +68,10 @@ router.post('/employee/login', async (req, res) => {
       return res.status(400).json({ error: 'Employee ID and password are required' });
     }
 
-    // Get employee from database
+    // Get employee from database - check both employee_id and emp_id columns
     const [employees] = await pool.execute(
-      'SELECT employee_uuid, employee_name, employee_id, manager_name FROM employees WHERE employee_id = ?',
-      [employeeId]
+      'SELECT id, name, email, emp_id, employee_id, manager, city, cluster FROM employees WHERE emp_id = ? OR employee_id = ?',
+      [employeeId, employeeId]
     );
 
     if (employees.length === 0) {
@@ -80,14 +80,16 @@ router.post('/employee/login', async (req, res) => {
 
     const employee = employees[0];
 
-    // For demo purposes, accept 'password' for employees
-    if (password !== 'password') {
+    // For mobile app, accept employee ID as password OR the default 'password'
+    const isValidPassword = password === (employee.emp_id || employee.employee_id) || password === 'password';
+
+    if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
     const token = jwt.sign(
-      { employeeUuid: employee.employee_uuid, employeeId: employee.employee_id },
+      { employeeUuid: employee.id, employeeId: employee.emp_id || employee.employee_id },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -96,10 +98,13 @@ router.post('/employee/login', async (req, res) => {
       success: true,
       token,
       employee: {
-        uuid: employee.employee_uuid,
-        name: employee.employee_name,
-        employeeId: employee.employee_id,
-        manager: employee.manager_name
+        uuid: employee.id,
+        name: employee.name,
+        employeeId: employee.emp_id || employee.employee_id,
+        email: employee.email,
+        manager: employee.manager,
+        city: employee.city,
+        cluster: employee.cluster
       }
     });
   } catch (error) {
