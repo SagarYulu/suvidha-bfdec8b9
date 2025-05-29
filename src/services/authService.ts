@@ -113,7 +113,6 @@ export const login = async (email: string, password: string): Promise<User | nul
       
       // Check if password matches employee ID OR the default 'password'
       const isValidPassword = password === employees.emp_id || 
-                             password === employees.employee_id || 
                              password === 'password';
       
       if (!isValidPassword) {
