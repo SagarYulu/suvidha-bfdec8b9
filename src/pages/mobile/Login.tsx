@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { EyeIcon, EyeOffIcon, MailIcon, UserIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Download } from "lucide-react";
+import { downloadStandaloneFrontend } from "@/services/downloadService";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
@@ -14,6 +15,7 @@ const MobileLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { authState, login, logout } = useAuth();
   const navigate = useNavigate();
   const initialCheckDone = useRef(false);
@@ -163,6 +165,26 @@ const MobileLogin = () => {
     }
   };
 
+  const handleDownload = async () => {
+    setIsDownloading(true);
+    try {
+      await downloadStandaloneFrontend();
+      toast({
+        title: "Download Started",
+        description: "Standalone frontend project is being downloaded...",
+      });
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download the project. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   if (pageLoading) {
     return (
       <div className="min-h-screen bg-[#1E40AF]/10">
@@ -204,6 +226,31 @@ const MobileLogin = () => {
             <h1 className="text-3xl font-bold text-center text-[#1E40AF] mb-10">
               Yulu Suvidha
             </h1>
+            
+            {/* Download Section */}
+            <div className="mb-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <h3 className="font-semibold text-blue-900 mb-2">Download Frontend Project</h3>
+              <p className="text-sm text-blue-700 mb-3">
+                Get the complete standalone React frontend project
+              </p>
+              <Button
+                onClick={handleDownload}
+                disabled={isDownloading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isDownloading ? (
+                  <>
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Preparing Download...
+                  </>
+                ) : (
+                  <>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Project
+                  </>
+                )}
+              </Button>
+            </div>
             
             {error && (
               <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
