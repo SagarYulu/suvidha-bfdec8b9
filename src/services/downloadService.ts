@@ -4,9 +4,9 @@ import { saveAs } from 'file-saver';
 
 const standaloneFrontendFiles = {
   'package.json': `{
-  "name": "yulu-grievance-frontend",
+  "name": "standalone-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,29 +15,28 @@ const standaloneFrontendFiles = {
     "preview": "vite preview"
   },
   "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.2",
-    "@radix-ui/react-slot": "^1.1.0",
-    "@radix-ui/react-dialog": "^1.1.2",
-    "@radix-ui/react-dropdown-menu": "^2.1.1",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-tabs": "^1.1.0",
-    "@radix-ui/react-toast": "^1.2.1",
-    "@radix-ui/react-accordion": "^1.2.0",
-    "@radix-ui/react-alert-dialog": "^1.1.1",
-    "@radix-ui/react-avatar": "^1.1.0",
-    "@radix-ui/react-checkbox": "^1.1.1",
-    "@radix-ui/react-select": "^2.1.1",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.462.0",
-    "tailwind-merge": "^2.5.2",
-    "tailwindcss-animate": "^1.0.7"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "@radix-ui/react-slot": "^1.0.2",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-label": "^2.0.2",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@radix-ui/react-accordion": "^1.1.2",
+    "@radix-ui/react-alert-dialog": "^1.0.5",
+    "@radix-ui/react-avatar": "^1.0.4",
+    "@radix-ui/react-checkbox": "^1.0.4",
+    "@radix-ui/react-select": "^2.0.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.292.0",
+    "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.3.1",
-    "@types/react-dom": "^18.3.1",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
     "@vitejs/plugin-react": "^4.1.1",
@@ -51,9 +50,9 @@ const standaloneFrontendFiles = {
     "vite": "^4.5.0"
   }
 }`,
-  'README.md': `# Yulu Grievance Portal - Frontend
+  'README.md': `# Standalone Frontend Project
 
-A modern React frontend application for the Yulu Grievance Portal built with Vite, TypeScript, and Tailwind CSS.
+A modern React frontend application built with Vite, TypeScript, and Tailwind CSS.
 
 ## Features
 
@@ -86,6 +85,49 @@ A modern React frontend application for the Yulu Grievance Portal built with Vit
 - \`npm run build\` - Build for production
 - \`npm run preview\` - Preview production build
 - \`npm run lint\` - Run ESLint
+
+## Project Structure
+
+\`\`\`
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn/ui components
+│   ├── Header.tsx      # Site header
+│   ├── Footer.tsx      # Site footer
+│   └── Layout.tsx      # Main layout wrapper
+├── pages/              # Page components
+│   ├── Home.tsx        # Homepage
+│   ├── Blog.tsx        # Blog page
+│   ├── About.tsx       # About page
+│   ├── Contact.tsx     # Contact page
+│   ├── Login.tsx       # Login page
+│   └── Dashboard.tsx   # Dashboard page
+├── lib/                # Utility functions
+│   └── utils.ts        # Common utilities
+├── App.tsx             # Main app component
+├── main.tsx            # App entry point
+└── index.css           # Global styles
+\`\`\`
+
+## Technologies Used
+
+- **React** - UI library
+- **TypeScript** - Type checking
+- **Vite** - Build tool and dev server
+- **Tailwind CSS** - Styling
+- **Radix UI** - Headless UI components
+- **React Router** - Routing
+- **Lucide React** - Icons
+
+## Deployment
+
+Build the project for production:
+
+\`\`\`bash
+npm run build
+\`\`\`
+
+The built files will be in the \`dist\` directory, ready for deployment.
 
 ## License
 
@@ -136,14 +178,16 @@ export default defineConfig({
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yulu Grievance Portal</title>
+    <title>Modern Frontend App</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>`,
+  // Add all other necessary files...
   'src/main.tsx': `import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
@@ -156,42 +200,27 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 )`,
   'src/App.tsx': `import React from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { Button } from './components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
+import { Layout } from './components/Layout'
+import { Home } from './pages/Home'
+import { Blog } from './pages/Blog'
+import { About } from './pages/About'
+import { Contact } from './pages/Contact'
+import { Login } from './pages/Login'
+import { Dashboard } from './pages/Dashboard'
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Yulu Grievance Portal
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              A comprehensive platform for managing employee grievances with real-time tracking, 
-              analytics, and seamless resolution workflows.
-            </p>
-          </div>
-
-          <div className="max-w-2xl mx-auto">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle>Demo Frontend</CardTitle>
-                <CardDescription>
-                  This is a standalone version of the Yulu Grievance Portal frontend
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">
-                  To fully utilize this application, you would need to connect it to a backend API
-                  that provides the grievance management functionality.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="blog" element={<Blog />} />
+          <Route path="about" element={<About />} />
+          <Route path="contact" element={<Contact />} />
+        </Route>
+      </Routes>
     </Router>
   )
 }
@@ -211,5 +240,5 @@ export const downloadStandaloneFrontend = async () => {
   const content = await zip.generateAsync({ type: "blob" });
   
   // Download the zip file
-  saveAs(content, "yulu-grievance-frontend.zip");
+  saveAs(content, "standalone-frontend.zip");
 };
