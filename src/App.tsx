@@ -2,11 +2,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import DownloadProject from "./pages/DownloadProject";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
@@ -45,8 +46,9 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                {/* Root redirect */}
+                {/* Root */}
                 <Route path="/" element={<Index />} />
+                <Route path="/download-project" element={<DownloadProject />} />
                 
                 {/* Admin Routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
@@ -63,14 +65,14 @@ const App = () => {
                 <Route path="/admin/access-control" element={<AdminAccessControl />} />
                 <Route path="/admin/test-data" element={<AdminTestDataGenerator />} />
                 
-                {/* Mobile Routes - IMPORTANT: /new route must come before /:id route */}
+                {/* Mobile Routes */}
                 <Route path="/mobile/login" element={<MobileLogin />} />
                 <Route path="/mobile/issues" element={<MobileIssues />} />
                 <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
                 <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
                 <Route path="/mobile/sentiment" element={<MobileSentiment />} />
                 
-                {/* Other Routes */}
+                {/* Database Export */}
                 <Route path="/database-export" element={<DatabaseExport />} />
                 
                 {/* Fallback route */}
