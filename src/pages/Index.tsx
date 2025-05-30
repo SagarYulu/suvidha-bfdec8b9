@@ -1,155 +1,122 @@
 
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { toast } from "@/hooks/use-toast";
-import { AlertCircle, Download } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, Shield, Smartphone, Download } from 'lucide-react';
 
 const Index = () => {
-  const navigate = useNavigate();
-  const { authState, refreshAuth } = useAuth();
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
-  
-  useEffect(() => {
-    // Try to refresh auth on load
-    const checkAuth = async () => {
-      await refreshAuth();
-    };
-    
-    checkAuth();
-  }, [refreshAuth]);
-  
-  useEffect(() => {
-    // If already logged in, show welcoming toast
-    if (authState.isAuthenticated) {
-      toast({
-        title: "Welcome back!",
-        description: `You are logged in as ${authState.user?.name}`,
-      });
-      console.log("User is authenticated:", authState.user);
-    }
-  }, [authState]);
-
-  const handleAdminClick = () => {
-    console.log("Admin button clicked, current auth state:", authState);
-    
-    // If the user is already authenticated and is an admin or security-admin, navigate directly
-    if (authState.isAuthenticated && (authState.role === "admin" || authState.role === "security-admin")) {
-      console.log("User is admin/security-admin, navigating to dashboard");
-      navigate("/admin/dashboard");
-    } else {
-      // Not authenticated or not admin - redirect to admin login page
-      console.log("User is not admin or not authenticated, navigating to admin login");
-      navigate("/admin/login");
-    }
-  };
-
-  const handleEmployeeClick = () => {
-    console.log("Employee button clicked, current auth state:", authState);
-    
-    // If the user is already authenticated and is an employee, navigate directly
-    if (authState.isAuthenticated && authState.role === "employee") {
-      console.log("User is employee, navigating to mobile issues");
-      navigate("/mobile/issues");
-    } else {
-      // Not authenticated or not employee - redirect to login
-      console.log("User is not employee or not authenticated, navigating to mobile login");
-      navigate("/mobile/login");
-    }
-  };
-
-  const handleExportClick = () => {
-    navigate("/export");
-  };
-
-  const togglePresentationMode = () => {
-    setIsPresentationMode(!isPresentationMode);
-    if (!isPresentationMode) {
-      toast({
-        title: "Presentation mode activated",
-        description: "Press P key to exit presentation mode",
-      });
-    }
-  };
-
-  // Event listener for P key to toggle presentation mode
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 'p') {
-        togglePresentationMode();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isPresentationMode]);
-  
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="bg-yulu-blue p-8">
-          <h1 className="text-4xl font-bold text-white text-center">Yulu Suvidha Management</h1>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Yulu Grievance Portal
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            A comprehensive platform for managing employee grievances with real-time tracking, 
+            analytics, and seamless resolution workflows.
+          </p>
         </div>
-        <div className="p-8 space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-center">Welcome</h2>
-            <p className="text-gray-600 text-center">
-              Choose which application you want to access
-            </p>
-          </div>
-          <div className="flex flex-col space-y-4">
-            <Button 
-              onClick={handleAdminClick}
-              className="py-6 bg-yulu-blue hover:bg-blue-700"
-            >
-              Admin Dashboard
-            </Button>
-            <Button 
-              onClick={handleEmployeeClick}
-              variant="outline"
-              className="py-6 border-2 border-yulu-blue text-yulu-blue hover:bg-gray-100"
-            >
-              Employee Mobile App
-            </Button>
-            <Button 
-              onClick={handleExportClick}
-              variant="outline"
-              className="py-6 border-2 border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Export Database
-            </Button>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <Shield className="h-12 w-12 text-blue-600 mb-4" />
+              <CardTitle>Admin Dashboard</CardTitle>
+              <CardDescription>
+                Comprehensive admin panel for managing issues, users, and analytics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/admin/login">
+                <Button className="w-full">
+                  Access Admin Portal
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <Smartphone className="h-12 w-12 text-green-600 mb-4" />
+              <CardTitle>Mobile Employee Portal</CardTitle>
+              <CardDescription>
+                Mobile-optimized interface for employees to submit and track issues
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/mobile/login">
+                <Button className="w-full" variant="outline">
+                  Employee Login
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <Download className="h-12 w-12 text-purple-600 mb-4" />
+              <CardTitle>Download Project</CardTitle>
+              <CardDescription>
+                Get the complete standalone React frontend project
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link to="/download-project">
+                <Button className="w-full" variant="outline">
+                  Download ZIP
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <Users className="h-12 w-12 text-orange-600 mb-4" />
+              <CardTitle>Key Features</CardTitle>
+              <CardDescription>
+                Complete grievance management solution
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-sm space-y-2">
+                <li>• Real-time issue tracking</li>
+                <li>• Advanced analytics</li>
+                <li>• Sentiment analysis</li>
+                <li>• Role-based access control</li>
+                <li>• Mobile responsive design</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-16 text-center">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-8">
+            Demo Credentials
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Access</CardTitle>
+              </CardHeader>
+              <CardContent className="text-left">
+                <p><strong>Email:</strong> admin@yulu.com</p>
+                <p><strong>Password:</strong> password</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Employee Access</CardTitle>
+              </CardHeader>
+              <CardContent className="text-left">
+                <p><strong>Employee ID:</strong> EMP001</p>
+                <p><strong>Password:</strong> password</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-      
-      {!isPresentationMode && (
-        <Alert className="fixed bottom-4 right-4 max-w-md shadow-lg border border-gray-200">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Press the <strong>P</strong> key to enter presentation mode and hide this message box.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* This div will cover the chat interface when in presentation mode */}
-      {isPresentationMode && (
-        <div 
-          className="fixed top-0 left-0 w-1/2 h-full bg-white z-50"
-          onClick={togglePresentationMode}
-        >
-          <div className="h-full flex items-center justify-center">
-            <p className="text-gray-400 text-xl p-4 text-center">
-              Presentation Mode<br/>
-              Click anywhere or press P to exit
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
