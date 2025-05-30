@@ -3,7 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Shield, Smartphone, Download } from 'lucide-react';
+import { Users, Shield, Smartphone } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -19,7 +19,7 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <Shield className="h-12 w-12 text-blue-600 mb-4" />
@@ -49,23 +49,6 @@ const Index = () => {
               <Link to="/mobile/login">
                 <Button className="w-full" variant="outline">
                   Employee Login
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <Download className="h-12 w-12 text-purple-600 mb-4" />
-              <CardTitle>Download Project</CardTitle>
-              <CardDescription>
-                Get the complete standalone React frontend project
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to="/download-project">
-                <Button className="w-full" variant="outline">
-                  Download ZIP
                 </Button>
               </Link>
             </CardContent>
