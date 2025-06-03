@@ -1,9 +1,8 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
-import { getAnalytics } from "@/services/issues/issueAnalyticsService";
-import { getUsers } from "@/services/userService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, LineChart, Line,
@@ -17,6 +16,7 @@ import TrendAnalysisSection from "@/components/admin/analytics/TrendAnalysisSect
 import SLAAnalysisSection from "@/components/admin/analytics/SLAAnalysisSection";
 import AnalyticsDateRangeFilter from "@/components/admin/analytics/AnalyticsDateRangeFilter";
 import AnalyticsExportSection from "@/components/admin/analytics/AnalyticsExportSection";
+import ExportDialog from "@/components/admin/export/ExportDialog";
 
 const AdminAnalytics = () => {
   const { 
@@ -30,6 +30,7 @@ const AdminAnalytics = () => {
   } = useDashboardData();
 
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   const COLORS = [
     '#1E40AF', '#3B82F6', '#93C5FD', '#BFDBFE', 
@@ -106,6 +107,23 @@ const AdminAnalytics = () => {
 
   return (
     <AdminLayout title="Analytics">
+      {/* Header with Export Button */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h2>
+          <p className="text-muted-foreground">
+            Comprehensive analytics and insights for issue management
+          </p>
+        </div>
+        <Button 
+          onClick={() => setShowExportDialog(true)}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export Data
+        </Button>
+      </div>
+
       {/* Filter Bar */}
       <div className="mb-6">
         <FilterBar 
@@ -325,6 +343,14 @@ const AdminAnalytics = () => {
           </div>
         </div>
       )}
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        exportType="analytics"
+        title="Analytics Data"
+      />
     </AdminLayout>
   );
 };
