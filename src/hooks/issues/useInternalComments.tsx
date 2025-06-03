@@ -1,11 +1,10 @@
 
 import { useState, useEffect } from "react";
-import { InternalComment, getInternalComments, addInternalComment } from "@/services/issues/internalCommentService";
-import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
-import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useRBAC } from "@/contexts/RBACContext";
-import { supabase } from "@/integrations/supabase/client";
+import { InternalComment, getInternalComments, addInternalComment } from "../../services/issues/internalCommentService";
+import { getEmployeeNameByUuid } from "../../services/issues/issueUtils";
+import { toast } from "../use-toast";
+import { useAuth } from "../../contexts/AuthContext";
+import { api } from "../../lib/api";
 
 export const useInternalComments = (issueId: string | undefined, assigneeId: string | null) => {
   const [internalComments, setInternalComments] = useState<InternalComment[]>([]);
@@ -14,16 +13,12 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
   const [commentersNames, setCommentersNames] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   
-  const { authState } = useAuth();
-  const { hasPermission } = useRBAC();
+  const { user } = useAuth();
   
-  const currentUserId = authState.user?.id || "";
+  const currentUserId = user?.id || "";
   
   // Check if current user can interact with internal comments
-  const canViewInternalComments = 
-    hasPermission("manage:issues") || 
-    currentUserId === assigneeId;
-    
+  const canViewInternalComments = user?.role === 'admin' || currentUserId === assigneeId;
   const canAddInternalComments = canViewInternalComments;
   
   // Fetch internal comments
@@ -39,7 +34,7 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
         const comments = await getInternalComments(issueId);
         setInternalComments(comments);
         
-        // Get commenter names with enhanced reliability
+        // Get commenter names
         const uniqueCommenterIds = Array.from(
           new Set(comments.map(c => c.employeeUuid))
         );
@@ -47,31 +42,14 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
         const names: Record<string, string> = {};
         for (const commenterId of uniqueCommenterIds) {
           try {
-            // Enhanced fetch for user names
-            const { data: dashboardUser } = await supabase
-              .from('dashboard_users')
-              .select('name')
-              .eq('id', commenterId)
-              .single();
-            
-            if (dashboardUser && dashboardUser.name) {
-              names[commenterId] = dashboardUser.name;
+            // Try to get user info from API
+            const response = await api.get(`/users/${commenterId}`);
+            if (response.data && response.data.name) {
+              names[commenterId] = response.data.name;
               continue;
             }
             
-            // Try employees table if not found in dashboard users
-            const { data: employee } = await supabase
-              .from('employees')
-              .select('name')
-              .eq('id', commenterId)
-              .single();
-            
-            if (employee && employee.name) {
-              names[commenterId] = employee.name;
-              continue;
-            }
-            
-            // Fallback to our utility function
+            // Fallback to utility function
             const name = await getEmployeeNameByUuid(commenterId);
             names[commenterId] = name || "Unknown User";
           } catch (err) {
@@ -82,7 +60,7 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
         
         // Add current user to names list
         if (currentUserId && !names[currentUserId]) {
-          const currentUserName = authState.user?.name || "Current User";
+          const currentUserName = user?.name || "Current User";
           names[currentUserId] = currentUserName;
         }
         
@@ -101,7 +79,7 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
     };
     
     fetchInternalComments();
-  }, [issueId, canViewInternalComments, currentUserId, authState.user]);
+  }, [issueId, canViewInternalComments, currentUserId, user]);
   
   // Add internal comment
   const handleAddInternalComment = async () => {
@@ -111,7 +89,7 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
     
     setIsSubmittingInternalComment(true);
     try {
-      console.log(`Adding internal comment as user: ${authState.user?.name || currentUserId}`);
+      console.log(`Adding internal comment as user: ${user?.name || currentUserId}`);
       
       const addedComment = await addInternalComment(
         issueId,
