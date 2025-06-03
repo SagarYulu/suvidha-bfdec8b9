@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '@/services/api';
+import { toast } from 'sonner';
 
 interface User {
   id: string;
@@ -14,6 +15,7 @@ interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   role: string | null;
+  isLoading: boolean;
 }
 
 interface AuthContextType {
@@ -43,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: false,
     user: null,
     role: null,
+    isLoading: true,
   });
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -56,16 +59,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           isAuthenticated: true,
           user: response.user,
           role: response.user.role,
+          isLoading: false,
         };
         
         setAuthState(newAuthState);
         localStorage.setItem('authState', JSON.stringify(newAuthState));
         
+        toast.success('Login successful!');
         return true;
       }
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login error:', error);
+      toast.error(error.message || 'Login failed. Please try again.');
       return false;
     }
   };
@@ -73,13 +79,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signIn = login; // Alias for login
 
   const logout = async (): Promise<void> => {
-    apiService.clearToken();
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      role: null,
-    });
-    localStorage.removeItem('authState');
+    try {
+      apiService.clearToken();
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        role: null,
+        isLoading: false,
+      });
+      localStorage.removeItem('authState');
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Error during logout');
+    }
   };
 
   const refreshAuth = async (): Promise<void> => {
@@ -94,14 +107,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             isAuthenticated: true,
             user: response.user,
             role: response.user.role,
+            isLoading: false,
           };
           
           setAuthState(newAuthState);
           localStorage.setItem('authState', JSON.stringify(newAuthState));
+        } else {
+          setAuthState(prev => ({ ...prev, isLoading: false }));
         }
+      } else {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth refresh error:', error);
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        role: null,
+        isLoading: false,
+      });
+      
+      // Only show error if it's not a 401 (which is expected when not logged in)
+      if (error.status !== 401) {
+        toast.error('Session validation failed');
+      }
       await logout();
     }
   };
@@ -112,7 +141,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (storedAuthState) {
         try {
           const parsedState = JSON.parse(storedAuthState);
-          setAuthState(parsedState);
+          setAuthState({ ...parsedState, isLoading: true });
         } catch (error) {
           console.error('Error parsing stored auth state:', error);
         }
