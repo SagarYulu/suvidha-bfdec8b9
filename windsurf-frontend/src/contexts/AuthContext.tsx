@@ -34,14 +34,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('authToken');
         if (token) {
           const userData = await authService.verifyToken();
           setUser(userData);
         }
       } catch (error) {
         console.error('Auth initialization failed:', error);
-        localStorage.removeItem('token');
+        localStorage.removeItem('authToken');
         localStorage.removeItem('user');
       } finally {
         setLoading(false);
@@ -54,20 +54,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     const response = await authService.login(email, password);
     setUser(response.user);
-    localStorage.setItem('token', response.token);
+    localStorage.setItem('authToken', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
   };
 
   const employeeLogin = async (employeeId: string, password: string) => {
     const response = await authService.employeeLogin(employeeId, password);
     setUser(response.employee);
-    localStorage.setItem('token', response.token);
+    localStorage.setItem('authToken', response.token);
     localStorage.setItem('user', JSON.stringify(response.employee));
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('token');
+    localStorage.removeItem('authToken');
     localStorage.removeItem('user');
   };
 

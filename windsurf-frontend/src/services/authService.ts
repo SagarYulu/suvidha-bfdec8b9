@@ -1,5 +1,5 @@
 
-import { api } from './api';
+import { api } from '../lib/api';
 import { API_ENDPOINTS } from '../config/api';
 
 export const authService = {
