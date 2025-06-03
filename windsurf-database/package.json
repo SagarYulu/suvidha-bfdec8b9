@@ -6,12 +6,16 @@
   "main": "test_connection.js",
   "scripts": {
     "test": "node test_connection.js",
+    "pre-check": "node pre_migration_check.js",
+    "migrate": "node migrate_from_supabase.js",
+    "verify": "node verify_migration.js",
     "install-schema": "mysql -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} < 01_schema.sql",
     "backup": "mysqldump -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} > backup_$(date +%Y%m%d_%H%M%S).sql",
     "restore": "mysql -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} < $BACKUP_FILE"
   },
   "dependencies": {
     "mysql2": "^3.6.5",
+    "@supabase/supabase-js": "^2.49.4",
     "dotenv": "^16.3.1"
   },
   "devDependencies": {},
@@ -20,7 +24,8 @@
     "database",
     "schema",
     "grievance",
-    "migration"
+    "migration",
+    "supabase"
   ],
   "author": "Grievance Portal Team",
   "license": "MIT",
