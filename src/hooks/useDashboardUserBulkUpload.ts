@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
+import { DashboardUserRowData } from '@/types/dashboardUsers';
 
 export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationResults, setValidationResults] = useState<any>(null);
-  const [editedRows, setEditedRows] = useState<any[]>([]);
+  const [editedRows, setEditedRows] = useState<Record<string, DashboardUserRowData>>({});
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -36,15 +37,14 @@ export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     }
   };
 
-  const handleFieldEdit = (rowIndex: number, field: string, value: string) => {
-    setEditedRows(prev => {
-      const updated = [...prev];
-      if (!updated[rowIndex]) {
-        updated[rowIndex] = {};
+  const handleFieldEdit = (rowIndex: string, field: keyof DashboardUserRowData, value: string) => {
+    setEditedRows(prev => ({
+      ...prev,
+      [rowIndex]: {
+        ...prev[rowIndex],
+        [field]: value
       }
-      updated[rowIndex][field] = value;
-      return updated;
-    });
+    }));
   };
 
   const handleUploadEditedRows = async () => {

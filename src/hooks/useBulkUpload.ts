@@ -2,11 +2,19 @@
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 
+export interface EditedRowsRecord {
+  [key: string]: any;
+}
+
+export interface RowData {
+  [key: string]: any;
+}
+
 export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationResults, setValidationResults] = useState<any>(null);
-  const [editedRows, setEditedRows] = useState<any[]>([]);
+  const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
@@ -36,15 +44,14 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
     }
   };
 
-  const handleFieldEdit = (rowIndex: number, field: string, value: string) => {
-    setEditedRows(prev => {
-      const updated = [...prev];
-      if (!updated[rowIndex]) {
-        updated[rowIndex] = {};
+  const handleFieldEdit = (rowKey: string, field: keyof RowData, value: string) => {
+    setEditedRows(prev => ({
+      ...prev,
+      [rowKey]: {
+        ...prev[rowKey],
+        [field]: value
       }
-      updated[rowIndex][field] = value;
-      return updated;
-    });
+    }));
   };
 
   const handleUploadEditedRows = async () => {

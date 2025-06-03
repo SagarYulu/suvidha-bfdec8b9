@@ -29,6 +29,7 @@ export interface DashboardUserRowData {
 
 export interface CSVDashboardUserData {
   userId?: string;
+  user_id?: string;
   name: string;
   email: string;
   role: string;
