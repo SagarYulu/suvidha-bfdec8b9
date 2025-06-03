@@ -6,7 +6,7 @@ import MobileTopicRadarChart from './MobileTopicRadarChart';
 import MobileTopicBarChart from './MobileTopicBarChart';
 import MobileSentimentPieChart from './MobileSentimentPieChart';
 import AboutDataCard from './AboutDataCard';
-import { EmptyDataState } from '@/components/charts/EmptyDataState';
+import EmptyDataState from '@/components/charts/EmptyDataState';
 
 interface TagTrendAnalysisProps {
   data: any[];

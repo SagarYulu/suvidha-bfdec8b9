@@ -40,3 +40,15 @@ export const exportToCSV = (data: any[], filename: string) => {
     URL.revokeObjectURL(url);
   }
 };
+
+export const formatResolutionTimeDataForExport = (data: any[]) => {
+  return data.map(item => ({
+    ...item,
+    resolutionTimeFormatted: `${item.resolutionTime} hours`
+  }));
+};
+
+export const exportResolutionTimeTrendToCSV = (data: any[], filename: string) => {
+  const formattedData = formatResolutionTimeDataForExport(data);
+  exportToCSV(formattedData, filename);
+};

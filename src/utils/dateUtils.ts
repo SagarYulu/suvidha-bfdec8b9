@@ -31,3 +31,31 @@ export const formatDateToISO = (dateString: string): string => {
     return '';
   }
 };
+
+export const formatDateToYYYYMMDD = (dateString: string | null): string => {
+  if (!dateString) return '';
+  
+  try {
+    const date = new Date(dateString);
+    
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    return format(date, 'yyyy-MM-dd');
+  } catch (error) {
+    console.error('Error formatting date to YYYY-MM-DD:', error);
+    return '';
+  }
+};
+
+export const isValidDate = (dateString: string | null): boolean => {
+  if (!dateString) return false;
+  
+  try {
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  } catch (error) {
+    return false;
+  }
+};

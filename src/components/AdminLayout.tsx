@@ -16,9 +16,10 @@ import { useAuth } from '@/contexts/AuthContext';
 interface AdminLayoutProps {
   children: React.ReactNode;
   title?: string;
+  requiredPermission?: string;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title, requiredPermission }) => {
   const location = useLocation();
   const { logout } = useAuth();
 
