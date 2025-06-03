@@ -1,3 +1,4 @@
+
 const { pool } = require('../config/database');
 const queries = require('../queries/issueQueries');
 const { v4: uuidv4 } = require('uuid');
@@ -6,39 +7,47 @@ const getIssues = async (req, res) => {
   try {
     const { status, typeId, priority, city, assignedTo, startDate, endDate } = req.query;
     
-    let issues;
-    
-    // Use specific queries instead of dynamic SQL construction
-    if (status && typeId && priority && city && assignedTo && startDate && endDate) {
-      // Complex filtering - would need a combined query or multiple filters
-      [issues] = await pool.execute(queries.getAllIssues);
-      // Apply client-side filtering for complex combinations
-      issues = issues.filter(issue => {
-        return (
-          (!status || issue.status === status) &&
-          (!typeId || issue.type_id === typeId) &&
-          (!priority || issue.priority === priority) &&
-          (!city || issue.city === city) &&
-          (!assignedTo || issue.assigned_to === assignedTo) &&
-          (!startDate || new Date(issue.created_at) >= new Date(startDate)) &&
-          (!endDate || new Date(issue.created_at) <= new Date(endDate))
-        );
-      });
-    } else if (status) {
-      [issues] = await pool.execute(queries.getIssuesWithStatusFilter, [status]);
-    } else if (typeId) {
-      [issues] = await pool.execute(queries.getIssuesWithTypeFilter, [typeId]);
-    } else if (priority) {
-      [issues] = await pool.execute(queries.getIssuesWithPriorityFilter, [priority]);
-    } else if (city) {
-      [issues] = await pool.execute(queries.getIssuesWithCityFilter, [city]);
-    } else if (assignedTo) {
-      [issues] = await pool.execute(queries.getIssuesWithAssignedToFilter, [assignedTo]);
-    } else if (startDate && endDate) {
-      [issues] = await pool.execute(queries.getIssuesWithDateRangeFilter, [startDate, endDate]);
-    } else {
-      [issues] = await pool.execute(queries.getAllIssues);
+    let query = queries.getAllIssues;
+    const params = [];
+    const conditions = [];
+
+    // Build dynamic WHERE clause
+    if (status) {
+      conditions.push('i.status = ?');
+      params.push(status);
     }
+    if (typeId) {
+      conditions.push('i.type_id = ?');
+      params.push(typeId);
+    }
+    if (priority) {
+      conditions.push('i.priority = ?');
+      params.push(priority);
+    }
+    if (city) {
+      conditions.push('e.city = ?');
+      params.push(city);
+    }
+    if (assignedTo) {
+      conditions.push('i.assigned_to = ?');
+      params.push(assignedTo);
+    }
+    if (startDate) {
+      conditions.push('DATE(i.created_at) >= ?');
+      params.push(startDate);
+    }
+    if (endDate) {
+      conditions.push('DATE(i.created_at) <= ?');
+      params.push(endDate);
+    }
+
+    if (conditions.length > 0) {
+      query += ' WHERE ' + conditions.join(' AND ');
+    }
+
+    query += ' ORDER BY i.created_at DESC';
+
+    const [issues] = await pool.execute(query, params);
 
     res.json({
       success: true,

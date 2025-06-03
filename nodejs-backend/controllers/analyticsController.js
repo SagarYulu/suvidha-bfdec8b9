@@ -36,16 +36,18 @@ const getIssueAnalytics = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
     
-    let issuesTrend;
+    let dateFilter = '';
+    const params = [];
     
     if (startDate && endDate) {
-      [issuesTrend] = await pool.execute(
-        queries.getIssuesTrendWithDateFilter,
-        [startDate, endDate]
-      );
-    } else {
-      [issuesTrend] = await pool.execute(queries.getIssuesTrend);
+      dateFilter = ' WHERE DATE(created_at) BETWEEN ? AND ?';
+      params.push(startDate, endDate);
     }
+
+    const [issuesTrend] = await pool.execute(
+      queries.getIssuesTrend + dateFilter + ' GROUP BY date ORDER BY date',
+      params
+    );
 
     res.json({
       success: true,
