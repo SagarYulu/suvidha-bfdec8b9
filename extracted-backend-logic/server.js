@@ -1,6 +1,6 @@
 
 // Main Server File
-// Express.js server setup with all the extracted logic including updated analytics
+// Express.js server setup with all the extracted logic
 
 const express = require('express');
 const cors = require('cors');
@@ -15,15 +15,12 @@ const { IssueService } = require('./issues/issueService');
 const { UserService } = require('./users/userService');
 const { RBACService } = require('./rbac/rbacService');
 const { FeedbackService } = require('./feedback/feedbackService');
-const { AnalyticsService } = require('./analytics/analyticsService');
-const { ExportService } = require('./export/exportService');
 const { AuthMiddleware } = require('./middleware/authMiddleware');
 const { DatabaseConfig } = require('./config/database');
 
 // Import routes
 const { AuthRoutes } = require('./routes/authRoutes');
 const { IssueRoutes } = require('./routes/issueRoutes');
-const { AnalyticsRoutes } = require('./routes/analyticsRoutes');
 
 class YuluSuvidhaServer {
   constructor() {
@@ -45,7 +42,6 @@ class YuluSuvidhaServer {
         // Implement your database query logic here
         console.log('Database query:', sql, params);
         // Return mock data or implement actual database connection
-        return [];
       }
     };
   }
@@ -58,8 +54,6 @@ class YuluSuvidhaServer {
     this.userService = new UserService(this.dbConnection);
     this.rbacService = new RBACService(this.dbConnection);
     this.feedbackService = new FeedbackService(this.dbConnection);
-    this.analyticsService = new AnalyticsService(this.dbConnection);
-    this.exportService = new ExportService(this.dbConnection, this.analyticsService);
     this.authMiddleware = new AuthMiddleware(this.authService, this.rbacService);
   }
 
@@ -108,14 +102,6 @@ class YuluSuvidhaServer {
     // Issue management routes
     const issueRoutes = new IssueRoutes(this.issueService, this.authMiddleware);
     this.app.use('/api/issues', issueRoutes.setupRoutes());
-
-    // Analytics and export routes
-    const analyticsRoutes = new AnalyticsRoutes(
-      this.analyticsService, 
-      this.exportService, 
-      this.authMiddleware
-    );
-    this.app.use('/api/analytics', analyticsRoutes.setupRoutes());
 
     // User management routes
     this.app.use('/api/users', this.setupUserRoutes());
@@ -235,8 +221,6 @@ class YuluSuvidhaServer {
       console.log(`✅ Yulu Suvidha Backend Server running on port ${this.port}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 Health check: http://localhost:${this.port}/health`);
-      console.log(`📈 Analytics API: http://localhost:${this.port}/api/analytics`);
-      console.log(`📤 Export API: http://localhost:${this.port}/api/analytics/export`);
     });
   }
 }

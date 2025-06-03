@@ -23,6 +23,8 @@ export const DEFAULT_ADMIN_USER: User = {
   ifscCode: ""
 };
 
+// Security user removed from demo credentials and will be authenticated normally through database
+
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
 
@@ -40,10 +42,11 @@ export const login = async (email: string, password: string): Promise<User | nul
         .single();
         
       if (!error && dashboardUser) {
+        // If user exists in the dashboard_users table, use that ID
         console.log('Found matching dashboard user:', dashboardUser);
         return {
           ...DEFAULT_ADMIN_USER,
-          id: dashboardUser.id,
+          id: dashboardUser.id, // Use the actual UUID from database
         };
       }
       
@@ -67,7 +70,7 @@ export const login = async (email: string, password: string): Promise<User | nul
       .select('*')
       .eq('email', email.toLowerCase())
       .eq('password', password)
-      .maybeSingle();
+      .single();
     
     if (dashboardError) {
       console.log('No matching user found in dashboard_users or error occurred:', dashboardError.message);
@@ -76,7 +79,8 @@ export const login = async (email: string, password: string): Promise<User | nul
     if (dashboardUser) {
       console.log('User found in dashboard_users:', dashboardUser);
       
-      return {
+      // Map dashboard user to User type
+      const user: User = {
         id: dashboardUser.id,
         userId: dashboardUser.user_id || "",
         name: dashboardUser.name,
@@ -94,31 +98,26 @@ export const login = async (email: string, password: string): Promise<User | nul
         accountNumber: "",
         ifscCode: ""
       };
+      
+      return user;
     }
 
-    // Step 4: Check Supabase employees table - UPDATED to accept employee ID as password
+    // Step 4: Check Supabase employees table
     console.log('User not found in dashboard_users, checking employees table...');
     const { data: employees, error } = await supabase
       .from('employees')
       .select('*')
       .eq('email', email.toLowerCase())
-      .maybeSingle();
+      .eq('password', password)
+      .single();
 
     if (error) {
       console.error('Error querying employees table:', error);
+      return null;
     }
 
     if (employees) {
       console.log('Employee found in database:', employees);
-      
-      // Check if password matches employee ID OR the default 'password'
-      const isValidPassword = password === employees.emp_id || 
-                             password === 'password';
-      
-      if (!isValidPassword) {
-        console.log('Invalid password for employee:', { provided: password, expected: employees.emp_id });
-        return null;
-      }
       
       // Map database employee to User type
       const user: User = {
@@ -131,7 +130,7 @@ export const login = async (email: string, password: string): Promise<User | nul
         city: employees.city || "",
         cluster: employees.cluster || "",
         manager: employees.manager || "",
-        role: employees.role || "employee",
+        role: employees.role || "employee", // Default to employee role
         password: employees.password,
         dateOfJoining: employees.date_of_joining || "",
         bloodGroup: employees.blood_group || "",
