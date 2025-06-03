@@ -40,6 +40,18 @@ const analyticsQueries = {
       DATE(created_at) as date,
       COUNT(*) as count
     FROM issues
+    GROUP BY date 
+    ORDER BY date
+  `,
+
+  getIssuesTrendWithDateFilter: `
+    SELECT 
+      DATE(created_at) as date,
+      COUNT(*) as count
+    FROM issues
+    WHERE DATE(created_at) BETWEEN ? AND ?
+    GROUP BY date 
+    ORDER BY date
   `,
 
   getAvgResolutionTime: `
