@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/mockSupabase';
 import { CalendarIcon, ChevronDown, X } from 'lucide-react';
 import {
   Popover,

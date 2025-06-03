@@ -20,3 +20,13 @@ export const createAuditLog = async (
     console.error('Error creating audit log:', error);
   }
 };
+
+export const getAuditTrail = async (issueId: string) => {
+  try {
+    const response = await api.get(`/audit-logs/${issueId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching audit trail:', error);
+    return [];
+  }
+};

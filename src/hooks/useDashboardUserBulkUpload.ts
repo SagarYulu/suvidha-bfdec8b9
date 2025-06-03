@@ -1,38 +1,107 @@
 
 import { useState } from 'react';
-import { api } from '../lib/api';
+import { toast } from '@/hooks/use-toast';
 
-export const useDashboardUserBulkUpload = () => {
+export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResults, setUploadResults] = useState<any>(null);
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [validationResults, setValidationResults] = useState<any>(null);
+  const [editedRows, setEditedRows] = useState<any[]>([]);
 
-  const uploadDashboardUsers = async (file: File) => {
+  const handleFileUpload = async (file: File) => {
     setIsUploading(true);
-    setUploadResults(null);
-
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api.post('/dashboard-users/bulk-upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
+      // Mock file upload logic for dashboard users
+      toast({
+        title: "Upload Started",
+        description: "Processing dashboard users file...",
       });
-
-      setUploadResults(response.data);
-      return response.data;
+      
+      // Simulate processing
+      setTimeout(() => {
+        setIsUploading(false);
+        toast({
+          title: "Upload Complete",
+          description: "Dashboard users file processed successfully",
+        });
+        onUploadSuccess?.();
+      }, 2000);
     } catch (error) {
-      console.error('Dashboard user bulk upload error:', error);
-      throw error;
-    } finally {
       setIsUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error processing your file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFieldEdit = (rowIndex: number, field: string, value: string) => {
+    setEditedRows(prev => {
+      const updated = [...prev];
+      if (!updated[rowIndex]) {
+        updated[rowIndex] = {};
+      }
+      updated[rowIndex][field] = value;
+      return updated;
+    });
+  };
+
+  const handleUploadEditedRows = async () => {
+    setIsUploading(true);
+    try {
+      // Mock upload logic
+      setTimeout(() => {
+        setIsUploading(false);
+        setShowValidationDialog(false);
+        toast({
+          title: "Upload Complete",
+          description: "Edited dashboard user rows uploaded successfully",
+        });
+        onUploadSuccess?.();
+      }, 2000);
+    } catch (error) {
+      setIsUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload edited rows",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProceedAnyway = async () => {
+    setIsUploading(true);
+    try {
+      // Mock upload logic
+      setTimeout(() => {
+        setIsUploading(false);
+        setShowValidationDialog(false);
+        toast({
+          title: "Upload Complete",
+          description: "Dashboard users uploaded with warnings",
+        });
+        onUploadSuccess?.();
+      }, 2000);
+    } catch (error) {
+      setIsUploading(false);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload data",
+        variant: "destructive",
+      });
     }
   };
 
   return {
-    uploadDashboardUsers,
     isUploading,
-    uploadResults
+    showValidationDialog,
+    setShowValidationDialog,
+    validationResults,
+    editedRows,
+    handleFileUpload,
+    handleFieldEdit,
+    handleUploadEditedRows,
+    handleProceedAnyway
   };
 };

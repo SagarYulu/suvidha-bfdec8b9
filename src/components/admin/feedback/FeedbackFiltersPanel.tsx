@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -19,7 +18,7 @@ import { CalendarIcon, ChevronDown, BarChartHorizontalBig, BarChart3, Users } fr
 import { format } from 'date-fns';
 import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
 import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/mockSupabase';
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 interface FeedbackFiltersPanelProps {

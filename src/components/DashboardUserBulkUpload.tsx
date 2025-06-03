@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { getDashboardUserCSVTemplate } from '@/utils/csvDashboardUsersParser';
 import DashboardUserValidationDialog from './dashboard-users/DashboardUserValidationDialog';
-import useDashboardUserBulkUpload from '@/hooks/useDashboardUserBulkUpload';
+import { useDashboardUserBulkUpload } from '@/hooks/useDashboardUserBulkUpload';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Upload, FileSpreadsheet, Download, AlertTriangle } from 'lucide-react';

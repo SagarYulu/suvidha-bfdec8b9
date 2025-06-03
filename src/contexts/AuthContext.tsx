@@ -9,7 +9,15 @@ interface User {
   role: string;
 }
 
+interface AuthState {
+  isAuthenticated: boolean;
+  user: User | null;
+  role: string | null;
+  loading: boolean;
+}
+
 interface AuthContextType {
+  authState: AuthState;
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   employeeLogin: (employeeId: string, password: string) => Promise<void>;
@@ -30,6 +38,13 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const authState: AuthState = {
+    isAuthenticated: !!user,
+    user,
+    role: user?.role || null,
+    loading
+  };
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -72,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const value = {
+    authState,
     user,
     login,
     employeeLogin,

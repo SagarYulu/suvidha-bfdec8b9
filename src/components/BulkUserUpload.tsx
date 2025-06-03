@@ -1,9 +1,8 @@
-
 import { useState } from 'react';
 import TemplateControls from './bulk-upload/TemplateControls';
 import FormatInstructions from './bulk-upload/FormatInstructions';
 import ValidationDialog from './bulk-upload/ValidationDialog';
-import useBulkUpload from '@/hooks/useBulkUpload';
+import { useBulkUpload } from '@/hooks/useBulkUpload';
 
 interface BulkUserUploadProps {
   onUploadSuccess?: () => void;
