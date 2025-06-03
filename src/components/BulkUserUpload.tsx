@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import TemplateControls from './bulk-upload/TemplateControls';
 import FormatInstructions from './bulk-upload/FormatInstructions';
@@ -21,13 +22,20 @@ const BulkUserUpload = ({ onUploadSuccess }: BulkUserUploadProps) => {
     handleProceedAnyway
   } = useBulkUpload(onUploadSuccess);
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      await handleFileUpload(file);
+    }
+  };
+
   console.log("BulkUserUpload render with onUploadSuccess:", !!onUploadSuccess);
 
   return (
     <div className="space-y-4">
       <TemplateControls 
         isUploading={isUploading}
-        handleFileUpload={handleFileUpload}
+        handleFileUpload={handleFileChange}
       />
 
       <FormatInstructions />
