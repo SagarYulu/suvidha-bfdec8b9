@@ -10,6 +10,15 @@ import {
 
 export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
 
+export const COMPARISON_MODE_LABELS: Record<ComparisonMode, string> = {
+  none: 'No Comparison',
+  dod: 'Day over Day',
+  wow: 'Week over Week',
+  mom: 'Month over Month',
+  qoq: 'Quarter over Quarter',
+  yoy: 'Year over Year',
+};
+
 interface ComparisonModeDropdownProps {
   value: ComparisonMode;
   onChange: (mode: ComparisonMode) => void;

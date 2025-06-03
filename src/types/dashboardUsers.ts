@@ -6,6 +6,7 @@ export interface DashboardUser {
   role: string;
   phone?: string;
   employeeId?: string;
+  userId?: string;
   city?: string;
   cluster?: string;
   manager?: string;
@@ -40,4 +41,12 @@ export interface CSVDashboardUserData {
   cluster?: string;
   manager?: string;
   password?: string;
+}
+
+export interface DashboardUserValidationResult {
+  valid: DashboardUserRowData[];
+  invalid: Array<{
+    row: DashboardUserRowData;
+    errors: string[];
+  }>;
 }

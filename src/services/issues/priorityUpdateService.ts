@@ -1,8 +1,8 @@
 
 import { api } from '../../lib/api';
-import { Issue } from '../../types';
+import { useState } from 'react';
 
-export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> => {
+export const updateIssuePriority = async (issue: any) => {
   try {
     const response = await api.patch(`/issues/${issue.id}/priority`, {
       priority: issue.priority
@@ -14,10 +14,29 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
   }
 };
 
-export const updateAllIssuePriorities = async (): Promise<void> => {
+export const updateAllIssuePriorities = async () => {
   try {
     await api.post('/issues/update-all-priorities');
   } catch (error) {
     console.error('Error updating all issue priorities:', error);
   }
+};
+
+export const usePriorityUpdater = () => {
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const updatePriority = async (issue: any) => {
+    setIsUpdating(true);
+    try {
+      const result = await updateIssuePriority(issue);
+      return result;
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return {
+    updatePriority,
+    isUpdating
+  };
 };

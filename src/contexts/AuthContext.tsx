@@ -19,10 +19,12 @@ interface AuthState {
 interface AuthContextType {
   authState: AuthState;
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  employeeLogin: (employeeId: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  employeeLogin: (employeeId: string, password: string) => Promise<boolean>;
   logout: () => void;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,24 +68,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const response = await authService.login(email, password);
-    setUser(response.user);
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('user', JSON.stringify(response.user));
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authService.login(email, password);
+      setUser(response.user);
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
+    }
   };
 
-  const employeeLogin = async (employeeId: string, password: string) => {
-    const response = await authService.employeeLogin(employeeId, password);
-    setUser(response.employee);
-    localStorage.setItem('authToken', response.token);
-    localStorage.setItem('user', JSON.stringify(response.employee));
+  const employeeLogin = async (employeeId: string, password: string): Promise<boolean> => {
+    try {
+      const response = await authService.employeeLogin(employeeId, password);
+      setUser(response.employee);
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(response.employee));
+      return true;
+    } catch (error) {
+      console.error('Employee login failed:', error);
+      return false;
+    }
   };
+
+  const signIn = login; // Alias for compatibility
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+  };
+
+  const refreshAuth = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const userData = await authService.verifyToken();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Auth refresh failed:', error);
+      logout();
+    }
   };
 
   const value = {
@@ -92,7 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     employeeLogin,
     logout,
-    loading
+    loading,
+    signIn,
+    refreshAuth
   };
 
   return (

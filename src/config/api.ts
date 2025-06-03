@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
   ISSUE_STATUS: (id: string) => `/issues/${id}/status`,
   ISSUE_ASSIGN: (id: string) => `/issues/${id}/assign`,
   EMPLOYEE_ISSUES: '/issues/employee/my-issues',
+  UPLOAD: '/upload',
   
   // User endpoints
   USERS: '/users',
