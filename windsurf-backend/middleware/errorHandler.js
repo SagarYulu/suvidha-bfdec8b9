@@ -1,44 +1,58 @@
 
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    body: req.body,
+    params: req.params,
+    query: req.query
+  });
 
-  // Default error
-  let error = {
-    message: err.message || 'Internal Server Error',
-    status: err.status || 500
-  };
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    error.message = Object.values(err.errors).map(val => val.message).join(', ');
-    error.status = 400;
+  // MySQL errors
+  if (err.code === 'ER_DUP_ENTRY') {
+    return res.status(409).json({
+      success: false,
+      message: 'Duplicate entry - record already exists'
+    });
   }
 
-  // Mongoose duplicate key error
-  if (err.code === 11000) {
-    error.message = 'Duplicate field value entered';
-    error.status = 400;
+  if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+    return res.status(400).json({
+      success: false,
+      message: 'Referenced record does not exist'
+    });
   }
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    error.message = 'Invalid token';
-    error.status = 401;
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
   }
 
   if (err.name === 'TokenExpiredError') {
-    error.message = 'Token expired';
-    error.status = 401;
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired'
+    });
   }
 
-  // MySQL errors
-  if (err.code === 'ER_DUP_ENTRY') {
-    error.message = 'Duplicate entry';
-    error.status = 400;
+  // Validation errors
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      errors: err.errors
+    });
   }
 
-  res.status(error.status).json({
-    error: error.message,
+  // Default error
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };

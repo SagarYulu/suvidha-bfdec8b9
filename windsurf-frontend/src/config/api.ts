@@ -1,5 +1,5 @@
 
-export const API_BASE_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export const API_ENDPOINTS = {
   // Auth endpoints
@@ -13,6 +13,7 @@ export const API_ENDPOINTS = {
   ISSUE_COMMENTS: (id: string) => `/issues/${id}/comments`,
   ISSUE_STATUS: (id: string) => `/issues/${id}/status`,
   ISSUE_ASSIGN: (id: string) => `/issues/${id}/assign`,
+  EMPLOYEE_ISSUES: '/issues/employee/my-issues',
   
   // User endpoints
   USERS: '/users',

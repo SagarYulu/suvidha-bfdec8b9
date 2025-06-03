@@ -1,3 +1,4 @@
+
 const analyticsService = require('../services/analyticsService');
 
 const analyticsController = {
@@ -10,23 +11,28 @@ const analyticsController = {
       });
     } catch (error) {
       console.error('Get dashboard analytics error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch dashboard analytics'
+      });
     }
   },
 
   async getUserAnalytics(req, res) {
     try {
-      const analytics = await analyticsService.getUserAnalytics(req.params.id, req.user);
+      const userId = req.params.id;
+      const analytics = await analyticsService.getUserAnalytics(userId, req.user);
+      
       res.json({
         success: true,
         analytics
       });
     } catch (error) {
-      if (error.message === 'Access denied') {
-        return res.status(403).json({ error: error.message });
-      }
       console.error('Get user analytics error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(error.message === 'Access denied' ? 403 : 500).json({
+        success: false,
+        message: error.message || 'Failed to fetch user analytics'
+      });
     }
   }
 };
