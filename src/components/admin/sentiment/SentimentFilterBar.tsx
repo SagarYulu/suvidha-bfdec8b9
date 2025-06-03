@@ -1,162 +1,263 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
   SelectValue 
 } from '@/components/ui/select';
-import { Card, CardContent } from '@/components/ui/card';
-import { mockSupabase as supabase } from '@/lib/mockSupabase';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { CalendarIcon, ChevronDown, X } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 interface SentimentFilterBarProps {
-  onFiltersChange: (filters: any) => void;
+  onFilterChange: (filters: {
+    startDate?: string;
+    endDate?: string;
+    city?: string;
+    cluster?: string;
+    role?: string;
+    comparisonMode?: string;
+  }) => void;
 }
 
-const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFiltersChange }) => {
-  const [cities, setCities] = useState<any[]>([]);
-  const [clusters, setClusters] = useState<any[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
-  const [filters, setFilters] = useState({
-    dateRange: '',
-    city: '',
-    cluster: '',
-    agent: '',
-    sentiment: ''
+const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange }) => {
+  const [city, setCity] = useState<string | undefined>(undefined);
+  const [cluster, setCluster] = useState<string | undefined>(undefined);
+  const [role, setRole] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: undefined,
+    to: undefined,
+  });
+  const [isFiltering, setIsFiltering] = useState(false);
+
+  // Fetch cities
+  const { data: cities, isLoading: loadingCities } = useQuery({
+    queryKey: ['cities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('master_cities')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    }
   });
 
-  useEffect(() => {
-    fetchFilterOptions();
-  }, []);
+  // Fetch clusters based on selected city
+  const { data: clusters, isLoading: loadingClusters } = useQuery({
+    queryKey: ['clusters', city],
+    queryFn: async () => {
+      if (!city || city === 'all-cities') return [];
+      
+      const { data, error } = await supabase
+        .from('master_clusters')
+        .select('id, name')
+        .eq('city_id', city)
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!city && city !== 'all-cities'
+  });
 
-  const fetchFilterOptions = async () => {
-    try {
-      // Fetch cities
-      const citiesResponse = await supabase.from('master_cities').select('*');
-      const citiesResult = await citiesResponse.maybeSingle();
-      setCities(citiesResult.data || []);
-
-      // Fetch clusters
-      const clustersResponse = await supabase.from('master_clusters').select('*');
-      const clustersResult = await clustersResponse.maybeSingle();
-      setClusters(clustersResult.data || []);
-
-      // Fetch agents from employees
-      const agentsResponse = await supabase.from('employees').select('*');
-      const agentsResult = await agentsResponse.maybeSingle();
-      setAgents(agentsResult.data || []);
-    } catch (error) {
-      console.error('Error fetching filter options:', error);
+  // Fetch roles
+  const { data: roles, isLoading: loadingRoles } = useQuery({
+    queryKey: ['roles'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('master_roles')
+        .select('id, name')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
     }
-  };
+  });
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
-
-  const clearFilters = () => {
-    const clearedFilters = {
-      dateRange: '',
-      city: '',
-      cluster: '',
-      agent: '',
-      sentiment: ''
+  const handleApplyFilters = () => {
+    // Prevent multiple rapid filter applications
+    if (isFiltering) return;
+    setIsFiltering(true);
+    
+    // Find the city name if a city is selected
+    let cityName: string | undefined = undefined;
+    
+    if (city && city !== 'all-cities') {
+      const selectedCity = cities?.find(c => c.id === city);
+      cityName = selectedCity?.name;
+      console.log("Selected city name:", cityName);
+    }
+    
+    // Find the cluster name if a cluster is selected
+    let clusterName: string | undefined = undefined;
+    
+    if (cluster && cluster !== 'all-clusters') {
+      const selectedCluster = clusters?.find(c => c.id === cluster);
+      clusterName = selectedCluster?.name;
+      console.log("Selected cluster name:", clusterName);
+    }
+    
+    // Find the role name if a role is selected
+    let roleName: string | undefined = undefined;
+    
+    if (role && role !== 'all-roles') {
+      const selectedRole = roles?.find(r => r.id === role);
+      roleName = selectedRole?.name;
+      console.log("Selected role name:", roleName);
+    }
+    
+    // Log the filters for debugging
+    const filters = {
+      startDate: dateRange?.from ? format(dateRange.from, 'yyyy-MM-dd') : undefined,
+      endDate: dateRange?.to ? format(dateRange.to, 'yyyy-MM-dd') : undefined,
+      city: cityName,
+      cluster: clusterName,
+      role: roleName
     };
-    setFilters(clearedFilters);
-    onFiltersChange(clearedFilters);
+    
+    console.log("Applying filters:", filters);
+    
+    onFilterChange(filters);
+    
+    // Reset filtering flag after a short delay
+    setTimeout(() => setIsFiltering(false), 500);
+  };
+
+  const handleResetFilters = () => {
+    setCity(undefined);
+    setCluster(undefined);
+    setRole(undefined);
+    setDateRange(undefined);
+    
+    // Immediately apply the reset
+    onFilterChange({});
+    console.log("Filters reset");
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div>
-            <label className="text-sm font-medium mb-2 block">Date Range</label>
-            <Input
-              type="date"
-              value={filters.dateRange}
-              onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium mb-2 block">City</label>
-            <Select value={filters.city} onValueChange={(value) => handleFilterChange('city', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select city" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
-                {cities.map((city) => (
-                  <SelectItem key={city.id} value={city.name}>
-                    {city.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Cluster</label>
-            <Select value={filters.cluster} onValueChange={(value) => handleFilterChange('cluster', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select cluster" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Clusters</SelectItem>
-                {clusters.map((cluster) => (
-                  <SelectItem key={cluster.id} value={cluster.name}>
-                    {cluster.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Agent</label>
-            <Select value={filters.agent} onValueChange={(value) => handleFilterChange('agent', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select agent" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Agents</SelectItem>
-                {agents.map((agent) => (
-                  <SelectItem key={agent.id} value={agent.name}>
-                    {agent.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Sentiment</label>
-            <Select value={filters.sentiment} onValueChange={(value) => handleFilterChange('sentiment', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select sentiment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Sentiments</SelectItem>
-                <SelectItem value="happy">Happy</SelectItem>
-                <SelectItem value="neutral">Neutral</SelectItem>
-                <SelectItem value="sad">Sad</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-end">
-            <Button variant="outline" onClick={clearFilters} className="w-full">
-              Clear Filters
-            </Button>
-          </div>
+    <Card className="p-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* Date Range */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Date Range</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant={"outline"}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dateRange?.from && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Select date range</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="range"
+                selected={dateRange}
+                onSelect={setDateRange}
+                initialFocus
+                className="pointer-events-auto"
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-      </CardContent>
+
+        {/* City */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">City</label>
+          <Select value={city || "all-cities"} onValueChange={setCity}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select city" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all-cities">All Cities</SelectItem>
+              {cities?.map((city) => (
+                <SelectItem key={city.id} value={city.id}>
+                  {city.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Cluster */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Cluster</label>
+          <Select 
+            value={cluster || "all-clusters"} 
+            onValueChange={setCluster}
+            disabled={!city || city === 'all-cities'}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={city && city !== 'all-cities' ? "Select cluster" : "Select city first"} />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all-clusters">All Clusters</SelectItem>
+              {clusters?.map((cluster) => (
+                <SelectItem key={cluster.id} value={cluster.id}>
+                  {cluster.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Role */}
+        <div>
+          <label className="text-sm font-medium mb-1 block">Role</label>
+          <Select value={role || "all-roles"} onValueChange={setRole}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select role" />
+            </SelectTrigger>
+            <SelectContent className="bg-white">
+              <SelectItem value="all-roles">All Roles</SelectItem>
+              {roles?.map((role) => (
+                <SelectItem key={role.id} value={role.id}>
+                  {role.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 mt-4">
+        <Button variant="outline" onClick={handleResetFilters} disabled={isFiltering}>
+          <X className="w-4 h-4 mr-1" /> Reset Filters
+        </Button>
+        <Button onClick={handleApplyFilters} disabled={isFiltering}>
+          Apply Filters
+        </Button>
+      </div>
     </Card>
   );
 };

@@ -1,38 +1,48 @@
 
 import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { DashboardUserRowData } from '@/types/dashboardUsers';
+import { parseCSVDashboardUsers } from '@/utils/csvDashboardUsersParser';
+import { CSVDashboardUserData, DashboardUserRowData } from '@/types/dashboardUsers';
+import { Json } from '@/integrations/supabase/types';
 
-export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
+type ValidationResults = {
+  validUsers: CSVDashboardUserData[];
+  invalidRows: {
+    row: CSVDashboardUserData;
+    errors: string[];
+    rowData: DashboardUserRowData;
+  }[];
+};
+
+const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
   const [isUploading, setIsUploading] = useState(false);
   const [showValidationDialog, setShowValidationDialog] = useState(false);
-  const [validationResults, setValidationResults] = useState<any>(null);
+  const [validationResults, setValidationResults] = useState<ValidationResults>({
+    validUsers: [],
+    invalidRows: []
+  });
   const [editedRows, setEditedRows] = useState<Record<string, DashboardUserRowData>>({});
 
   const handleFileUpload = async (file: File) => {
-    setIsUploading(true);
     try {
-      // Mock file upload logic for dashboard users
-      toast({
-        title: "Upload Started",
-        description: "Processing dashboard users file...",
+      const results = await parseCSVDashboardUsers(file);
+      setValidationResults(results);
+
+      // Initialize editedRows with the current invalid rows
+      const initialEditedRows: Record<string, DashboardUserRowData> = {};
+      results.invalidRows.forEach((row, index) => {
+        initialEditedRows[index.toString()] = row.rowData;
       });
-      
-      // Simulate processing
-      setTimeout(() => {
-        setIsUploading(false);
-        toast({
-          title: "Upload Complete",
-          description: "Dashboard users file processed successfully",
-        });
-        onUploadSuccess?.();
-      }, 2000);
+      setEditedRows(initialEditedRows);
+
+      setShowValidationDialog(true);
     } catch (error) {
-      setIsUploading(false);
+      console.error("Error parsing CSV:", error);
       toast({
-        title: "Upload Failed",
-        description: "There was an error processing your file",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to parse CSV file. Please check the file format.",
+        variant: "destructive"
       });
     }
   };
@@ -47,49 +57,138 @@ export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     }));
   };
 
-  const handleUploadEditedRows = async () => {
-    setIsUploading(true);
-    try {
-      // Mock upload logic
-      setTimeout(() => {
-        setIsUploading(false);
-        setShowValidationDialog(false);
-        toast({
-          title: "Upload Complete",
-          description: "Edited dashboard user rows uploaded successfully",
-        });
-        onUploadSuccess?.();
-      }, 2000);
-    } catch (error) {
-      setIsUploading(false);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload edited rows",
-        variant: "destructive",
+  const insertDashboardUsers = async (users: any[]) => {
+    // Use RPC to bypass RLS policies for audit log entries
+    const { data, error } = await supabase
+      .rpc('insert_dashboard_users_with_audit', {
+        users_json: users as unknown as Json
       });
+
+    if (error) throw new Error(`Error inserting dashboard users: ${error.message}`);
+    return data;
+  };
+
+  const handleUploadEditedRows = async () => {
+    if (validationResults.validUsers.length === 0 && Object.keys(editedRows).length === 0) {
+      toast({
+        title: "Warning",
+        description: "No valid user data to upload.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Prepare all valid users data
+      const allValidUsers = [
+        // Valid users from CSV
+        ...validationResults.validUsers.map(user => ({
+          name: user.name,
+          email: user.email,
+          employee_id: user.employee_id,
+          user_id: user.userId || user.user_id,
+          phone: user.phone,
+          city: user.city,
+          cluster: user.cluster,
+          manager: user.manager,
+          role: user.role,
+          password: user.password
+        })),
+        // Previously invalid, now edited users
+        ...Object.values(editedRows).map(row => ({
+          name: row.name,
+          email: row.email,
+          employee_id: row.employee_id,
+          user_id: row.userId,
+          phone: row.phone,
+          city: row.city,
+          cluster: row.cluster,
+          manager: row.manager,
+          role: row.role,
+          password: row.password
+        }))
+      ];
+
+      if (allValidUsers.length > 0) {
+        await insertDashboardUsers(allValidUsers);
+      }
+
+      // Success
+      toast({
+        title: "Success",
+        description: `Successfully uploaded ${allValidUsers.length} dashboard users.`
+      });
+      
+      setShowValidationDialog(false);
+      setValidationResults({ validUsers: [], invalidRows: [] });
+      setEditedRows({});
+      
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
+    } catch (error) {
+      console.error("Error uploading dashboard users:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
   const handleProceedAnyway = async () => {
-    setIsUploading(true);
-    try {
-      // Mock upload logic
-      setTimeout(() => {
-        setIsUploading(false);
-        setShowValidationDialog(false);
-        toast({
-          title: "Upload Complete",
-          description: "Dashboard users uploaded with warnings",
-        });
-        onUploadSuccess?.();
-      }, 2000);
-    } catch (error) {
-      setIsUploading(false);
+    // Only proceed with valid users, ignore invalid ones
+    if (validationResults.validUsers.length === 0) {
       toast({
-        title: "Upload Failed",
-        description: "Failed to upload data",
-        variant: "destructive",
+        title: "Warning",
+        description: "No valid user data to upload.",
+        variant: "destructive"
       });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const validUsersData = validationResults.validUsers.map(user => ({
+        name: user.name,
+        email: user.email,
+        employee_id: user.employee_id,
+        user_id: user.userId || user.user_id,
+        phone: user.phone,
+        city: user.city,
+        cluster: user.cluster,
+        manager: user.manager,
+        role: user.role,
+        password: user.password
+      }));
+
+      await insertDashboardUsers(validUsersData);
+
+      toast({
+        title: "Success",
+        description: `Successfully uploaded ${validationResults.validUsers.length} dashboard users. ${validationResults.invalidRows.length} invalid entries were skipped.`
+      });
+      
+      setShowValidationDialog(false);
+      setValidationResults({ validUsers: [], invalidRows: [] });
+      
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
+    } catch (error) {
+      console.error("Error uploading dashboard users:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -105,3 +204,5 @@ export const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
     handleProceedAnyway
   };
 };
+
+export default useDashboardUserBulkUpload;

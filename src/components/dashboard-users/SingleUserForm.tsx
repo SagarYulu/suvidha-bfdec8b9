@@ -1,98 +1,137 @@
 
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { mockSupabase as supabase } from '@/lib/mockSupabase';
+import { CITY_OPTIONS, CLUSTER_OPTIONS, DASHBOARD_USER_ROLES } from '@/data/formOptions';
+
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
+  email: z.string().email({ message: 'Please enter a valid email address' }),
+  userId: z.string().min(1, { message: 'User ID is required' }),
+  employeeId: z.string().min(1, { message: 'Employee ID is required' }),
+  phone: z.string().min(1, { message: 'Phone number is required' }),
+  city: z.string().min(1, { message: 'City is required' }),
+  cluster: z.string().min(1, { message: 'Cluster is required' }),
+  manager: z.string().min(1, { message: 'Manager is required' }),
+  role: z.string().min(1, { message: 'Please select a role' }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  confirmPassword: z.string()
+}).refine(data => data.password === data.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword']
+});
+
+export type UserFormValues = z.infer<typeof formSchema>;
 
 interface SingleUserFormProps {
-  onUserCreated?: () => void;
+  onSuccess?: () => void;
 }
 
-const SingleUserForm: React.FC<SingleUserFormProps> = ({ onUserCreated }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    employeeId: '',
-    phone: '',
-    city: '',
-    cluster: '',
-    manager: '',
-    role: '',
-    password: ''
-  });
-  
-  const [cities, setCities] = useState<any[]>([]);
-  const [clusters, setClusters] = useState<any[]>([]);
-  const [roles, setRoles] = useState<any[]>([]);
+const SingleUserForm: React.FC<SingleUserFormProps> = ({ onSuccess }) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCity, setSelectedCity] = useState<string>('');
+  const [availableClusters, setAvailableClusters] = useState<string[]>([]);
+  
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      userId: '',
+      employeeId: '',
+      phone: '',
+      city: '',
+      cluster: '',
+      manager: '',
+      role: '',
+      password: '',
+      confirmPassword: ''
+    }
+  });
 
-  useEffect(() => {
-    fetchMasterData();
-  }, []);
-
-  const fetchMasterData = async () => {
-    try {
-      // Mock fetching of master data
-      const citiesResponse = await supabase.from('master_cities').select('*');
-      const clustersResponse = await supabase.from('master_clusters').select('*');
-      const rolesResponse = await supabase.from('master_roles').select('*');
-
-      const citiesResult = await citiesResponse.maybeSingle();
-      const clustersResult = await clustersResponse.maybeSingle();
-      const rolesResult = await rolesResponse.maybeSingle();
-
-      setCities(citiesResult.data || []);
-      setClusters(clustersResult.data || []);
-      setRoles(rolesResult.data || []);
-    } catch (error) {
-      console.error('Error fetching master data:', error);
+  const onCityChange = (city: string) => {
+    setSelectedCity(city);
+    form.setValue('city', city);
+    form.setValue('cluster', ''); // Reset cluster when city changes
+    
+    if (city && CLUSTER_OPTIONS[city]) {
+      setAvailableClusters(CLUSTER_OPTIONS[city]);
+    } else {
+      setAvailableClusters([]);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
+  const onSubmit = async (values: UserFormValues) => {
     try {
-      // Mock user creation
-      const { data, error } = await supabase.from('dashboard_users').insert(formData);
+      setIsSubmitting(true);
       
-      if (error) throw error;
-
+      // Insert the new dashboard user
+      const { data, error } = await supabase
+        .from('dashboard_users')
+        .insert({
+          name: values.name,
+          email: values.email,
+          user_id: values.userId,
+          employee_id: values.employeeId,
+          phone: values.phone,
+          city: values.city,
+          cluster: values.cluster,
+          manager: values.manager,
+          role: values.role,
+          password: values.password,
+          created_by: user?.id
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Error adding dashboard user:", error);
+        toast({
+          title: "Error",
+          description: `Failed to add dashboard user: ${error.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+      
       toast({
         title: "Success",
-        description: "User created successfully",
+        description: "Dashboard user added successfully",
       });
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        employeeId: '',
-        phone: '',
-        city: '',
-        cluster: '',
-        manager: '',
-        role: '',
-        password: ''
-      });
-
-      onUserCreated?.();
-    } catch (error: any) {
+      
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Navigate to security management to assign permissions
+        navigate('/admin/dashboard-users/security');
+      }
+    } catch (error) {
+      console.error("Error in form submission:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create user",
-        variant: "destructive",
+        description: "An unexpected error occurred",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -100,121 +139,246 @@ const SingleUserForm: React.FC<SingleUserFormProps> = ({ onUserCreated }) => {
   };
 
   return (
-    <Card>
+    <>
       <CardHeader>
-        <CardTitle>Create New User</CardTitle>
+        <CardTitle>Add New Dashboard User</CardTitle>
+        <CardDescription>
+          Create a new dashboard user account with specific permissions
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Name *</label>
-              <Input
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                required
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>User ID*</FormLabel>
+                    <FormControl>
+                      <Input type="text" placeholder="12345" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Numeric ID for internal references
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Email *</label>
-              <Input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                required
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email*</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="john@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mobile Number*</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="9876543210" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Employee ID</label>
-              <Input
-                value={formData.employeeId}
-                onChange={(e) => handleInputChange('employeeId', e.target.value)}
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="employeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Employee ID*</FormLabel>
+                    <FormControl>
+                      <Input placeholder="E12345" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Link to an existing employee ID
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role*</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {DASHBOARD_USER_ROLES.map(role => (
+                          <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      The role defines the base level of access
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Phone</label>
-              <Input
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>City*</FormLabel>
+                    <Select 
+                      onValueChange={(value) => onCityChange(value)} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a city" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CITY_OPTIONS.map((city) => (
+                          <SelectItem key={city} value={city}>{city}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="cluster"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cluster*</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      disabled={!selectedCity || availableClusters.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a cluster" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {availableClusters.map((cluster) => (
+                          <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select a city first to choose a cluster
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">City</label>
-              <Select value={formData.city} onValueChange={(value) => handleInputChange('city', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select city" />
-                </SelectTrigger>
-                <SelectContent>
-                  {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.name}>
-                      {city.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Cluster</label>
-              <Select value={formData.cluster} onValueChange={(value) => handleInputChange('cluster', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select cluster" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clusters.map((cluster) => (
-                    <SelectItem key={cluster.id} value={cluster.name}>
-                      {cluster.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Manager</label>
-              <Input
-                value={formData.manager}
-                onChange={(e) => handleInputChange('manager', e.target.value)}
+            
+            <FormField
+              control={form.control}
+              name="manager"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Manager*</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Manager name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password*</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password*</FormLabel>
+                    <FormControl>
+                      <Input type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Role *</label>
-              <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.name}>
-                      {role.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">Password *</label>
-              <Input
-                type="password"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <Button type="submit" disabled={isSubmitting} className="w-full">
-            {isSubmitting ? 'Creating...' : 'Create User'}
-          </Button>
-        </form>
+            
+            <CardFooter className="flex justify-end px-0 pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="mr-2"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Creating..." : "Create User"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
       </CardContent>
-    </Card>
+    </>
   );
 };
 

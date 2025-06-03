@@ -13,7 +13,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { exportToCSV } from '@/utils/csvExportUtils';
 import { formatDateToDDMMYYYY } from '@/utils/dateUtils';
-import { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
@@ -127,7 +126,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
         <FeedbackMetricsOverview 
           metrics={metrics} 
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
-          comparisonMode={isComparisonEnabled ? (filters.comparisonMode as ComparisonMode) : 'none'}
+          comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
         />
         
         {/* Feedback Hierarchy Chart */}

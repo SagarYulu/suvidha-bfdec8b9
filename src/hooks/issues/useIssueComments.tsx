@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { Issue } from "../../types";
-import { addComment } from "../../services/issueService";
-import { getIssueById } from "../../services/issues/issueFetchService";
-import { toast } from "../use-toast";
-import { api } from "../../lib/api";
+import { Issue } from "@/types";
+import { addComment } from "@/services/issueService";
+import { getIssueById } from "@/services/issues/issueFetchService";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useIssueComments = (
   issueId: string | undefined,
@@ -19,10 +19,15 @@ export const useIssueComments = (
     
     setIsSubmittingComment(true);
     try {
-      // Get current user info
-      const userData = await api.get(`/users/${currentUserId}`);
-      const userName = userData.data?.name || "Unknown User";
-      const userRole = userData.data?.role;
+      // Get current user info for better audit logs
+      const { data: userData } = await supabase
+        .from('dashboard_users')
+        .select('name, role, email')
+        .eq('id', currentUserId)
+        .single();
+      
+      const userName = userData?.name || "Unknown User";
+      const userRole = userData?.role;
       
       console.log(`Adding comment as user: ${userName} (${currentUserId})`);
       
@@ -32,7 +37,7 @@ export const useIssueComments = (
         content: newComment
       };
       
-      // Pass the correct arguments to addComment
+      // Pass the correct arguments to addComment (based on its signature)
       await addComment(issueId, commentData);
       
       // Fetch the updated issue with the new comment

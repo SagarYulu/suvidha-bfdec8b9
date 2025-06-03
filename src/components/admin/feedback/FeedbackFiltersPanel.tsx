@@ -19,7 +19,7 @@ import { CalendarIcon, ChevronDown, BarChartHorizontalBig, BarChart3, Users } fr
 import { format } from 'date-fns';
 import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
 import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
-import { supabase } from '@/lib/mockSupabase';
+import { supabase } from '@/integrations/supabase/client';
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 interface FeedbackFiltersPanelProps {
@@ -47,16 +47,17 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const response = await supabase
+        const { data, error } = await supabase
           .from('dashboard_users')
-          .select('id, name');
+          .select('id, name')
+          .order('name');
           
-        // Mock response since supabase is mocked
-        setAgents([
-          { id: '1', name: 'Agent 1' },
-          { id: '2', name: 'Agent 2' },
-          { id: '3', name: 'Agent 3' },
-        ]);
+        if (error) {
+          console.error('Error fetching agents:', error);
+          return;
+        }
+        
+        setAgents(data || []);
       } catch (err) {
         console.error('Failed to fetch agents:', err);
       }
@@ -108,6 +109,9 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   const handleAgentChange = (agentId: string | null) => {
     onFilterChange({
       agentId: agentId === 'all' ? undefined : agentId || undefined,
+      // Also update agent name for display purposes
+      agentName: agentId === 'all' ? undefined : 
+        agents.find(a => a.id === agentId)?.name
     });
   };
   
@@ -269,7 +273,7 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
                 onCheckedChange={handleComparisonToggle}
               />
               <ComparisonModeDropdown 
-                value={(filters.comparisonMode as ComparisonMode) || 'none'}
+                value={filters.comparisonMode || 'none'}
                 onChange={handleComparisonModeChange}
                 disabled={!isComparisonEnabled}
               />
