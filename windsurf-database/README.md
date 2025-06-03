@@ -69,18 +69,6 @@ This folder contains everything needed to set up your MySQL database independent
 - `dashboard_user_audit_logs` - Admin user activity logs
 - `master_audit_logs` - Master data change logs
 
-## Default Credentials
-
-After importing the data, you can use these credentials to access the system:
-
-### Admin Dashboard
-- **Email**: admin@yulu.com
-- **Password**: password
-
-### Employee Login
-- **Employee ID**: EMP001
-- **Password**: EMP001
-
 ## Configuration
 
 Update your backend `.env` file to use MySQL:
@@ -143,10 +131,11 @@ WHERE i.id IS NULL;
 
 ## Next Steps
 
-1. Import your data using the export utility
-2. Update backend configuration to use MySQL
-3. Test all application functionality
-4. Set up regular database backups
-5. Configure monitoring and alerting
+1. Export your data using the export utility
+2. Import schema and data into MySQL
+3. Update backend configuration to use MySQL
+4. Test all application functionality
+5. Set up regular database backups
+6. Configure monitoring and alerting
 
 Your application will now run completely independently of Supabase! 🎉
