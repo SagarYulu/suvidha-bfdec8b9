@@ -1,18 +1,31 @@
 
 {
-  "name": "windsurf-database-exporter",
+  "name": "grievance-portal-database",
   "version": "1.0.0",
-  "description": "Data export utility for migrating from Supabase to MySQL",
-  "main": "data-export-utility.js",
+  "description": "MySQL database schema and migration tools for Grievance Portal",
+  "main": "test_connection.js",
   "scripts": {
-    "export": "node data-export-utility.js",
-    "stats": "node -e \"require('./data-export-utility').generateExportStats()\"",
-    "install-deps": "npm install"
+    "test": "node test_connection.js",
+    "install-schema": "mysql -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} < 01_schema.sql",
+    "backup": "mysqldump -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} > backup_$(date +%Y%m%d_%H%M%S).sql",
+    "restore": "mysql -u ${DB_USER:-grievance_user} -p${DB_PASSWORD} ${DB_NAME:-grievance_portal} < $BACKUP_FILE"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.4"
+    "mysql2": "^3.6.5",
+    "dotenv": "^16.3.1"
   },
-  "keywords": ["database", "migration", "supabase", "mysql"],
-  "author": "Yulu Team",
-  "license": "MIT"
+  "devDependencies": {},
+  "keywords": [
+    "mysql",
+    "database",
+    "schema",
+    "grievance",
+    "migration"
+  ],
+  "author": "Grievance Portal Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "mysql": ">=8.0.0"
+  }
 }
