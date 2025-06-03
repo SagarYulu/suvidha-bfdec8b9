@@ -7,11 +7,12 @@ A complete grievance management system with React frontend, Node.js/Express back
 
 ```
 grievance-portal-refactored/
-├── frontend/          # React application
-├── backend/           # Node.js/Express API server
-├── database/          # MySQL schema and migration scripts
-├── docker-compose.yml # Multi-container setup
-└── README.md         # This file
+├── windsurf-frontend/     # React application
+├── windsurf-backend/      # Node.js/Express API server
+├── windsurf-database/     # Database scripts and utilities
+│   └── windsurf-sql/      # SQL scripts for schema and migration
+├── docker-compose.yml     # Multi-container setup
+└── README.md             # This file
 ```
 
 ## Prerequisites
@@ -25,11 +26,11 @@ grievance-portal-refactored/
 1. **Clone and setup:**
    ```bash
    cd grievance-portal-refactored
-   cp backend/.env.example backend/.env
-   cp frontend/.env.example frontend/.env
+   cp windsurf-backend/.env.example windsurf-backend/.env
+   cp windsurf-frontend/.env.example windsurf-frontend/.env
    ```
 
-2. **Configure environment variables in backend/.env and frontend/.env**
+2. **Configure environment variables in windsurf-backend/.env and windsurf-frontend/.env**
 
 3. **Start all services:**
    ```bash
@@ -53,12 +54,12 @@ grievance-portal-refactored/
 
 2. **Run schema creation:**
    ```bash
-   mysql -u root -p grievance_portal < database/schema.sql
+   mysql -u root -p grievance_portal < windsurf-database/windsurf-sql/schema.sql
    ```
 
 3. **Run data migration (if migrating from Supabase):**
    ```bash
-   cd database
+   cd windsurf-database
    npm install
    node migrate_from_supabase.js
    ```
@@ -67,7 +68,7 @@ grievance-portal-refactored/
 
 1. **Install dependencies:**
    ```bash
-   cd backend
+   cd windsurf-backend
    npm install
    ```
 
@@ -86,7 +87,7 @@ grievance-portal-refactored/
 
 1. **Install dependencies:**
    ```bash
-   cd frontend
+   cd windsurf-frontend
    npm install
    ```
 
@@ -136,13 +137,13 @@ The backend provides RESTful APIs for:
 
 1. **Build frontend:**
    ```bash
-   cd frontend
+   cd windsurf-frontend
    npm run build
    ```
 
 2. **Build backend Docker image:**
    ```bash
-   cd backend
+   cd windsurf-backend
    docker build -t grievance-portal-backend .
    ```
 
@@ -154,7 +155,7 @@ docker-compose -f docker-compose.prod.yml up --build
 
 ## Migration from Supabase
 
-See `database/README.md` for detailed migration instructions.
+See `windsurf-database/README.md` for detailed migration instructions.
 
 ## Support
 
