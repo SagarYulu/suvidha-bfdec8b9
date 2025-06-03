@@ -1,0 +1,18 @@
+
+{
+  "name": "windsurf-database-exporter",
+  "version": "1.0.0",
+  "description": "Data export utility for migrating from Supabase to MySQL",
+  "main": "data-export-utility.js",
+  "scripts": {
+    "export": "node data-export-utility.js",
+    "stats": "node -e \"require('./data-export-utility').generateExportStats()\"",
+    "install-deps": "npm install"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4"
+  },
+  "keywords": ["database", "migration", "supabase", "mysql"],
+  "author": "Yulu Team",
+  "license": "MIT"
+}

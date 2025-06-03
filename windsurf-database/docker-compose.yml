@@ -16,7 +16,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./01_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
-      - ./02_sample_data.sql:/docker-entrypoint-initdb.d/02_sample_data.sql
+      - ./02_actual_data.sql:/docker-entrypoint-initdb.d/02_actual_data.sql
     command: --default-authentication-plugin=mysql_native_password
 
   phpmyadmin:
