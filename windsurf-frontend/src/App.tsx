@@ -1,6 +1,6 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useAuth } from './contexts/AuthContext'
+import { useState } from 'react'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import IssuesPage from './pages/IssuesPage'
@@ -8,30 +8,26 @@ import IssueDetailPage from './pages/IssueDetailPage'
 import CreateIssuePage from './pages/CreateIssuePage'
 import AnalyticsPage from './pages/AnalyticsPage'
 import ProfilePage from './pages/ProfilePage'
-import Layout from './components/layout/Layout'
+import { Toaster } from './components/ui/toaster'
 
 function App() {
-  const { user, loading } = useAuth()
+  // Mock authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  if (loading) {
+  if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        <Toaster />
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
@@ -42,7 +38,8 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Layout>
+      <Toaster />
+    </>
   )
 }
 
