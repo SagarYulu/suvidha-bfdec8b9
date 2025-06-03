@@ -1,0 +1,27 @@
+
+{
+  "name": "grievance-portal-database",
+  "version": "1.0.0",
+  "description": "Database migration scripts for Grievance Portal",
+  "main": "migrate_from_supabase.js",
+  "scripts": {
+    "migrate": "node migrate_from_supabase.js",
+    "verify": "node verify_migration.js",
+    "pre-check": "node pre_migration_check.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "mysql2": "^3.6.5",
+    "dotenv": "^16.3.1",
+    "fs-extra": "^11.1.1",
+    "csv-writer": "^1.6.0"
+  },
+  "keywords": [
+    "migration",
+    "database",
+    "supabase",
+    "mysql"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
