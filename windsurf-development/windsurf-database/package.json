@@ -1,12 +1,14 @@
 
 {
-  "name": "grievance-portal-windsurf-database",
+  "name": "grievance-portal-database-migration",
   "version": "1.0.0",
-  "description": "Database migration utilities for Grievance Portal (Windsurf Version)",
+  "description": "Production-ready database migration tool for Grievance Portal",
   "main": "migrate_from_supabase.js",
   "scripts": {
     "migrate": "node migrate_from_supabase.js",
-    "test-connection": "node test_connection.js"
+    "test-connections": "node -e \"require('./migrate_from_supabase').testConnections().then(success => process.exit(success ? 0 : 1))\"",
+    "verify": "node -e \"require('./migrate_from_supabase').verifyMigration().then(success => process.exit(success ? 0 : 1))\"",
+    "migrate:dry-run": "LOG_LEVEL=debug node migrate_from_supabase.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
@@ -18,8 +20,8 @@
     "migration",
     "mysql",
     "supabase",
-    "windsurf"
+    "production"
   ],
-  "author": "Your Name",
+  "author": "Grievance Portal Team",
   "license": "MIT"
 }
