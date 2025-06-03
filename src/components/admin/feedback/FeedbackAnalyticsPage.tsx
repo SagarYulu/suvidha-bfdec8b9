@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from "@/components/AdminLayout";
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
@@ -13,6 +12,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { exportToCSV } from '@/utils/csvExportUtils';
 import { formatDateToDDMMYYYY } from '@/utils/dateUtils';
+import { ExportService } from '@/services/exportService';
+import { useToast } from '@/hooks/use-toast';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
@@ -43,35 +44,34 @@ const FeedbackAnalyticsPage: React.FC = () => {
   };
 
   // Handle export data to CSV
-  const handleExportData = () => {
+  const handleExportData = async () => {
     if (!rawData || rawData.length === 0) return;
     
-    // Format data for export with date in DD-MM-YYYY format
-    const formattedData = rawData.map(item => {
-      // Convert date from ISO to DD-MM-YYYY
-      const formattedDate = item.created_at ? formatDateToDDMMYYYY(item.created_at) : 'N/A';
-      
-      return {
-        'Feedback ID': item.id,
-        'Issue ID': item.issue_id,
-        'Employee ID': item.employee_uuid,
-        'Date': formattedDate,
-        'Sentiment': item.sentiment,
-        'Feedback Option': item.feedback_option,
-        'Cluster': item.cluster || 'N/A',
-        'City': item.city || 'N/A',
-        'Agent ID': item.agent_id || 'N/A',
-        'Agent Name': item.agent_name || 'N/A'
+    try {
+      const exportFilters = {
+        dateRange: {
+          from: filters.startDate,
+          to: filters.endDate
+        },
+        ...(filters.city && { city: filters.city }),
+        ...(filters.cluster && { cluster: filters.cluster }),
+        ...(filters.sentiment && { sentiment: filters.sentiment })
       };
-    });
-    
-    // Generate filename with current date
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
-    const filename = `feedback-data-export-${dateStr}.csv`;
-    
-    // Export to CSV
-    exportToCSV(formattedData, filename);
+      
+      await ExportService.exportFeedback(exportFilters);
+      
+      useToast().toast({
+        title: "Export Successful",
+        description: `Exported ${rawData.length} feedback records to CSV.`,
+      });
+    } catch (error) {
+      console.error('Export failed:', error);
+      useToast().toast({
+        title: "Export Failed",
+        description: "Failed to export feedback data. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
   
   const renderContent = () => {
@@ -156,14 +156,23 @@ const FeedbackAnalyticsPage: React.FC = () => {
               Analyze and visualize customer feedback data
             </p>
           </div>
-          <Button 
-            onClick={handleExportData} 
-            className="ml-auto" 
-            disabled={!rawData || rawData.length === 0 || isLoading}
-          >
-            <FileText className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleExportData} 
+              disabled={!rawData || rawData.length === 0 || isLoading}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Export Data
+            </Button>
+            <ExportDialog 
+              filters={{
+                dateRange: {
+                  from: filters.startDate,
+                  to: filters.endDate
+                }
+              }}
+            />
+          </div>
         </div>
         
         {/* Filters Panel */}
