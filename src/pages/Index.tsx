@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
@@ -60,6 +60,10 @@ const Index = () => {
     }
   };
 
+  const handleExportClick = () => {
+    navigate("/export");
+  };
+
   const togglePresentationMode = () => {
     setIsPresentationMode(!isPresentationMode);
     if (!isPresentationMode) {
@@ -110,6 +114,14 @@ const Index = () => {
               className="py-6 border-2 border-yulu-blue text-yulu-blue hover:bg-gray-100"
             >
               Employee Mobile App
+            </Button>
+            <Button 
+              onClick={handleExportClick}
+              variant="outline"
+              className="py-6 border-2 border-green-600 text-green-600 hover:bg-green-50"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Export Database
             </Button>
           </div>
         </div>
