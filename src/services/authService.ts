@@ -23,8 +23,6 @@ export const DEFAULT_ADMIN_USER: User = {
   ifscCode: ""
 };
 
-// Security user removed from demo credentials and will be authenticated normally through database
-
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
 
@@ -35,19 +33,22 @@ export const login = async (email: string, password: string): Promise<User | nul
       console.log('Default admin login successful');
       
       // Try to fetch actual user from dashboard_users table
-      const { data: dashboardUser, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .single();
-        
-      if (!error && dashboardUser) {
-        // If user exists in the dashboard_users table, use that ID
-        console.log('Found matching dashboard user:', dashboardUser);
-        return {
-          ...DEFAULT_ADMIN_USER,
-          id: dashboardUser.id, // Use the actual UUID from database
-        };
+      try {
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('*')
+          .eq('email', email.toLowerCase())
+          .maybeSingle(); // Use maybeSingle() instead of single()
+          
+        if (!error && dashboardUser) {
+          console.log('Found matching dashboard user:', dashboardUser);
+          return {
+            ...DEFAULT_ADMIN_USER,
+            id: dashboardUser.id,
+          };
+        }
+      } catch (error) {
+        console.log('Error fetching dashboard user:', error);
       }
       
       return DEFAULT_ADMIN_USER;
@@ -55,7 +56,8 @@ export const login = async (email: string, password: string): Promise<User | nul
     
     // Step 2: Check mock users (for demo accounts)
     const mockUser = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      (u) => u.email.toLowerCase() === email.toLowerCase() && 
+      (u.password === password || u.employeeId === password)
     );
 
     if (mockUser) {
@@ -63,86 +65,89 @@ export const login = async (email: string, password: string): Promise<User | nul
       return mockUser;
     }
 
-    // Step 3: Check Supabase dashboard_users table (prioritize over employees)
+    // Step 3: Check dashboard_users table (prioritize over employees)
     console.log('User not found in mock data, checking dashboard_users table...');
-    const { data: dashboardUser, error: dashboardError } = await supabase
-      .from('dashboard_users')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .eq('password', password)
-      .single();
-    
-    if (dashboardError) {
-      console.log('No matching user found in dashboard_users or error occurred:', dashboardError.message);
+    try {
+      const { data: dashboardUsers, error: dashboardError } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .eq('email', email.toLowerCase());
+      
+      if (!dashboardError && dashboardUsers && dashboardUsers.length > 0) {
+        // Check if any user matches the password or employee_id
+        const matchingUser = dashboardUsers.find(user => 
+          user.password === password || user.employee_id === password
+        );
+        
+        if (matchingUser) {
+          console.log('User found in dashboard_users:', matchingUser);
+          
+          return {
+            id: matchingUser.id,
+            userId: matchingUser.user_id || "",
+            name: matchingUser.name,
+            email: matchingUser.email,
+            phone: matchingUser.phone || "",
+            employeeId: matchingUser.employee_id || "",
+            city: matchingUser.city || "",
+            cluster: matchingUser.cluster || "",
+            manager: matchingUser.manager || "",
+            role: matchingUser.role || "employee",
+            password: matchingUser.password,
+            dateOfJoining: "",
+            bloodGroup: "",
+            dateOfBirth: "",
+            accountNumber: "",
+            ifscCode: ""
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Error querying dashboard_users:', error);
     }
 
-    if (dashboardUser) {
-      console.log('User found in dashboard_users:', dashboardUser);
-      
-      // Map dashboard user to User type
-      const user: User = {
-        id: dashboardUser.id,
-        userId: dashboardUser.user_id || "",
-        name: dashboardUser.name,
-        email: dashboardUser.email,
-        phone: dashboardUser.phone || "",
-        employeeId: dashboardUser.employee_id || "",
-        city: dashboardUser.city || "",
-        cluster: dashboardUser.cluster || "",
-        manager: dashboardUser.manager || "",
-        role: dashboardUser.role || "employee",
-        password: dashboardUser.password,
-        dateOfJoining: "",
-        bloodGroup: "",
-        dateOfBirth: "",
-        accountNumber: "",
-        ifscCode: ""
-      };
-      
-      return user;
-    }
-
-    // Step 4: Check Supabase employees table
+    // Step 4: Check employees table
     console.log('User not found in dashboard_users, checking employees table...');
-    const { data: employees, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .eq('password', password)
-      .single();
+    try {
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', email.toLowerCase());
 
-    if (error) {
-      console.error('Error querying employees table:', error);
-      return null;
-    }
-
-    if (employees) {
-      console.log('Employee found in database:', employees);
-      
-      // Map database employee to User type
-      const user: User = {
-        id: employees.id,
-        userId: employees.user_id || "",
-        name: employees.name,
-        email: employees.email,
-        phone: employees.phone || "",
-        employeeId: employees.emp_id,
-        city: employees.city || "",
-        cluster: employees.cluster || "",
-        manager: employees.manager || "",
-        role: employees.role || "employee", // Default to employee role
-        password: employees.password,
-        dateOfJoining: employees.date_of_joining || "",
-        bloodGroup: employees.blood_group || "",
-        dateOfBirth: employees.date_of_birth || "",
-        accountNumber: employees.account_number || "",
-        ifscCode: employees.ifsc_code || ""
-      };
-      
-      return user;
+      if (!error && employees && employees.length > 0) {
+        // Check if any employee matches the password or emp_id
+        const matchingEmployee = employees.find(emp => 
+          emp.password === password || emp.emp_id === password
+        );
+        
+        if (matchingEmployee) {
+          console.log('Employee found in database:', matchingEmployee);
+          
+          return {
+            id: matchingEmployee.id,
+            userId: matchingEmployee.user_id || "",
+            name: matchingEmployee.name,
+            email: matchingEmployee.email,
+            phone: matchingEmployee.phone || "",
+            employeeId: matchingEmployee.emp_id,
+            city: matchingEmployee.city || "",
+            cluster: matchingEmployee.cluster || "",
+            manager: matchingEmployee.manager || "",
+            role: matchingEmployee.role || "employee",
+            password: matchingEmployee.password,
+            dateOfJoining: matchingEmployee.date_of_joining || "",
+            bloodGroup: matchingEmployee.blood_group || "",
+            dateOfBirth: matchingEmployee.date_of_birth || "",
+            accountNumber: matchingEmployee.account_number || "",
+            ifscCode: matchingEmployee.ifsc_code || ""
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Error querying employees table:', error);
     }
     
-    console.log('No matching user found in database');
+    console.log('No matching user found in any database');
     return null;
   } catch (error) {
     console.error("Login error:", error);
