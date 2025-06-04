@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -14,6 +13,7 @@ const feedbackRoutes = require('./routes/feedback');
 const exportRoutes = require('./routes/export');
 const notificationRoutes = require('./routes/notifications');
 const standaloneRoutes = require('./routes/standalone');
+const rbacRoutes = require('./routes/rbac');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,15 +39,15 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Routes - Use standalone routes for demo without external dependencies
-app.use('/api/standalone', standaloneRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/issues', issueRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/export', exportRoutes);
-app.use('/api/notifications', notificationRoutes);
+// Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/issues', require('./routes/issues'));
+app.use('/api/users', require('./routes/users'));
+app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/export', require('./routes/export'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/rbac', require('./routes/rbac'));
+app.use('/api/standalone', require('./routes/standalone'));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
