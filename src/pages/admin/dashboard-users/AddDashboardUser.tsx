@@ -3,6 +3,7 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
+import AdminLayout from '@/components/AdminLayout';
 import SingleUserForm from '@/components/dashboard-users/SingleUserForm';
 import BulkUploadCard from '@/components/dashboard-users/BulkUploadCard';
 
@@ -15,13 +16,8 @@ const AddDashboardUser: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Add Dashboard User</h1>
-        <p className="text-gray-600 mt-1">Create new dashboard user accounts with specific permissions</p>
-      </div>
-
-      <div className="max-w-4xl">
+    <AdminLayout title="Add Dashboard User">
+      <div className="max-w-4xl mx-auto py-6">
         <Tabs defaultValue="single">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="single">Single User</TabsTrigger>
@@ -41,7 +37,7 @@ const AddDashboardUser: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 
