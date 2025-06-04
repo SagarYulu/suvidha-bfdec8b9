@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
+// Import routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const issueRoutes = require('./routes/issues');
@@ -12,6 +13,7 @@ const analyticsRoutes = require('./routes/analytics');
 const feedbackRoutes = require('./routes/feedback');
 const exportRoutes = require('./routes/export');
 const notificationRoutes = require('./routes/notifications');
+const standaloneRoutes = require('./routes/standalone');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,7 +39,8 @@ app.use(express.urlencoded({ extended: true }));
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));
 
-// Routes
+// Routes - Use standalone routes for demo without external dependencies
+app.use('/api/standalone', standaloneRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issueRoutes);
@@ -51,7 +54,21 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    mode: 'standalone'
+  });
+});
+
+// Default route with status
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Windsurf Backend API - Standalone Mode',
+    version: '1.0.0',
+    status: 'operational',
+    endpoints: {
+      standalone: '/api/standalone',
+      health: '/health'
+    }
   });
 });
 
@@ -73,6 +90,7 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log('Mode: Standalone (No external dependencies)');
 });
 
 module.exports = app;

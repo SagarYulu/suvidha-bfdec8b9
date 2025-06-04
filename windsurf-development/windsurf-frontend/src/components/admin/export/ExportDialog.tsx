@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { mockDataService } from '@/services/mockDataService';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -27,52 +28,16 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
   const [isExporting, setIsExporting] = useState(false);
-  const { toast } = useToast();
 
   const handleExport = async () => {
     setIsExporting(true);
     
     try {
-      const params = new URLSearchParams({
-        format,
-        ...(startDate && { startDate }),
-        ...(endDate && { endDate }),
-        ...(status && { status }),
-        ...(priority && { priority })
-      });
-
-      const response = await fetch(`/api/export/${exportType}?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
-
-      // Get filename from response headers or create default
-      const contentDisposition = response.headers.get('content-disposition');
-      let filename = `${exportType}-export-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'csv'}`;
+      // Simulate export process with mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (filenameMatch) {
-          filename = filenameMatch[1].replace(/['"]/g, '');
-        }
-      }
-
-      // Create download link
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Use mock data service for export
+      mockDataService.exportData(exportType, format);
 
       toast({
         title: "Export Successful",
@@ -176,7 +141,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
