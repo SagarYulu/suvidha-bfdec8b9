@@ -22,7 +22,7 @@ interface AdminLayoutProps {
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
-  const { user, logout } = useAuth();
+  const { authState, logout } = useAuth();
   const { hasPermission } = useRBAC();
   const location = useLocation();
 
@@ -31,37 +31,31 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
       name: 'Dashboard',
       href: '/admin/dashboard',
       icon: LayoutDashboard,
-      permission: 'view:dashboard'
+      permission: 'view:dashboard' as const
     },
     {
       name: 'Issues',
       href: '/admin/issues',
       icon: AlertTriangle,
-      permission: 'manage:issues'
+      permission: 'manage:issues' as const
     },
     {
       name: 'Users',
       href: '/admin/users',
       icon: Users,
-      permission: 'manage:users'
+      permission: 'manage:users' as const
     },
     {
       name: 'Analytics',
       href: '/admin/analytics',
       icon: BarChart3,
-      permission: 'manage:analytics'
-    },
-    {
-      name: 'Exports',
-      href: '/admin/exports',
-      icon: Download,
-      permission: 'access:security'
+      permission: 'manage:analytics' as const
     },
     {
       name: 'Settings',
       href: '/admin/settings',
       icon: Settings,
-      permission: 'manage:settings'
+      permission: 'manage:settings' as const
     }
   ];
 
@@ -92,7 +86,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               )}
               
               <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Welcome, {user?.name}</span>
+                <span className="text-sm text-gray-700">Welcome, {authState.user?.name}</span>
                 <Button variant="outline" size="sm" onClick={logout}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout

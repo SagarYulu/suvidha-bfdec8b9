@@ -23,18 +23,18 @@ const Settings: React.FC = () => {
       title: "User Management",
       description: "Manage dashboard users and their permissions",
       icon: Users,
-      permission: "manage:users",
+      permission: 'manage:users' as const,
       actions: [
         {
           label: "Add Dashboard User",
           href: "/admin/dashboard-users/add",
-          permission: "create:dashboardUser",
+          permission: 'create:dashboardUser' as const,
           variant: "default" as const
         },
         {
           label: "View All Users",
           href: "/admin/users",
-          permission: "manage:users",
+          permission: 'manage:users' as const,
           variant: "outline" as const
         }
       ]
@@ -43,12 +43,12 @@ const Settings: React.FC = () => {
       title: "Security Settings",
       description: "Configure security policies and access controls",
       icon: Shield,
-      permission: "access:security",
+      permission: 'access:security' as const,
       actions: [
         {
           label: "Security Policies",
           href: "/admin/security",
-          permission: "access:security",
+          permission: 'access:security' as const,
           variant: "outline" as const
         }
       ]
@@ -57,12 +57,12 @@ const Settings: React.FC = () => {
       title: "System Configuration",
       description: "Configure system-wide settings and preferences",
       icon: Cog,
-      permission: "manage:settings",
+      permission: 'manage:settings' as const,
       actions: [
         {
           label: "System Settings",
           href: "/admin/system",
-          permission: "manage:settings",
+          permission: 'manage:settings' as const,
           variant: "outline" as const
         }
       ]
@@ -71,12 +71,12 @@ const Settings: React.FC = () => {
       title: "Database Management",
       description: "Manage database connections and data exports",
       icon: Database,
-      permission: "access:security",
+      permission: 'access:security' as const,
       actions: [
         {
           label: "Export Data",
           href: "/admin/exports",
-          permission: "access:security",
+          permission: 'access:security' as const,
           variant: "outline" as const
         }
       ]
@@ -85,12 +85,12 @@ const Settings: React.FC = () => {
       title: "Notifications",
       description: "Configure notification preferences and templates",
       icon: Bell,
-      permission: "manage:settings",
+      permission: 'manage:settings' as const,
       actions: [
         {
           label: "Notification Settings",
           href: "/admin/notifications",
-          permission: "manage:settings",
+          permission: 'manage:settings' as const,
           variant: "outline" as const
         }
       ]
