@@ -1,29 +1,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '@/services/api';
-import { toast } from 'sonner';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  employee_id?: string;
-}
-
-interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  role: string | null;
-  isLoading: boolean;
-}
+import { AuthUser, LoginCredentials } from '@/types';
 
 interface AuthContextType {
-  authState: AuthState;
-  login: (email: string, password: string) => Promise<boolean>;
-  signIn: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  refreshAuth: () => Promise<void>;
+  user: AuthUser | null;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  logout: () => void;
+  loading: boolean;
+  isAuthenticated: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,125 +26,65 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-    role: null,
-    isLoading: true,
-  });
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      const response = await apiService.login(email, password);
-      
-      if (response.token && response.user) {
-        apiService.setToken(response.token);
-        
-        const newAuthState = {
-          isAuthenticated: true,
-          user: response.user,
-          role: response.user.role,
-          isLoading: false,
-        };
-        
-        setAuthState(newAuthState);
-        localStorage.setItem('authState', JSON.stringify(newAuthState));
-        
-        toast.success('Login successful!');
-        return true;
-      }
-      return false;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Login failed. Please try again.');
-      return false;
-    }
-  };
-
-  const signIn = login; // Alias for login
-
-  const logout = async (): Promise<void> => {
-    try {
-      apiService.clearToken();
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        role: null,
-        isLoading: false,
-      });
-      localStorage.removeItem('authState');
-      toast.success('Logged out successfully');
-    } catch (error) {
-      console.error('Logout error:', error);
-      toast.error('Error during logout');
-    }
-  };
-
-  const refreshAuth = async (): Promise<void> => {
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        apiService.setToken(token);
-        const response = await apiService.getCurrentUser();
-        
-        if (response.user) {
-          const newAuthState = {
-            isAuthenticated: true,
-            user: response.user,
-            role: response.user.role,
-            isLoading: false,
-          };
-          
-          setAuthState(newAuthState);
-          localStorage.setItem('authState', JSON.stringify(newAuthState));
-        } else {
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-        }
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    } catch (error: any) {
-      console.error('Auth refresh error:', error);
-      setAuthState({
-        isAuthenticated: false,
-        user: null,
-        role: null,
-        isLoading: false,
-      });
-      
-      // Only show error if it's not a 401 (which is expected when not logged in)
-      if (error.status !== 401) {
-        toast.error('Session validation failed');
-      }
-      await logout();
-    }
-  };
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const storedAuthState = localStorage.getItem('authState');
-      if (storedAuthState) {
-        try {
-          const parsedState = JSON.parse(storedAuthState);
-          setAuthState({ ...parsedState, isLoading: true });
-        } catch (error) {
-          console.error('Error parsing stored auth state:', error);
-        }
+    // Check for stored auth token on app start
+    const token = localStorage.getItem('authToken');
+    const storedUser = localStorage.getItem('currentUser');
+    
+    if (token && storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        console.error('Error parsing stored user data:', error);
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('currentUser');
       }
-      
-      await refreshAuth();
-    };
-
-    initAuth();
+    }
+    
+    setLoading(false);
   }, []);
 
-  const value: AuthContextType = {
-    authState,
-    login,
-    signIn,
-    logout,
-    refreshAuth,
+  const login = async (credentials: LoginCredentials) => {
+    try {
+      const response = await apiService.login(credentials);
+      
+      if (response.success && response.token && response.user) {
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('currentUser', JSON.stringify(response.user));
+        setUser(response.user);
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const logout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    setUser(null);
+    
+    // Call logout API endpoint (optional, for token blacklisting)
+    apiService.logout().catch(console.error);
+  };
+
+  const value: AuthContextType = {
+    user,
+    login,
+    logout,
+    loading,
+    isAuthenticated: !!user
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

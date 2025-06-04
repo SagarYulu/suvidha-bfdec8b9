@@ -1,9 +1,9 @@
 
 import React from 'react';
+import { useRBAC } from '@/contexts/RBACContext';
 import DashboardMetrics from '@/components/dashboard/DashboardMetrics';
 import ChartSection from '@/components/dashboard/ChartSection';
 import RecentTicketsTable from '@/components/dashboard/RecentTicketsTable';
-import { useRBAC } from '@/contexts/RBACContext';
 
 const Dashboard: React.FC = () => {
   const { hasPermission } = useRBAC();
@@ -21,18 +21,17 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-600">Welcome to your grievance portal dashboard</p>
       </div>
 
-      {/* Metrics Overview */}
       <DashboardMetrics />
-
-      {/* Charts Section */}
-      <ChartSection />
-
-      {/* Recent Tickets */}
-      <RecentTicketsTable />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ChartSection />
+        <RecentTicketsTable />
+      </div>
     </div>
   );
 };

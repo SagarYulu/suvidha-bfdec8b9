@@ -1,15 +1,19 @@
 
+// Real API service for windsurf backend
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
 class ApiService {
+  private getAuthHeaders() {
+    const token = localStorage.getItem('authToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
-    const token = localStorage.getItem('authToken');
-    
     const config = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...this.getAuthHeaders(),
         ...options.headers,
       },
       ...options,
@@ -19,8 +23,8 @@ class ApiService {
       const response = await fetch(url, config);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
       
       return await response.json();
@@ -30,7 +34,23 @@ class ApiService {
     }
   }
 
-  // Issues API - Complete CRUD with all features
+  // Auth API
+  async login(credentials: { email: string; password: string }) {
+    return this.request('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+  }
+
+  async getCurrentUser() {
+    return this.request('/api/auth/me');
+  }
+
+  async logout() {
+    return this.request('/api/auth/logout', { method: 'POST' });
+  }
+
+  // Issues API
   async getIssues(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.request(`/api/issues?${queryString}`);
@@ -60,14 +80,13 @@ class ApiService {
     });
   }
 
-  async assignIssue(id: string, assigneeId: string) {
+  async assignIssue(id: string, assignedTo: string) {
     return this.request(`/api/issues/${id}/assign`, {
       method: 'POST',
-      body: JSON.stringify({ assigneeId }),
+      body: JSON.stringify({ assignedTo }),
     });
   }
 
-  // Comments API
   async addComment(issueId: string, content: string) {
     return this.request(`/api/issues/${issueId}/comments`, {
       method: 'POST',
@@ -82,7 +101,7 @@ class ApiService {
     });
   }
 
-  // Users API - Complete user management
+  // Users API
   async getUsers(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
     return this.request(`/api/users?${queryString}`);
@@ -113,24 +132,15 @@ class ApiService {
   }
 
   // Analytics API
-  async getAnalytics(filters: any = {}) {
-    const queryString = new URLSearchParams(filters).toString();
-    return this.request(`/api/analytics?${queryString}`);
+  async getAnalytics() {
+    return this.request('/api/analytics');
   }
 
-  async getUserAnalytics(userId: string) {
-    return this.request(`/api/analytics/user/${userId}`);
-  }
-
-  // Export API - Complete export functionality
+  // Export API
   async exportData(entityType: string, format: string, filters: any = {}) {
     const queryString = new URLSearchParams({ format, ...filters }).toString();
-    const token = localStorage.getItem('authToken');
-    
     const response = await fetch(`${API_BASE_URL}/api/export/${entityType}?${queryString}`, {
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
+      headers: this.getAuthHeaders(),
     });
     
     if (!response.ok) {
@@ -138,57 +148,17 @@ class ApiService {
     }
 
     const blob = await response.blob();
-    const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `${entityType}-export.${format}`;
+    const filename = response.headers.get('content-disposition')?.split('filename=')[1] || `${entityType}-export.${format}`;
     
     // Create download link
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = filename;
+    link.download = filename.replace(/"/g, '');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    
-    return { success: true, filename };
-  }
-
-  // RBAC API - Role and permission management
-  async getUserPermissions(userId: string) {
-    return this.request(`/api/rbac/users/${userId}/permissions`);
-  }
-
-  async getUserRoles(userId: string) {
-    return this.request(`/api/rbac/users/${userId}/roles`);
-  }
-
-  async assignRole(userId: string, roleId: string) {
-    return this.request('/api/rbac/assign-role', {
-      method: 'POST',
-      body: JSON.stringify({ userId, roleId }),
-    });
-  }
-
-  async removeRole(userId: string, roleId: string) {
-    return this.request('/api/rbac/remove-role', {
-      method: 'POST',
-      body: JSON.stringify({ userId, roleId }),
-    });
-  }
-
-  async getAllRoles() {
-    return this.request('/api/rbac/roles');
-  }
-
-  async getAllPermissions() {
-    return this.request('/api/rbac/permissions');
-  }
-
-  // Audit Trail API
-  async getAuditTrail(issueId?: string, limit: number = 100) {
-    const params = new URLSearchParams({ limit: limit.toString() });
-    if (issueId) params.append('issueId', issueId);
-    return this.request(`/api/audit/trail?${params.toString()}`);
   }
 
   // Notifications API
@@ -200,27 +170,6 @@ class ApiService {
     return this.request(`/api/notifications/${id}/read`, {
       method: 'PUT',
     });
-  }
-
-  // File Upload API
-  async uploadFile(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    const token = localStorage.getItem('authToken');
-    const response = await fetch(`${API_BASE_URL}/api/upload`, {
-      method: 'POST',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: formData,
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
-    }
-    
-    return await response.json();
   }
 }
 

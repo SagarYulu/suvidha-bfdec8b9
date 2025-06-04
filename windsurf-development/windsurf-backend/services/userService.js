@@ -25,7 +25,9 @@ class UserService {
       }
 
       const query = `
-        SELECT id, name, email, role, status, last_login, created_at, updated_at
+        SELECT 
+          id, name, email, role, phone, employee_id, 
+          city, cluster, created_at, updated_at, status
         FROM dashboard_users
         ${whereClause}
         ORDER BY created_at DESC
@@ -54,8 +56,9 @@ class UserService {
   async getUserById(id) {
     try {
       const query = `
-        SELECT id, name, email, role, status, last_login, created_at, updated_at
-        FROM dashboard_users
+        SELECT id, name, email, role, phone, employee_id, 
+               city, cluster, created_at, updated_at, status
+        FROM dashboard_users 
         WHERE id = ?
       `;
 
@@ -70,8 +73,8 @@ class UserService {
   async getUserByEmail(email) {
     try {
       const query = `
-        SELECT *
-        FROM dashboard_users
+        SELECT id, name, email, password_hash, role, status
+        FROM dashboard_users 
         WHERE email = ?
       `;
 
@@ -90,21 +93,25 @@ class UserService {
         email,
         password,
         role = 'employee',
-        status = 'active',
+        phone,
+        employeeId,
+        city,
+        cluster,
         createdBy
       } = userData;
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 12);
 
       const query = `
         INSERT INTO dashboard_users (
-          name, email, password_hash, role, status, created_at
-        ) VALUES (?, ?, ?, ?, ?, NOW())
+          name, email, password_hash, role, phone, employee_id,
+          city, cluster, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
       `;
 
       const [result] = await db.execute(query, [
-        name, email, hashedPassword, role, status
+        name, email, hashedPassword, role, phone, employeeId,
+        city, cluster, createdBy
       ]);
 
       return result.insertId;
@@ -116,13 +123,7 @@ class UserService {
 
   async updateUser(id, updateData) {
     try {
-      const { updatedBy, password, ...data } = updateData;
-      
-      // Hash password if provided
-      if (password) {
-        data.password_hash = await bcrypt.hash(password, 10);
-      }
-
+      const { updatedBy, ...data } = updateData;
       const fields = Object.keys(data);
       const values = Object.values(data);
 
@@ -133,11 +134,11 @@ class UserService {
       const setClause = fields.map(field => `${field} = ?`).join(', ');
       const query = `
         UPDATE dashboard_users 
-        SET ${setClause}, updated_at = NOW()
+        SET ${setClause}, updated_at = NOW(), last_updated_by = ?
         WHERE id = ?
       `;
 
-      const [result] = await db.execute(query, [...values, id]);
+      const [result] = await db.execute(query, [...values, updatedBy, id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -147,7 +148,7 @@ class UserService {
 
   async deleteUser(id) {
     try {
-      const query = 'UPDATE dashboard_users SET status = "inactive" WHERE id = ?';
+      const query = 'UPDATE dashboard_users SET status = "deleted" WHERE id = ?';
       const [result] = await db.execute(query, [id]);
       return result.affectedRows > 0;
     } catch (error) {
@@ -158,16 +159,10 @@ class UserService {
 
   async updateLastLogin(id) {
     try {
-      const query = `
-        UPDATE dashboard_users 
-        SET last_login = NOW()
-        WHERE id = ?
-      `;
-
+      const query = 'UPDATE dashboard_users SET last_login = NOW() WHERE id = ?';
       await db.execute(query, [id]);
     } catch (error) {
       console.error('Error updating last login:', error);
-      // Don't throw error for last login update failures
     }
   }
 }

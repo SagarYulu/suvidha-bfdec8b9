@@ -2,180 +2,145 @@
 const db = require('../config/database');
 
 class AnalyticsService {
-  async getOverallStats(filters = {}) {
-    const { startDate, endDate } = filters;
-    let whereClause = '';
-    let params = [];
+  async getDashboardAnalytics(dateRange = '30d') {
+    try {
+      const days = parseInt(dateRange.replace('d', '')) || 30;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
 
-    if (startDate && endDate) {
-      whereClause = 'WHERE created_at BETWEEN ? AND ?';
-      params.push(startDate, endDate + ' 23:59:59');
+      // Get issue counts by status
+      const [statusCounts] = await db.execute(`
+        SELECT 
+          status,
+          COUNT(*) as count
+        FROM issues 
+        WHERE created_at >= ?
+        GROUP BY status
+      `, [startDate]);
+
+      // Get priority distribution
+      const [priorityCounts] = await db.execute(`
+        SELECT 
+          priority,
+          COUNT(*) as count
+        FROM issues 
+        WHERE created_at >= ?
+        GROUP BY priority
+      `, [startDate]);
+
+      // Get resolution time averages
+      const [resolutionTimes] = await db.execute(`
+        SELECT 
+          AVG(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as avg_resolution_hours
+        FROM issues 
+        WHERE status = 'closed' 
+        AND created_at >= ?
+        AND closed_at IS NOT NULL
+      `, [startDate]);
+
+      // Get daily issue creation trends
+      const [dailyTrends] = await db.execute(`
+        SELECT 
+          DATE(created_at) as date,
+          COUNT(*) as count
+        FROM issues 
+        WHERE created_at >= ?
+        GROUP BY DATE(created_at)
+        ORDER BY date
+      `, [startDate]);
+
+      // Get top categories
+      const [topCategories] = await db.execute(`
+        SELECT 
+          category,
+          COUNT(*) as count
+        FROM issues 
+        WHERE created_at >= ?
+        GROUP BY category
+        ORDER BY count DESC
+        LIMIT 10
+      `, [startDate]);
+
+      return {
+        statusDistribution: statusCounts,
+        priorityDistribution: priorityCounts,
+        averageResolutionTime: resolutionTimes[0]?.avg_resolution_hours || 0,
+        dailyTrends,
+        topCategories,
+        totalIssues: statusCounts.reduce((sum, item) => sum + item.count, 0)
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard analytics:', error);
+      throw error;
     }
-
-    const [overallStats] = await db.execute(`
-      SELECT 
-        COUNT(*) as total_issues,
-        COUNT(CASE WHEN status = 'open' THEN 1 END) as open_issues,
-        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_issues,
-        COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved_issues,
-        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_issues,
-        AVG(CASE WHEN closed_at IS NOT NULL THEN 
-          TIMESTAMPDIFF(HOUR, created_at, closed_at) END) as avg_resolution_time_hours
-      FROM issues ${whereClause}
-    `, params);
-
-    return overallStats[0];
   }
 
-  async getPriorityStats(filters = {}) {
-    const { startDate, endDate } = filters;
-    let whereClause = '';
-    let params = [];
+  async getIssueTrends(period = 'week') {
+    try {
+      let groupBy, dateFormat;
+      let days = 7;
 
-    if (startDate && endDate) {
-      whereClause = 'WHERE created_at BETWEEN ? AND ?';
-      params.push(startDate, endDate + ' 23:59:59');
+      switch (period) {
+        case 'week':
+          groupBy = 'DATE(created_at)';
+          dateFormat = '%Y-%m-%d';
+          days = 7;
+          break;
+        case 'month':
+          groupBy = 'DATE(created_at)';
+          dateFormat = '%Y-%m-%d';
+          days = 30;
+          break;
+        case 'quarter':
+          groupBy = 'YEARWEEK(created_at)';
+          dateFormat = '%Y-%u';
+          days = 90;
+          break;
+        default:
+          groupBy = 'DATE(created_at)';
+          dateFormat = '%Y-%m-%d';
+      }
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      const [trends] = await db.execute(`
+        SELECT 
+          ${groupBy} as period,
+          DATE_FORMAT(created_at, '${dateFormat}') as formatted_date,
+          COUNT(*) as total_issues,
+          SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_issues,
+          SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_issues,
+          SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed_issues
+        FROM issues 
+        WHERE created_at >= ?
+        GROUP BY ${groupBy}
+        ORDER BY period
+      `, [startDate]);
+
+      return trends;
+    } catch (error) {
+      console.error('Error fetching issue trends:', error);
+      throw error;
     }
-
-    const [priorityStats] = await db.execute(`
-      SELECT 
-        priority,
-        COUNT(*) as count
-      FROM issues ${whereClause}
-      GROUP BY priority
-      ORDER BY FIELD(priority, 'critical', 'high', 'medium', 'low')
-    `, params);
-
-    return priorityStats;
   }
 
-  async getCategoryStats(filters = {}) {
-    const { startDate, endDate } = filters;
-    let whereClause = '';
-    let params = [];
+  async getUserActivityAnalytics(userId) {
+    try {
+      const [userStats] = await db.execute(`
+        SELECT 
+          COUNT(*) as total_issues_created,
+          SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved_issues,
+          AVG(TIMESTAMPDIFF(HOUR, created_at, updated_at)) as avg_response_time
+        FROM issues 
+        WHERE created_by = ?
+      `, [userId]);
 
-    if (startDate && endDate) {
-      whereClause = 'WHERE i.created_at BETWEEN ? AND ?';
-      params.push(startDate, endDate + ' 23:59:59');
+      return userStats[0] || {};
+    } catch (error) {
+      console.error('Error fetching user activity analytics:', error);
+      throw error;
     }
-
-    const [categoryStats] = await db.execute(`
-      SELECT 
-        type_id as category,
-        COUNT(*) as count
-      FROM issues i
-      ${whereClause}
-      GROUP BY type_id
-      ORDER BY count DESC
-      LIMIT 10
-    `, params);
-
-    return categoryStats;
-  }
-
-  async getDepartmentStats(filters = {}) {
-    const { startDate, endDate } = filters;
-    let whereClause = '';
-    let params = [];
-
-    if (startDate && endDate) {
-      whereClause = 'WHERE i.created_at BETWEEN ? AND ?';
-      params.push(startDate, endDate + ' 23:59:59');
-    }
-
-    const [departmentStats] = await db.execute(`
-      SELECT 
-        e.city as department,
-        COUNT(i.id) as count
-      FROM issues i
-      LEFT JOIN employees e ON i.employee_uuid = e.id
-      ${whereClause}
-      GROUP BY e.city
-      ORDER BY count DESC
-      LIMIT 10
-    `, params);
-
-    return departmentStats;
-  }
-
-  async getMonthlyTrends() {
-    const [monthlyTrends] = await db.execute(`
-      SELECT 
-        YEAR(created_at) as year,
-        MONTH(created_at) as month,
-        COUNT(*) as count,
-        COUNT(CASE WHEN status IN ('resolved', 'closed') THEN 1 END) as resolved_count
-      FROM issues
-      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-      GROUP BY YEAR(created_at), MONTH(created_at)
-      ORDER BY year, month
-    `);
-
-    return monthlyTrends;
-  }
-
-  async getAssigneeStats() {
-    const [assigneeStats] = await db.execute(`
-      SELECT 
-        du.name as assignee_name,
-        COUNT(i.id) as total_assigned,
-        COUNT(CASE WHEN i.status IN ('resolved', 'closed') THEN 1 END) as resolved_count,
-        AVG(CASE WHEN i.closed_at IS NOT NULL THEN 
-          TIMESTAMPDIFF(HOUR, i.created_at, i.closed_at) END) as avg_resolution_time
-      FROM issues i
-      LEFT JOIN dashboard_users du ON i.assigned_to = du.id
-      WHERE du.name IS NOT NULL
-      GROUP BY du.id, du.name
-      ORDER BY total_assigned DESC
-      LIMIT 10
-    `);
-
-    return assigneeStats;
-  }
-
-  async getRecentActivity() {
-    const [recentActivity] = await db.execute(`
-      SELECT 
-        ia.action,
-        ia.created_at,
-        COALESCE(e.name, du.name) as actor_name,
-        i.description as issue_title
-      FROM issue_audit_trail ia
-      LEFT JOIN employees e ON ia.employee_uuid = e.id
-      LEFT JOIN dashboard_users du ON ia.employee_uuid = du.id
-      LEFT JOIN issues i ON ia.issue_id = i.id
-      ORDER BY ia.created_at DESC
-      LIMIT 20
-    `);
-
-    return recentActivity;
-  }
-
-  async getUserStats(userId) {
-    const [userStats] = await db.execute(`
-      SELECT 
-        COUNT(*) as total_issues,
-        COUNT(CASE WHEN status = 'open' THEN 1 END) as open_issues,
-        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_issues,
-        COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved_issues,
-        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_issues
-      FROM issues
-      WHERE employee_uuid = ?
-    `, [userId]);
-
-    return userStats[0];
-  }
-
-  async getUserRecentIssues(userId) {
-    const [recentIssues] = await db.execute(`
-      SELECT id, description, status, priority, created_at
-      FROM issues
-      WHERE employee_uuid = ?
-      ORDER BY created_at DESC
-      LIMIT 10
-    `, [userId]);
-
-    return recentIssues;
   }
 }
 
