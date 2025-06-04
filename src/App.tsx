@@ -61,6 +61,7 @@ const App = () => (
               <Route path="/admin/analytics" element={<Analytics />} />
               <Route path="/admin/users" element={<Users />} />
               <Route path="/admin/users/add" element={<AddDashboardUser />} />
+              <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/access-control" element={<AccessControl />} />
               <Route path="/admin/feedback-analytics" element={<FeedbackAnalytics />} />
