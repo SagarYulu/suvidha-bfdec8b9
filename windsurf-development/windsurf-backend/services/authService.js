@@ -1,53 +1,108 @@
 
+const userService = require('./userService');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const userModel = require('../models/userModel');
 
 class AuthService {
-  generateToken(user) {
-    return jwt.sign(
-      { userId: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
-  }
-
   async login(email, password) {
-    if (!email || !password) {
-      const error = new Error('Email and password are required');
-      error.status = 400;
-      throw error;
-    }
-
-    const user = await userModel.findByEmail(email.toLowerCase());
-    if (!user) {
-      const error = new Error('Invalid credentials');
-      error.status = 401;
-      throw error;
-    }
-
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
-      const error = new Error('Invalid credentials');
-      error.status = 401;
-      throw error;
-    }
-
-    const token = this.generateToken(user);
-
-    return {
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role
+    try {
+      const user = await userService.getUserByEmail(email);
+      
+      if (!user) {
+        return {
+          success: false,
+          message: 'Invalid email or password'
+        };
       }
-    };
+
+      const isValidPassword = await bcrypt.compare(password, user.password_hash);
+      
+      if (!isValidPassword) {
+        return {
+          success: false,
+          message: 'Invalid email or password'
+        };
+      }
+
+      if (user.status !== 'active') {
+        return {
+          success: false,
+          message: 'Account is not active'
+        };
+      }
+
+      // Update last login
+      await userService.updateLastLogin(user.id);
+
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          id: user.id, 
+          email: user.email, 
+          role: user.role 
+        },
+        process.env.JWT_SECRET || 'windsurf-secret-key',
+        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      );
+
+      return {
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      };
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   }
 
-  async getCurrentUser(userId) {
-    return await userModel.findById(userId);
+  async getUserById(id) {
+    try {
+      return await userService.getUserById(id);
+    } catch (error) {
+      console.error('Get user by ID error:', error);
+      throw error;
+    }
+  }
+
+  async refreshToken(token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'windsurf-secret-key');
+      
+      // Generate new token
+      const newToken = jwt.sign(
+        { 
+          id: decoded.id, 
+          email: decoded.email, 
+          role: decoded.role 
+        },
+        process.env.JWT_SECRET || 'windsurf-secret-key',
+        { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      );
+
+      return {
+        success: true,
+        token: newToken
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Invalid token'
+      };
+    }
+  }
+
+  verifyToken(token) {
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET || 'windsurf-secret-key');
+    } catch (error) {
+      return null;
+    }
   }
 }
 

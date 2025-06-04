@@ -1,272 +1,195 @@
 
 const db = require('../config/database');
-const auditService = require('./auditService');
-const notificationService = require('./notificationService');
-const { v4: uuidv4 } = require('uuid');
 
 class IssueService {
-  // Create new issue with full business logic
-  async createIssue(issueData, userId) {
-    const connection = await db.getConnection();
-    
+  async getIssues(filters = {}, page = 1, limit = 10) {
     try {
-      await connection.beginTransaction();
-      
-      const issueId = uuidv4();
-      
-      // Validate required fields
-      if (!issueData.type_id || !issueData.sub_type_id || !issueData.description) {
-        throw new Error('Missing required fields: type_id, sub_type_id, description');
+      const offset = (page - 1) * limit;
+      let whereClause = 'WHERE 1=1';
+      const params = [];
+
+      if (filters.status) {
+        whereClause += ' AND i.status = ?';
+        params.push(filters.status);
       }
-      
-      // Insert issue
-      await connection.execute(`
-        INSERT INTO issues (
-          id, employee_uuid, type_id, sub_type_id, description, 
-          priority, status, attachments, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, 'open', ?, NOW(), NOW())
-      `, [
-        issueId,
-        issueData.employee_uuid || userId,
-        issueData.type_id,
-        issueData.sub_type_id,
-        issueData.description,
-        issueData.priority || 'medium',
-        JSON.stringify(issueData.attachments || [])
-      ]);
-      
-      // Log audit trail
-      await auditService.logAction({
-        issueId,
-        userId,
-        action: 'issue_created',
-        details: { type_id: issueData.type_id, sub_type_id: issueData.sub_type_id }
-      }, connection);
-      
-      // Send notification to relevant users
-      await notificationService.notifyIssueCreated(issueId, userId);
-      
-      await connection.commit();
-      return issueId;
-      
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
-  }
-  
-  // Update issue status with validation
-  async updateIssueStatus(issueId, newStatus, userId, comment = null) {
-    const connection = await db.getConnection();
-    
-    try {
-      await connection.beginTransaction();
-      
-      // Get current issue
-      const [currentIssue] = await connection.execute(
-        'SELECT * FROM issues WHERE id = ?', [issueId]
-      );
-      
-      if (currentIssue.length === 0) {
-        throw new Error('Issue not found');
+
+      if (filters.priority) {
+        whereClause += ' AND i.priority = ?';
+        params.push(filters.priority);
       }
-      
-      const issue = currentIssue[0];
-      const previousStatus = issue.status;
-      
-      // Validate status transition
-      if (!this.isValidStatusTransition(previousStatus, newStatus)) {
-        throw new Error(`Invalid status transition from ${previousStatus} to ${newStatus}`);
+
+      if (filters.assignedTo) {
+        whereClause += ' AND i.assigned_to = ?';
+        params.push(filters.assignedTo);
       }
-      
-      // Update issue
-      const updateData = {
-        status: newStatus,
-        updated_at: new Date()
+
+      const query = `
+        SELECT 
+          i.*,
+          creator.name as creator_name,
+          assignee.name as assignee_name
+        FROM issues i
+        LEFT JOIN employees creator ON i.created_by = creator.uuid
+        LEFT JOIN employees assignee ON i.assigned_to = assignee.uuid
+        ${whereClause}
+        ORDER BY i.created_at DESC
+        LIMIT ? OFFSET ?
+      `;
+
+      const countQuery = `
+        SELECT COUNT(*) as total
+        FROM issues i
+        ${whereClause}
+      `;
+
+      const [issues] = await db.execute(query, [...params, limit, offset]);
+      const [countResult] = await db.execute(countQuery, params);
+
+      return {
+        issues,
+        total: countResult[0].total
       };
-      
-      if (newStatus === 'closed' || newStatus === 'resolved') {
-        updateData.closed_at = new Date();
-      }
-      
-      await connection.execute(`
-        UPDATE issues 
-        SET status = ?, updated_at = ?, closed_at = ?
-        WHERE id = ?
-      `, [newStatus, updateData.updated_at, updateData.closed_at || null, issueId]);
-      
-      // Add comment if provided
-      if (comment) {
-        await connection.execute(`
-          INSERT INTO issue_comments (id, issue_id, employee_uuid, content, created_at)
-          VALUES (?, ?, ?, ?, NOW())
-        `, [uuidv4(), issueId, userId, comment]);
-      }
-      
-      // Log audit trail
-      await auditService.logAction({
-        issueId,
-        userId,
-        action: 'status_changed',
-        previousStatus,
-        newStatus,
-        details: { comment }
-      }, connection);
-      
-      // Send notifications
-      await notificationService.notifyStatusChange(issueId, previousStatus, newStatus, userId);
-      
-      await connection.commit();
-      return true;
-      
     } catch (error) {
-      await connection.rollback();
+      console.error('Error fetching issues:', error);
       throw error;
-    } finally {
-      connection.release();
     }
   }
-  
-  // Assign issue to user
-  async assignIssue(issueId, assigneeId, userId) {
-    const connection = await db.getConnection();
-    
+
+  async getIssueById(id) {
     try {
-      await connection.beginTransaction();
-      
-      // Get current issue
-      const [currentIssue] = await connection.execute(
-        'SELECT assigned_to FROM issues WHERE id = ?', [issueId]
-      );
-      
-      if (currentIssue.length === 0) {
-        throw new Error('Issue not found');
+      const query = `
+        SELECT 
+          i.*,
+          creator.name as creator_name,
+          assignee.name as assignee_name
+        FROM issues i
+        LEFT JOIN employees creator ON i.created_by = creator.uuid
+        LEFT JOIN employees assignee ON i.assigned_to = assignee.uuid
+        WHERE i.id = ?
+      `;
+
+      const [rows] = await db.execute(query, [id]);
+      return rows[0] || null;
+    } catch (error) {
+      console.error('Error fetching issue:', error);
+      throw error;
+    }
+  }
+
+  async createIssue(issueData) {
+    try {
+      const {
+        title,
+        description,
+        category,
+        priority = 'medium',
+        status = 'open',
+        createdBy
+      } = issueData;
+
+      const query = `
+        INSERT INTO issues (
+          title, description, category, priority, status, created_by, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW())
+      `;
+
+      const [result] = await db.execute(query, [
+        title, description, category, priority, status, createdBy
+      ]);
+
+      // Log audit trail
+      await this.logAuditTrail(result.insertId, 'created', createdBy);
+
+      return result.insertId;
+    } catch (error) {
+      console.error('Error creating issue:', error);
+      throw error;
+    }
+  }
+
+  async updateIssue(id, updateData) {
+    try {
+      const { updatedBy, ...data } = updateData;
+      const fields = Object.keys(data);
+      const values = Object.values(data);
+
+      if (fields.length === 0) {
+        return false;
       }
-      
-      const previousAssignee = currentIssue[0].assigned_to;
-      
-      // Update assignment
-      await connection.execute(`
+
+      const setClause = fields.map(field => `${field} = ?`).join(', ');
+      const query = `
+        UPDATE issues 
+        SET ${setClause}, updated_at = NOW()
+        WHERE id = ?
+      `;
+
+      const [result] = await db.execute(query, [...values, id]);
+
+      if (result.affectedRows > 0) {
+        // Log audit trail
+        await this.logAuditTrail(id, 'updated', updatedBy, data);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error updating issue:', error);
+      throw error;
+    }
+  }
+
+  async deleteIssue(id) {
+    try {
+      const query = 'DELETE FROM issues WHERE id = ?';
+      const [result] = await db.execute(query, [id]);
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error deleting issue:', error);
+      throw error;
+    }
+  }
+
+  async assignIssue(issueId, assignedTo, assignedBy) {
+    try {
+      const query = `
         UPDATE issues 
         SET assigned_to = ?, updated_at = NOW()
         WHERE id = ?
-      `, [assigneeId, issueId]);
-      
-      // Log audit trail
-      await auditService.logAction({
-        issueId,
-        userId,
-        action: 'issue_assigned',
-        details: { previousAssignee, newAssignee: assigneeId }
-      }, connection);
-      
-      // Send notifications
-      await notificationService.notifyAssignment(issueId, assigneeId, userId);
-      
-      await connection.commit();
-      return true;
-      
+      `;
+
+      const [result] = await db.execute(query, [assignedTo, issueId]);
+
+      if (result.affectedRows > 0) {
+        // Log audit trail
+        await this.logAuditTrail(issueId, 'assigned', assignedBy, { assigned_to: assignedTo });
+        return true;
+      }
+
+      return false;
     } catch (error) {
-      await connection.rollback();
+      console.error('Error assigning issue:', error);
       throw error;
-    } finally {
-      connection.release();
     }
   }
-  
-  // Validate status transitions
-  isValidStatusTransition(fromStatus, toStatus) {
-    const validTransitions = {
-      'open': ['in_progress', 'closed'],
-      'in_progress': ['resolved', 'closed', 'open'],
-      'resolved': ['closed', 'open'],
-      'closed': ['open'] // Allow reopening
-    };
-    
-    return validTransitions[fromStatus]?.includes(toStatus) || false;
-  }
-  
-  // Get issue with full details
-  async getIssueDetails(issueId, userId, userRole) {
+
+  async logAuditTrail(issueId, action, performedBy, changes = null) {
     try {
-      // Get issue with employee and assignee details
-      const [issues] = await db.execute(`
-        SELECT 
-          i.*,
-          e.name as employee_name,
-          e.email as employee_email,
-          e.phone as employee_phone,
-          e.manager,
-          e.city,
-          e.cluster,
-          au.name as assigned_user_name
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        LEFT JOIN dashboard_users au ON i.assigned_to = au.id
-        WHERE i.id = ?
-      `, [issueId]);
-      
-      if (issues.length === 0) {
-        throw new Error('Issue not found');
-      }
-      
-      const issue = issues[0];
-      
-      // Check access permissions
-      if (userRole === 'employee' && issue.employee_uuid !== userId) {
-        throw new Error('Access denied');
-      }
-      
-      // Get comments
-      const [comments] = await db.execute(`
-        SELECT 
-          c.*,
-          COALESCE(e.name, du.name) as commenter_name
-        FROM issue_comments c
-        LEFT JOIN employees e ON c.employee_uuid = e.id
-        LEFT JOIN dashboard_users du ON c.employee_uuid = du.id
-        WHERE c.issue_id = ?
-        ORDER BY c.created_at ASC
-      `, [issueId]);
-      
-      // Get internal comments (admin only)
-      let internalComments = [];
-      if (userRole !== 'employee') {
-        const [internal] = await db.execute(`
-          SELECT 
-            ic.*,
-            du.name as commenter_name
-          FROM issue_internal_comments ic
-          LEFT JOIN dashboard_users du ON ic.employee_uuid = du.id
-          WHERE ic.issue_id = ?
-          ORDER BY ic.created_at ASC
-        `, [issueId]);
-        internalComments = internal;
-      }
-      
-      // Get audit trail
-      const [auditTrail] = await db.execute(`
-        SELECT 
-          at.*,
-          COALESCE(e.name, du.name) as performer_name
-        FROM issue_audit_trail at
-        LEFT JOIN employees e ON at.employee_uuid = e.id
-        LEFT JOIN dashboard_users du ON at.employee_uuid = du.id
-        WHERE at.issue_id = ?
-        ORDER BY at.created_at DESC
-      `, [issueId]);
-      
-      return {
-        issue,
-        comments,
-        internalComments,
-        auditTrail
-      };
-      
+      const query = `
+        INSERT INTO issue_audit_trail (
+          issue_id, action, performed_by, changes, created_at
+        ) VALUES (?, ?, ?, ?, NOW())
+      `;
+
+      await db.execute(query, [
+        issueId,
+        action,
+        performedBy,
+        changes ? JSON.stringify(changes) : null
+      ]);
     } catch (error) {
-      throw error;
+      console.error('Error logging audit trail:', error);
+      // Don't throw error for audit trail failures
     }
   }
 }

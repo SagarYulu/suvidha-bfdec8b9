@@ -7,36 +7,94 @@ class AuthController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ error: errors.array()[0].msg });
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: errors.array() 
+        });
       }
 
       const { email, password } = req.body;
       const result = await authService.login(email, password);
       
-      res.json(result);
+      if (!result.success) {
+        return res.status(401).json({ 
+          error: 'Authentication failed',
+          message: result.message 
+        });
+      }
+      
+      res.json({
+        success: true,
+        token: result.token,
+        user: result.user,
+        message: 'Login successful'
+      });
     } catch (error) {
-      console.error('Login controller error:', error);
-      res.status(error.status || 500).json({ error: error.message });
+      console.error('Login error:', error);
+      res.status(500).json({ 
+        error: 'Authentication failed',
+        message: error.message 
+      });
     }
   }
 
   async getCurrentUser(req, res) {
     try {
-      const user = await authService.getCurrentUser(req.user.id);
-      res.json({ user });
+      const user = await authService.getUserById(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({ success: true, user });
     } catch (error) {
       console.error('Get current user error:', error);
-      res.status(500).json({ error: 'Failed to fetch user data' });
+      res.status(500).json({ 
+        error: 'Failed to fetch user data',
+        message: error.message 
+      });
     }
   }
 
   async refreshToken(req, res) {
     try {
-      const token = authService.generateToken(req.user);
-      res.json({ token });
+      const { token } = req.body;
+      const result = await authService.refreshToken(token);
+      
+      if (!result.success) {
+        return res.status(401).json({ 
+          error: 'Token refresh failed',
+          message: result.message 
+        });
+      }
+      
+      res.json({
+        success: true,
+        token: result.token,
+        message: 'Token refreshed successfully'
+      });
     } catch (error) {
       console.error('Token refresh error:', error);
-      res.status(500).json({ error: 'Token refresh failed' });
+      res.status(500).json({ 
+        error: 'Token refresh failed',
+        message: error.message 
+      });
+    }
+  }
+
+  async logout(req, res) {
+    try {
+      // Implement logout logic (e.g., blacklist token)
+      res.json({
+        success: true,
+        message: 'Logout successful'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ 
+        error: 'Logout failed',
+        message: error.message 
+      });
     }
   }
 }
