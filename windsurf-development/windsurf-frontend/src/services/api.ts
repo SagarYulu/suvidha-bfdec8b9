@@ -1,317 +1,227 @@
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-interface ApiError {
-  message: string;
-  status: number;
-  code?: string;
-}
+const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
 class ApiService {
-  private baseURL: string;
-  private token: string | null = null;
-  private isRefreshing = false;
-  private refreshPromise: Promise<string> | null = null;
-
-  constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL;
-    this.token = localStorage.getItem('auth_token');
-  }
-
-  setToken(token: string) {
-    this.token = token;
-    localStorage.setItem('auth_token', token);
-  }
-
-  clearToken() {
-    this.token = null;
-    localStorage.removeItem('auth_token');
-  }
-
-  private async refreshToken(): Promise<string> {
-    if (this.isRefreshing && this.refreshPromise) {
-      return this.refreshPromise;
-    }
-
-    this.isRefreshing = true;
-    this.refreshPromise = this.request<{ token: string }>('/api/auth/refresh', {
-      method: 'POST',
-    }).then(response => {
-      const newToken = response.token;
-      this.setToken(newToken);
-      this.isRefreshing = false;
-      this.refreshPromise = null;
-      return newToken;
-    }).catch(error => {
-      this.isRefreshing = false;
-      this.refreshPromise = null;
-      this.clearToken();
-      // Redirect to login
-      window.location.href = '/admin/login';
-      throw error;
-    });
-
-    return this.refreshPromise;
-  }
-
-  private async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    const token = localStorage.getItem('authToken');
     
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
-
-    if (this.token && !endpoint.includes('/auth/refresh')) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    const config: RequestInit = {
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+        ...options.headers,
+      },
       ...options,
-      headers,
     };
 
     try {
       const response = await fetch(url, config);
       
-      // Handle authentication errors
-      if (response.status === 401 && !endpoint.includes('/auth/')) {
-        try {
-          const newToken = await this.refreshToken();
-          // Retry the original request with new token
-          headers.Authorization = `Bearer ${newToken}`;
-          const retryResponse = await fetch(url, { ...config, headers });
-          
-          if (!retryResponse.ok) {
-            const error = await retryResponse.json().catch(() => ({ error: 'Network error' }));
-            throw this.createApiError(error.error || `HTTP ${retryResponse.status}`, retryResponse.status);
-          }
-          
-          return await retryResponse.json();
-        } catch (refreshError) {
-          // Refresh failed, redirect to login
-          this.clearToken();
-          window.location.href = '/admin/login';
-          throw this.createApiError('Session expired. Please login again.', 401);
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Network error' }));
-        throw this.createApiError(error.error || `HTTP ${response.status}`, response.status, error.code);
-      }
-
       return await response.json();
     } catch (error) {
-      if (error instanceof Error && error.name === 'ApiError') {
-        throw error;
-      }
-      
       console.error('API request failed:', error);
-      throw this.createApiError('Network error. Please check your connection.', 0);
+      throw error;
     }
   }
 
-  private createApiError(message: string, status: number, code?: string): ApiError {
-    const error = new Error(message) as Error & ApiError;
-    error.name = 'ApiError';
-    error.status = status;
-    error.code = code;
-    return error;
-  }
-
-  // File upload method
-  async uploadFile(endpoint: string, file: File, additionalData?: Record<string, any>): Promise<any> {
-    const url = `${this.baseURL}${endpoint}`;
-    
-    const formData = new FormData();
-    formData.append('file', file);
-    
-    if (additionalData) {
-      Object.entries(additionalData).forEach(([key, value]) => {
-        formData.append(key, typeof value === 'string' ? value : JSON.stringify(value));
-      });
-    }
-
-    const headers: HeadersInit = {};
-    if (this.token) {
-      headers.Authorization = `Bearer ${this.token}`;
-    }
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-      });
-
-      if (response.status === 401) {
-        try {
-          const newToken = await this.refreshToken();
-          headers.Authorization = `Bearer ${newToken}`;
-          const retryResponse = await fetch(url, {
-            method: 'POST',
-            headers,
-            body: formData,
-          });
-          
-          if (!retryResponse.ok) {
-            const error = await retryResponse.json().catch(() => ({ error: 'Upload failed' }));
-            throw this.createApiError(error.error || `HTTP ${retryResponse.status}`, retryResponse.status);
-          }
-          
-          return await retryResponse.json();
-        } catch (refreshError) {
-          this.clearToken();
-          window.location.href = '/admin/login';
-          throw this.createApiError('Session expired. Please login again.', 401);
-        }
-      }
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Upload failed' }));
-        throw this.createApiError(error.error || `HTTP ${response.status}`, response.status);
-      }
-
-      return await response.json();
-    } catch (error) {
-      if (error instanceof Error && error.name === 'ApiError') {
-        throw error;
-      }
-      console.error('File upload failed:', error);
-      throw this.createApiError('File upload failed. Please try again.', 0);
-    }
-  }
-
-  // Auth endpoints
-  async login(email: string, password: string) {
-    return this.request<{ token: string; user: any }>('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    });
-  }
-
-  async register(userData: any) {
-    return this.request<{ token: string; user: any }>('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-  }
-
-  async getCurrentUser() {
-    return this.request<{ user: any }>('/api/auth/me');
-  }
-
-  async refreshUserToken() {
-    return this.request<{ token: string }>('/api/auth/refresh', {
-      method: 'POST',
-    });
-  }
-
-  // Issues endpoints
+  // Issues API - Complete CRUD with all features
   async getIssues(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request<any>(`/api/issues?${queryString}`);
+    return this.request(`/api/issues?${queryString}`);
   }
 
   async getIssue(id: string) {
-    return this.request<any>(`/api/issues/${id}`);
+    return this.request(`/api/issues/${id}`);
   }
 
   async createIssue(issueData: any) {
-    return this.request<{ issueId: string; message: string }>('/api/issues', {
+    return this.request('/api/issues', {
       method: 'POST',
       body: JSON.stringify(issueData),
     });
   }
 
   async updateIssue(id: string, updates: any) {
-    return this.request<{ message: string }>(`/api/issues/${id}`, {
+    return this.request(`/api/issues/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
-  async addComment(issueId: string, content: string) {
-    return this.request<{ commentId: string; message: string }>(
-      `/api/issues/${issueId}/comments`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ content }),
-      }
-    );
-  }
-
-  async addInternalComment(issueId: string, content: string) {
-    return this.request<{ commentId: string; message: string }>(
-      `/api/issues/${issueId}/internal-comments`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ content }),
-      }
-    );
-  }
-
-  // Analytics endpoints
-  async getAnalytics(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request<any>(`/api/analytics?${queryString}`);
-  }
-
-  async getTrends(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request<any>(`/api/analytics/trends?${queryString}`);
-  }
-
-  // Feedback endpoints
-  async submitFeedback(feedbackData: any) {
-    return this.request<{ message: string }>('/api/feedback', {
-      method: 'POST',
-      body: JSON.stringify(feedbackData),
+  async deleteIssue(id: string) {
+    return this.request(`/api/issues/${id}`, {
+      method: 'DELETE',
     });
   }
 
-  async getFeedbackAnalytics(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request<any>(`/api/feedback/analytics?${queryString}`);
+  async assignIssue(id: string, assigneeId: string) {
+    return this.request(`/api/issues/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assigneeId }),
+    });
   }
 
-  // Users endpoints
+  // Comments API
+  async addComment(issueId: string, content: string) {
+    return this.request(`/api/issues/${issueId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  async addInternalComment(issueId: string, content: string) {
+    return this.request(`/api/issues/${issueId}/internal-comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // Users API - Complete user management
   async getUsers(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request<any>(`/api/users?${queryString}`);
+    return this.request(`/api/users?${queryString}`);
   }
 
   async getUser(id: string) {
-    return this.request<any>(`/api/users/${id}`);
+    return this.request(`/api/users/${id}`);
   }
 
   async createUser(userData: any) {
-    return this.request<{ userId: string; message: string; user: any }>(
-      '/api/users',
-      {
-        method: 'POST',
-        body: JSON.stringify(userData),
-      }
-    );
+    return this.request('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
   }
 
   async updateUser(id: string, updates: any) {
-    return this.request<{ message: string }>(`/api/users/${id}`, {
+    return this.request(`/api/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
   async deleteUser(id: string) {
-    return this.request<{ message: string }>(`/api/users/${id}`, {
+    return this.request(`/api/users/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Analytics API
+  async getAnalytics(filters: any = {}) {
+    const queryString = new URLSearchParams(filters).toString();
+    return this.request(`/api/analytics?${queryString}`);
+  }
+
+  async getUserAnalytics(userId: string) {
+    return this.request(`/api/analytics/user/${userId}`);
+  }
+
+  // Export API - Complete export functionality
+  async exportData(entityType: string, format: string, filters: any = {}) {
+    const queryString = new URLSearchParams({ format, ...filters }).toString();
+    const token = localStorage.getItem('authToken');
+    
+    const response = await fetch(`${API_BASE_URL}/api/export/${entityType}?${queryString}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    const blob = await response.blob();
+    const filename = response.headers.get('content-disposition')?.split('filename=')[1]?.replace(/"/g, '') || `${entityType}-export.${format}`;
+    
+    // Create download link
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return { success: true, filename };
+  }
+
+  // RBAC API - Role and permission management
+  async getUserPermissions(userId: string) {
+    return this.request(`/api/rbac/users/${userId}/permissions`);
+  }
+
+  async getUserRoles(userId: string) {
+    return this.request(`/api/rbac/users/${userId}/roles`);
+  }
+
+  async assignRole(userId: string, roleId: string) {
+    return this.request('/api/rbac/assign-role', {
+      method: 'POST',
+      body: JSON.stringify({ userId, roleId }),
+    });
+  }
+
+  async removeRole(userId: string, roleId: string) {
+    return this.request('/api/rbac/remove-role', {
+      method: 'POST',
+      body: JSON.stringify({ userId, roleId }),
+    });
+  }
+
+  async getAllRoles() {
+    return this.request('/api/rbac/roles');
+  }
+
+  async getAllPermissions() {
+    return this.request('/api/rbac/permissions');
+  }
+
+  // Audit Trail API
+  async getAuditTrail(issueId?: string, limit: number = 100) {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (issueId) params.append('issueId', issueId);
+    return this.request(`/api/audit/trail?${params.toString()}`);
+  }
+
+  // Notifications API
+  async getNotifications(userId: string) {
+    return this.request(`/api/notifications?userId=${userId}`);
+  }
+
+  async markNotificationAsRead(id: string) {
+    return this.request(`/api/notifications/${id}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  // File Upload API
+  async uploadFile(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+    
+    return await response.json();
   }
 }
 
 export const apiService = new ApiService();
-export default apiService;

@@ -1,39 +1,39 @@
 
+import { useToast } from "@/hooks/use-toast";
 import { useCallback } from 'react';
-import { toast } from 'sonner';
-import { ErrorHandler } from '@/utils/errorHandler';
 
 export const useErrorHandler = () => {
-  const handleError = useCallback((error: any, customMessage?: string) => {
-    const errorType = ErrorHandler.getErrorType(error);
-    const message = ErrorHandler.handle(error, customMessage);
+  const { toast } = useToast();
 
-    switch (errorType) {
-      case 'auth':
-        toast.error('Authentication required. Please log in again.');
-        break;
-      case 'network':
-        toast.error('Network error. Please check your connection and try again.');
-        break;
-      case 'validation':
-        toast.error(message);
-        break;
-      case 'server':
-        toast.error('Server error. Please try again later.');
-        break;
-      default:
-        toast.error(message);
+  const handleError = useCallback((error: any, context?: string) => {
+    console.error(`Error${context ? ` in ${context}` : ''}:`, error);
+    
+    let errorMessage = 'An unexpected error occurred';
+    
+    if (error?.message) {
+      errorMessage = error.message;
+    } else if (typeof error === 'string') {
+      errorMessage = error;
     }
-
-    return message;
-  }, []);
+    
+    // Handle validation errors specifically
+    if (error?.details && Array.isArray(error.details)) {
+      errorMessage = error.details.join(', ');
+    }
+    
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  }, [toast]);
 
   const handleSuccess = useCallback((message: string) => {
-    toast.success(message);
-  }, []);
+    toast({
+      title: "Success",
+      description: message,
+    });
+  }, [toast]);
 
-  return {
-    handleError,
-    handleSuccess,
-  };
+  return { handleError, handleSuccess };
 };
