@@ -5,48 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Filter, MoreHorizontal } from "lucide-react";
+import { Search, Plus, Filter, MoreHorizontal, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import CreateIssueForm from "@/components/admin/issues/CreateIssueForm";
 import IssueDetailsModal from "@/components/admin/issues/IssueDetailsModal";
-
-// Mock data for standalone operation
-const mockIssues = [
-  {
-    id: '1',
-    title: 'Login Issue',
-    description: 'Users cannot log in to the system',
-    status: 'open',
-    priority: 'high',
-    assignedTo: 'John Doe',
-    createdAt: '2024-01-15',
-    employeeUuid: 'emp-001'
-  },
-  {
-    id: '2',
-    title: 'Payment Gateway Error',
-    description: 'Payment processing is failing',
-    status: 'in_progress',
-    priority: 'critical',
-    assignedTo: 'Jane Smith',
-    createdAt: '2024-01-14',
-    employeeUuid: 'emp-002'
-  },
-  {
-    id: '3',
-    title: 'UI Bug in Dashboard',
-    description: 'Charts are not displaying correctly',
-    status: 'resolved',
-    priority: 'medium',
-    assignedTo: 'Bob Wilson',
-    createdAt: '2024-01-13',
-    employeeUuid: 'emp-003'
-  }
-];
+import { apiService } from "@/services/apiService";
+import { toast } from "@/hooks/use-toast";
 
 const Issues = () => {
-  const [issues, setIssues] = useState(mockIssues);
-  const [filteredIssues, setFilteredIssues] = useState(mockIssues);
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filteredIssues, setFilteredIssues] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -54,12 +24,37 @@ const Issues = () => {
   const [selectedIssue, setSelectedIssue] = useState(null);
 
   useEffect(() => {
-    let filtered = issues;
+    fetchIssues();
+  }, []);
+
+  useEffect(() => {
+    filterIssues();
+  }, [issues, searchTerm, statusFilter, priorityFilter]);
+
+  const fetchIssues = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getIssues();
+      setIssues(response.issues || []);
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch issues",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterIssues = () => {
+    let filtered = [...issues];
 
     if (searchTerm) {
       filtered = filtered.filter(issue =>
-        issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        issue.description.toLowerCase().includes(searchTerm.toLowerCase())
+        issue.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        issue.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -72,7 +67,7 @@ const Issues = () => {
     }
 
     setFilteredIssues(filtered);
-  }, [issues, searchTerm, statusFilter, priorityFilter]);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -94,22 +89,49 @@ const Issues = () => {
     }
   };
 
-  const handleCreateIssue = (newIssue) => {
-    const issue = {
-      ...newIssue,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-    setIssues([issue, ...issues]);
-    setShowCreateModal(false);
+  const handleCreateIssue = async (newIssue) => {
+    try {
+      await apiService.createIssue(newIssue);
+      setShowCreateModal(false);
+      fetchIssues();
+      toast({
+        title: "Success",
+        description: "Issue created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create issue",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdateIssue = (updatedIssue) => {
-    setIssues(issues.map(issue => 
-      issue.id === updatedIssue.id ? updatedIssue : issue
-    ));
-    setSelectedIssue(null);
+  const handleUpdateIssue = async (updatedIssue) => {
+    try {
+      await apiService.updateIssue(updatedIssue.id, updatedIssue);
+      setSelectedIssue(null);
+      fetchIssues();
+      toast({
+        title: "Success",
+        description: "Issue updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update issue",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -176,37 +198,65 @@ const Issues = () => {
         </CardContent>
       </Card>
 
-      {/* Issues List */}
-      <div className="space-y-4">
-        {filteredIssues.map((issue) => (
-          <Card key={issue.id} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4">
-              <div className="flex justify-between items-start">
-                <div className="flex-1" onClick={() => setSelectedIssue(issue)}>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-lg">{issue.title}</h3>
+      {/* Issues Table */}
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>Assigned To</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredIssues.map((issue) => (
+                <TableRow key={issue.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{issue.title}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-xs">
+                        {issue.description}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <Badge className={getStatusColor(issue.status)}>
-                      {issue.status.replace('_', ' ')}
+                      {issue.status?.replace('_', ' ')}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge className={getPriorityColor(issue.priority)}>
                       {issue.priority}
                     </Badge>
-                  </div>
-                  <p className="text-gray-600 mb-3">{issue.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span>Assigned to: {issue.assignedTo}</span>
-                    <span>Created: {issue.createdAt}</span>
-                    <span>ID: #{issue.id}</span>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  </TableCell>
+                  <TableCell>{issue.assignedTo || 'Unassigned'}</TableCell>
+                  <TableCell>{new Date(issue.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setSelectedIssue(issue)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filteredIssues.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No issues found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       {/* Issue Details Modal */}
       {selectedIssue && (
