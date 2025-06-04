@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,6 @@ import SLAAnalysisSection from "@/components/admin/analytics/SLAAnalysisSection"
 import AnalyticsDateRangeFilter from "@/components/admin/analytics/AnalyticsDateRangeFilter";
 import AnalyticsExportSection from "@/components/admin/analytics/AnalyticsExportSection";
 import ExportDialog from "@/components/admin/export/ExportDialog";
-import RoleGuard from "@/components/rbac/RoleGuard";
 
 const AdminAnalytics = () => {
   const { 
@@ -117,16 +115,13 @@ const AdminAnalytics = () => {
             Comprehensive analytics and insights for issue management
           </p>
         </div>
-        
-        <RoleGuard permission="manage:analytics">
-          <Button 
-            onClick={() => setShowExportDialog(true)}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export Data
-          </Button>
-        </RoleGuard>
+        <Button 
+          onClick={() => setShowExportDialog(true)}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Export Data
+        </Button>
       </div>
 
       {/* Filter Bar */}
@@ -143,15 +138,12 @@ const AdminAnalytics = () => {
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
         />
-        
-        <RoleGuard permission="manage:analytics">
-          <AnalyticsExportSection 
-            issues={issues}
-            analytics={analytics}
-            filters={filters}
-            dateRange={dateRange}
-          />
-        </RoleGuard>
+        <AnalyticsExportSection 
+          issues={issues}
+          analytics={analytics}
+          filters={filters}
+          dateRange={dateRange}
+        />
       </div>
 
       {isLoading ? (
