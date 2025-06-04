@@ -1,41 +1,29 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
-import { useState } from "react";
-import ExportDialog from "@/components/admin/export/ExportDialog";
+import React from 'react';
+import { useRBAC } from '@/contexts/RBACContext';
+import ChartSection from '@/components/dashboard/ChartSection';
 
-const Analytics = () => {
-  const [showExportDialog, setShowExportDialog] = useState(false);
+const Analytics: React.FC = () => {
+  const { hasPermission } = useRBAC();
+
+  if (!hasPermission('view_analytics')) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Access Denied</h2>
+          <p className="text-gray-500">You don't have permission to view analytics.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Analytics</h1>
-        <Button 
-          onClick={() => setShowExportDialog(true)}
-          className="flex items-center gap-2"
-        >
-          <Download className="h-4 w-4" />
-          Export Data
-        </Button>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
       </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Analytics Dashboard</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Analytics charts and reports will be displayed here</p>
-        </CardContent>
-      </Card>
 
-      <ExportDialog
-        isOpen={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        exportType="analytics"
-        title="Analytics Data"
-      />
+      <ChartSection />
     </div>
   );
 };
