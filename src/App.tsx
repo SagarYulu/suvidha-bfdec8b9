@@ -1,87 +1,187 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { RBACProvider } from "@/contexts/RBACContext";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 
-import Index from "./pages/Index";
+import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { RBACProvider } from '@/contexts/RBACContext';
+import AdminLayout from '@/components/layout/AdminLayout';
+import Login from '@/pages/Login';
+import NotFound from '@/pages/NotFound';
 
-// Admin pages
-import AdminLogin from "./pages/admin/Login";
-import Dashboard from "./pages/admin/Dashboard";
-import Issues from "./pages/admin/Issues";
-import IssueDetails from "./pages/admin/IssueDetails";
-import AssignedIssues from "./pages/admin/AssignedIssues";
-import Analytics from "./pages/admin/Analytics";
-import Users from "./pages/admin/Users";
-import Settings from "./pages/admin/Settings";
-import AccessControl from "./pages/admin/AccessControl";
-import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
-import FeedbackAnalytics from "./pages/admin/FeedbackAnalytics";
-import SentimentAnalysis from "./pages/admin/SentimentAnalysis";
-import TestDataGenerator from "./pages/admin/TestDataGenerator";
+// Admin Pages
+import Dashboard from '@/pages/admin/Dashboard';
+import Issues from '@/pages/admin/Issues';
+import Users from '@/pages/admin/Users';
+import Analytics from '@/pages/admin/Analytics';
+import Exports from '@/pages/admin/Exports';
+import Settings from '@/pages/admin/Settings';
+import UserManagement from '@/pages/admin/UserManagement';
+import AddDashboardUser from '@/pages/admin/dashboard-users/AddDashboardUser';
 
-// Mobile pages
-import MobileLogin from "./pages/mobile/Login";
-import MobileIssues from "./pages/mobile/Issues";
-import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import NewIssue from "./pages/mobile/NewIssue";
-import MobileSentiment from "./pages/mobile/Sentiment";
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-// Database Export page
-import DatabaseExport from "./pages/DatabaseExport";
+// Protected Route wrapper
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
 
-import NotFound from "./pages/NotFound";
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
-const queryClient = new QueryClient();
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <RBACProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              
-              {/* Database Export Route */}
-              <Route path="/export" element={<DatabaseExport />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<Dashboard />} />
-              <Route path="/admin/issues" element={<Issues />} />
-              <Route path="/admin/issues/:id" element={<IssueDetails />} />
-              <Route path="/admin/assigned-issues" element={<AssignedIssues />} />
-              <Route path="/admin/analytics" element={<Analytics />} />
-              <Route path="/admin/users" element={<Users />} />
-              <Route path="/admin/users/add" element={<AddDashboardUser />} />
-              <Route path="/admin/settings" element={<Settings />} />
-              <Route path="/admin/access-control" element={<AccessControl />} />
-              <Route path="/admin/feedback-analytics" element={<FeedbackAnalytics />} />
-              <Route path="/admin/sentiment-analysis" element={<SentimentAnalysis />} />
-              <Route path="/admin/test-data" element={<TestDataGenerator />} />
+  return <>{children}</>;
+};
 
-              {/* Mobile Routes */}
-              <Route path="/mobile/login" element={<MobileLogin />} />
-              <Route path="/mobile/issues" element={<MobileIssues />} />
-              <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-              <Route path="/mobile/new-issue" element={<NewIssue />} />
-              <Route path="/mobile/sentiment" element={<MobileSentiment />} />
+// Main App Routes
+const AppRoutes: React.FC = () => {
+  const { isAuthenticated } = useAuth();
 
-              {/* Catch all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </RBACProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <Routes>
+      <Route 
+        path="/login" 
+        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
+      />
+      
+      <Route path="/" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Dashboard />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/dashboard" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Dashboard />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/issues" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Issues />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/issues" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Issues />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/users" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Users />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/users" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <UserManagement />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/dashboard-users/add" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <AddDashboardUser />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/analytics" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Analytics />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/analytics" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Analytics />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/exports" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Exports />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/exports" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Exports />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Settings />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/admin/settings" element={
+        <ProtectedRoute>
+          <AdminLayout>
+            <Settings />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Catch all route */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RBACProvider>
+          <Router>
+            <AppRoutes />
+            <Toaster position="top-right" />
+          </Router>
+        </RBACProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;
