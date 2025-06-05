@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,8 @@ import NotificationSystem from "./notifications/NotificationSystem";
 interface AdminLayoutProps {
   children?: React.ReactNode;
   title?: string;
+  requiredPermission?: string;
+  showBackButton?: boolean;
 }
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
@@ -203,11 +206,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
 
             <div className="flex items-center gap-3">
               {/* Search */}
-              <div className="hidden md:block">
+              <div className="hidden md:block relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
                   placeholder="Search..."
-                  className="w-64"
-                  startIcon={Search}
+                  className="w-64 pl-10"
                 />
               </div>
 
