@@ -13,68 +13,80 @@ class EmailService {
       }
     });
   }
-  
-  async sendEmail(to, subject, html, attachments = []) {
+
+  async sendIssueAssignmentEmail(assigneeEmail, assigneeName, issueId, issueTitle) {
+    const mailOptions = {
+      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
+      to: assigneeEmail,
+      subject: `New Issue Assigned: ${issueTitle}`,
+      html: `
+        <h2>New Issue Assignment</h2>
+        <p>Hello ${assigneeName},</p>
+        <p>A new issue has been assigned to you:</p>
+        <ul>
+          <li><strong>Issue ID:</strong> #${issueId}</li>
+          <li><strong>Title:</strong> ${issueTitle}</li>
+        </ul>
+        <p>Please log in to the system to view details and take action.</p>
+        <p>Best regards,<br>Windsurf Team</p>
+      `
+    };
+
     try {
-      if (!process.env.SMTP_USER) {
-        console.log('Email would be sent:', { to, subject });
-        return { success: true, messageId: 'mock-' + Date.now() };
-      }
-      
-      const mailOptions = {
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to,
-        subject,
-        html,
-        attachments
-      };
-      
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', result.messageId);
-      return { success: true, messageId: result.messageId };
-      
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Assignment email sent to ${assigneeEmail}`);
     } catch (error) {
-      console.error('Error sending email:', error);
-      return { success: false, error: error.message };
+      console.error('Failed to send assignment email:', error);
     }
   }
-  
-  async sendIssueCreatedEmail(issueData, recipientEmail) {
-    const subject = `New Issue Created - ${issueData.type_id}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">New Issue Created</h2>
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
-          <p><strong>Issue ID:</strong> ${issueData.id}</p>
-          <p><strong>Type:</strong> ${issueData.type_id}</p>
-          <p><strong>Sub Type:</strong> ${issueData.sub_type_id}</p>
-          <p><strong>Priority:</strong> ${issueData.priority}</p>
-          <p><strong>Employee:</strong> ${issueData.employee_name}</p>
-          <p><strong>Description:</strong> ${issueData.description}</p>
-          <p><strong>Created:</strong> ${new Date(issueData.created_at).toLocaleString()}</p>
-        </div>
-      </div>
-    `;
-    
-    return await this.sendEmail(recipientEmail, subject, html);
+
+  async sendIssueStatusUpdateEmail(employeeEmail, employeeName, issueId, newStatus) {
+    const mailOptions = {
+      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
+      to: employeeEmail,
+      subject: `Issue Status Update: #${issueId}`,
+      html: `
+        <h2>Issue Status Update</h2>
+        <p>Hello ${employeeName},</p>
+        <p>Your issue status has been updated:</p>
+        <ul>
+          <li><strong>Issue ID:</strong> #${issueId}</li>
+          <li><strong>New Status:</strong> ${newStatus}</li>
+        </ul>
+        <p>Log in to view more details about your issue.</p>
+        <p>Best regards,<br>Windsurf Team</p>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Status update email sent to ${employeeEmail}`);
+    } catch (error) {
+      console.error('Failed to send status update email:', error);
+    }
   }
-  
-  async sendStatusUpdateEmail(issueData, recipientEmail, previousStatus, newStatus) {
-    const subject = `Issue Status Update - ${issueData.type_id}`;
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Issue Status Updated</h2>
-        <div style="background: #f5f5f5; padding: 20px; border-radius: 8px;">
-          <p><strong>Issue ID:</strong> ${issueData.id}</p>
-          <p><strong>Type:</strong> ${issueData.type_id}</p>
-          <p><strong>Previous Status:</strong> <span style="color: #666;">${previousStatus}</span></p>
-          <p><strong>New Status:</strong> <span style="color: #007cba; font-weight: bold;">${newStatus}</span></p>
-          <p><strong>Description:</strong> ${issueData.description}</p>
-        </div>
-      </div>
-    `;
-    
-    return await this.sendEmail(recipientEmail, subject, html);
+
+  async sendWelcomeEmail(userEmail, userName, temporaryPassword) {
+    const mailOptions = {
+      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
+      to: userEmail,
+      subject: 'Welcome to Windsurf - Account Created',
+      html: `
+        <h2>Welcome to Windsurf!</h2>
+        <p>Hello ${userName},</p>
+        <p>Your account has been created successfully.</p>
+        <p><strong>Temporary Password:</strong> ${temporaryPassword}</p>
+        <p>Please log in and change your password immediately.</p>
+        <p>Best regards,<br>Windsurf Team</p>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`Welcome email sent to ${userEmail}`);
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+    }
   }
 }
 
