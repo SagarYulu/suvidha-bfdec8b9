@@ -1,6 +1,5 @@
 
 const db = require('../config/database');
-const bcrypt = require('bcryptjs');
 
 class UserService {
   async getUsers(filters = {}, page = 1, limit = 10) {
@@ -14,20 +13,13 @@ class UserService {
         params.push(filters.role);
       }
 
-      if (filters.status) {
-        whereClause += ' AND status = ?';
-        params.push(filters.status);
-      }
-
       if (filters.search) {
         whereClause += ' AND (name LIKE ? OR email LIKE ?)';
         params.push(`%${filters.search}%`, `%${filters.search}%`);
       }
 
       const query = `
-        SELECT 
-          id, name, email, role, phone, employee_id, 
-          city, cluster, created_at, updated_at, status
+        SELECT id, name, email, role, employee_id, created_at, updated_at
         FROM dashboard_users
         ${whereClause}
         ORDER BY created_at DESC
@@ -56,9 +48,8 @@ class UserService {
   async getUserById(id) {
     try {
       const query = `
-        SELECT id, name, email, role, phone, employee_id, 
-               city, cluster, created_at, updated_at, status
-        FROM dashboard_users 
+        SELECT id, name, email, role, employee_id, created_at, updated_at
+        FROM dashboard_users
         WHERE id = ?
       `;
 
@@ -70,51 +61,20 @@ class UserService {
     }
   }
 
-  async getUserByEmail(email) {
-    try {
-      const query = `
-        SELECT id, name, email, password_hash, role, status
-        FROM dashboard_users 
-        WHERE email = ?
-      `;
-
-      const [rows] = await db.execute(query, [email]);
-      return rows[0] || null;
-    } catch (error) {
-      console.error('Error fetching user by email:', error);
-      throw error;
-    }
-  }
-
   async createUser(userData) {
     try {
-      const {
-        name,
-        email,
-        password,
-        role = 'employee',
-        phone,
-        employeeId,
-        city,
-        cluster,
-        createdBy
-      } = userData;
-
-      const hashedPassword = await bcrypt.hash(password, 12);
+      const { name, email, password, role, employee_id } = userData;
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const id = require('uuid').v4();
 
       const query = `
-        INSERT INTO dashboard_users (
-          name, email, password_hash, role, phone, employee_id,
-          city, cluster, created_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        INSERT INTO dashboard_users (id, name, email, password, role, employee_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
       `;
 
-      const [result] = await db.execute(query, [
-        name, email, hashedPassword, role, phone, employeeId,
-        city, cluster, createdBy
-      ]);
-
-      return result.insertId;
+      await db.execute(query, [id, name, email, hashedPassword, role, employee_id]);
+      return id;
     } catch (error) {
       console.error('Error creating user:', error);
       throw error;
@@ -123,22 +83,28 @@ class UserService {
 
   async updateUser(id, updateData) {
     try {
-      const { updatedBy, ...data } = updateData;
-      const fields = Object.keys(data);
-      const values = Object.values(data);
+      const fields = Object.keys(updateData);
+      const values = Object.values(updateData);
 
       if (fields.length === 0) {
         return false;
       }
 
+      // Hash password if it's being updated
+      if (updateData.password) {
+        const bcrypt = require('bcryptjs');
+        const index = fields.indexOf('password');
+        values[index] = await bcrypt.hash(updateData.password, 10);
+      }
+
       const setClause = fields.map(field => `${field} = ?`).join(', ');
       const query = `
         UPDATE dashboard_users 
-        SET ${setClause}, updated_at = NOW(), last_updated_by = ?
+        SET ${setClause}, updated_at = NOW()
         WHERE id = ?
       `;
 
-      const [result] = await db.execute(query, [...values, updatedBy, id]);
+      const [result] = await db.execute(query, [...values, id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -148,21 +114,12 @@ class UserService {
 
   async deleteUser(id) {
     try {
-      const query = 'UPDATE dashboard_users SET status = "deleted" WHERE id = ?';
+      const query = 'DELETE FROM dashboard_users WHERE id = ?';
       const [result] = await db.execute(query, [id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error deleting user:', error);
       throw error;
-    }
-  }
-
-  async updateLastLogin(id) {
-    try {
-      const query = 'UPDATE dashboard_users SET last_login = NOW() WHERE id = ?';
-      await db.execute(query, [id]);
-    } catch (error) {
-      console.error('Error updating last login:', error);
     }
   }
 }

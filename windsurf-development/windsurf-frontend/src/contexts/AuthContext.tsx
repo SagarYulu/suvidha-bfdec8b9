@@ -1,21 +1,33 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '@/services/api';
-import { AuthUser, LoginCredentials } from '@/types';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  employee_id?: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  role: string | null;
+}
 
 interface AuthContextType {
-  user: AuthUser | null;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  authState: AuthState;
+  login: (credentials: { email: string; password: string }) => Promise<boolean>;
   logout: () => void;
-  loading: boolean;
-  isAuthenticated: boolean;
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -26,64 +38,70 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    role: null,
+  });
 
-  useEffect(() => {
-    // Check for stored auth token on app start
-    const token = localStorage.getItem('authToken');
-    const storedUser = localStorage.getItem('currentUser');
-    
-    if (token && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-      } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('currentUser');
-      }
-    }
-    
-    setLoading(false);
-  }, []);
-
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: { email: string; password: string }): Promise<boolean> => {
     try {
       const response = await apiService.login(credentials);
       
-      if (response.success && response.token && response.user) {
+      if (response.success) {
         localStorage.setItem('authToken', response.token);
-        localStorage.setItem('currentUser', JSON.stringify(response.user));
-        setUser(response.user);
-      } else {
-        throw new Error(response.message || 'Login failed');
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
+        setAuthState({
+          user: response.user,
+          isAuthenticated: true,
+          role: response.user.role,
+        });
+        
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      throw error;
+      return false;
     }
   };
 
   const logout = () => {
     localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    setUser(null);
-    
-    // Call logout API endpoint (optional, for token blacklisting)
-    apiService.logout().catch(console.error);
+    localStorage.removeItem('user');
+    setAuthState({
+      user: null,
+      isAuthenticated: false,
+      role: null,
+    });
   };
 
-  const value: AuthContextType = {
-    user,
-    login,
-    logout,
-    loading,
-    isAuthenticated: !!user
+  const refreshAuth = async () => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userStr = localStorage.getItem('user');
+      
+      if (token && userStr) {
+        const user = JSON.parse(userStr);
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          role: user.role,
+        });
+      }
+    } catch (error) {
+      console.error('Auth refresh error:', error);
+      logout();
+    }
   };
+
+  useEffect(() => {
+    refreshAuth();
+  }, []);
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ authState, login, logout, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );

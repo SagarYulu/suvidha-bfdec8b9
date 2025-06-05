@@ -1,39 +1,27 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
-interface Permission {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  permissions: Permission[];
-}
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  roles: Role[];
-}
+export type Permission = 
+  | 'view_dashboard'
+  | 'manage_users'
+  | 'manage_issues'
+  | 'view_analytics'
+  | 'manage_settings'
+  | 'access_security'
+  | 'create_dashboardUser';
 
 interface RBACContextType {
-  user: User | null;
-  hasPermission: (permission: string) => boolean;
-  hasRole: (role: string) => boolean;
-  loading: boolean;
+  hasPermission: (permission: Permission) => boolean;
+  role: string | null;
 }
 
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
 
-export const useRBAC = () => {
+export const useRBAC = (): RBACContextType => {
   const context = useContext(RBACContext);
-  if (context === undefined) {
-    throw new Error('useRBAC must be used within a RBACProvider');
+  if (!context) {
+    throw new Error('useRBAC must be used within an RBACProvider');
   }
   return context;
 };
@@ -42,106 +30,42 @@ interface RBACProviderProps {
   children: ReactNode;
 }
 
+const getPermissionsForRole = (role: string): Permission[] => {
+  switch (role) {
+    case 'admin':
+    case 'Super Admin':
+      return [
+        'view_dashboard',
+        'manage_users',
+        'manage_issues',
+        'view_analytics',
+        'manage_settings',
+        'access_security',
+        'create_dashboardUser'
+      ];
+    case 'manager':
+      return ['view_dashboard', 'manage_issues', 'view_analytics'];
+    case 'support':
+      return ['view_dashboard', 'manage_issues'];
+    default:
+      return [];
+  }
+};
+
 export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { authState } = useAuth();
 
-  useEffect(() => {
-    // Load user from localStorage (independent of Supabase)
-    const currentUser = localStorage.getItem('currentUser');
-    if (currentUser) {
-      try {
-        const userData = JSON.parse(currentUser);
-        // Set default permissions based on role
-        const roles = getRolesForUser(userData.role || 'employee');
-        setUser({
-          ...userData,
-          roles
-        });
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
+  const hasPermission = (permission: Permission): boolean => {
+    if (!authState.isAuthenticated || !authState.role) {
+      return false;
     }
-    setLoading(false);
-  }, []);
 
-  const getRolesForUser = (userRole: string): Role[] => {
-    // Define default roles and permissions (independent of database)
-    const roleDefinitions: Record<string, Role> = {
-      admin: {
-        id: 'admin',
-        name: 'Administrator',
-        description: 'Full system access',
-        permissions: [
-          { id: 'view_dashboard', name: 'view_dashboard' },
-          { id: 'manage_users', name: 'manage_users' },
-          { id: 'manage_issues', name: 'manage_issues' },
-          { id: 'view_analytics', name: 'view_analytics' },
-          { id: 'export_data', name: 'export_data' },
-          { id: 'manage_roles', name: 'manage_roles' },
-          { id: 'view_audit_trail', name: 'view_audit_trail' }
-        ]
-      },
-      manager: {
-        id: 'manager',
-        name: 'Manager',
-        description: 'Team management access',
-        permissions: [
-          { id: 'view_dashboard', name: 'view_dashboard' },
-          { id: 'manage_issues', name: 'manage_issues' },
-          { id: 'view_analytics', name: 'view_analytics' },
-          { id: 'export_data', name: 'export_data' },
-          { id: 'view_audit_trail', name: 'view_audit_trail' }
-        ]
-      },
-      support: {
-        id: 'support',
-        name: 'Support Agent',
-        description: 'Issue management access',
-        permissions: [
-          { id: 'view_dashboard', name: 'view_dashboard' },
-          { id: 'manage_issues', name: 'manage_issues' },
-          { id: 'view_audit_trail', name: 'view_audit_trail' }
-        ]
-      },
-      employee: {
-        id: 'employee',
-        name: 'Employee',
-        description: 'Basic access',
-        permissions: [
-          { id: 'view_dashboard', name: 'view_dashboard' },
-          { id: 'create_issues', name: 'create_issues' },
-          { id: 'view_own_issues', name: 'view_own_issues' }
-        ]
-      }
-    };
-
-    return [roleDefinitions[userRole] || roleDefinitions.employee];
-  };
-
-  const hasPermission = (permission: string): boolean => {
-    if (!user || !user.roles) return false;
-    
-    return user.roles.some(role => 
-      role.permissions.some(p => p.name === permission)
-    );
-  };
-
-  const hasRole = (roleName: string): boolean => {
-    if (!user || !user.roles) return false;
-    
-    return user.roles.some(role => role.name === roleName);
-  };
-
-  const value: RBACContextType = {
-    user,
-    hasPermission,
-    hasRole,
-    loading
+    const permissions = getPermissionsForRole(authState.role);
+    return permissions.includes(permission);
   };
 
   return (
-    <RBACContext.Provider value={value}>
+    <RBACContext.Provider value={{ hasPermission, role: authState.role }}>
       {children}
     </RBACContext.Provider>
   );

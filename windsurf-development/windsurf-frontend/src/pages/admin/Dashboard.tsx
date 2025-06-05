@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { useRBAC } from '@/contexts/RBACContext';
-import DashboardMetrics from '@/components/dashboard/DashboardMetrics';
-import ChartSection from '@/components/dashboard/ChartSection';
-import RecentTicketsTable from '@/components/dashboard/RecentTicketsTable';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard: React.FC = () => {
   const { hasPermission } = useRBAC();
@@ -19,18 +18,99 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  const mockMetrics = {
+    totalIssues: 156,
+    openIssues: 42,
+    resolvedIssues: 98,
+    pendingIssues: 16
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome to your grievance portal dashboard</p>
+        <p className="text-gray-600">Welcome to your windsurf portal dashboard</p>
       </div>
 
-      <DashboardMetrics />
-      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Total Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{mockMetrics.totalIssues}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Open Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{mockMetrics.openIssues}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Resolved Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{mockMetrics.resolvedIssues}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Pending Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{mockMetrics.pendingIssues}</div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ChartSection />
-        <RecentTicketsTable />
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Issues</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3].map((item) => (
+                <div key={item} className="flex items-center justify-between p-3 border rounded">
+                  <div>
+                    <h4 className="font-medium">Issue #{item}</h4>
+                    <p className="text-sm text-gray-600">Sample issue description</p>
+                  </div>
+                  <Badge variant="outline">Open</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>System Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span>Database</span>
+                <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>API</span>
+                <Badge className="bg-green-100 text-green-800">Operational</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>File Upload</span>
+                <Badge className="bg-green-100 text-green-800">Working</Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

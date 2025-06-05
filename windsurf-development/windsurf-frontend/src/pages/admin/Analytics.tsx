@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useRBAC } from '@/contexts/RBACContext';
-import ChartSection from '@/components/dashboard/ChartSection';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Analytics: React.FC = () => {
   const { hasPermission } = useRBAC();
@@ -19,11 +19,34 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div>
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+        <p className="text-gray-600">Issue and user analytics dashboard</p>
       </div>
 
-      <ChartSection />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Issue Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center border rounded">
+              <p className="text-gray-500">Chart will be displayed here</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Category Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 flex items-center justify-center border rounded">
+              <p className="text-gray-500">Pie chart will be displayed here</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
