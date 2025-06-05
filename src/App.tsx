@@ -72,6 +72,7 @@ const App = () => (
               <Route path="/mobile/login" element={<MobileLogin />} />
               <Route path="/mobile/issues" element={<MobileIssues />} />
               <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
+              <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
               <Route path="/mobile/new-issue" element={<MobileNewIssue />} />
               <Route path="/mobile/sentiment" element={<MobileSentiment />} />
 
