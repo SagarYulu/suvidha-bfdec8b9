@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRBAC } from '@/contexts/RBACContext';
@@ -14,6 +15,7 @@ import {
   UserPlus,
   Ticket,
   BarChart2,
+  TestTube,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -191,6 +193,9 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         {hasPermission("view:dashboard") && (
           <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
         )}
+
+        {/* Test Dashboard - Available to all users */}
+        <SidebarLink href="/admin/test-dashboard" icon={TestTube} label="Test Dashboard" />
         
         {/* Tickets dropdown - Available to users with manage:issues permission */}
         {hasPermission("manage:issues") && (
