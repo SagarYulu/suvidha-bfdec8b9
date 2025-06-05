@@ -1,5 +1,5 @@
 
-// Real API service for windsurf backend
+// API service for windsurf backend - no Supabase dependencies
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
 class ApiService {
@@ -99,6 +99,25 @@ class ApiService {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+  }
+
+  // File upload API
+  async uploadFile(formData: FormData) {
+    const response = await fetch(`${API_BASE_URL}/api/upload`, {
+      method: 'POST',
+      headers: {
+        ...this.getAuthHeaders(),
+        // Don't set Content-Type for FormData, let browser set it
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Upload failed');
+    }
+
+    return await response.json();
   }
 
   // Users API

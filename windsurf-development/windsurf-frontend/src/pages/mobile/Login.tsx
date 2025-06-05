@@ -1,18 +1,17 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { MailIcon, UserIcon } from "lucide-react";
+import { apiService } from "@/services/api";
 
 const MobileLogin = () => {
   const [email, setEmail] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -21,9 +20,15 @@ const MobileLogin = () => {
     setError(null);
 
     try {
-      const success = await login(email, employeeId);
+      const response = await apiService.login({ 
+        email, 
+        password: employeeId 
+      });
       
-      if (success) {
+      if (response.success) {
+        localStorage.setItem('authToken', response.token);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        
         toast({
           title: "Verification successful",
           description: "Welcome back!",
@@ -37,12 +42,12 @@ const MobileLogin = () => {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Verification error:", error);
-      setError("An unexpected error occurred. Please try again.");
+      setError(error.message || "An unexpected error occurred. Please try again.");
       toast({
         title: "Verification error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
