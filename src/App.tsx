@@ -28,7 +28,7 @@ import TestDataGenerator from "./pages/admin/TestDataGenerator";
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
-import NewIssue from "./pages/mobile/NewIssue";
+import MobileNewIssue from "./pages/mobile/NewIssue";
 import MobileSentiment from "./pages/mobile/Sentiment";
 
 // Database Export page
@@ -72,7 +72,7 @@ const App = () => (
               <Route path="/mobile/login" element={<MobileLogin />} />
               <Route path="/mobile/issues" element={<MobileIssues />} />
               <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
-              <Route path="/mobile/new-issue" element={<NewIssue />} />
+              <Route path="/mobile/new-issue" element={<MobileNewIssue />} />
               <Route path="/mobile/sentiment" element={<MobileSentiment />} />
 
               {/* Catch all route */}
