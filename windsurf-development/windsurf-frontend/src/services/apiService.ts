@@ -1,4 +1,3 @@
-
 // Real API service for windsurf backend
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -121,6 +120,53 @@ class ApiService {
   async markNotificationAsRead(id: string) {
     return this.request(`/api/notifications/${id}/read`, {
       method: 'PUT',
+    });
+  }
+
+  // Mobile authentication (Email + Employee ID)
+  async mobileLogin(email: string, employeeId: string) {
+    return this.request('/api/auth/mobile/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, employeeId }),
+    });
+  }
+
+  // Admin authentication (Email + Password)
+  async adminLogin(email: string, password: string) {
+    return this.request('/api/auth/admin/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  // Add comment to issue
+  async addComment(issueId: string, content: string) {
+    return this.request(`/api/issues/${issueId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // Add internal comment (admin only)
+  async addInternalComment(issueId: string, content: string) {
+    return this.request(`/api/issues/${issueId}/internal-comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  // Reopen issue
+  async reopenIssue(issueId: string) {
+    return this.request(`/api/issues/${issueId}/reopen`, {
+      method: 'POST',
+    });
+  }
+
+  // Bulk user operations
+  async bulkCreateUsers(usersData: any[]) {
+    return this.request('/api/users/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ users: usersData }),
     });
   }
 }
