@@ -1,169 +1,185 @@
 
-import React, { useState } from 'react';
-import { useRBAC } from '@/contexts/RBACContext';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Plus, Filter, Users as UsersIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { UserPlus, Search, Edit, Trash2 } from "lucide-react";
+import { apiService } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
-const Users: React.FC = () => {
-  const { hasPermission } = useRBAC();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+const Users = () => {
+  const { toast } = useToast();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
-  if (!hasPermission('manage_users')) {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    const filtered = users.filter(user =>
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.role?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredUsers(filtered);
+  }, [users, searchTerm]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getUsers();
+      setUsers(response.data || response.users || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      await apiService.deleteUser(userId);
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getRoleBadgeColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'admin': return 'destructive';
+      case 'manager': return 'default';
+      case 'support': return 'secondary';
+      case 'employee': return 'outline';
+      default: return 'outline';
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Access Denied</h2>
-          <p className="text-gray-500">You don't have permission to manage users.</p>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Users</h1>
+        </div>
+        <div className="animate-pulse">
+          <div className="h-64 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
   }
 
-  // Mock user data
-  const mockUsers = [
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@windsurf.com',
-      role: 'admin',
-      status: 'active',
-      lastLogin: '2024-01-15 10:30 AM',
-      createdAt: '2024-01-01'
-    },
-    {
-      id: '2',
-      name: 'Manager User',
-      email: 'manager@windsurf.com',
-      role: 'manager',
-      status: 'active',
-      lastLogin: '2024-01-15 09:15 AM',
-      createdAt: '2024-01-05'
-    },
-    {
-      id: '3',
-      name: 'Support Agent',
-      email: 'support@windsurf.com',
-      role: 'support',
-      status: 'active',
-      lastLogin: '2024-01-14 04:20 PM',
-      createdAt: '2024-01-10'
-    }
-  ];
-
-  const getRoleBadge = (role: string) => {
-    const roleColors = {
-      admin: 'bg-purple-100 text-purple-800',
-      manager: 'bg-blue-100 text-blue-800',
-      support: 'bg-green-100 text-green-800',
-      employee: 'bg-gray-100 text-gray-800'
-    };
-    return roleColors[role as keyof typeof roleColors] || roleColors.employee;
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusColors = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-red-100 text-red-800',
-      pending: 'bg-yellow-100 text-yellow-800'
-    };
-    return statusColors[status as keyof typeof statusColors] || statusColors.pending;
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+          <p className="text-gray-600">Manage system users and their roles</p>
+        </div>
         <Button>
-          <Plus className="h-4 w-4 mr-2" />
+          <UserPlus className="h-4 w-4 mr-2" />
           Add User
         </Button>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Filter className="h-4 w-4 mr-2" />
-            Filters
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>User Management</CardTitle>
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-64"
+                />
+              </div>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="support">Support</SelectItem>
-                <SelectItem value="employee">Employee</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button variant="outline">
-              Clear Filters
-            </Button>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Employee ID</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={getRoleBadgeColor(user.role)}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{user.employee_id || '-'}</TableCell>
+                    <TableCell>
+                      {user.created_at ? new Date(user.created_at).toLocaleDateString() : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteUser(user.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      {/* Users List */}
-      <div className="grid gap-4">
-        {mockUsers.map((user) => (
-          <Card key={user.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 bg-gray-200 rounded-full flex items-center justify-center">
-                    <UsersIcon className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold">{user.name}</h3>
-                    <p className="text-gray-600">{user.email}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                      <span>Last login: {user.lastLogin}</span>
-                      <span>Created: {user.createdAt}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 items-end">
-                  <div className="flex gap-2">
-                    <Badge className={getRoleBadge(user.role)}>
-                      {user.role.toUpperCase()}
-                    </Badge>
-                    <Badge className={getStatusBadge(user.status)}>
-                      {user.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      Edit
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      View
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 };

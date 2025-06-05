@@ -2,59 +2,36 @@
 const analyticsService = require('../services/analyticsService');
 
 class AnalyticsController {
-  async getDashboardAnalytics(req, res) {
+  async getDashboardMetrics(req, res) {
     try {
-      const filters = req.query;
-
-      const [
-        overallStats,
-        priorityStats,
-        categoryStats,
-        departmentStats,
-        monthlyTrends,
-        assigneeStats,
-        recentActivity
-      ] = await Promise.all([
-        analyticsService.getOverallStats(filters),
-        analyticsService.getPriorityStats(filters),
-        analyticsService.getCategoryStats(filters),
-        analyticsService.getDepartmentStats(filters),
-        analyticsService.getMonthlyTrends(),
-        analyticsService.getAssigneeStats(),
-        analyticsService.getRecentActivity()
-      ]);
-
+      const metrics = await analyticsService.getDashboardMetrics();
       res.json({
-        overallStats,
-        priorityStats,
-        categoryStats,
-        departmentStats,
-        monthlyTrends,
-        assigneeStats,
-        recentActivity
+        success: true,
+        data: metrics
       });
     } catch (error) {
-      console.error('Error fetching analytics:', error);
-      res.status(500).json({ error: 'Failed to fetch analytics data' });
+      console.error('Dashboard metrics error:', error);
+      res.status(500).json({
+        error: 'Failed to fetch dashboard metrics',
+        message: error.message
+      });
     }
   }
 
-  async getUserAnalytics(req, res) {
+  async getIssueAnalytics(req, res) {
     try {
-      const userId = req.params.userId;
-
-      const [userStats, recentIssues] = await Promise.all([
-        analyticsService.getUserStats(userId),
-        analyticsService.getUserRecentIssues(userId)
-      ]);
-
+      const { timeframe } = req.query;
+      const analytics = await analyticsService.getIssueAnalytics(timeframe);
       res.json({
-        userStats,
-        recentIssues
+        success: true,
+        data: analytics
       });
     } catch (error) {
-      console.error('Error fetching user analytics:', error);
-      res.status(500).json({ error: 'Failed to fetch user analytics' });
+      console.error('Issue analytics error:', error);
+      res.status(500).json({
+        error: 'Failed to fetch issue analytics',
+        message: error.message
+      });
     }
   }
 }

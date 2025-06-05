@@ -11,28 +11,35 @@ import {
   BarChart3,
   LogOut,
   Menu,
-  X
+  X,
+  UserCheck,
+  MessageSquare,
+  BrainCircuit
 } from "lucide-react";
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { logout } = useAuth();
 
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/admin/issues', label: 'Issues', icon: Ticket },
+    { path: '/admin/assigned-issues', label: 'Assigned Issues', icon: UserCheck },
     { path: '/admin/users', label: 'Users', icon: Users },
     { path: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+    { path: '/admin/feedback-analytics', label: 'Feedback Analytics', icon: MessageSquare },
+    { path: '/admin/sentiment-analysis', label: 'Sentiment Analysis', icon: BrainCircuit },
     { path: '/admin/exports', label: 'Exports', icon: FileText },
     { path: '/admin/settings', label: 'Settings', icon: Settings },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('currentUser');
-    navigate('/login');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/admin/login');
   };
 
   const isActivePath = (path: string) => location.pathname === path;
@@ -94,7 +101,7 @@ const AdminLayout: React.FC = () => {
             </h2>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Welcome, {JSON.parse(localStorage.getItem('currentUser') || '{}').name || 'Admin'}
+                Welcome, Admin
               </span>
             </div>
           </div>

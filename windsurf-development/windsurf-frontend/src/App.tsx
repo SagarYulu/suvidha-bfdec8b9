@@ -1,127 +1,77 @@
 
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import { RBACProvider } from './contexts/RBACContext';
+import { Toaster } from './components/ui/sonner';
 
-import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { RBACProvider } from '@/contexts/RBACContext';
-import AdminLayout from '@/components/layout/AdminLayout';
-import Login from '@/pages/Login';
+// Layout Components
+import AdminLayout from './components/layout/AdminLayout';
+
+// Pages
+import Index from './pages/Index';
+import NotFound from './pages/NotFound';
+
+// Mobile Pages
+import MobileLogin from './pages/mobile/Login';
+import MobileIssues from './pages/mobile/Issues';
+import MobileIssueDetails from './pages/mobile/IssueDetails';
+import MobileNewIssue from './pages/mobile/NewIssue';
 
 // Admin Pages
-import Dashboard from '@/pages/admin/Dashboard';
-import Issues from '@/pages/admin/Issues';
-import Users from '@/pages/admin/Users';
-import Analytics from '@/pages/admin/Analytics';
-import Exports from '@/pages/admin/Exports';
-import Settings from '@/pages/admin/Settings';
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-// Protected Route wrapper
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Main App Routes
-const AppRoutes: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-
-  return (
-    <Routes>
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />} 
-      />
-      
-      <Route path="/" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Dashboard />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/issues" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Issues />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/users" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Users />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/analytics" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Analytics />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/exports" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Exports />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/settings" element={
-        <ProtectedRoute>
-          <AdminLayout>
-            <Settings />
-          </AdminLayout>
-        </ProtectedRoute>
-      } />
-      
-      {/* Catch all route */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
-  );
-};
+import AdminLogin from './pages/admin/Login';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminIssues from './pages/admin/Issues';
+import AdminUsers from './pages/admin/Users';
+import AdminAnalytics from './pages/admin/Analytics';
+import FeedbackAnalytics from './pages/admin/FeedbackAnalytics';
+import SentimentAnalysis from './pages/admin/SentimentAnalysis';
+import AssignedIssues from './pages/admin/AssignedIssues';
+import AdminSettings from './pages/admin/Settings';
+import Exports from './pages/admin/Exports';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RBACProvider>
-          <Router>
-            <AppRoutes />
-            <Toaster position="top-right" />
-          </Router>
-        </RBACProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <RBACProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              {/* Root Route */}
+              <Route path="/" element={<Index />} />
+              
+              {/* Mobile Routes */}
+              <Route path="/mobile/login" element={<MobileLogin />} />
+              <Route path="/mobile/issues" element={<MobileIssues />} />
+              <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
+              <Route path="/mobile/new-issue" element={<MobileNewIssue />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="issues" element={<AdminIssues />} />
+                <Route path="assigned-issues" element={<AssignedIssues />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="feedback-analytics" element={<FeedbackAnalytics />} />
+                <Route path="sentiment-analysis" element={<SentimentAnalysis />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="exports" element={<Exports />} />
+              </Route>
+              
+              {/* Redirects */}
+              <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+              <Route path="/mobile" element={<Navigate to="/mobile/issues" replace />} />
+              
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            
+            <Toaster />
+          </div>
+        </Router>
+      </RBACProvider>
+    </AuthProvider>
   );
 }
 
