@@ -74,15 +74,18 @@ const UserFlowTest: React.FC = () => {
   };
 
   const getStatusBadge = (status: TestResult['status']) => {
-    const variants = {
-      pending: 'secondary',
-      running: 'default',
-      passed: 'default',
-      failed: 'destructive'
+    const getVariant = (): "secondary" | "default" | "destructive" | "outline" => {
+      switch (status) {
+        case 'pending': return 'secondary';
+        case 'running': return 'default';
+        case 'passed': return 'default';
+        case 'failed': return 'destructive';
+        default: return 'secondary';
+      }
     };
     
     return (
-      <Badge variant={variants[status]} className={
+      <Badge variant={getVariant()} className={
         status === 'passed' ? 'bg-green-100 text-green-800' : ''
       }>
         {status.toUpperCase()}
