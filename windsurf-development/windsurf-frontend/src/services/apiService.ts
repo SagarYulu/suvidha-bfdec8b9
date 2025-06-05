@@ -1,3 +1,4 @@
+
 // Real API service for windsurf backend
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
 
@@ -11,6 +12,14 @@ class ApiService {
       },
       ...options,
     };
+
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers = {
+        ...config.headers,
+        'Authorization': `Bearer ${token}`
+      };
+    }
 
     try {
       const response = await fetch(url, config);
@@ -54,6 +63,19 @@ class ApiService {
     });
   }
 
+  async assignIssue(id: string, assignedTo: string) {
+    return this.request(`/api/issues/${id}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ assignedTo }),
+    });
+  }
+
+  async reopenIssue(issueId: string) {
+    return this.request(`/api/issues/${issueId}/reopen`, {
+      method: 'POST',
+    });
+  }
+
   // Users API
   async getUsers(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
@@ -84,15 +106,31 @@ class ApiService {
     });
   }
 
+  async bulkCreateUsers(usersData: any[]) {
+    return this.request('/api/users/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ users: usersData }),
+    });
+  }
+
   // Analytics API
   async getAnalytics() {
     return this.request('/api/analytics');
   }
 
+  async getSentimentAnalytics(params: any = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/api/analytics/sentiment?${queryString}`);
+  }
+
   // Export API
   async exportData(entityType: string, format: string, filters: any = {}) {
     const queryString = new URLSearchParams({ format, ...filters }).toString();
-    const response = await fetch(`${API_BASE_URL}/api/export/${entityType}?${queryString}`);
+    const response = await fetch(`${API_BASE_URL}/api/export/${entityType}?${queryString}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`Export failed: ${response.status}`);
@@ -123,6 +161,13 @@ class ApiService {
     });
   }
 
+  async createNotification(notificationData: any) {
+    return this.request('/api/notifications', {
+      method: 'POST',
+      body: JSON.stringify(notificationData),
+    });
+  }
+
   // Mobile authentication (Email + Employee ID)
   async mobileLogin(email: string, employeeId: string) {
     return this.request('/api/auth/mobile/login', {
@@ -139,7 +184,7 @@ class ApiService {
     });
   }
 
-  // Add comment to issue
+  // Comments API
   async addComment(issueId: string, content: string) {
     return this.request(`/api/issues/${issueId}/comments`, {
       method: 'POST',
@@ -147,7 +192,6 @@ class ApiService {
     });
   }
 
-  // Add internal comment (admin only)
   async addInternalComment(issueId: string, content: string) {
     return this.request(`/api/issues/${issueId}/internal-comments`, {
       method: 'POST',
@@ -155,19 +199,69 @@ class ApiService {
     });
   }
 
-  // Reopen issue
-  async reopenIssue(issueId: string) {
-    return this.request(`/api/issues/${issueId}/reopen`, {
+  // Feedback API
+  async submitFeedback(feedbackData: any) {
+    return this.request('/api/feedback', {
       method: 'POST',
+      body: JSON.stringify(feedbackData),
     });
   }
 
-  // Bulk user operations
-  async bulkCreateUsers(usersData: any[]) {
-    return this.request('/api/users/bulk', {
+  async getFeedback(params: any = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/api/feedback?${queryString}`);
+  }
+
+  // File Upload API
+  async uploadFile(file: File, issueId?: string) {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (issueId) {
+      formData.append('issueId', issueId);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/upload`, {
       method: 'POST',
-      body: JSON.stringify({ users: usersData }),
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      },
+      body: formData,
     });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  // Master Data API
+  async getIssueTypes() {
+    return this.request('/api/master/issue-types');
+  }
+
+  async getCities() {
+    return this.request('/api/master/cities');
+  }
+
+  async getClusters(cityId?: string) {
+    const params = cityId ? `?cityId=${cityId}` : '';
+    return this.request(`/api/master/clusters${params}`);
+  }
+
+  async getRoles() {
+    return this.request('/api/master/roles');
+  }
+
+  // Real-time connection endpoint
+  getRealtimeUrl() {
+    const token = localStorage.getItem('authToken');
+    return `${API_BASE_URL}/api/realtime/stream?token=${token}`;
+  }
+
+  // Health check
+  async healthCheck() {
+    return this.request('/api/health');
   }
 }
 
