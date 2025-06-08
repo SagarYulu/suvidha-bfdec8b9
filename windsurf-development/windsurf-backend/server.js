@@ -1,48 +1,42 @@
 
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
-
-const authRoutes = require('./routes/auth');
-const issueRoutes = require('./routes/issues');
-const userRoutes = require('./routes/users');
-const analyticsRoutes = require('./routes/analytics');
-const uploadRoutes = require('./routes/upload');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Serve static files from uploads directory
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
+app.use(cors());
+app.use(express.json());
 
 // Routes
+const authRoutes = require('./routes/auth');
+const issueRoutes = require('./routes/issues');
+const userRoutes = require('./routes/users');
+const analyticsRoutes = require('./routes/analytics');
+const masterDataRoutes = require('./routes/masterData');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/api/master', masterDataRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    message: 'Windsurf Backend is running',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ 
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  });
+  console.error(err.stack);
+  res.status(500).json({ error: 'Something went wrong!' });
 });
 
 // 404 handler
@@ -51,8 +45,7 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Windsurf Backend server is running on port ${PORT}`);
 });
 
 module.exports = app;

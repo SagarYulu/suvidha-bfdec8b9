@@ -1,42 +1,47 @@
 
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 interface AdminHeaderProps {
-  title?: string;
+  title: string;
+  userName?: string;
+  showBackButton?: boolean;
 }
 
-export function AdminHeader({ title }: AdminHeaderProps) {
-  const { user, logout } = useAuth();
+const AdminHeader: React.FC<AdminHeaderProps> = ({ 
+  title, 
+  userName, 
+  showBackButton = true 
+}) => {
+  const navigate = useNavigate();
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <div className="flex items-center gap-x-4 lg:gap-x-6">
-          {title && (
-            <h1 className="text-lg font-semibold leading-7 text-gray-900">
-              {title}
-            </h1>
-          )}
-        </div>
-        <div className="flex flex-1 justify-end items-center gap-x-4 lg:gap-x-6">
-          <div className="flex items-center gap-x-4">
-            <span className="text-sm text-gray-700">
-              Welcome, {user?.name}
-            </span>
+    <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          {showBackButton && (
             <Button
-              variant="outline"
-              size="sm"
-              onClick={logout}
-              className="flex items-center gap-x-2"
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="mr-2"
             >
-              <LogOut className="h-4 w-4" />
-              Logout
+              <ArrowLeft className="h-4 w-4" />
             </Button>
-          </div>
+          )}
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         </div>
+        
+        {userName && (
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600">Welcome, {userName}</span>
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
-}
+};
+
+export default AdminHeader;
