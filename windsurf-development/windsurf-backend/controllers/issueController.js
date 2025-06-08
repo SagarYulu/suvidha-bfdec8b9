@@ -1,445 +1,364 @@
 
-const { pool } = require('../config/database');
+const issueService = require('../services/issueService');
+const enhancedEmailService = require('../services/enhancedEmailService');
+const realTimeService = require('../services/realTimeService');
 const { validationResult } = require('express-validator');
+const { v4: uuidv4 } = require('uuid');
 
-const issueController = {
-  // Get all issues with filtering and pagination
+class IssueController {
   async getIssues(req, res) {
     try {
-      const { 
-        page = 1, 
-        limit = 10, 
-        status, 
-        priority, 
-        assigned_to, 
-        search,
-        type_id,
-        employee_uuid
-      } = req.query;
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
+      const { page = 1, limit = 10, ...filters } = req.query;
       
-      const offset = (page - 1) * limit;
-
-      let query = `
-        SELECT i.*, 
-               du.name as assigned_to_name,
-               e.name as employee_name,
-               e.email as employee_email
-        FROM issues i
-        LEFT JOIN dashboard_users du ON i.assigned_to = du.id
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        WHERE 1=1
-      `;
-      const params = [];
-
-      if (status) {
-        query += ' AND i.status = ?';
-        params.push(status);
+      // Apply role-based filtering
+      if (req.user.role === 'employee') {
+        filters.employeeUuid = req.user.id;
       }
 
-      if (priority) {
-        query += ' AND i.priority = ?';
-        params.push(priority);
-      }
-
-      if (assigned_to) {
-        query += ' AND i.assigned_to = ?';
-        params.push(assigned_to);
-      }
-
-      if (type_id) {
-        query += ' AND i.type_id = ?';
-        params.push(type_id);
-      }
-
-      if (employee_uuid) {
-        query += ' AND i.employee_uuid = ?';
-        params.push(employee_uuid);
-      }
-
-      if (search) {
-        query += ' AND (i.description LIKE ? OR i.title LIKE ?)';
-        params.push(`%${search}%`, `%${search}%`);
-      }
-
-      query += ' ORDER BY i.created_at DESC LIMIT ? OFFSET ?';
-      params.push(parseInt(limit), parseInt(offset));
-
-      const [issues] = await pool.execute(query, params);
-
-      // Count total for pagination
-      let countQuery = 'SELECT COUNT(*) as total FROM issues i WHERE 1=1';
-      const countParams = [];
-
-      if (status) {
-        countQuery += ' AND i.status = ?';
-        countParams.push(status);
-      }
-
-      if (priority) {
-        countQuery += ' AND i.priority = ?';
-        countParams.push(priority);
-      }
-
-      if (assigned_to) {
-        countQuery += ' AND i.assigned_to = ?';
-        countParams.push(assigned_to);
-      }
-
-      if (type_id) {
-        countQuery += ' AND i.type_id = ?';
-        countParams.push(type_id);
-      }
-
-      if (employee_uuid) {
-        countQuery += ' AND i.employee_uuid = ?';
-        countParams.push(employee_uuid);
-      }
-
-      if (search) {
-        countQuery += ' AND (i.description LIKE ? OR i.title LIKE ?)';
-        countParams.push(`%${search}%`, `%${search}%`);
-      }
-
-      const [countResult] = await pool.execute(countQuery, countParams);
-      const total = countResult[0].total;
-
+      const result = await issueService.getIssues(filters, parseInt(page), parseInt(limit));
+      
       res.json({
-        data: {
-          issues,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / limit)
-          }
-        }
+        success: true,
+        ...result
       });
     } catch (error) {
       console.error('Get issues error:', error);
-      res.status(500).json({ error: 'Failed to fetch issues' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch issues'
+      });
     }
-  },
+  }
 
-  // Get single issue
   async getIssue(req, res) {
     try {
       const { id } = req.params;
-
-      const [issues] = await pool.execute(`
-        SELECT i.*, 
-               du.name as assigned_to_name,
-               e.name as employee_name,
-               e.email as employee_email,
-               e.phone as employee_phone,
-               e.city as employee_city,
-               e.cluster as employee_cluster
-        FROM issues i
-        LEFT JOIN dashboard_users du ON i.assigned_to = du.id
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        WHERE i.id = ?
-      `, [id]);
-
-      if (issues.length === 0) {
-        return res.status(404).json({ error: 'Issue not found' });
+      const issue = await issueService.getIssueById(id);
+      
+      if (!issue) {
+        return res.status(404).json({
+          success: false,
+          error: 'Issue not found'
+        });
       }
 
-      // Get comments
-      const [comments] = await pool.execute(`
-        SELECT ic.*, 
-               du.name as author_name,
-               e.name as employee_name
-        FROM issue_comments ic
-        LEFT JOIN dashboard_users du ON ic.author_id = du.id
-        LEFT JOIN employees e ON ic.employee_uuid = e.id
-        WHERE ic.issue_id = ?
-        ORDER BY ic.created_at ASC
-      `, [id]);
-
-      // Get audit trail
-      const [auditTrail] = await pool.execute(`
-        SELECT * FROM issue_audit_trail 
-        WHERE issue_id = ? 
-        ORDER BY created_at DESC
-      `, [id]);
+      // Role-based access control
+      if (req.user.role === 'employee' && issue.employee_uuid !== req.user.id) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access denied'
+        });
+      }
 
       res.json({
-        data: {
-          issue: issues[0],
-          comments,
-          auditTrail
-        }
+        success: true,
+        issue
       });
     } catch (error) {
       console.error('Get issue error:', error);
-      res.status(500).json({ error: 'Failed to fetch issue' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch issue'
+      });
     }
-  },
+  }
 
-  // Create new issue
   async createIssue(req, res) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
       }
 
-      const { 
-        typeId, 
-        subTypeId, 
-        title, 
-        description, 
-        priority = 'medium',
-        employeeUuid,
-        attachments 
-      } = req.body;
+      const issueData = {
+        ...req.body,
+        createdBy: req.user.id
+      };
 
-      const [result] = await pool.execute(`
-        INSERT INTO issues 
-        (employee_uuid, type_id, sub_type_id, title, description, priority, attachments, status) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'open')
-      `, [employeeUuid, typeId, subTypeId, title, description, priority, JSON.stringify(attachments || [])]);
+      const issueId = await issueService.createIssue(issueData);
+      
+      if (!issueId) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create issue'
+        });
+      }
 
-      // Log audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail 
-        (issue_id, employee_uuid, action, details) 
-        VALUES (?, ?, 'created', ?)
-      `, [result.insertId, employeeUuid, JSON.stringify({ typeId, subTypeId, priority })]);
+      // Send real-time notification
+      realTimeService.broadcast('issue_created', {
+        issueId,
+        createdBy: req.user.id,
+        timestamp: new Date().toISOString()
+      });
 
       res.status(201).json({
-        data: {
-          id: result.insertId,
-          message: 'Issue created successfully'
-        }
+        success: true,
+        issueId,
+        message: 'Issue created successfully'
       });
     } catch (error) {
       console.error('Create issue error:', error);
-      res.status(500).json({ error: 'Failed to create issue' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create issue'
+      });
     }
-  },
+  }
 
-  // Update issue
   async updateIssue(req, res) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
+
       const { id } = req.params;
-      const { status, priority, assigned_to, mapped_type_id, mapped_sub_type_id } = req.body;
+      const updateData = req.body;
 
-      // Check if issue exists
-      const [existingIssues] = await pool.execute(
-        'SELECT * FROM issues WHERE id = ?',
-        [id]
-      );
-
-      if (existingIssues.length === 0) {
-        return res.status(404).json({ error: 'Issue not found' });
+      // Get current issue for comparison
+      const currentIssue = await issueService.getIssueById(id);
+      if (!currentIssue) {
+        return res.status(404).json({
+          success: false,
+          error: 'Issue not found'
+        });
       }
 
-      const existingIssue = existingIssues[0];
-      const updateData = {};
-      const updateFields = [];
-      const updateValues = [];
+      const updated = await issueService.updateIssue(id, updateData);
+      
+      if (!updated) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to update issue'
+        });
+      }
 
-      if (status !== undefined && status !== existingIssue.status) {
-        updateFields.push('status = ?');
-        updateValues.push(status);
-        updateData.status = { from: existingIssue.status, to: status };
-
-        if (status === 'closed') {
-          updateFields.push('closed_at = NOW()');
+      // Send email notification for status changes
+      if (updateData.status && updateData.status !== currentIssue.status) {
+        try {
+          await enhancedEmailService.sendIssueStatusUpdateEmail(
+            currentIssue.employee_email,
+            currentIssue.employee_name,
+            currentIssue,
+            currentIssue.status,
+            updateData.status
+          );
+        } catch (emailError) {
+          console.error('Email notification failed:', emailError);
         }
+
+        // Send real-time notification
+        realTimeService.notifyStatusChange(
+          id,
+          currentIssue.employee_uuid,
+          {
+            oldStatus: currentIssue.status,
+            newStatus: updateData.status,
+            updatedBy: req.user.id
+          }
+        );
       }
 
-      if (priority !== undefined && priority !== existingIssue.priority) {
-        updateFields.push('priority = ?');
-        updateValues.push(priority);
-        updateData.priority = { from: existingIssue.priority, to: priority };
-      }
-
-      if (assigned_to !== undefined && assigned_to !== existingIssue.assigned_to) {
-        updateFields.push('assigned_to = ?');
-        updateValues.push(assigned_to);
-        updateData.assigned_to = { from: existingIssue.assigned_to, to: assigned_to };
-      }
-
-      if (mapped_type_id !== undefined) {
-        updateFields.push('mapped_type_id = ?, mapped_by = ?, mapped_at = NOW()');
-        updateValues.push(mapped_type_id, req.user.id);
-        updateData.mapped_type_id = { from: existingIssue.mapped_type_id, to: mapped_type_id };
-      }
-
-      if (mapped_sub_type_id !== undefined) {
-        updateFields.push('mapped_sub_type_id = ?');
-        updateValues.push(mapped_sub_type_id);
-        updateData.mapped_sub_type_id = { from: existingIssue.mapped_sub_type_id, to: mapped_sub_type_id };
-      }
-
-      if (updateFields.length === 0) {
-        return res.status(400).json({ error: 'No valid fields to update' });
-      }
-
-      updateValues.push(id);
-
-      await pool.execute(
-        `UPDATE issues SET ${updateFields.join(', ')} WHERE id = ?`,
-        updateValues
-      );
-
-      // Log audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail 
-        (issue_id, employee_uuid, action, details, previous_status, new_status) 
-        VALUES (?, ?, 'updated', ?, ?, ?)
-      `, [
-        id, 
-        existingIssue.employee_uuid, 
-        'updated', 
-        JSON.stringify(updateData),
-        existingIssue.status,
-        status || existingIssue.status
-      ]);
-
-      res.json({ message: 'Issue updated successfully' });
+      res.json({
+        success: true,
+        message: 'Issue updated successfully'
+      });
     } catch (error) {
       console.error('Update issue error:', error);
-      res.status(500).json({ error: 'Failed to update issue' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update issue'
+      });
     }
-  },
+  }
 
-  // Assign issue
   async assignIssue(req, res) {
     try {
       const { id } = req.params;
       const { assignedTo } = req.body;
 
-      // Check if issue exists
-      const [existingIssues] = await pool.execute(
-        'SELECT * FROM issues WHERE id = ?',
-        [id]
-      );
-
-      if (existingIssues.length === 0) {
-        return res.status(404).json({ error: 'Issue not found' });
+      if (!assignedTo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Assigned user ID is required'
+        });
       }
 
-      const existingIssue = existingIssues[0];
+      const assigned = await issueService.assignIssue(id, assignedTo, req.user.id);
+      
+      if (!assigned) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to assign issue'
+        });
+      }
 
-      await pool.execute(
-        'UPDATE issues SET assigned_to = ? WHERE id = ?',
-        [assignedTo, id]
+      // Get issue and assignee details for email
+      const issue = await issueService.getIssueById(id);
+      
+      // Send email notification to assignee
+      try {
+        await enhancedEmailService.sendIssueAssignmentEmail(
+          issue.assigned_email,
+          issue.assigned_name,
+          issue
+        );
+      } catch (emailError) {
+        console.error('Assignment email failed:', emailError);
+      }
+
+      // Send real-time notification
+      realTimeService.notifyAssignment(
+        id,
+        assignedTo,
+        {
+          assignedBy: req.user.id,
+          issueTitle: issue.title || issue.description.substring(0, 50)
+        }
       );
 
-      // Log audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail 
-        (issue_id, employee_uuid, action, details) 
-        VALUES (?, ?, 'assigned', ?)
-      `, [
-        id, 
-        req.user.id, 
-        JSON.stringify({ 
-          from: existingIssue.assigned_to, 
-          to: assignedTo 
-        })
-      ]);
-
-      res.json({ message: 'Issue assigned successfully' });
+      res.json({
+        success: true,
+        message: 'Issue assigned successfully'
+      });
     } catch (error) {
       console.error('Assign issue error:', error);
-      res.status(500).json({ error: 'Failed to assign issue' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to assign issue'
+      });
     }
-  },
+  }
 
-  // Add comment
   async addComment(req, res) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
       }
 
       const { id } = req.params;
       const { content } = req.body;
 
-      // Check if issue exists
-      const [existingIssues] = await pool.execute(
-        'SELECT employee_uuid FROM issues WHERE id = ?',
-        [id]
-      );
-
-      if (existingIssues.length === 0) {
-        return res.status(404).json({ error: 'Issue not found' });
+      const commentId = await issueService.addComment(id, req.user.id, content);
+      
+      if (!commentId) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add comment'
+        });
       }
 
-      const [result] = await pool.execute(`
-        INSERT INTO issue_comments 
-        (issue_id, author_id, employee_uuid, content) 
-        VALUES (?, ?, ?, ?)
-      `, [id, req.user.id, req.user.id, content]);
+      // Get issue details for notification
+      const issue = await issueService.getIssueById(id);
+      
+      // Send email notification to issue creator (if not the commenter)
+      if (issue.employee_uuid !== req.user.id) {
+        try {
+          await enhancedEmailService.sendNewCommentEmail(
+            issue.employee_email,
+            issue.employee_name,
+            issue,
+            { content },
+            req.user.name
+          );
+        } catch (emailError) {
+          console.error('Comment email failed:', emailError);
+        }
+      }
 
-      // Log audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail 
-        (issue_id, employee_uuid, action, details) 
-        VALUES (?, ?, 'comment_added', ?)
-      `, [id, req.user.id, JSON.stringify({ comment_id: result.insertId })]);
+      // Send real-time notification
+      realTimeService.notifyNewComment(
+        id,
+        issue.employee_uuid,
+        {
+          commentId,
+          content,
+          commenterName: req.user.name,
+          commenterRole: req.user.role
+        }
+      );
 
       res.status(201).json({
-        data: {
-          id: result.insertId,
-          message: 'Comment added successfully'
-        }
+        success: true,
+        commentId,
+        message: 'Comment added successfully'
       });
     } catch (error) {
       console.error('Add comment error:', error);
-      res.status(500).json({ error: 'Failed to add comment' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to add comment'
+      });
     }
-  },
+  }
 
-  // Add internal comment
   async addInternalComment(req, res) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
       }
 
       const { id } = req.params;
       const { content } = req.body;
 
-      // Check if issue exists
-      const [existingIssues] = await pool.execute(
-        'SELECT employee_uuid FROM issues WHERE id = ?',
-        [id]
-      );
-
-      if (existingIssues.length === 0) {
-        return res.status(404).json({ error: 'Issue not found' });
+      const commentId = await issueService.addInternalComment(id, req.user.id, content);
+      
+      if (!commentId) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to add internal comment'
+        });
       }
 
-      const [result] = await pool.execute(`
-        INSERT INTO issue_internal_comments 
-        (issue_id, author_id, employee_uuid, content) 
-        VALUES (?, ?, ?, ?)
-      `, [id, req.user.id, req.user.id, content]);
-
-      // Log audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail 
-        (issue_id, employee_uuid, action, details) 
-        VALUES (?, ?, 'internal_comment_added', ?)
-      `, [id, req.user.id, JSON.stringify({ comment_id: result.insertId, is_internal: true })]);
+      // Send real-time notification to other admin users
+      realTimeService.broadcast('internal_comment_added', {
+        issueId: id,
+        commentId,
+        content,
+        commenterName: req.user.name,
+        timestamp: new Date().toISOString()
+      });
 
       res.status(201).json({
-        data: {
-          id: result.insertId,
-          message: 'Internal comment added successfully'
-        }
+        success: true,
+        commentId,
+        message: 'Internal comment added successfully'
       });
     } catch (error) {
       console.error('Add internal comment error:', error);
-      res.status(500).json({ error: 'Failed to add internal comment' });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to add internal comment'
+      });
     }
   }
-};
+}
 
-module.exports = issueController;
+module.exports = new IssueController();

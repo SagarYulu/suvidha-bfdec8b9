@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Route imports
@@ -17,6 +18,7 @@ const dashboardRoutes = require('./routes/dashboard');
 const notificationRoutes = require('./routes/notifications');
 const uploadRoutes = require('./routes/upload');
 const realtimeRoutes = require('./routes/realtime');
+const rbacRoutes = require('./routes/rbac');
 
 // Service imports
 const realTimeService = require('./services/realTimeService');
@@ -25,9 +27,19 @@ const fileUploadService = require('./services/fileUploadService');
 
 // Middleware imports
 const ValidationMiddleware = require('./middleware/validationMiddleware');
+const { errorHandler, requestLogger } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Ensure logs directory exists
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Request logging (before other middleware)
+app.use(requestLogger);
 
 // Security middleware
 app.use(helmet({
@@ -50,9 +62,12 @@ app.use(cors({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again later.'
+  }
 });
 app.use(limiter);
 
@@ -77,8 +92,9 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/realtime', realtimeRoutes);
+app.use('/api/rbac', rbacRoutes);
 
-// Health check endpoint with service status
+// Health check endpoint with comprehensive status
 app.get('/health', async (req, res) => {
   const emailStatus = await enhancedEmailService.testConnection();
   
@@ -87,12 +103,15 @@ app.get('/health', async (req, res) => {
     timestamp: new Date().toISOString(),
     service: 'Windsurf Backend API',
     version: '2.0.0',
+    environment: process.env.NODE_ENV || 'development',
     services: {
       database: 'connected',
       email: emailStatus.success ? 'connected' : 'disconnected',
       realtime: `${realTimeService.getConnectionCount()} active connections`,
       fileUpload: 'ready'
-    }
+    },
+    uptime: process.uptime(),
+    memory: process.memoryUsage()
   });
 });
 
@@ -103,38 +122,22 @@ app.get('/api/status', (req, res) => {
     memory: process.memoryUsage(),
     connections: realTimeService.getConnectionCount(),
     connectedUsers: realTimeService.getConnectedUsers().length,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    nodeVersion: process.version,
+    platform: process.platform
   });
 });
 
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Error:', error);
-  
-  // Handle multer errors
-  if (error.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ 
-      error: 'File too large',
-      maxSize: '10MB'
-    });
-  }
-  
-  if (error.code === 'LIMIT_FILE_COUNT') {
-    return res.status(400).json({ 
-      error: 'Too many files',
-      maxCount: 5
-    });
-  }
-
-  res.status(error.status || 500).json({
-    error: error.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-  });
-});
+// Error handling middleware (must be last)
+app.use(errorHandler);
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+  res.status(404).json({ 
+    success: false,
+    error: 'Route not found',
+    path: req.originalUrl 
+  });
 });
 
 // Initialize services
@@ -142,7 +145,7 @@ const initializeServices = async () => {
   try {
     // Test email service
     const emailTest = await enhancedEmailService.testConnection();
-    console.log('📧 Email service:', emailTest.success ? 'Connected' : 'Failed');
+    console.log('📧 Email service:', emailTest.success ? 'Connected' : 'Disconnected');
     
     // Initialize file upload directories
     console.log('📁 File upload service: Initialized');
@@ -162,6 +165,7 @@ app.listen(PORT, async () => {
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`⚡ Real-time: http://localhost:${PORT}/api/realtime/stream`);
   console.log(`📁 File uploads: http://localhost:${PORT}/api/upload`);
+  console.log(`📝 Logs directory: ${path.join(__dirname, 'logs')}`);
   
   await initializeServices();
 });
