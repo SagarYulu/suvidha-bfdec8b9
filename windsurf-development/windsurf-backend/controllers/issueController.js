@@ -1,7 +1,7 @@
 
 const issueService = require('../services/issueService');
-const tatService = require('../services/tatService');
-const emailService = require('../services/emailService');
+const tatService = require('../services/actualTatService');
+const emailService = require('../services/actualEmailService');
 const realTimeService = require('../services/realTimeService');
 const { validationResult } = require('express-validator');
 
@@ -80,14 +80,21 @@ class IssueController {
       const issue = await issueService.createIssue(issueData);
       
       // Notify real-time subscribers
-      realTimeService.notifyIssueUpdate(issue.id, 'issue_created', issue);
+      realTimeService.broadcast('issues', {
+        type: 'issue_created',
+        issueId: issue.id,
+        issue
+      });
       
       // Send email notification if assigned
       if (issue.assigned_to) {
-        const assignee = await issueService.getUserById(issue.assigned_to);
-        const creator = await issueService.getUserById(issue.employee_uuid);
-        if (assignee && creator) {
-          await emailService.sendAssignmentEmail(issue, assignee, creator);
+        try {
+          const assignee = await issueService.getUserById(issue.assigned_to);
+          if (assignee) {
+            await emailService.sendIssueAssignmentEmail(assignee.email, assignee.name, issue);
+          }
+        } catch (emailError) {
+          console.error('Failed to send assignment email:', emailError);
         }
       }
       
@@ -133,17 +140,31 @@ class IssueController {
       const updatedIssue = await issueService.updateIssue(id, updateData);
       
       // Notify real-time subscribers
-      realTimeService.notifyIssueUpdate(id, 'issue_updated', updatedIssue);
+      realTimeService.broadcast('issues', {
+        type: 'issue_updated',
+        issueId: id,
+        issue: updatedIssue
+      });
       
       // Send status change email if status changed
       if (oldIssue.status !== updatedIssue.status) {
-        const employee = await issueService.getUserById(updatedIssue.employee_uuid);
-        if (employee) {
-          await emailService.sendStatusChangeEmail(updatedIssue, employee, oldIssue.status);
+        try {
+          const employee = await issueService.getUserById(updatedIssue.employee_uuid);
+          if (employee) {
+            await emailService.sendIssueStatusUpdateEmail(
+              employee.email, 
+              employee.name, 
+              updatedIssue, 
+              oldIssue.status, 
+              updatedIssue.status
+            );
+          }
+        } catch (emailError) {
+          console.error('Failed to send status change email:', emailError);
         }
         
         // Notify about status change
-        realTimeService.notifyStatusChange(id, oldIssue.status, updatedIssue.status, req.user.id);
+        realTimeService.notifyIssueStatusChange(id, oldIssue.status, updatedIssue.status, req.user.id);
       }
       
       res.json({
@@ -175,13 +196,16 @@ class IssueController {
       }
       
       // Notify real-time subscribers
-      realTimeService.notifyAssignment(id, assignedTo, req.user.id);
+      realTimeService.notifyIssueAssignment(id, assignedTo, req.user.id);
       
       // Send assignment email
-      const assignee = await issueService.getUserById(assignedTo);
-      const employee = await issueService.getUserById(issue.employee_uuid);
-      if (assignee && employee) {
-        await emailService.sendAssignmentEmail(issue, assignee, employee);
+      try {
+        const assignee = await issueService.getUserById(assignedTo);
+        if (assignee) {
+          await emailService.sendIssueAssignmentEmail(assignee.email, assignee.name, issue);
+        }
+      } catch (emailError) {
+        console.error('Failed to send assignment email:', emailError);
       }
       
       res.json({
@@ -224,10 +248,20 @@ class IssueController {
       realTimeService.notifyNewComment(id, comment);
       
       // Send comment notification email
-      const commenter = await issueService.getUserById(req.user.id);
-      const employee = await issueService.getUserById(issue.employee_uuid);
-      if (commenter && employee && commenter.id !== employee.id) {
-        await emailService.sendCommentNotification(issue, commenter, employee, comment);
+      try {
+        const commenter = await issueService.getUserById(req.user.id);
+        const employee = await issueService.getUserById(issue.employee_uuid);
+        if (commenter && employee && commenter.id !== employee.id) {
+          await emailService.sendNewCommentEmail(
+            employee.email, 
+            employee.name, 
+            issue, 
+            comment, 
+            commenter.name
+          );
+        }
+      } catch (emailError) {
+        console.error('Failed to send comment notification email:', emailError);
       }
       
       res.status(201).json({

@@ -1,8 +1,6 @@
 
 const analyticsService = require('../services/analyticsService');
-const tatService = require('../services/tatService');
-const slaService = require('../services/slaService');
-const sentimentService = require('../services/sentimentService');
+const tatService = require('../services/actualTatService');
 const { validationResult } = require('express-validator');
 
 class AnalyticsController {
@@ -19,10 +17,12 @@ class AnalyticsController {
 
       const filters = req.query;
       
-      // Get core metrics
-      const metrics = await analyticsService.getDashboardMetrics(filters);
-      const tatMetrics = await tatService.getTATMetrics(filters);
-      const slaMetrics = await slaService.getSLAMetrics(filters);
+      // Get core metrics and TAT data
+      const [metrics, tatMetrics, slaMetrics] = await Promise.all([
+        analyticsService.getDashboardMetrics(filters),
+        tatService.getTATMetrics(filters),
+        tatService.getSLABreaches(filters)
+      ]);
       
       res.json({
         success: true,
@@ -59,107 +59,58 @@ class AnalyticsController {
     }
   }
 
-  async getIssueAnalytics(req, res) {
+  async getSLABreaches(req, res) {
     try {
       const filters = req.query;
-      const analytics = await analyticsService.getIssueAnalytics(filters);
-      
-      res.json({
-        success: true,
-        data: analytics
-      });
-    } catch (error) {
-      console.error('Issue analytics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch issue analytics'
-      });
-    }
-  }
-
-  async getFeedbackAnalytics(req, res) {
-    try {
-      const filters = req.query;
-      const feedbackData = await analyticsService.getFeedbackAnalytics(filters);
-      const sentimentData = await sentimentService.getSentimentDistribution(
-        require('../config/database').pool, 
-        filters
-      );
-      
-      res.json({
-        success: true,
-        data: {
-          ...feedbackData,
-          sentiment: sentimentData
-        }
-      });
-    } catch (error) {
-      console.error('Feedback analytics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch feedback analytics'
-      });
-    }
-  }
-
-  async getSLAMetrics(req, res) {
-    try {
-      const filters = req.query;
-      const slaData = await slaService.getSLAMetrics(filters);
+      const slaData = await tatService.getSLABreaches(filters);
       
       res.json({
         success: true,
         data: slaData
       });
     } catch (error) {
-      console.error('SLA metrics error:', error);
+      console.error('SLA breaches error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to fetch SLA metrics'
+        error: error.message || 'Failed to fetch SLA breaches'
       });
     }
   }
 
-  async getSentimentTrends(req, res) {
+  async getAvgResolutionTime(req, res) {
     try {
-      const { period = 'week' } = req.query;
       const filters = req.query;
-      
-      const trends = await sentimentService.getSentimentTrends(
-        require('../config/database').pool,
-        period,
-        filters
-      );
+      const avgTime = await tatService.getAvgResolutionTime(filters);
       
       res.json({
         success: true,
-        data: trends
+        data: avgTime
       });
     } catch (error) {
-      console.error('Sentiment trends error:', error);
+      console.error('Average resolution time error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to fetch sentiment trends'
+        error: error.message || 'Failed to fetch average resolution time'
       });
     }
   }
 
-  async getPerformanceMetrics(req, res) {
+  async getTrendData(req, res) {
     try {
+      const period = req.query.period || '30d';
       const filters = req.query;
       
-      // Get user/agent performance metrics
-      const performance = await analyticsService.getAgentPerformance(filters);
+      const trendData = await tatService.getTrendData(period, filters);
       
       res.json({
         success: true,
-        data: performance
+        data: trendData
       });
     } catch (error) {
-      console.error('Performance metrics error:', error);
+      console.error('Trend data error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to fetch performance metrics'
+        error: error.message || 'Failed to fetch trend data'
       });
     }
   }
@@ -182,44 +133,6 @@ class AnalyticsController {
       res.status(500).json({
         success: false,
         error: error.message || 'Failed to export analytics'
-      });
-    }
-  }
-
-  async getRealtimeMetrics(req, res) {
-    try {
-      // Get current real-time metrics for dashboard
-      const realtimeData = await analyticsService.getRealtimeMetrics();
-      
-      res.json({
-        success: true,
-        data: realtimeData,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('Realtime metrics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch realtime metrics'
-      });
-    }
-  }
-
-  async checkSLABreaches(req, res) {
-    try {
-      // Manual trigger for SLA breach check
-      const result = await slaService.checkSLABreaches();
-      
-      res.json({
-        success: true,
-        message: 'SLA breach check completed',
-        data: result
-      });
-    } catch (error) {
-      console.error('SLA breach check error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to check SLA breaches'
       });
     }
   }
