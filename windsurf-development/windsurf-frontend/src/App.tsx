@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -32,6 +31,8 @@ import AddDashboardUser from './pages/admin/AddDashboardUser';
 import MobileLogin from './pages/mobile/Login';
 import MobileIssues from './pages/mobile/Issues';
 import MobileNewIssue from './pages/mobile/NewIssue';
+import MobileIssueDetails from './pages/mobile/IssueDetails';
+import MobileProfile from './pages/mobile/Profile';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -82,7 +83,9 @@ function App() {
                 <Route path="/mobile" element={<MobileLayout />}>
                   <Route index element={<Navigate to="/mobile/issues" replace />} />
                   <Route path="issues" element={<MobileIssues />} />
+                  <Route path="issues/:id" element={<MobileIssueDetails />} />
                   <Route path="new-issue" element={<MobileNewIssue />} />
+                  <Route path="profile" element={<MobileProfile />} />
                 </Route>
 
                 {/* Fallback for unknown routes */}

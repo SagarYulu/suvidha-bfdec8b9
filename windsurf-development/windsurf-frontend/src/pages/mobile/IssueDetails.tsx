@@ -1,182 +1,197 @@
 
-import { useParams, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MessageSquare } from "lucide-react";
-import { apiService } from "@/services/api";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { 
+  MessageSquare, 
+  Send, 
+  Clock,
+  User,
+  Calendar,
+  AlertCircle
+} from 'lucide-react';
+import MobileLayout from '@/components/MobileLayout';
 
-const MobileIssueDetails = () => {
-  const { id } = useParams();
+interface Comment {
+  id: string;
+  content: string;
+  author: string;
+  timestamp: string;
+  isInternal?: boolean;
+}
+
+interface Issue {
+  id: string;
+  title: string;
+  description: string;
+  status: 'open' | 'in-progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  createdAt: string;
+  assignedTo?: string;
+  comments: Comment[];
+}
+
+const MobileIssueDetails: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [issue, setIssue] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [newComment, setNewComment] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [issue, setIssue] = useState<Issue | null>(null);
+  const [newComment, setNewComment] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      fetchIssue();
-    }
+    // Mock data - replace with actual API call
+    const mockIssue: Issue = {
+      id: id || '1',
+      title: 'Login Issues',
+      description: 'Unable to log into the system with my credentials',
+      status: 'in-progress',
+      priority: 'high',
+      createdAt: '2024-01-15T10:30:00Z',
+      assignedTo: 'John Doe',
+      comments: [
+        {
+          id: '1',
+          content: 'We are looking into this issue.',
+          author: 'Support Team',
+          timestamp: '2024-01-15T11:00:00Z'
+        },
+        {
+          id: '2',
+          content: 'Can you please try clearing your browser cache?',
+          author: 'John Doe',
+          timestamp: '2024-01-15T11:30:00Z'
+        }
+      ]
+    };
+
+    setTimeout(() => {
+      setIssue(mockIssue);
+      setIsLoading(false);
+    }, 1000);
   }, [id]);
 
-  const fetchIssue = async () => {
-    try {
-      setLoading(true);
-      const response = await apiService.getIssue(id);
-      setIssue(response.issue);
-    } catch (error) {
-      console.error('Error fetching issue:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load issue details",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleAddComment = () => {
+    if (!newComment.trim() || !issue) return;
+
+    const comment: Comment = {
+      id: Date.now().toString(),
+      content: newComment,
+      author: 'You',
+      timestamp: new Date().toISOString()
+    };
+
+    setIssue({
+      ...issue,
+      comments: [...issue.comments, comment]
+    });
+    setNewComment('');
   };
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return;
-
-    try {
-      setIsSubmitting(true);
-      await apiService.addComment(id, newComment);
-      setNewComment("");
-      await fetchIssue(); // Refresh issue to get new comment
-      toast({
-        title: "Success",
-        description: "Comment added successfully",
-      });
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add comment",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getStatusBadgeColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'destructive';
-      case 'in_progress': return 'default';
-      case 'resolved': return 'secondary';
-      case 'closed': return 'outline';
-      default: return 'default';
+      case 'open': return 'bg-blue-100 text-blue-800';
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800';
+      case 'resolved': return 'bg-green-100 text-green-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (loading) {
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'low': return 'bg-green-100 text-green-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'urgent': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#1E40AF]/10 p-4">
-        <div className="bg-[#1E40AF] h-32 w-full rounded-lg mb-4 flex items-center justify-center">
-          <h1 className="text-2xl font-bold text-white">Issue Details</h1>
+      <MobileLayout title="Issue Details">
+        <div className="p-4">
+          <div className="animate-pulse space-y-4">
+            <div className="h-4 bg-gray-200 rounded"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          </div>
         </div>
-        <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 rounded mb-4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
+      </MobileLayout>
     );
   }
 
   if (!issue) {
     return (
-      <div className="min-h-screen bg-[#1E40AF]/10 p-4">
-        <div className="bg-[#1E40AF] h-32 w-full rounded-lg mb-4 flex items-center justify-center">
-          <h1 className="text-2xl font-bold text-white">Issue Details</h1>
+      <MobileLayout title="Issue Details">
+        <div className="p-4 text-center">
+          <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p>Issue not found</p>
         </div>
-        <Card>
-          <CardContent className="p-6 text-center">
-            <p className="text-gray-500">Issue not found</p>
-            <Button onClick={() => navigate('/mobile/issues')} className="mt-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Issues
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      </MobileLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#1E40AF]/10 p-4 pb-16">
-      <div className="bg-[#1E40AF] h-32 w-full rounded-lg mb-4 flex items-center justify-between px-6">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/mobile/issues')}
-          className="text-white hover:bg-white/20"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
-        <h1 className="text-2xl font-bold text-white">Issue Details</h1>
-        <div></div>
-      </div>
-      
-      <div className="space-y-4">
+    <MobileLayout title="Issue Details">
+      <div className="p-4 space-y-4 pb-20">
         {/* Issue Header */}
         <Card>
           <CardHeader>
             <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-lg">#{issue.id}</CardTitle>
-                <p className="text-sm text-gray-500 mt-1">
-                  Created: {new Date(issue.created_at).toLocaleDateString()}
-                </p>
-              </div>
-              <Badge variant={getStatusBadgeColor(issue.status)}>
-                {issue.status?.replace('_', ' ').toUpperCase()}
+              <CardTitle className="text-lg">{issue.title}</CardTitle>
+              <Badge className={getStatusColor(issue.status)}>
+                {issue.status}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <h3 className="font-semibold mb-2">{issue.title}</h3>
-            <p className="text-gray-700 mb-4">{issue.description}</p>
+          <CardContent className="space-y-3">
+            <p className="text-gray-600">{issue.description}</p>
+            
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{issue.category}</Badge>
-              <Badge variant="outline">{issue.priority}</Badge>
-              {issue.assignee_name && (
-                <Badge variant="secondary">Assigned to: {issue.assignee_name}</Badge>
+              <Badge className={getPriorityColor(issue.priority)}>
+                {issue.priority} priority
+              </Badge>
+              
+              <div className="flex items-center text-sm text-gray-500">
+                <Calendar className="h-4 w-4 mr-1" />
+                {new Date(issue.createdAt).toLocaleDateString()}
+              </div>
+              
+              {issue.assignedTo && (
+                <div className="flex items-center text-sm text-gray-500">
+                  <User className="h-4 w-4 mr-1" />
+                  {issue.assignedTo}
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Comments */}
-        {issue.comments && issue.comments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {issue.comments.map((comment, index) => (
-                  <div key={index} className="border-l-4 border-blue-200 pl-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-medium">{comment.author_name || 'Admin'}</span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(comment.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-gray-700">{comment.content}</p>
-                  </div>
-                ))}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Comments ({issue.comments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {issue.comments.map((comment) => (
+              <div key={comment.id} className="border-l-4 border-blue-200 pl-4">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="font-medium text-sm">{comment.author}</span>
+                  <span className="text-xs text-gray-500">
+                    {new Date(comment.timestamp).toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-600">{comment.content}</p>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ))}
+          </CardContent>
+        </Card>
 
         {/* Add Comment */}
         {issue.status !== 'closed' && (
@@ -185,27 +200,22 @@ const MobileIssueDetails = () => {
               <CardTitle>Add Comment</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <textarea
+              <div className="flex space-x-2">
+                <Input
+                  placeholder="Type your comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Type your comment here..."
-                  className="w-full p-3 border rounded-lg resize-none"
-                  rows={3}
+                  className="flex-1"
                 />
-                <Button
-                  onClick={handleAddComment}
-                  disabled={isSubmitting || !newComment.trim()}
-                  className="w-full"
-                >
-                  {isSubmitting ? 'Adding...' : 'Add Comment'}
+                <Button onClick={handleAddComment}>
+                  <Send className="h-4 w-4" />
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
       </div>
-    </div>
+    </MobileLayout>
   );
 };
 
