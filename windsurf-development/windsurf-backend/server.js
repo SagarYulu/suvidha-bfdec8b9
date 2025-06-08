@@ -11,6 +11,9 @@ const userRoutes = require('./routes/users');
 const issueRoutes = require('./routes/issues');
 const mobileRoutes = require('./routes/mobile');
 const analyticsRoutes = require('./routes/analytics');
+const feedbackRoutes = require('./routes/feedback');
+const dashboardRoutes = require('./routes/dashboard');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,8 +41,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/mobile', mobileRoutes);
-app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/feedback', feedbackRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

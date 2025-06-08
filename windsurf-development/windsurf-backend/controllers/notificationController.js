@@ -4,14 +4,18 @@ const notificationService = require('../services/notificationService');
 class NotificationController {
   async getUserNotifications(req, res) {
     try {
-      const { limit = 50 } = req.query;
-      const userId = req.user.id;
-      
-      const notifications = await notificationService.getUserNotifications(userId, parseInt(limit));
-      
+      const { userId } = req.params;
+      const { page = 1, limit = 20, unreadOnly = false } = req.query;
+
+      const result = await notificationService.getUserNotifications(userId, {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        unreadOnly: unreadOnly === 'true'
+      });
+
       res.json({
         success: true,
-        data: notifications
+        data: result
       });
     } catch (error) {
       console.error('Get user notifications error:', error);
@@ -24,11 +28,15 @@ class NotificationController {
 
   async markAsRead(req, res) {
     try {
-      const { id } = req.params;
-      const userId = req.user.id;
+      const { notificationId } = req.params;
+      const userId = req.user.id; // From auth middleware
+
+      const success = await notificationService.markAsRead(notificationId, userId);
       
-      await notificationService.markAsRead(id, userId);
-      
+      if (!success) {
+        return res.status(404).json({ error: 'Notification not found' });
+      }
+
       res.json({
         success: true,
         message: 'Notification marked as read'
@@ -44,13 +52,13 @@ class NotificationController {
 
   async markAllAsRead(req, res) {
     try {
-      const userId = req.user.id;
-      
-      await notificationService.markAllAsRead(userId);
-      
+      const { userId } = req.params;
+
+      const count = await notificationService.markAllAsRead(userId);
+
       res.json({
         success: true,
-        message: 'All notifications marked as read'
+        message: `${count} notifications marked as read`
       });
     } catch (error) {
       console.error('Mark all notifications as read error:', error);
@@ -61,32 +69,17 @@ class NotificationController {
     }
   }
 
-  async getUnreadCount(req, res) {
-    try {
-      const userId = req.user.id;
-      
-      const count = await notificationService.getUnreadCount(userId);
-      
-      res.json({
-        success: true,
-        data: { count }
-      });
-    } catch (error) {
-      console.error('Get unread count error:', error);
-      res.status(500).json({
-        error: 'Failed to fetch unread count',
-        message: error.message
-      });
-    }
-  }
-
   async deleteNotification(req, res) {
     try {
-      const { id } = req.params;
-      const userId = req.user.id;
+      const { notificationId } = req.params;
+      const userId = req.user.id; // From auth middleware
+
+      const success = await notificationService.deleteNotification(notificationId, userId);
       
-      await notificationService.deleteNotification(id, userId);
-      
+      if (!success) {
+        return res.status(404).json({ error: 'Notification not found' });
+      }
+
       res.json({
         success: true,
         message: 'Notification deleted successfully'
