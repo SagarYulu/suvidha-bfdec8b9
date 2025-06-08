@@ -26,7 +26,7 @@ const IssueCreationForm: React.FC<IssueCreationFormProps> = ({ onSuccess, classN
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const selectedType = ISSUE_TYPES.find(type => type.value === formData.typeId);
+  const selectedType = ISSUE_TYPES.find(type => type.id === formData.typeId);
   const subTypes = selectedType?.subTypes || [];
 
   const handleTypeChange = (value: string) => {
@@ -176,7 +176,7 @@ const IssueCreationForm: React.FC<IssueCreationFormProps> = ({ onSuccess, classN
               </SelectTrigger>
               <SelectContent>
                 {ISSUE_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.id} value={type.id}>
                     {type.label}
                     {type.labelHindi && (
                       <span className="text-gray-500 ml-2">({type.labelHindi})</span>
@@ -200,7 +200,7 @@ const IssueCreationForm: React.FC<IssueCreationFormProps> = ({ onSuccess, classN
               </SelectTrigger>
               <SelectContent>
                 {subTypes.map((subType) => (
-                  <SelectItem key={subType.value} value={subType.value}>
+                  <SelectItem key={subType.id} value={subType.id}>
                     {subType.label}
                     {subType.labelHindi && (
                       <span className="text-gray-500 ml-2">({subType.labelHindi})</span>
