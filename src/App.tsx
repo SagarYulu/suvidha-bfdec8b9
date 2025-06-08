@@ -24,7 +24,6 @@ import FeedbackAnalytics from "./pages/admin/FeedbackAnalytics";
 import SentimentAnalysis from "./pages/admin/SentimentAnalysis";
 import TestDataGenerator from "./pages/admin/TestDataGenerator";
 import TestDashboard from "./pages/admin/TestDashboard";
-import MasterData from "./pages/admin/MasterData";
 
 // Mobile pages
 import MobileLogin from "./pages/mobile/Login";
@@ -66,7 +65,6 @@ const App = () => (
               <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
               <Route path="/admin/settings" element={<Settings />} />
               <Route path="/admin/access-control" element={<AccessControl />} />
-              <Route path="/admin/master-data" element={<MasterData />} />
               <Route path="/admin/feedback-analytics" element={<FeedbackAnalytics />} />
               <Route path="/admin/sentiment-analysis" element={<SentimentAnalysis />} />
               <Route path="/admin/test-data" element={<TestDataGenerator />} />
