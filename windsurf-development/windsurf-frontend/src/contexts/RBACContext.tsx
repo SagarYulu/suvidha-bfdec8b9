@@ -1,72 +1,100 @@
 
-import React, { createContext, useContext, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { apiService } from '../services/apiService';
 
-export type Permission = 
-  | 'view_dashboard'
-  | 'manage_users'
-  | 'manage_issues'
-  | 'view_analytics'
-  | 'manage_settings'
-  | 'access_security'
-  | 'create_dashboardUser';
+interface Permission {
+  id: string;
+  name: string;
+  description: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  permissions: Permission[];
+}
 
 interface RBACContextType {
-  hasPermission: (permission: Permission) => boolean;
-  role: string | null;
+  userRoles: Role[];
+  userPermissions: Permission[];
+  hasPermission: (permission: string) => boolean;
+  hasRole: (role: string) => boolean;
+  canAccess: (requiredPermissions: string[]) => boolean;
+  loading: boolean;
 }
 
 const RBACContext = createContext<RBACContextType | undefined>(undefined);
 
-export const useRBAC = (): RBACContextType => {
-  const context = useContext(RBACContext);
-  if (!context) {
-    throw new Error('useRBAC must be used within an RBACProvider');
-  }
-  return context;
-};
+export const RBACProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+  const [userRoles, setUserRoles] = useState<Role[]>([]);
+  const [userPermissions, setUserPermissions] = useState<Permission[]>([]);
+  const [loading, setLoading] = useState(false);
 
-interface RBACProviderProps {
-  children: ReactNode;
-}
+  useEffect(() => {
+    const fetchRBACData = async () => {
+      if (!isAuthenticated || !user) {
+        setUserRoles([]);
+        setUserPermissions([]);
+        return;
+      }
 
-const getPermissionsForRole = (role: string): Permission[] => {
-  switch (role) {
-    case 'admin':
-    case 'Super Admin':
-      return [
-        'view_dashboard',
-        'manage_users',
-        'manage_issues',
-        'view_analytics',
-        'manage_settings',
-        'access_security',
-        'create_dashboardUser'
-      ];
-    case 'manager':
-      return ['view_dashboard', 'manage_issues', 'view_analytics'];
-    case 'support':
-      return ['view_dashboard', 'manage_issues'];
-    default:
-      return [];
-  }
-};
+      setLoading(true);
+      try {
+        const [rolesResponse, permissionsResponse] = await Promise.all([
+          apiService.getUserRoles(user.id),
+          apiService.getUserPermissions(user.id)
+        ]);
 
-export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
-  const { authState } = useAuth();
+        if (rolesResponse.success) {
+          setUserRoles(rolesResponse.roles || []);
+        }
 
-  const hasPermission = (permission: Permission): boolean => {
-    if (!authState.isAuthenticated || !authState.role) {
-      return false;
-    }
+        if (permissionsResponse.success) {
+          setUserPermissions(permissionsResponse.permissions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch RBAC data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const permissions = getPermissionsForRole(authState.role);
-    return permissions.includes(permission);
+    fetchRBACData();
+  }, [isAuthenticated, user]);
+
+  const hasPermission = (permission: string): boolean => {
+    return userPermissions.some(p => p.name === permission);
+  };
+
+  const hasRole = (role: string): boolean => {
+    return userRoles.some(r => r.name === role);
+  };
+
+  const canAccess = (requiredPermissions: string[]): boolean => {
+    if (requiredPermissions.length === 0) return true;
+    return requiredPermissions.some(permission => hasPermission(permission));
   };
 
   return (
-    <RBACContext.Provider value={{ hasPermission, role: authState.role }}>
+    <RBACContext.Provider value={{
+      userRoles,
+      userPermissions,
+      hasPermission,
+      hasRole,
+      canAccess,
+      loading
+    }}>
       {children}
     </RBACContext.Provider>
   );
+};
+
+export const useRBAC = (): RBACContextType => {
+  const context = useContext(RBACContext);
+  if (context === undefined) {
+    throw new Error('useRBAC must be used within an RBACProvider');
+  }
+  return context;
 };

@@ -107,20 +107,20 @@ class ApiService {
   }
 
   async bulkCreateUsers(usersData: any[]) {
-    return this.request('/api/users/bulk', {
+    return this.request('/api/bulk-users/create', {
       method: 'POST',
       body: JSON.stringify({ users: usersData }),
     });
   }
 
   // Analytics API
-  async getAnalytics() {
-    return this.request('/api/analytics');
+  async getDashboardMetrics() {
+    return this.request('/api/analytics/dashboard');
   }
 
-  async getSentimentAnalytics(params: any = {}) {
+  async getIssueAnalytics(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/analytics/sentiment?${queryString}`);
+    return this.request(`/api/analytics/issues?${queryString}`);
   }
 
   // Export API
@@ -151,8 +151,12 @@ class ApiService {
   }
 
   // Notifications API
-  async getNotifications(userId: string) {
-    return this.request(`/api/notifications?userId=${userId}`);
+  async getNotifications() {
+    return this.request('/api/notifications');
+  }
+
+  async getUnreadCount() {
+    return this.request('/api/notifications/unread-count');
   }
 
   async markNotificationAsRead(id: string) {
@@ -161,26 +165,40 @@ class ApiService {
     });
   }
 
-  async createNotification(notificationData: any) {
-    return this.request('/api/notifications', {
-      method: 'POST',
-      body: JSON.stringify(notificationData),
+  async markAllNotificationsAsRead() {
+    return this.request('/api/notifications/mark-all-read', {
+      method: 'PUT',
     });
   }
 
-  // Mobile authentication (Email + Employee ID)
-  async mobileLogin(email: string, employeeId: string) {
-    return this.request('/api/auth/mobile/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, employeeId }),
+  async deleteNotification(id: string) {
+    return this.request(`/api/notifications/${id}`, {
+      method: 'DELETE',
     });
   }
 
-  // Admin authentication (Email + Password)
-  async adminLogin(email: string, password: string) {
-    return this.request('/api/auth/admin/login', {
+  // Authentication API
+  async login(email: string, password: string) {
+    return this.request('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async getCurrentUser() {
+    return this.request('/api/auth/me');
+  }
+
+  async refreshToken(token: string) {
+    return this.request('/api/auth/refresh', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async logout() {
+    return this.request('/api/auth/logout', {
+      method: 'POST',
     });
   }
 
@@ -207,9 +225,13 @@ class ApiService {
     });
   }
 
-  async getFeedback(params: any = {}) {
+  async getFeedbackAnalytics(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/feedback?${queryString}`);
+    return this.request(`/api/feedback/analytics?${queryString}`);
+  }
+
+  async getFeedback(id: string) {
+    return this.request(`/api/feedback/${id}`);
   }
 
   // File Upload API
@@ -236,12 +258,52 @@ class ApiService {
   }
 
   // Master Data API
-  async getIssueTypes() {
-    return this.request('/api/master/issue-types');
+  async getRoles() {
+    return this.request('/api/master/roles');
+  }
+
+  async createRole(name: string) {
+    return this.request('/api/master/roles', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async updateRole(id: string, name: string) {
+    return this.request(`/api/master/roles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteRole(id: string) {
+    return this.request(`/api/master/roles/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   async getCities() {
     return this.request('/api/master/cities');
+  }
+
+  async createCity(name: string) {
+    return this.request('/api/master/cities', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async updateCity(id: string, name: string) {
+    return this.request(`/api/master/cities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name }),
+    });
+  }
+
+  async deleteCity(id: string) {
+    return this.request(`/api/master/cities/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   async getClusters(cityId?: string) {
@@ -249,14 +311,68 @@ class ApiService {
     return this.request(`/api/master/clusters${params}`);
   }
 
-  async getRoles() {
-    return this.request('/api/master/roles');
+  async createCluster(name: string, cityId: string) {
+    return this.request('/api/master/clusters', {
+      method: 'POST',
+      body: JSON.stringify({ name, cityId }),
+    });
   }
 
-  // Real-time connection endpoint
-  getRealtimeUrl() {
-    const token = localStorage.getItem('authToken');
-    return `${API_BASE_URL}/api/realtime/stream?token=${token}`;
+  async updateCluster(id: string, name: string, cityId: string) {
+    return this.request(`/api/master/clusters/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, cityId }),
+    });
+  }
+
+  async deleteCluster(id: string) {
+    return this.request(`/api/master/clusters/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getAuditLogs(entityType?: string) {
+    const params = entityType ? `?entityType=${entityType}` : '';
+    return this.request(`/api/master/audit-logs${params}`);
+  }
+
+  // RBAC API
+  async getUserPermissions(userId: string) {
+    return this.request(`/api/rbac/users/${userId}/permissions`);
+  }
+
+  async getUserRoles(userId: string) {
+    return this.request(`/api/rbac/users/${userId}/roles`);
+  }
+
+  async assignRole(userId: string, roleId: string) {
+    return this.request('/api/rbac/assign-role', {
+      method: 'POST',
+      body: JSON.stringify({ userId, roleId }),
+    });
+  }
+
+  async removeRole(userId: string, roleId: string) {
+    return this.request('/api/rbac/remove-role', {
+      method: 'POST',
+      body: JSON.stringify({ userId, roleId }),
+    });
+  }
+
+  async getAllRoles() {
+    return this.request('/api/rbac/roles');
+  }
+
+  async getAllPermissions() {
+    return this.request('/api/rbac/permissions');
+  }
+
+  // Bulk Users API
+  async validateBulkUsers(users: any[]) {
+    return this.request('/api/bulk-users/validate', {
+      method: 'POST',
+      body: JSON.stringify({ users }),
+    });
   }
 
   // Health check
