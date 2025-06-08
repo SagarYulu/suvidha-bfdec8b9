@@ -5,6 +5,51 @@
 CREATE DATABASE IF NOT EXISTS grievance_portal;
 USE grievance_portal;
 
+-- Master Cities Table
+CREATE TABLE master_cities (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_name (name)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Master Clusters Table
+CREATE TABLE master_clusters (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  city_id VARCHAR(36) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_city_id (city_id),
+  INDEX idx_name (name),
+  FOREIGN KEY (city_id) REFERENCES master_cities(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_cluster_per_city (city_id, name)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Master Roles Table
+CREATE TABLE master_roles (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_name (name)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Master Audit Logs Table
+CREATE TABLE master_audit_logs (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id VARCHAR(36) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  changes JSON,
+  created_by VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_entity (entity_type, entity_id),
+  INDEX idx_created_by (created_by),
+  INDEX idx_created_at (created_at)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- Users table (employees)
 CREATE TABLE users (
   id VARCHAR(36) PRIMARY KEY,
@@ -35,6 +80,20 @@ CREATE TABLE dashboard_users (
   INDEX idx_email (email),
   INDEX idx_role (role)
 );
+
+-- Dashboard User Audit Logs Table
+CREATE TABLE dashboard_user_audit_logs (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id VARCHAR(36) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  changes JSON,
+  performed_by VARCHAR(36),
+  performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_entity (entity_type, entity_id),
+  INDEX idx_performed_by (performed_by),
+  INDEX idx_performed_at (performed_at)
+) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Issues table
 CREATE TABLE issues (
@@ -179,48 +238,84 @@ CREATE TABLE sentiment_analysis (
   INDEX idx_created_at (created_at)
 );
 
--- Insert default RBAC data
-INSERT INTO rbac_roles (id, name, description) VALUES
-('role-1', 'Super Admin', 'Full system access'),
-('role-2', 'Admin', 'Administrative access'),
-('role-3', 'Manager', 'Management level access'),
-('role-4', 'Agent', 'Issue handling access'),
-('role-5', 'Viewer', 'Read-only access');
+-- Insert default master data
+INSERT INTO master_cities (id, name) VALUES 
+('city-1', 'Bangalore'),
+('city-2', 'Mumbai'), 
+('city-3', 'Delhi'),
+('city-4', 'Chennai'),
+('city-5', 'Hyderabad'),
+('city-6', 'Pune'),
+('city-7', 'Kolkata');
 
+INSERT INTO master_clusters (id, city_id, name) VALUES
+('cluster-1', 'city-1', 'North Bangalore'),
+('cluster-2', 'city-1', 'South Bangalore'),
+('cluster-3', 'city-2', 'Central Mumbai'),
+('cluster-4', 'city-2', 'Suburban Mumbai'),
+('cluster-5', 'city-3', 'Central Delhi'),
+('cluster-6', 'city-3', 'South Delhi');
+
+INSERT INTO master_roles (id, name) VALUES
+('role-1', 'admin'),
+('role-2', 'security-admin'),
+('role-3', 'employee'),
+('role-4', 'City Head'),
+('role-5', 'Cluster Head'),
+('role-6', 'HR Admin');
+
+-- Insert RBAC permissions
 INSERT INTO rbac_permissions (id, name, description) VALUES
-('perm-1', 'view:dashboard', 'View dashboard'),
-('perm-2', 'manage:users', 'Manage users'),
-('perm-3', 'manage:issues', 'Manage issues'),
-('perm-4', 'manage:analytics', 'View analytics'),
-('perm-5', 'manage:settings', 'Manage settings'),
-('perm-6', 'access:security', 'Access security features'),
-('perm-7', 'create:dashboardUser', 'Create dashboard users'),
-('perm-8', 'view_analytics', 'View analytics data');
+('perm-1', 'manage:issues', 'Can manage all issues'),
+('perm-2', 'view:issues', 'Can view issues'),
+('perm-3', 'create:issues', 'Can create issues'),
+('perm-4', 'manage:users', 'Can manage users'),
+('perm-5', 'view:analytics', 'Can view analytics'),
+('perm-6', 'manage:analytics', 'Can manage analytics'),
+('perm-7', 'manage:feedback', 'Can manage feedback'),
+('perm-8', 'view:feedback', 'Can view feedback');
+
+-- Insert RBAC roles
+INSERT INTO rbac_roles (id, name, description) VALUES
+('rbac-role-1', 'Admin', 'Full system access'),
+('rbac-role-2', 'Security Admin', 'Security and user management'),
+('rbac-role-3', 'Employee', 'Basic employee access');
 
 -- Assign permissions to roles
 INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES
--- Super Admin - all permissions
-('role-1', 'perm-1'), ('role-1', 'perm-2'), ('role-1', 'perm-3'), 
-('role-1', 'perm-4'), ('role-1', 'perm-5'), ('role-1', 'perm-6'), 
-('role-1', 'perm-7'), ('role-1', 'perm-8'),
--- Admin - most permissions
-('role-2', 'perm-1'), ('role-2', 'perm-2'), ('role-2', 'perm-3'), 
-('role-2', 'perm-4'), ('role-2', 'perm-8'),
--- Manager - limited permissions
-('role-3', 'perm-1'), ('role-3', 'perm-3'), ('role-3', 'perm-4'), ('role-3', 'perm-8'),
--- Agent - basic permissions
-('role-4', 'perm-1'), ('role-4', 'perm-3'),
--- Viewer - read only
-('role-5', 'perm-1'), ('role-5', 'perm-8');
+('rbac-role-1', 'perm-1'),
+('rbac-role-1', 'perm-2'),
+('rbac-role-1', 'perm-3'),
+('rbac-role-1', 'perm-4'),
+('rbac-role-1', 'perm-5'),
+('rbac-role-1', 'perm-6'),
+('rbac-role-1', 'perm-7'),
+('rbac-role-1', 'perm-8'),
+('rbac-role-2', 'perm-1'),
+('rbac-role-2', 'perm-2'),
+('rbac-role-2', 'perm-4'),
+('rbac-role-2', 'perm-5'),
+('rbac-role-3', 'perm-2'),
+('rbac-role-3', 'perm-3'),
+('rbac-role-3', 'perm-8');
 
 -- Create indexes for better performance
 CREATE INDEX idx_issues_status_priority ON issues(status, priority);
 CREATE INDEX idx_issues_created_at_status ON issues(created_at, status);
 CREATE INDEX idx_feedback_rating_created ON feedback(rating, created_at);
 
--- Create default admin user (password: admin123 - hashed with bcrypt)
-INSERT INTO dashboard_users (id, name, email, password, role) VALUES
-('admin-1', 'System Admin', 'admin@yulu.com', '$2b$10$rQJ9aDr5QjQjQjQjQjQjQuO7K7K7K7K7K7K7K7K7K7K7K7K7K7K7K', 'Super Admin');
+-- Create default admin user (password: admin123)
+INSERT INTO dashboard_users (
+    id, name, email, password, role, created_at
+) VALUES (
+    'admin-user-1',
+    'System Admin',
+    'admin@yulu.com',
+    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeA.U0rqERAWLpK3u',
+    'admin',
+    NOW()
+);
 
--- Assign super admin role to default admin
-INSERT INTO rbac_user_roles (user_id, role_id) VALUES ('admin-1', 'role-1');
+-- Assign admin role to default user
+INSERT INTO rbac_user_roles (user_id, role_id) VALUES
+('admin-user-1', 'rbac-role-1');
