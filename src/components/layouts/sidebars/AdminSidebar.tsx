@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRBAC } from '@/contexts/RBACContext';
@@ -243,12 +244,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
               label="Issue Analytics" 
               isActive={location.pathname === "/admin/analytics"}
             />
-            <SidebarLink 
-              href="/admin/feedback-analytics" 
-              icon={BarChart2} 
-              label="Feedback Analytics" 
-              isActive={location.pathname === "/admin/feedback-analytics"}
-            />
           </DropdownMenu>
         )}
         
@@ -277,6 +272,16 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
         {/* Settings - Available to users with manage:settings permission */}
         {hasPermission("manage:settings") && (
           <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
+        )}
+        
+        {/* Feedback Analytics - Available to users with view_analytics permission */}
+        {hasPermission("view_analytics") && (
+          <SidebarLink 
+            href="/admin/feedback-analytics" 
+            icon={BarChart2} 
+            label="Feedback Analytics" 
+            isActive={location.pathname === "/admin/feedback-analytics"}
+          />
         )}
       </div>
 

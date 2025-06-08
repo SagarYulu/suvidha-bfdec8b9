@@ -7,69 +7,84 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
 
-// Main pages
 import Index from "./pages/Index";
 
 // Admin pages
 import AdminLogin from "./pages/admin/Login";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminTestDashboard from "./pages/admin/TestDashboard";
-import AdminIssues from "./pages/admin/Issues";
-import AdminIssueDetails from "./pages/admin/IssueDetails";
-import AdminAssignedIssues from "./pages/admin/AssignedIssues";
-import AdminUsers from "./pages/admin/Users";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminFeedbackAnalytics from "./pages/admin/FeedbackAnalytics";
-import AdminSettings from "./pages/admin/Settings";
-import AdminDashboardUserAdd from "./pages/admin/DashboardUserAdd";
-import AdminAccessControl from "./pages/admin/AccessControl";
+import Dashboard from "./pages/admin/Dashboard";
+import Issues from "./pages/admin/Issues";
+import IssueDetails from "./pages/admin/IssueDetails";
+import AssignedIssues from "./pages/admin/AssignedIssues";
+import Analytics from "./pages/admin/Analytics";
+import Users from "./pages/admin/Users";
+import Settings from "./pages/admin/Settings";
+import AccessControl from "./pages/admin/AccessControl";
+import AddDashboardUser from "./pages/admin/dashboard-users/AddDashboardUser";
+import FeedbackAnalytics from "./pages/admin/FeedbackAnalytics";
+import SentimentAnalysis from "./pages/admin/SentimentAnalysis";
+import TestDataGenerator from "./pages/admin/TestDataGenerator";
+import TestDashboard from "./pages/admin/TestDashboard";
 
 // Mobile pages
 import MobileLogin from "./pages/mobile/Login";
 import MobileIssues from "./pages/mobile/Issues";
-import MobileNewIssue from "./pages/mobile/NewIssue";
-import MobileCreateIssue from "./pages/mobile/CreateIssue";
 import MobileIssueDetails from "./pages/mobile/IssueDetails";
+import MobileNewIssue from "./pages/mobile/NewIssue";
+import MobileSentiment from "./pages/mobile/Sentiment";
+
+// Database Export page
+import DatabaseExport from "./pages/DatabaseExport";
+
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <RBACProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <RBACProvider>
             <Routes>
-              {/* Main routes */}
               <Route path="/" element={<Index />} />
-
-              {/* Admin routes */}
+              
+              {/* Database Export Route */}
+              <Route path="/export" element={<DatabaseExport />} />
+              
+              {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/test-dashboard" element={<AdminTestDashboard />} />
-              <Route path="/admin/issues" element={<AdminIssues />} />
-              <Route path="/admin/issues/:id" element={<AdminIssueDetails />} />
-              <Route path="/admin/assigned-issues" element={<AdminAssignedIssues />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/admin/feedback-analytics" element={<AdminFeedbackAnalytics />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="/admin/dashboard-users/add" element={<AdminDashboardUserAdd />} />
-              <Route path="/admin/access-control" element={<AdminAccessControl />} />
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/issues" element={<Issues />} />
+              <Route path="/admin/issues/:id" element={<IssueDetails />} />
+              <Route path="/admin/assigned-issues" element={<AssignedIssues />} />
+              <Route path="/admin/analytics" element={<Analytics />} />
+              <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/users/add" element={<AddDashboardUser />} />
+              <Route path="/admin/dashboard-users/add" element={<AddDashboardUser />} />
+              <Route path="/admin/settings" element={<Settings />} />
+              <Route path="/admin/access-control" element={<AccessControl />} />
+              <Route path="/admin/feedback-analytics" element={<FeedbackAnalytics />} />
+              <Route path="/admin/sentiment-analysis" element={<SentimentAnalysis />} />
+              <Route path="/admin/test-data" element={<TestDataGenerator />} />
+              <Route path="/admin/test-dashboard" element={<TestDashboard />} />
 
-              {/* Mobile routes */}
+              {/* Mobile Routes */}
               <Route path="/mobile/login" element={<MobileLogin />} />
               <Route path="/mobile/issues" element={<MobileIssues />} />
-              <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
-              <Route path="/mobile/issues/create" element={<MobileCreateIssue />} />
               <Route path="/mobile/issues/:id" element={<MobileIssueDetails />} />
+              <Route path="/mobile/issues/new" element={<MobileNewIssue />} />
+              <Route path="/mobile/new-issue" element={<MobileNewIssue />} />
+              <Route path="/mobile/sentiment" element={<MobileSentiment />} />
+
+              {/* Catch all route */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </RBACProvider>
-    </AuthProvider>
+          </RBACProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
