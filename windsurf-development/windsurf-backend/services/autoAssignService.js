@@ -1,58 +1,83 @@
 
 const { pool } = require('../config/database');
-const emailService = require('./emailService');
-const realTimeService = require('./realTimeService');
+const emailService = require('./actualEmailService');
+const auditController = require('../controllers/auditController');
 
 class AutoAssignService {
   constructor() {
-    this.assignmentRules = [
-      { role: 'admin', priority: ['critical', 'high'], maxLoad: 10 },
-      { role: 'manager', priority: ['high', 'medium'], maxLoad: 15 },
-      { role: 'agent', priority: ['medium', 'low'], maxLoad: 20 }
-    ];
+    this.assignmentRules = {
+      'critical': { maxLoad: 3, roles: ['admin', 'manager'] },
+      'high': { maxLoad: 5, roles: ['admin', 'manager', 'agent'] },
+      'medium': { maxLoad: 8, roles: ['agent', 'manager'] },
+      'low': { maxLoad: 10, roles: ['agent'] }
+    };
   }
 
   async autoAssignIssue(issueId) {
     try {
-      const [issueRows] = await pool.execute(
-        'SELECT * FROM issues WHERE id = ?',
-        [issueId]
-      );
+      console.log(`Starting auto-assignment for issue: ${issueId}`);
 
-      if (issueRows.length === 0) {
+      // Get issue details
+      const [issue] = await pool.execute(`
+        SELECT i.*, e.city, e.cluster 
+        FROM issues i
+        LEFT JOIN employees e ON i.employee_uuid = e.id
+        WHERE i.id = ?
+      `, [issueId]);
+
+      if (issue.length === 0) {
         throw new Error('Issue not found');
       }
 
-      const issue = issueRows[0];
-      
-      if (issue.assigned_to) {
-        console.log(`Issue ${issueId} already assigned to ${issue.assigned_to}`);
+      const issueData = issue[0];
+
+      if (issueData.assigned_to) {
+        console.log(`Issue ${issueId} already assigned to ${issueData.assigned_to}`);
         return null;
       }
 
-      const assignee = await this.findBestAssignee(issue);
-      
-      if (assignee) {
-        await this.assignIssueToUser(issueId, assignee.id);
-        
-        // Send notifications
-        const [employeeRows] = await pool.execute(
-          'SELECT * FROM employees WHERE id = ?',
-          [issue.employee_uuid]
-        );
-        
-        if (employeeRows.length > 0) {
-          await emailService.sendAssignmentEmail(issue, assignee, employeeRows[0]);
-        }
-        
-        realTimeService.notifyAssignment(issueId, assignee.id, 'system');
-        
-        console.log(`Issue ${issueId} auto-assigned to ${assignee.name}`);
-        return assignee;
+      // Find best assignee
+      const assignee = await this.findBestAssignee(issueData);
+
+      if (!assignee) {
+        console.log(`No suitable assignee found for issue ${issueId}`);
+        return null;
       }
 
-      console.log(`No suitable assignee found for issue ${issueId}`);
-      return null;
+      // Assign the issue
+      await pool.execute(`
+        UPDATE issues 
+        SET assigned_to = ?, updated_at = NOW()
+        WHERE id = ?
+      `, [assignee.id, issueId]);
+
+      // Log assignment in audit trail
+      await auditController.logAction(
+        'auto_assigned',
+        issueId,
+        'system',
+        {
+          assigned_to: assignee.id,
+          assignee_name: assignee.name,
+          assignment_reason: 'auto_assignment',
+          workload: assignee.current_load
+        }
+      );
+
+      // Send email notification
+      try {
+        await emailService.sendIssueAssignmentEmail(
+          assignee.email,
+          assignee.name,
+          issueData
+        );
+      } catch (emailError) {
+        console.error('Failed to send assignment email:', emailError);
+      }
+
+      console.log(`Issue ${issueId} auto-assigned to ${assignee.name} (${assignee.email})`);
+      return assignee;
+
     } catch (error) {
       console.error('Auto assignment error:', error);
       throw error;
@@ -61,121 +86,77 @@ class AutoAssignService {
 
   async findBestAssignee(issue) {
     try {
-      // Find users who can handle this priority level
-      const suitableRoles = this.assignmentRules
-        .filter(rule => rule.priority.includes(issue.priority))
-        .map(rule => rule.role);
+      const priority = issue.priority;
+      const city = issue.city;
+      const cluster = issue.cluster;
 
-      if (suitableRoles.length === 0) {
+      const rules = this.assignmentRules[priority];
+      if (!rules) {
+        console.error(`No assignment rules found for priority: ${priority}`);
         return null;
       }
 
-      // Get available users with their current workload
-      const [users] = await pool.execute(`
+      // Build role filter
+      const roleFilter = rules.roles.map(() => '?').join(',');
+      
+      // Find available agents with their current workload
+      const [agents] = await pool.execute(`
         SELECT 
-          du.id, 
-          du.name, 
-          du.email, 
+          du.id,
+          du.name,
+          du.email,
           du.role,
+          du.city as agent_city,
+          du.cluster as agent_cluster,
           COUNT(i.id) as current_load
         FROM dashboard_users du
-        LEFT JOIN issues i ON i.assigned_to = du.id AND i.status NOT IN ('closed', 'resolved')
-        WHERE du.role IN (${suitableRoles.map(() => '?').join(',')})
-        GROUP BY du.id, du.name, du.email, du.role
-        ORDER BY current_load ASC, RAND()
-      `, suitableRoles);
+        LEFT JOIN issues i ON i.assigned_to = du.id 
+          AND i.status NOT IN ('closed', 'resolved')
+        WHERE du.role IN (${roleFilter})
+          AND du.id IS NOT NULL
+        GROUP BY du.id, du.name, du.email, du.role, du.city, du.cluster
+        HAVING current_load < ?
+        ORDER BY 
+          CASE 
+            WHEN du.city = ? THEN 1 
+            ELSE 2 
+          END,
+          CASE 
+            WHEN du.cluster = ? THEN 1 
+            ELSE 2 
+          END,
+          current_load ASC,
+          RAND()
+        LIMIT 1
+      `, [...rules.roles, rules.maxLoad, city, cluster]);
 
-      // Find user with lowest workload within limits
-      for (const user of users) {
-        const rule = this.assignmentRules.find(r => r.role === user.role);
-        if (rule && user.current_load < rule.maxLoad) {
-          return user;
-        }
+      if (agents.length === 0) {
+        // No agents available within load limits, try with higher capacity
+        console.log(`No agents within load limit for priority ${priority}, trying with relaxed rules`);
+        
+        const [backupAgents] = await pool.execute(`
+          SELECT 
+            du.id,
+            du.name,
+            du.email,
+            du.role,
+            COUNT(i.id) as current_load
+          FROM dashboard_users du
+          LEFT JOIN issues i ON i.assigned_to = du.id 
+            AND i.status NOT IN ('closed', 'resolved')
+          WHERE du.role IN (${roleFilter})
+          GROUP BY du.id, du.name, du.email, du.role
+          ORDER BY current_load ASC, RAND()
+          LIMIT 1
+        `, rules.roles);
+
+        return backupAgents.length > 0 ? backupAgents[0] : null;
       }
 
-      // If all users are at capacity, assign to the one with least load
-      return users.length > 0 ? users[0] : null;
+      return agents[0];
+
     } catch (error) {
       console.error('Error finding best assignee:', error);
-      throw error;
-    }
-  }
-
-  async assignIssueToUser(issueId, userId) {
-    try {
-      const [result] = await pool.execute(
-        'UPDATE issues SET assigned_to = ?, updated_at = NOW() WHERE id = ?',
-        [userId, issueId]
-      );
-
-      // Log assignment in audit trail
-      await pool.execute(`
-        INSERT INTO issue_audit_trail (issue_id, employee_uuid, action, details)
-        VALUES (?, ?, 'auto_assigned', JSON_OBJECT('assigned_to', ?))
-      `, [issueId, 'system', userId]);
-
-      return result.affectedRows > 0;
-    } catch (error) {
-      console.error('Error assigning issue to user:', error);
-      throw error;
-    }
-  }
-
-  async escalateOverdueIssues() {
-    try {
-      // Find issues that are overdue (more than 48 hours without update)
-      const [overdueIssues] = await pool.execute(`
-        SELECT * FROM issues 
-        WHERE status NOT IN ('closed', 'resolved') 
-        AND updated_at < DATE_SUB(NOW(), INTERVAL 48 HOUR)
-        AND priority != 'critical'
-      `);
-
-      for (const issue of overdueIssues) {
-        await this.escalateIssue(issue);
-      }
-
-      console.log(`Escalated ${overdueIssues.length} overdue issues`);
-      return overdueIssues.length;
-    } catch (error) {
-      console.error('Error escalating overdue issues:', error);
-      throw error;
-    }
-  }
-
-  async escalateIssue(issue) {
-    try {
-      const priorityEscalation = {
-        'low': 'medium',
-        'medium': 'high',
-        'high': 'critical'
-      };
-
-      const newPriority = priorityEscalation[issue.priority] || issue.priority;
-      
-      if (newPriority !== issue.priority) {
-        await pool.execute(
-          'UPDATE issues SET priority = ?, updated_at = NOW() WHERE id = ?',
-          [newPriority, issue.id]
-        );
-
-        // Log escalation
-        await pool.execute(`
-          INSERT INTO issue_audit_trail (issue_id, employee_uuid, action, previous_status, new_status, details)
-          VALUES (?, ?, 'escalated', ?, ?, JSON_OBJECT('reason', 'overdue'))
-        `, [issue.id, 'system', issue.priority, newPriority]);
-
-        // Notify about escalation
-        realTimeService.notifyIssueUpdate(issue.id, 'issue_escalated', {
-          oldPriority: issue.priority,
-          newPriority: newPriority,
-          reason: 'overdue'
-        });
-
-        console.log(`Issue ${issue.id} escalated from ${issue.priority} to ${newPriority}`);
-      }
-    } catch (error) {
-      console.error('Error escalating individual issue:', error);
       throw error;
     }
   }
@@ -185,16 +166,104 @@ class AutoAssignService {
       const [stats] = await pool.execute(`
         SELECT 
           du.role,
-          COUNT(i.id) as assigned_count,
-          AVG(DATEDIFF(NOW(), i.created_at)) as avg_age_days
+          du.name,
+          COUNT(i.id) as assigned_issues,
+          COUNT(CASE WHEN i.status IN ('resolved', 'closed') THEN 1 END) as resolved_issues,
+          AVG(CASE WHEN i.status IN ('resolved', 'closed') 
+              THEN TIMESTAMPDIFF(HOUR, i.created_at, i.closed_at) END) as avg_resolution_hours
         FROM dashboard_users du
-        LEFT JOIN issues i ON i.assigned_to = du.id AND i.status NOT IN ('closed', 'resolved')
-        GROUP BY du.role
+        LEFT JOIN issues i ON i.assigned_to = du.id
+        WHERE du.role IN ('admin', 'manager', 'agent')
+        GROUP BY du.id, du.role, du.name
+        ORDER BY du.role, assigned_issues DESC
       `);
 
       return stats;
     } catch (error) {
       console.error('Error getting assignment stats:', error);
+      throw error;
+    }
+  }
+
+  async rebalanceWorkload() {
+    try {
+      console.log('Starting workload rebalancing...');
+
+      // Find overloaded agents
+      const [overloadedAgents] = await pool.execute(`
+        SELECT 
+          du.id,
+          du.name,
+          du.role,
+          COUNT(i.id) as current_load
+        FROM dashboard_users du
+        LEFT JOIN issues i ON i.assigned_to = du.id 
+          AND i.status NOT IN ('closed', 'resolved')
+        WHERE du.role IN ('admin', 'manager', 'agent')
+        GROUP BY du.id, du.name, du.role
+        HAVING current_load > 10
+        ORDER BY current_load DESC
+      `);
+
+      let rebalancedCount = 0;
+
+      for (const agent of overloadedAgents) {
+        // Get oldest unresolved issues from this agent
+        const [issues] = await pool.execute(`
+          SELECT id, priority, created_at
+          FROM issues 
+          WHERE assigned_to = ? 
+            AND status NOT IN ('closed', 'resolved')
+          ORDER BY created_at ASC
+          LIMIT 3
+        `, [agent.id]);
+
+        for (const issue of issues) {
+          // Try to reassign to less loaded agent
+          const newAssignee = await this.findBestAssignee({
+            priority: issue.priority,
+            city: null, // Remove city preference for rebalancing
+            cluster: null
+          });
+
+          if (newAssignee && newAssignee.id !== agent.id) {
+            await pool.execute(`
+              UPDATE issues 
+              SET assigned_to = ?, updated_at = NOW()
+              WHERE id = ?
+            `, [newAssignee.id, issue.id]);
+
+            await auditController.logAction(
+              'reassigned',
+              issue.id,
+              'system',
+              {
+                from_agent: agent.id,
+                to_agent: newAssignee.id,
+                reason: 'workload_rebalancing'
+              }
+            );
+
+            rebalancedCount++;
+          }
+        }
+      }
+
+      console.log(`Workload rebalancing completed. ${rebalancedCount} issues reassigned.`);
+      return rebalancedCount;
+
+    } catch (error) {
+      console.error('Error rebalancing workload:', error);
+      throw error;
+    }
+  }
+
+  async updateAssignmentRules(priority, maxLoad, roles) {
+    try {
+      this.assignmentRules[priority] = { maxLoad, roles };
+      console.log(`Assignment rules updated for priority ${priority}:`, { maxLoad, roles });
+    } catch (error) {
+      console.error('Error updating assignment rules:', error);
       throw error;
     }
   }

@@ -1,141 +1,140 @@
 
-const db = require('../config/database');
+const { pool } = require('../config/database');
 
-// Role hierarchy and permissions
-const ROLE_HIERARCHY = {
-  'admin': ['admin', 'security-admin', 'agent', 'employee'],
-  'security-admin': ['security-admin', 'agent', 'employee'],
-  'agent': ['agent', 'employee'],
-  'employee': ['employee']
-};
+const checkPermission = (permission) => {
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required'
+        });
+      }
 
-const PERMISSIONS = {
-  // Issue permissions
-  'issues:create': ['admin', 'security-admin', 'agent', 'employee'],
-  'issues:view_own': ['admin', 'security-admin', 'agent', 'employee'],
-  'issues:view_all': ['admin', 'security-admin', 'agent'],
-  'issues:update': ['admin', 'security-admin', 'agent'],
-  'issues:delete': ['admin'],
-  'issues:assign': ['admin', 'security-admin', 'agent'],
-  
-  // Comment permissions
-  'comments:create': ['admin', 'security-admin', 'agent', 'employee'],
-  'comments:view': ['admin', 'security-admin', 'agent', 'employee'],
-  'comments:internal': ['admin', 'security-admin', 'agent'],
-  
-  // User management permissions
-  'users:create': ['admin'],
-  'users:view': ['admin', 'security-admin'],
-  'users:update': ['admin'],
-  'users:delete': ['admin'],
-  
-  // Analytics permissions
-  'analytics:view': ['admin', 'security-admin'],
-  'analytics:export': ['admin', 'security-admin'],
-  
-  // Feedback permissions
-  'feedback:view': ['admin', 'security-admin'],
-  'feedback:analytics': ['admin', 'security-admin']
-};
+      const userId = req.user.id;
 
-// Check if user has permission
-const hasPermission = (userRole, permission) => {
-  const allowedRoles = PERMISSIONS[permission];
-  return allowedRoles && allowedRoles.includes(userRole);
-};
+      // Check if user has the specific permission
+      const [permissions] = await pool.execute(`
+        SELECT COUNT(*) as count
+        FROM user_permissions
+        WHERE user_id = ? AND permission_key = ?
+      `, [userId, permission]);
 
-// Check if user can access higher role
-const canAccessRole = (userRole, targetRole) => {
-  const accessibleRoles = ROLE_HIERARCHY[userRole];
-  return accessibleRoles && accessibleRoles.includes(targetRole);
-};
+      if (permissions[0].count === 0) {
+        return res.status(403).json({
+          success: false,
+          error: `Insufficient permissions. Required: ${permission}`
+        });
+      }
 
-// Middleware to check permissions
-const requirePermission = (permission) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    
-    if (!hasPermission(req.user.role, permission)) {
-      return res.status(403).json({ 
-        error: 'Insufficient permissions',
-        required: permission,
-        userRole: req.user.role
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Permission check failed'
       });
     }
-    
-    next();
   };
 };
 
-// Middleware to check resource ownership
-const requireOwnership = (getResourceOwner) => {
+const checkAnyPermission = (permissionList) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required'
+        });
       }
-      
-      // Admin and security-admin can access everything
-      if (['admin', 'security-admin'].includes(req.user.role)) {
-        return next();
+
+      const userId = req.user.id;
+      const placeholders = permissionList.map(() => '?').join(',');
+
+      // Check if user has any of the specified permissions
+      const [permissions] = await pool.execute(`
+        SELECT COUNT(*) as count
+        FROM user_permissions
+        WHERE user_id = ? AND permission_key IN (${placeholders})
+      `, [userId, ...permissionList]);
+
+      if (permissions[0].count === 0) {
+        return res.status(403).json({
+          success: false,
+          error: `Insufficient permissions. Required one of: ${permissionList.join(', ')}`
+        });
       }
-      
-      const ownerId = await getResourceOwner(req);
-      
-      if (ownerId !== req.user.id) {
-        return res.status(403).json({ error: 'Access denied - resource not owned by user' });
-      }
-      
+
       next();
     } catch (error) {
-      console.error('Ownership check error:', error);
-      res.status(500).json({ error: 'Authorization check failed' });
+      console.error('Permission check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Permission check failed'
+      });
     }
   };
 };
 
-// Get issue owner helper
-const getIssueOwner = async (req) => {
-  const { id } = req.params;
-  const [issues] = await db.execute('SELECT employee_uuid FROM issues WHERE id = ?', [id]);
-  return issues.length > 0 ? issues[0].employee_uuid : null;
-};
-
-// Middleware combinations
-const requireIssueAccess = requireOwnership(getIssueOwner);
-
-// Dynamic permission checker for complex scenarios
-const checkDynamicPermission = (permissionChecker) => {
+const checkResourceOwnership = (resourceType) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
-        return res.status(401).json({ error: 'Authentication required' });
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required'
+        });
       }
-      
-      const hasAccess = await permissionChecker(req.user, req);
-      
-      if (!hasAccess) {
-        return res.status(403).json({ error: 'Access denied' });
+
+      const userId = req.user.id;
+      const resourceId = req.params.id;
+
+      let query;
+      switch (resourceType) {
+        case 'issue':
+          query = 'SELECT COUNT(*) as count FROM issues WHERE id = ? AND employee_uuid = ?';
+          break;
+        case 'feedback':
+          query = 'SELECT COUNT(*) as count FROM ticket_feedback WHERE id = ? AND employee_uuid = ?';
+          break;
+        default:
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid resource type'
+          });
       }
-      
+
+      const [result] = await pool.execute(query, [resourceId, userId]);
+
+      if (result[0].count === 0) {
+        // Check if user has admin permissions as fallback
+        const [adminCheck] = await pool.execute(`
+          SELECT COUNT(*) as count
+          FROM user_permissions
+          WHERE user_id = ? AND permission_key IN ('manage:all', 'admin:access')
+        `, [userId]);
+
+        if (adminCheck[0].count === 0) {
+          return res.status(403).json({
+            success: false,
+            error: 'You can only access your own resources'
+          });
+        }
+      }
+
       next();
     } catch (error) {
-      console.error('Dynamic permission check error:', error);
-      res.status(500).json({ error: 'Permission check failed' });
+      console.error('Resource ownership check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Ownership check failed'
+      });
     }
   };
 };
 
 module.exports = {
-  hasPermission,
-  canAccessRole,
-  requirePermission,
-  requireOwnership,
-  requireIssueAccess,
-  checkDynamicPermission,
-  getIssueOwner,
-  PERMISSIONS,
-  ROLE_HIERARCHY
+  checkPermission,
+  checkAnyPermission,
+  checkResourceOwnership
 };
