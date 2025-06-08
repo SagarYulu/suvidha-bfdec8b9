@@ -1,196 +1,228 @@
 
-const { pool } = require('../config/database');
+const analyticsService = require('../services/analyticsService');
+const tatService = require('../services/tatService');
+const slaService = require('../services/slaService');
+const sentimentService = require('../services/sentimentService');
+const { validationResult } = require('express-validator');
 
-const analyticsController = {
-  // Get dashboard metrics
+class AnalyticsController {
   async getDashboardMetrics(req, res) {
     try {
-      // Get total issues count
-      const [totalIssues] = await pool.execute(
-        'SELECT COUNT(*) as count FROM issues'
-      );
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: errors.array()
+        });
+      }
 
-      // Get open issues count
-      const [openIssues] = await pool.execute(
-        'SELECT COUNT(*) as count FROM issues WHERE status = "open"'
-      );
-
-      // Get in progress issues count
-      const [inProgressIssues] = await pool.execute(
-        'SELECT COUNT(*) as count FROM issues WHERE status = "in_progress"'
-      );
-
-      // Get resolved issues count
-      const [resolvedIssues] = await pool.execute(
-        'SELECT COUNT(*) as count FROM issues WHERE status = "resolved"'
-      );
-
-      // Get closed issues count
-      const [closedIssues] = await pool.execute(
-        'SELECT COUNT(*) as count FROM issues WHERE status = "closed"'
-      );
-
-      // Get total users count
-      const [totalUsers] = await pool.execute(
-        'SELECT COUNT(*) as count FROM dashboard_users'
-      );
-
-      // Get issues by priority
-      const [issuesByPriority] = await pool.execute(`
-        SELECT priority, COUNT(*) as count 
-        FROM issues 
-        GROUP BY priority
-      `);
-
-      // Get issues by type
-      const [issuesByType] = await pool.execute(`
-        SELECT type_id, COUNT(*) as count 
-        FROM issues 
-        GROUP BY type_id 
-        ORDER BY count DESC 
-        LIMIT 10
-      `);
-
-      // Get recent issues
-      const [recentIssues] = await pool.execute(`
-        SELECT i.*, e.name as employee_name, e.email as employee_email
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        ORDER BY i.created_at DESC 
-        LIMIT 10
-      `);
-
-      // Get issues trend (last 7 days)
-      const [issuesTrend] = await pool.execute(`
-        SELECT 
-          DATE(created_at) as date,
-          COUNT(*) as count
-        FROM issues 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-      `);
-
+      const filters = req.query;
+      
+      // Get core metrics
+      const metrics = await analyticsService.getDashboardMetrics(filters);
+      const tatMetrics = await tatService.getTATMetrics(filters);
+      const slaMetrics = await slaService.getSLAMetrics(filters);
+      
       res.json({
+        success: true,
         data: {
-          metrics: {
-            total_issues: totalIssues[0].count,
-            open_issues: openIssues[0].count,
-            in_progress_issues: inProgressIssues[0].count,
-            resolved_issues: resolvedIssues[0].count,
-            closed_issues: closedIssues[0].count,
-            total_users: totalUsers[0].count
-          },
-          charts: {
-            issues_by_priority: issuesByPriority,
-            issues_by_type: issuesByType,
-            issues_trend: issuesTrend
-          },
-          recent_issues: recentIssues
+          ...metrics,
+          tat: tatMetrics,
+          sla: slaMetrics
         }
       });
     } catch (error) {
-      console.error('Get dashboard metrics error:', error);
-      res.status(500).json({ error: 'Failed to fetch dashboard metrics' });
-    }
-  },
-
-  // Get issue analytics
-  async getIssueAnalytics(req, res) {
-    try {
-      const { timeframe = '30' } = req.query; // days
-
-      // Get issues created over time
-      const [issuesOverTime] = await pool.execute(`
-        SELECT 
-          DATE(created_at) as date,
-          COUNT(*) as count
-        FROM issues 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY DATE(created_at)
-        ORDER BY date ASC
-      `, [parseInt(timeframe)]);
-
-      // Get resolution time analytics
-      const [resolutionTimes] = await pool.execute(`
-        SELECT 
-          AVG(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as avg_resolution_hours,
-          MIN(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as min_resolution_hours,
-          MAX(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as max_resolution_hours
-        FROM issues 
-        WHERE status = 'closed' 
-        AND closed_at IS NOT NULL
-        AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-      `, [parseInt(timeframe)]);
-
-      // Get issues by status distribution
-      const [statusDistribution] = await pool.execute(`
-        SELECT 
-          status,
-          COUNT(*) as count,
-          ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM issues WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)), 2) as percentage
-        FROM issues 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY status
-      `, [parseInt(timeframe), parseInt(timeframe)]);
-
-      // Get issues by priority distribution
-      const [priorityDistribution] = await pool.execute(`
-        SELECT 
-          priority,
-          COUNT(*) as count,
-          ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM issues WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)), 2) as percentage
-        FROM issues 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY priority
-      `, [parseInt(timeframe), parseInt(timeframe)]);
-
-      // Get top issue types
-      const [topIssueTypes] = await pool.execute(`
-        SELECT 
-          type_id,
-          COUNT(*) as count
-        FROM issues 
-        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY type_id
-        ORDER BY count DESC
-        LIMIT 10
-      `, [parseInt(timeframe)]);
-
-      // Get agent performance (issues resolved)
-      const [agentPerformance] = await pool.execute(`
-        SELECT 
-          du.name as agent_name,
-          COUNT(*) as resolved_count
-        FROM issues i
-        JOIN dashboard_users du ON i.assigned_to = du.id
-        WHERE i.status = 'resolved' 
-        AND i.closed_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY i.assigned_to, du.name
-        ORDER BY resolved_count DESC
-        LIMIT 10
-      `, [parseInt(timeframe)]);
-
-      res.json({
-        data: {
-          timeframe: `${timeframe} days`,
-          issues_over_time: issuesOverTime,
-          resolution_times: resolutionTimes[0] || {
-            avg_resolution_hours: 0,
-            min_resolution_hours: 0,
-            max_resolution_hours: 0
-          },
-          status_distribution: statusDistribution,
-          priority_distribution: priorityDistribution,
-          top_issue_types: topIssueTypes,
-          agent_performance: agentPerformance
-        }
+      console.error('Dashboard metrics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch dashboard metrics'
       });
-    } catch (error) {
-      console.error('Get issue analytics error:', error);
-      res.status(500).json({ error: 'Failed to fetch issue analytics' });
     }
   }
-};
 
-module.exports = analyticsController;
+  async getTATAnalytics(req, res) {
+    try {
+      const filters = req.query;
+      const tatData = await tatService.getTATMetrics(filters);
+      
+      res.json({
+        success: true,
+        data: tatData
+      });
+    } catch (error) {
+      console.error('TAT analytics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch TAT analytics'
+      });
+    }
+  }
+
+  async getIssueAnalytics(req, res) {
+    try {
+      const filters = req.query;
+      const analytics = await analyticsService.getIssueAnalytics(filters);
+      
+      res.json({
+        success: true,
+        data: analytics
+      });
+    } catch (error) {
+      console.error('Issue analytics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch issue analytics'
+      });
+    }
+  }
+
+  async getFeedbackAnalytics(req, res) {
+    try {
+      const filters = req.query;
+      const feedbackData = await analyticsService.getFeedbackAnalytics(filters);
+      const sentimentData = await sentimentService.getSentimentDistribution(
+        require('../config/database').pool, 
+        filters
+      );
+      
+      res.json({
+        success: true,
+        data: {
+          ...feedbackData,
+          sentiment: sentimentData
+        }
+      });
+    } catch (error) {
+      console.error('Feedback analytics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch feedback analytics'
+      });
+    }
+  }
+
+  async getSLAMetrics(req, res) {
+    try {
+      const filters = req.query;
+      const slaData = await slaService.getSLAMetrics(filters);
+      
+      res.json({
+        success: true,
+        data: slaData
+      });
+    } catch (error) {
+      console.error('SLA metrics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch SLA metrics'
+      });
+    }
+  }
+
+  async getSentimentTrends(req, res) {
+    try {
+      const { period = 'week' } = req.query;
+      const filters = req.query;
+      
+      const trends = await sentimentService.getSentimentTrends(
+        require('../config/database').pool,
+        period,
+        filters
+      );
+      
+      res.json({
+        success: true,
+        data: trends
+      });
+    } catch (error) {
+      console.error('Sentiment trends error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch sentiment trends'
+      });
+    }
+  }
+
+  async getPerformanceMetrics(req, res) {
+    try {
+      const filters = req.query;
+      
+      // Get user/agent performance metrics
+      const performance = await analyticsService.getAgentPerformance(filters);
+      
+      res.json({
+        success: true,
+        data: performance
+      });
+    } catch (error) {
+      console.error('Performance metrics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch performance metrics'
+      });
+    }
+  }
+
+  async exportAnalytics(req, res) {
+    try {
+      const { format = 'csv', type = 'issues' } = req.query;
+      const filters = req.query;
+      
+      const exportData = await analyticsService.exportData(type, format, filters);
+      
+      // Set appropriate headers for file download
+      const filename = `${type}_analytics_${new Date().toISOString().split('T')[0]}.${format}`;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel');
+      
+      res.send(exportData);
+    } catch (error) {
+      console.error('Export analytics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to export analytics'
+      });
+    }
+  }
+
+  async getRealtimeMetrics(req, res) {
+    try {
+      // Get current real-time metrics for dashboard
+      const realtimeData = await analyticsService.getRealtimeMetrics();
+      
+      res.json({
+        success: true,
+        data: realtimeData,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Realtime metrics error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to fetch realtime metrics'
+      });
+    }
+  }
+
+  async checkSLABreaches(req, res) {
+    try {
+      // Manual trigger for SLA breach check
+      const result = await slaService.checkSLABreaches();
+      
+      res.json({
+        success: true,
+        message: 'SLA breach check completed',
+        data: result
+      });
+    } catch (error) {
+      console.error('SLA breach check error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to check SLA breaches'
+      });
+    }
+  }
+}
+
+module.exports = new AnalyticsController();

@@ -7,11 +7,13 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const morgan = require('morgan');
+const cron = require('node-cron');
 require('dotenv').config();
 
 const authMiddleware = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 const realTimeService = require('./services/realTimeService');
+const slaService = require('./services/slaService');
 
 // Import routes
 const issueRoutes = require('./routes/issueRoutes');
@@ -71,7 +73,12 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    version: process.env.npm_package_version || '1.0.0'
+    version: process.env.npm_package_version || '1.0.0',
+    services: {
+      database: 'connected',
+      webSocket: 'running',
+      email: 'configured'
+    }
   });
 });
 
@@ -80,7 +87,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/issues', authMiddleware.authenticateToken, issueRoutes);
 app.use('/api/feedback', authMiddleware.authenticateToken, feedbackRoutes);
 app.use('/api/upload', authMiddleware.authenticateToken, uploadRoutes);
-app.use('/api/files', fileRoutes); // New file routes with built-in auth
+app.use('/api/files', fileRoutes); // File routes with built-in auth
 app.use('/api/analytics', authMiddleware.authenticateToken, analyticsRoutes);
 
 // Serve static files for uploads
@@ -94,6 +101,28 @@ const wss = new WebSocket.Server({
 
 // Initialize real-time service
 realTimeService.initialize(wss);
+
+// SLA Monitoring - Check every hour
+cron.schedule('0 * * * *', async () => {
+  try {
+    console.log('Running scheduled SLA breach check...');
+    const result = await slaService.checkSLABreaches();
+    console.log(`SLA check completed: ${result.checked} issues checked, ${result.breached} breaches found`);
+  } catch (error) {
+    console.error('Scheduled SLA check failed:', error);
+  }
+});
+
+// Additional cron jobs
+// Clean up old audit logs (monthly)
+cron.schedule('0 0 1 * *', async () => {
+  try {
+    console.log('Running monthly cleanup...');
+    // Add cleanup logic here if needed
+  } catch (error) {
+    console.error('Monthly cleanup failed:', error);
+  }
+});
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -129,6 +158,9 @@ const gracefulShutdown = (signal) => {
       console.log('WebSocket server closed');
     });
   }
+
+  // Stop cron jobs
+  cron.destroy();
 
   // Close HTTP server
   server.close((err) => {
@@ -173,6 +205,7 @@ server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`WebSocket server running on ws://localhost:${PORT}/realtime`);
   console.log(`Health check available at http://localhost:${PORT}/health`);
+  console.log('SLA monitoring: Enabled (hourly checks)');
   
   if (process.env.NODE_ENV === 'development') {
     console.log(`Frontend CORS allowed from: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);

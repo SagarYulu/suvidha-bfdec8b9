@@ -1,164 +1,156 @@
 
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CheckCircle, Clock, AlertCircle, XCircle } from 'lucide-react';
+
+interface TimelineEvent {
+  id: string;
+  status: string;
+  timestamp: string;
+  user?: string;
+  description?: string;
+}
 
 interface Issue {
   id: string;
   status: string;
   created_at: string;
   updated_at: string;
+  closed_at?: string;
+  priority: string;
+  description: string;
 }
 
 interface StatusTimelineProps {
   issues: Issue[];
 }
 
+const getStatusIcon = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'resolved':
+    case 'closed':
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
+    case 'in_progress':
+    case 'in progress':
+      return <Clock className="w-4 h-4 text-blue-500" />;
+    case 'open':
+      return <AlertCircle className="w-4 h-4 text-orange-500" />;
+    default:
+      return <XCircle className="w-4 h-4 text-gray-500" />;
+  }
+};
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'resolved':
+    case 'closed':
+      return 'bg-green-100 text-green-800';
+    case 'in_progress':
+    case 'in progress':
+      return 'bg-blue-100 text-blue-800';
+    case 'open':
+      return 'bg-orange-100 text-orange-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+};
+
+const formatTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / 60000);
+  
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes}m ago`;
+  } else if (diffInMinutes < 1440) {
+    return `${Math.floor(diffInMinutes / 60)}h ago`;
+  } else {
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  }
+};
+
 export const StatusTimeline: React.FC<StatusTimelineProps> = ({ issues }) => {
-  // Process issues to create timeline data
-  const processTimelineData = () => {
-    const statusCounts: { [date: string]: { [status: string]: number } } = {};
-    
-    // Get last 30 days
-    const last30Days = Array.from({ length: 30 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (29 - i));
-      return date.toISOString().split('T')[0];
-    });
-    
-    // Initialize counts
-    last30Days.forEach(date => {
-      statusCounts[date] = {
-        open: 0,
-        in_progress: 0,
-        resolved: 0,
-        closed: 0
-      };
-    });
-    
-    // Count issues by date and status
-    issues.forEach(issue => {
-      const issueDate = new Date(issue.created_at).toISOString().split('T')[0];
-      if (statusCounts[issueDate]) {
-        statusCounts[issueDate][issue.status] = (statusCounts[issueDate][issue.status] || 0) + 1;
-      }
-    });
-    
-    // Convert to chart format
-    return last30Days.map(date => ({
-      date,
-      dateLabel: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      open: statusCounts[date].open,
-      in_progress: statusCounts[date].in_progress,
-      resolved: statusCounts[date].resolved,
-      closed: statusCounts[date].closed
-    }));
-  };
+  // Sort issues by most recent activity
+  const sortedIssues = [...issues].sort((a, b) => 
+    new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+  ).slice(0, 10); // Show only last 10 activities
 
-  const timelineData = processTimelineData();
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const total = payload.reduce((sum: number, item: any) => sum + item.value, 0);
-      return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium mb-2">{label}</p>
-          {payload.map((item: any) => (
-            <p key={item.dataKey} className="text-sm" style={{ color: item.color }}>
-              {item.name}: {item.value}
-            </p>
-          ))}
-          <p className="text-sm font-medium mt-1 pt-1 border-t">
-            Total: {total}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
-  if (issues.length === 0) {
+  if (!sortedIssues.length) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="flex items-center justify-center h-64 text-gray-500">
         <div className="text-center">
-          <p className="text-lg font-medium">No timeline data</p>
-          <p className="text-sm">Issue timeline will appear when issues are created</p>
+          <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+          <p className="text-lg font-medium">No recent activity</p>
+          <p className="text-sm">Issue timeline will appear here</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart
-          data={timelineData}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="dateLabel" 
-            tick={{ fontSize: 12 }}
-            interval="preserveStartEnd"
-          />
-          <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip content={<CustomTooltip />} />
-          <Line 
-            type="monotone" 
-            dataKey="open" 
-            stroke="#EF4444" 
-            strokeWidth={2}
-            name="Open"
-            dot={{ fill: '#EF4444', strokeWidth: 2, r: 3 }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="in_progress" 
-            stroke="#F59E0B" 
-            strokeWidth={2}
-            name="In Progress"
-            dot={{ fill: '#F59E0B', strokeWidth: 2, r: 3 }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="resolved" 
-            stroke="#10B981" 
-            strokeWidth={2}
-            name="Resolved"
-            dot={{ fill: '#10B981', strokeWidth: 2, r: 3 }}
-          />
-          <Line 
-            type="monotone" 
-            dataKey="closed" 
-            stroke="#6B7280" 
-            strokeWidth={2}
-            name="Closed"
-            dot={{ fill: '#6B7280', strokeWidth: 2, r: 3 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-      
-      {/* Legend */}
-      <div className="mt-4 flex justify-center space-x-6">
-        {[
-          { name: 'Open', color: '#EF4444' },
-          { name: 'In Progress', color: '#F59E0B' },
-          { name: 'Resolved', color: '#10B981' },
-          { name: 'Closed', color: '#6B7280' }
-        ].map(({ name, color }) => (
-          <div key={name} className="flex items-center">
-            <div 
-              className="w-3 h-3 rounded-full mr-2" 
-              style={{ backgroundColor: color }}
-            ></div>
-            <span className="text-sm text-gray-600">{name}</span>
+    <div className="space-y-4 max-h-96 overflow-y-auto">
+      {sortedIssues.map((issue, index) => (
+        <div key={issue.id} className="flex items-start space-x-3">
+          {/* Timeline connector */}
+          <div className="flex flex-col items-center">
+            <div className="p-1 bg-white border-2 border-gray-200 rounded-full">
+              {getStatusIcon(issue.status)}
+            </div>
+            {index < sortedIssues.length - 1 && (
+              <div className="w-px h-12 bg-gray-200 mt-2" />
+            )}
           </div>
-        ))}
-      </div>
+          
+          {/* Event content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <span 
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(issue.status)}`}
+                >
+                  {issue.status.replace('_', ' ').toUpperCase()}
+                </span>
+                <span className="text-xs text-gray-500">
+                  #{issue.id.slice(0, 8)}
+                </span>
+              </div>
+              <span className="text-xs text-gray-400">
+                {formatTimeAgo(issue.updated_at)}
+              </span>
+            </div>
+            
+            <p className="text-sm text-gray-700 mt-1 truncate">
+              {issue.description}
+            </p>
+            
+            {/* Priority indicator */}
+            <div className="flex items-center mt-2 space-x-2">
+              <span className={`px-2 py-0.5 rounded text-xs ${
+                issue.priority === 'high' || issue.priority === 'critical' 
+                  ? 'bg-red-100 text-red-700'
+                  : issue.priority === 'medium'
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-gray-100 text-gray-700'
+              }`}>
+                {issue.priority.toUpperCase()}
+              </span>
+              <span className="text-xs text-gray-500">
+                Created {formatTimeAgo(issue.created_at)}
+              </span>
+            </div>
+          </div>
+        </div>
+      ))}
+      
+      {/* View more indicator */}
+      {issues.length > 10 && (
+        <div className="text-center pt-4 border-t border-gray-200">
+          <button className="text-sm text-blue-600 hover:text-blue-800">
+            View all activity →
+          </button>
+        </div>
+      )}
     </div>
   );
 };
+
+export default StatusTimeline;
