@@ -1,17 +1,28 @@
 
 const express = require('express');
-const router = express.Router();
 const feedbackController = require('../controllers/feedbackController');
-const auth = require('../middleware/auth');
-const validation = require('../middleware/validation');
+const { body } = require('express-validator');
 
-// Get feedback analytics
-router.get('/analytics', auth, feedbackController.getFeedbackAnalytics);
+const router = express.Router();
 
-// Submit feedback
-router.post('/', auth, validation.validateRequest(validation.schemas.submitFeedback), feedbackController.submitFeedback);
+// Validation middleware
+const submitFeedbackValidation = [
+  body('sentiment').isIn(['positive', 'neutral', 'negative']).withMessage('Invalid sentiment'),
+  body('feedbackText').notEmpty().withMessage('Feedback text is required'),
+  body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5'),
+  body('category').notEmpty().withMessage('Category is required'),
+  body('employeeId').notEmpty().withMessage('Employee ID is required')
+];
 
-// Get feedback by ID
-router.get('/:id', auth, feedbackController.getFeedbackById);
+// Mobile feedback routes
+router.post('/submit', submitFeedbackValidation, feedbackController.submitFeedback);
+router.get('/history/:employeeId', feedbackController.getFeedbackHistory);
+router.get('/analytics/:employeeId', feedbackController.getEmployeeFeedbackAnalytics);
+
+// Admin feedback analytics routes
+router.get('/admin/analytics', feedbackController.getAdminFeedbackAnalytics);
+router.get('/admin/export', feedbackController.exportFeedbackData);
+router.get('/admin/sentiment-trends', feedbackController.getSentimentTrends);
+router.get('/admin/category-analysis', feedbackController.getCategoryAnalysis);
 
 module.exports = router;

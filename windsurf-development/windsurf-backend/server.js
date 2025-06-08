@@ -38,6 +38,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/mobile', mobileRoutes);
+app.use('/api/feedback', require('./routes/feedback'));
 app.use('/api/analytics', analyticsRoutes);
 
 // Health check endpoint

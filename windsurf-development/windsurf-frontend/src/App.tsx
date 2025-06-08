@@ -33,6 +33,7 @@ import MobileIssues from './pages/mobile/Issues';
 import MobileNewIssue from './pages/mobile/NewIssue';
 import MobileIssueDetails from './pages/mobile/IssueDetails';
 import MobileProfile from './pages/mobile/Profile';
+import MobileFeedback from './pages/mobile/Feedback';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -85,6 +86,7 @@ function App() {
                   <Route path="issues" element={<MobileIssues />} />
                   <Route path="issues/:id" element={<MobileIssueDetails />} />
                   <Route path="new-issue" element={<MobileNewIssue />} />
+                  <Route path="feedback" element={<MobileFeedback />} />
                   <Route path="profile" element={<MobileProfile />} />
                 </Route>
 

@@ -1,4 +1,3 @@
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 interface LoginCredentials {
@@ -94,6 +93,29 @@ class MobileApiService {
 
   async getIssueComments(issueId: string) {
     return this.request(`/mobile/issues/${issueId}/comments`);
+  }
+
+  // Feedback
+  async submitFeedback(feedback: {
+    sentiment: string;
+    feedbackText: string;
+    rating: number;
+    category: string;
+    employeeId: string;
+    issueId?: string;
+  }) {
+    return this.request('/mobile/feedback', {
+      method: 'POST',
+      body: JSON.stringify(feedback),
+    });
+  }
+
+  async getFeedbackHistory(employeeId: string) {
+    return this.request(`/mobile/feedback/history/${employeeId}`);
+  }
+
+  async getFeedbackAnalytics(employeeId: string) {
+    return this.request(`/mobile/feedback/analytics/${employeeId}`);
   }
 
   // Profile
