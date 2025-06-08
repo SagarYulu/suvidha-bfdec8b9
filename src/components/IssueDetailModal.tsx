@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { StatusTimeline } from './StatusTimeline';
 import { FeedbackWidget } from './FeedbackWidget';
 import { MessageCircle, Clock, User, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import EscalationPanel from '@/components/admin/issues/EscalationPanel';
 
 interface Issue {
   id: string;
@@ -127,6 +127,11 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
     }
   };
 
+  const handleEscalationChange = () => {
+    // Refresh issue details when escalation changes
+    fetchIssueDetails();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -176,6 +181,17 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
               <h3 className="font-medium mb-2">Description</h3>
               <p className="text-gray-700">{issue.description}</p>
             </div>
+
+            {/* Add Escalation Panel */}
+            <EscalationPanel
+              issueId={issue.id}
+              currentStatus={issue.status}
+              currentLevel={issue.escalation_level || 0}
+              escalatedAt={issue.escalated_at}
+              priority={issue.priority}
+              createdAt={issue.created_at}
+              onEscalationChange={handleEscalationChange}
+            />
 
             {/* Comments Section */}
             <div className="space-y-4">

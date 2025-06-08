@@ -15,6 +15,7 @@ import IssueLoading from "@/components/admin/issues/IssueLoading";
 import IssueError from "@/components/admin/issues/IssueError";
 import IssueMappingSection from "@/components/admin/issues/IssueMappingSection";
 import InternalCommentSection from "@/components/admin/issues/InternalCommentSection";
+import EscalationPanel from "@/components/admin/issues/EscalationPanel";
 import { useRBAC } from "@/contexts/RBACContext";
 
 const AdminIssueDetails = () => {
@@ -61,6 +62,11 @@ const AdminIssueDetails = () => {
     hasPermission("create:dashboardUser") || // HR Admin permission
     hasPermission("manage:users") // Super Admin permission
   );
+
+  const handleEscalationChange = () => {
+    // Refresh issue data when escalation status changes
+    setIssue(prev => prev ? { ...prev } : null);
+  };
 
   if (isLoading) {
     return <IssueLoading />;
@@ -136,6 +142,17 @@ const AdminIssueDetails = () => {
               isAssigning={isAssigning}
               onAssigneeSelect={setSelectedAssignee}
               onAssign={handleAssignIssue}
+            />
+
+            {/* Add Escalation Panel */}
+            <EscalationPanel
+              issueId={issue.id}
+              currentStatus={issue.status}
+              currentLevel={issue.escalation_level || 0}
+              escalatedAt={issue.escalated_at}
+              priority={issue.priority}
+              createdAt={issue.created_at}
+              onEscalationChange={handleEscalationChange}
             />
             
             <IssueActivity issue={issue} />
