@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRBAC } from '@/contexts/RBACContext';
@@ -153,7 +152,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
     }
     
     // Check if we're in analytics pages
-    if (location.pathname.includes('/admin/analytics')) {
+    if (location.pathname.includes('/admin/analytics') || location.pathname.includes('/admin/feedback-analytics') || location.pathname.includes('/admin/sentiment-analysis')) {
       setOpenMenus(prev => ({
         ...prev,
         analytics: true
@@ -244,6 +243,18 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
               label="Issue Analytics" 
               isActive={location.pathname === "/admin/analytics"}
             />
+            <SidebarLink 
+              href="/admin/feedback-analytics" 
+              icon={BarChart2} 
+              label="Feedback Analytics" 
+              isActive={location.pathname === "/admin/feedback-analytics"}
+            />
+            <SidebarLink 
+              href="/admin/sentiment-analysis" 
+              icon={BarChart2} 
+              label="Sentiment Analysis" 
+              isActive={location.pathname === "/admin/sentiment-analysis"}
+            />
           </DropdownMenu>
         )}
         
@@ -274,15 +285,8 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
           <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
         )}
         
-        {/* Feedback Analytics - Available to users with view_analytics permission */}
-        {hasPermission("view_analytics") && (
-          <SidebarLink 
-            href="/admin/feedback-analytics" 
-            icon={BarChart2} 
-            label="Feedback Analytics" 
-            isActive={location.pathname === "/admin/feedback-analytics"}
-          />
-        )}
+        {/* Test Data Generator - Available to all users */}
+        <SidebarLink href="/admin/test-data" icon={TestTube} label="Test Data Generator" />
       </div>
 
       <div className="p-4 border-t">

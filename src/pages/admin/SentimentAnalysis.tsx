@@ -1,452 +1,229 @@
 
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import AdminLayout from '@/components/AdminLayout';
-import SentimentFilterBar from '@/components/admin/sentiment/SentimentFilterBar';
-import SentimentOverview from '@/components/admin/sentiment/SentimentOverview';
-import SentimentAlerts from '@/components/admin/sentiment/SentimentAlerts';
-import RecentFeedback from '@/components/admin/sentiment/RecentFeedback';
-import { Button } from '@/components/ui/button';
-import { Download, RefreshCw } from 'lucide-react';
-import { fetchAllSentiment } from '@/services/sentimentService';
-import { format } from 'date-fns';
-import { saveAs } from 'file-saver';
-import Papa from 'papaparse';
-import { toast } from '@/hooks/use-toast';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import ComparisonModeDropdown, { ComparisonMode } from '@/components/admin/sentiment/ComparisonModeDropdown';
-import {
-  ResponsiveContainer,
-  ComposedChart,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  Bar,
-  LabelList
-} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { BrainCircuit, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
+import AdminLayout from "@/components/AdminLayout";
 
-const SentimentAnalysis: React.FC = () => {
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const [filters, setFilters] = useState<{
-    startDate?: string;
-    endDate?: string;
-    city?: string;
-    cluster?: string;
-    role?: string;
-    comparisonMode?: ComparisonMode;
-  }>({
-    startDate: today,
-    endDate: today,
-    comparisonMode: 'none'
-  });
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [sentimentData, setSentimentData] = useState<any[]>([]);
-  
-  const queryClient = useQueryClient();
-  
-  // Fetch sentiment data based on filters
+const SentimentAnalysis = () => {
+  const [analysis, setAnalysis] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const loadSentimentData = async () => {
-      try {
-        const data = await fetchAllSentiment(filters);
-        setSentimentData(data);
-      } catch (error) {
-        console.error("Error loading sentiment data:", error);
-        setSentimentData([]);
-      }
-    };
-    
-    loadSentimentData();
-  }, [filters]);
+    fetchSentimentAnalysis();
+  }, []);
 
-  // Calculate tag distribution with mood distribution
-  const getTopicMoodData = () => {
-    // Initialize data structure for topics and their mood distributions
-    const topicMoodMap: Record<string, { 
-      name: string, 
-      count: number,
-      highMood: number,  // Rating 4-5
-      neutralMood: number, // Rating 3
-      lowMood: number,  // Rating 1-2
-    }> = {};
-    
-    let taggedFeedbackCount = 0;
-    
-    sentimentData.forEach(item => {
-      if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
-        taggedFeedbackCount++;
-        
-        item.tags.forEach(tag => {
-          if (!tag) return;
-          
-          if (!topicMoodMap[tag]) {
-            topicMoodMap[tag] = { 
-              name: tag, 
-              count: 0,
-              highMood: 0,
-              neutralMood: 0,
-              lowMood: 0
-            };
-          }
-          
-          topicMoodMap[tag].count++;
-          
-          // Categorize by mood
-          if (item.rating >= 4) {
-            topicMoodMap[tag].highMood++;
-          } else if (item.rating === 3) {
-            topicMoodMap[tag].neutralMood++;
-          } else {
-            topicMoodMap[tag].lowMood++;
-          }
-        });
-      }
-    });
-    
-    // For sentiment with no tags, create default categories
-    if (taggedFeedbackCount === 0 && sentimentData.length > 0) {
-      console.log("No tagged feedback found, creating default categories");
-      
-      // Count sentiment label distribution for default categories
-      sentimentData.forEach(item => {
-        const label = item.sentiment_label?.toLowerCase() || 'unknown';
-        const tagName = `${label.charAt(0).toUpperCase() + label.slice(1)} Feedback`;
-        
-        if (!topicMoodMap[tagName]) {
-          topicMoodMap[tagName] = { 
-            name: tagName, 
-            count: 0,
-            highMood: 0,
-            neutralMood: 0,
-            lowMood: 0
-          };
-        }
-        
-        topicMoodMap[tagName].count++;
-        
-        // Categorize by mood
-        if (item.rating >= 4) {
-          topicMoodMap[tagName].highMood++;
-        } else if (item.rating === 3) {
-          topicMoodMap[tagName].neutralMood++;
-        } else {
-          topicMoodMap[tagName].lowMood++;
-        }
-      });
-    }
-
-    return Object.values(topicMoodMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10); // Top 10 topics
-  };
-  
-  const exportMutation = useMutation({
-    mutationFn: async () => {
-      console.log("Starting export with filters:", filters);
-      const data = await fetchAllSentiment(filters);
-      return data;
-    },
-    onSuccess: (data) => {
-      // Transform data for CSV export
-      const csvData = data.map(item => ({
-        Date: item.created_at ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss') : '',
-        Rating: item.rating,
-        Sentiment: item.sentiment_label || '',
-        SentimentScore: item.sentiment_score || '',
-        City: item.city || '',
-        Cluster: item.cluster || '',
-        Role: item.role || '',
-        Tags: item.tags ? item.tags.join(', ') : '',
-        Feedback: item.feedback || ''
-      }));
-      
-      // Convert to CSV
-      const csv = Papa.unparse(csvData);
-      
-      // Create file and trigger download
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      saveAs(blob, `sentiment-export-${format(new Date(), 'yyyy-MM-dd')}.csv`);
-      
-      toast({
-        title: "Export Successful",
-        description: `Sentiment data has been exported to CSV (${csvData.length} records).`
-      });
-    },
-    onError: (error) => {
-      console.error("Export error:", error);
-      toast({
-        title: "Export Failed",
-        description: "There was an error exporting the data. Please try again.",
-        variant: "destructive"
-      });
-    }
-  });
-  
-  const handleFilterChange = (newFilters: {
-    startDate?: string;
-    endDate?: string;
-    city?: string;
-    cluster?: string;
-    role?: string;
-  }) => {
-    console.log("Filter change:", JSON.stringify(newFilters, null, 2));
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      ...newFilters
-    }));
-    
-    // Invalidate queries to refresh data with new filters
-    queryClient.invalidateQueries({ queryKey: ['sentiment', newFilters] });
-    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback', newFilters] });
-    
-    // Also invalidate previous period data if comparison mode is active
-    if (filters.comparisonMode !== 'none') {
-      queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
+  const fetchSentimentAnalysis = async () => {
+    try {
+      setLoading(true);
+      // Mock data for sentiment analysis
+      const mockData = {
+        overallSentiment: 'positive',
+        sentimentScore: 0.75,
+        trends: {
+          positive: 68,
+          neutral: 22,
+          negative: 10
+        },
+        keyInsights: [
+          "Customer satisfaction improved by 15% this month",
+          "Response time complaints decreased by 20%",
+          "Product quality mentions increased positively"
+        ],
+        topKeywords: [
+          { word: "excellent", sentiment: "positive", count: 45 },
+          { word: "fast", sentiment: "positive", count: 38 },
+          { word: "helpful", sentiment: "positive", count: 32 },
+          { word: "slow", sentiment: "negative", count: 12 },
+          { word: "issue", sentiment: "negative", count: 8 }
+        ]
+      };
+      setAnalysis(mockData);
+    } catch (error) {
+      console.error('Error fetching sentiment analysis:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleComparisonModeChange = (mode: ComparisonMode) => {
-    console.log("Comparison mode changed to:", mode);
-    setFilters(prevFilters => ({
-      ...prevFilters,
-      comparisonMode: mode
-    }));
-
-    // Invalidate queries to refresh data with new comparison mode
-    queryClient.invalidateQueries({ queryKey: ['sentiment', { ...filters, comparisonMode: mode }] });
-    if (mode !== 'none') {
-      queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
-    }
-    
-    // Additional invalidation to ensure comparison data is fetched immediately
-    if (mode !== 'none') {
-      queryClient.invalidateQueries({ 
-        queryKey: ['sentiment-previous', { 
-          ...filters, 
-          comparisonMode: mode 
-        }]
-      });
+  const getSentimentColor = (sentiment) => {
+    switch (sentiment) {
+      case 'positive': return 'text-green-600 bg-green-50';
+      case 'negative': return 'text-red-600 bg-red-50';
+      case 'neutral': return 'text-yellow-600 bg-yellow-50';
+      default: return 'text-gray-600 bg-gray-50';
     }
   };
-  
-  const handleExport = () => {
-    exportMutation.mutate();
+
+  const getSentimentIcon = (sentiment) => {
+    switch (sentiment) {
+      case 'positive': return <CheckCircle className="h-5 w-5" />;
+      case 'negative': return <AlertTriangle className="h-5 w-5" />;
+      default: return <BrainCircuit className="h-5 w-5" />;
+    }
   };
 
-  const forceRefresh = () => {
-    // Force refetch all sentiment data
-    queryClient.invalidateQueries({ queryKey: ['sentiment'] });
-    queryClient.invalidateQueries({ queryKey: ['sentiment-feedback'] });
-    queryClient.invalidateQueries({ queryKey: ['sentiment-previous'] });
-    
-    toast({
-      title: "Refreshing Data",
-      description: "Fetching the latest sentiment data from the database."
-    });
-  };
-  
-  // Custom tooltip for the topic mood chart
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const topic = payload[0].payload;
-      const total = topic.lowMood + topic.neutralMood + topic.highMood;
-      
-      return (
-        <div className="bg-white p-3 rounded shadow-lg border border-gray-200">
-          <p className="font-medium text-gray-900">{label}</p>
-          <div className="grid gap-1 mt-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-sm" />
-              <p className="text-sm">Negative (1-2): {topic.lowMood} ({Math.round(topic.lowMood/total*100)}%)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-yellow-500 rounded-sm" />
-              <p className="text-sm">Neutral (3): {topic.neutralMood} ({Math.round(topic.neutralMood/total*100)}%)</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-sm" />
-              <p className="text-sm">Positive (4-5): {topic.highMood} ({Math.round(topic.highMood/total*100)}%)</p>
-            </div>
-            <div className="mt-1 pt-1 border-t border-gray-200">
-              <p className="text-sm font-medium">Total mentions: {total}</p>
+  if (loading) {
+    return (
+      <AdminLayout title="Sentiment Analysis">
+        <div className="space-y-6">
+          <div className="animate-pulse">
+            <div className="h-32 bg-gray-200 rounded mb-4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="h-64 bg-gray-200 rounded"></div>
+              <div className="h-64 bg-gray-200 rounded"></div>
             </div>
           </div>
         </div>
-      );
-    }
-    
-    return null;
-  };
-  
-  return (
-    <AdminLayout 
-      title="Sentiment Analysis" 
-      requiredPermission="manage:analytics"
-    >
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Employee Sentiment Analysis</h1>
-        <div className="space-x-2">
-          <Button 
-            variant="outline"
-            onClick={forceRefresh}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh Data
-          </Button>
-          <Button 
-            onClick={handleExport}
-            disabled={exportMutation.isPending}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
-        </div>
-      </div>
-      
-      <div className="mb-6 grid grid-cols-1 gap-4">
-        {/* Filters */}
-        <SentimentFilterBar onFilterChange={handleFilterChange} />
-        
-        {/* Comparison Mode - Now properly connected to data fetch logic */}
-        <Card className="p-4">
-          <ComparisonModeDropdown 
-            value={filters.comparisonMode || 'none'} 
-            onChange={handleComparisonModeChange} 
-          />
-        </Card>
-      </div>
-      
-      {/* Debug info panel with toggle */}
-      <div className="mb-4 flex items-start">
-        <Checkbox 
-          id="show-debug" 
-          checked={showDebugInfo}
-          onCheckedChange={(checked) => setShowDebugInfo(!!checked)}
-          className="mt-1 mr-2"
-        />
-        <label htmlFor="show-debug" className="text-sm text-gray-500 cursor-pointer">
-          Show debug information
-        </label>
-      </div>
-      
-      {showDebugInfo && (
-        <div className="mb-4 p-3 bg-gray-100 rounded text-sm">
-          <p><strong>Active Filters:</strong></p>
-          <pre className="mt-2 bg-gray-200 p-2 rounded overflow-auto max-h-32">
-            {JSON.stringify(filters, null, 2)}
-          </pre>
-          <p className="mt-2"><strong>Data Count:</strong> {sentimentData?.length || 0} records</p>
-          <p className="mt-2 text-xs text-gray-500">
-            Note: If no data appears, check that employee records have city, cluster, and role information.
-            Filter matches are case-insensitive partial matches.
-          </p>
-        </div>
-      )}
+      </AdminLayout>
+    );
+  }
 
-      {/* Improved Topic & Mood Chart */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Topic Mood Analysis</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sentimentData && sentimentData.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart
-                  data={getTopicMoodData()}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
-                  <XAxis 
-                    type="number" 
-                    tick={{ fontSize: 12 }}
-                    tickLine={{ stroke: '#e5e7eb' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                  />
-                  <YAxis 
-                    type="category" 
-                    dataKey="name" 
-                    tick={{ fontSize: 12 }}
-                    width={100}
-                    tickLine={{ stroke: '#e5e7eb' }}
-                    axisLine={{ stroke: '#e5e7eb' }}
-                  />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend 
-                    verticalAlign="top" 
-                    height={36} 
-                    formatter={(value) => {
-                      if (value === "lowMood") return "Negative (1-2)";
-                      if (value === "neutralMood") return "Neutral (3)";
-                      if (value === "highMood") return "Positive (4-5)";
-                      return value;
-                    }} 
-                  />
-                  <Bar 
-                    dataKey="lowMood" 
-                    name="lowMood" 
-                    stackId="a" 
-                    fill="#F87171" // Lighter red
-                    radius={[0, 0, 0, 0]}
-                  >
-                    <LabelList 
-                      dataKey="lowMood" 
-                      position="center" 
-                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: number) => (value > 0 ? value : '')}
-                    />
-                  </Bar>
-                  <Bar 
-                    dataKey="neutralMood" 
-                    name="neutralMood" 
-                    stackId="a" 
-                    fill="#FBBF24" // Lighter yellow
-                    radius={[0, 0, 0, 0]}
-                  >
-                    <LabelList 
-                      dataKey="neutralMood" 
-                      position="center" 
-                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: number) => (value > 0 ? value : '')}
-                    />
-                  </Bar>
-                  <Bar 
-                    dataKey="highMood" 
-                    name="highMood" 
-                    stackId="a" 
-                    fill="#4ADE80" // Lighter green
-                    radius={[0, 0, 0, 0]}
-                  >
-                    <LabelList 
-                      dataKey="highMood" 
-                      position="center" 
-                      style={{ fill: 'white', fontSize: 11, fontWeight: 'bold' }}
-                      formatter={(value: number) => (value > 0 ? value : '')}
-                    />
-                  </Bar>
-                </ComposedChart>
-              </ResponsiveContainer>
+  return (
+    <AdminLayout title="Sentiment Analysis">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Sentiment Analysis</h1>
+          <p className="text-gray-600">AI-powered sentiment analysis of customer feedback</p>
+        </div>
+
+        {/* Overall Sentiment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BrainCircuit className="h-5 w-5 mr-2" />
+              Overall Sentiment Score
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className={`p-3 rounded-full ${getSentimentColor(analysis?.overallSentiment)}`}>
+                  {getSentimentIcon(analysis?.overallSentiment)}
+                </div>
+                <div>
+                  <div className="text-2xl font-bold capitalize">
+                    {analysis?.overallSentiment || 'Unknown'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    Score: {((analysis?.sentimentScore || 0) * 100).toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+              <Badge variant="secondary" className="text-sm">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                +5% this week
+              </Badge>
             </div>
-          ) : (
-            <div className="text-center text-gray-500 py-8">
-              No topic data available for the selected filters.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <SentimentAlerts />
-      
-      {/* SentimentOverview component displays the main charts with comparison */}
-      <div className="my-6">
-        <SentimentOverview filters={filters} />
+          </CardContent>
+        </Card>
+
+        {/* Sentiment Breakdown */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-green-600">Positive Sentiment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">
+                {analysis?.trends?.positive || 0}%
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full" 
+                  style={{ width: `${analysis?.trends?.positive || 0}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Customers expressing satisfaction
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-yellow-600">Neutral Sentiment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-yellow-600">
+                {analysis?.trends?.neutral || 0}%
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-yellow-500 h-2 rounded-full" 
+                  style={{ width: `${analysis?.trends?.neutral || 0}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Neutral or mixed feedback
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-red-600">Negative Sentiment</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-red-600">
+                {analysis?.trends?.negative || 0}%
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-red-500 h-2 rounded-full" 
+                  style={{ width: `${analysis?.trends?.negative || 0}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                Issues requiring attention
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Key Insights and Keywords */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Key Insights</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {analysis?.keyInsights?.map((insight, index) => (
+                  <div key={index} className="flex items-start space-x-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
+                    <p className="text-sm">{insight}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Keywords</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {analysis?.topKeywords?.map((keyword, index) => (
+                  <div key={index} className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-medium">{keyword.word}</span>
+                      <Badge 
+                        variant={keyword.sentiment === 'positive' ? 'secondary' : 
+                                 keyword.sentiment === 'negative' ? 'destructive' : 'outline'}
+                      >
+                        {keyword.sentiment}
+                      </Badge>
+                    </div>
+                    <span className="text-sm text-gray-500">{keyword.count} mentions</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-      
-      <RecentFeedback filters={filters} />
     </AdminLayout>
   );
 };

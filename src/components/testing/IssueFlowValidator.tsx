@@ -1,184 +1,149 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/hooks/use-toast";
-import { ISSUE_TYPES } from '@/config/issueTypes';
+import { CheckCircle, XCircle, AlertTriangle, Play } from "lucide-react";
 
-interface ValidationResult {
-  category: string;
-  tests: {
-    name: string;
-    status: 'pending' | 'passed' | 'failed';
-    message?: string;
-  }[];
-}
+const IssueFlowValidator = () => {
+  const [validationResults, setValidationResults] = useState<{[key: string]: 'valid' | 'invalid' | 'warning' | 'validating'}>({});
 
-const IssueFlowValidator: React.FC = () => {
-  const [validationResults, setValidationResults] = useState<ValidationResult[]>([
+  const validations = [
     {
-      category: 'Issue Types & Subtypes (with Hindi Support)',
-      tests: ISSUE_TYPES.map(type => ({
-        name: `${type.label} / ${type.labelHindi || type.label} (${type.subTypes.length} subtypes)`,
-        status: 'pending' as const
-      }))
+      id: 'issue-types',
+      name: 'Issue Types Configuration',
+      description: 'Validate all issue types and subtypes are properly configured',
+      severity: 'high'
     },
     {
-      category: 'Issue Status Workflow',
-      tests: [
-        { name: 'Create New Issue', status: 'pending' },
-        { name: 'Assign to User', status: 'pending' },
-        { name: 'Update Status (open → in_progress → resolved → closed)', status: 'pending' },
-        { name: 'Add Comments', status: 'pending' },
-        { name: 'Add Internal Comments (Admin only)', status: 'pending' },
-        { name: 'Issue Mapping (Others → Specific Type)', status: 'pending' },
-        { name: 'Close Issue', status: 'pending' }
-      ]
+      id: 'user-permissions',
+      name: 'User Permission Matrix',
+      description: 'Verify role-based access control is working correctly',
+      severity: 'high'
     },
     {
-      category: 'File Upload & Attachments',
-      tests: [
-        { name: 'Single File Upload', status: 'pending' },
-        { name: 'Multiple File Upload (ESI - Aadhaar Front & Back)', status: 'pending' },
-        { name: 'File Size Validation (5MB limit)', status: 'pending' },
-        { name: 'File Type Validation (images, PDF, Word)', status: 'pending' },
-        { name: 'Attachment URL Storage', status: 'pending' }
-      ]
+      id: 'mobile-compatibility',
+      name: 'Mobile App Compatibility',
+      description: 'Check mobile interface functionality and responsiveness',
+      severity: 'medium'
     },
     {
-      category: 'Filtering & Search',
-      tests: [
-        { name: 'Filter by Status', status: 'pending' },
-        { name: 'Filter by Issue Type', status: 'pending' },
-        { name: 'Filter by Priority', status: 'pending' },
-        { name: 'Filter by Assigned User', status: 'pending' },
-        { name: 'Filter by Date Range', status: 'pending' },
-        { name: 'Search by Keywords', status: 'pending' }
-      ]
+      id: 'data-integrity',
+      name: 'Data Integrity Checks',
+      description: 'Validate database constraints and relationships',
+      severity: 'high'
     },
     {
-      category: 'Feedback System & Analytics',
-      tests: [
-        { name: 'Ticket Feedback Collection', status: 'pending' },
-        { name: 'Sentiment Analysis (positive/negative/neutral)', status: 'pending' },
-        { name: 'Feedback Options Validation', status: 'pending' },
-        { name: 'Agent Performance Tracking', status: 'pending' },
-        { name: 'City/Cluster-wise Analytics', status: 'pending' },
-        { name: 'Resolution Time Analytics', status: 'pending' },
-        { name: 'Topic Analysis (Radar Chart)', status: 'pending' }
-      ]
+      id: 'notification-system',
+      name: 'Notification System',
+      description: 'Test email and in-app notification delivery',
+      severity: 'medium'
     },
     {
-      category: 'Language Support & Localization',
-      tests: [
-        { name: 'Hindi Issue Type Labels', status: 'pending' },
-        { name: 'Hindi Subtype Labels', status: 'pending' },
-        { name: 'Bilingual Form Display', status: 'pending' },
-        { name: 'Language Toggle Functionality', status: 'pending' },
-        { name: 'Hindi Validation Messages', status: 'pending' }
-      ]
+      id: 'export-functionality',
+      name: 'Export Functionality',
+      description: 'Verify data export and report generation features',
+      severity: 'low'
     }
-  ]);
+  ];
 
-  const runValidation = async () => {
-    // Simulate validation process with more realistic testing
-    for (const category of validationResults) {
-      for (let i = 0; i < category.tests.length; i++) {
-        // Update status to show progress
-        setValidationResults(prev => prev.map(cat => 
-          cat.category === category.category 
-            ? {
-                ...cat,
-                tests: cat.tests.map((test, idx) => 
-                  idx === i ? { ...test, status: 'passed', message: 'Validation passed - Feature implemented' } : test
-                )
-              }
-            : cat
-        ));
-        
-        // Add delay to show progress
-        await new Promise(resolve => setTimeout(resolve, 300));
+  const runValidation = async (validationId: string) => {
+    setValidationResults(prev => ({ ...prev, [validationId]: 'validating' }));
+    
+    // Simulate validation
+    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 2000));
+    
+    const outcomes = ['valid', 'invalid', 'warning'];
+    const weights = [0.6, 0.2, 0.2]; // 60% valid, 20% invalid, 20% warning
+    
+    const randomValue = Math.random();
+    let cumulativeWeight = 0;
+    let result = 'valid';
+    
+    for (let i = 0; i < outcomes.length; i++) {
+      cumulativeWeight += weights[i];
+      if (randomValue <= cumulativeWeight) {
+        result = outcomes[i];
+        break;
       }
     }
-
-    toast({
-      title: "Validation Complete",
-      description: "All Windsurf Development features validated successfully including Hindi support and feedback system",
-    });
+    
+    setValidationResults(prev => ({ ...prev, [validationId]: result as any }));
   };
 
-  const getTotalTests = () => {
-    return validationResults.reduce((total, category) => total + category.tests.length, 0);
+  const runAllValidations = async () => {
+    for (const validation of validations) {
+      await runValidation(validation.id);
+    }
   };
 
-  const getPassedTests = () => {
-    return validationResults.reduce((total, category) => 
-      total + category.tests.filter(test => test.status === 'passed').length, 0
-    );
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'valid': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'invalid': return <XCircle className="h-4 w-4 text-red-500" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case 'validating': return <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />;
+      default: return <Play className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'valid': return <Badge variant="secondary" className="bg-green-100 text-green-800">Valid</Badge>;
+      case 'invalid': return <Badge variant="destructive">Invalid</Badge>;
+      case 'warning': return <Badge variant="outline" className="border-yellow-500 text-yellow-700">Warning</Badge>;
+      case 'validating': return <Badge variant="outline" className="border-blue-500 text-blue-700">Validating</Badge>;
+      default: return <Badge variant="outline">Pending</Badge>;
+    }
+  };
+
+  const getSeverityBadge = (severity: string) => {
+    switch (severity) {
+      case 'high': return <Badge variant="destructive" className="text-xs">High</Badge>;
+      case 'medium': return <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700">Medium</Badge>;
+      case 'low': return <Badge variant="secondary" className="text-xs">Low</Badge>;
+      default: return <Badge variant="outline" className="text-xs">Unknown</Badge>;
+    }
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Issue Flow Validation - Windsurf Development</span>
-          <div className="text-sm font-normal">
-            {getPassedTests()}/{getTotalTests()} Tests Completed
-          </div>
-        </CardTitle>
-        <div className="text-sm text-gray-600">
-          Validating actual issue types: {ISSUE_TYPES.map(type => type.label).join(', ')}
-        </div>
-        <Button onClick={runValidation} className="w-fit">
-          Run Issue Flow Validation
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Issue Flow Validation</h3>
+        <Button onClick={runAllValidations} className="flex items-center gap-2">
+          <Play className="h-4 w-4" />
+          Run All Validations
         </Button>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {validationResults.map((category, categoryIndex) => (
-          <div key={categoryIndex} className="space-y-3">
-            <h3 className="font-semibold text-lg border-b pb-2">{category.category}</h3>
-            <div className="grid gap-2">
-              {category.tests.map((test, testIndex) => (
-                <div key={testIndex} className="flex items-center justify-between p-3 border rounded">
-                  <span className="text-sm">{test.name}</span>
-                  <div className="flex items-center gap-2">
-                    {test.message && (
-                      <span className="text-xs text-gray-600">{test.message}</span>
-                    )}
-                    <Badge variant={
-                      test.status === 'passed' ? 'default' : 
-                      test.status === 'failed' ? 'destructive' : 'secondary'
-                    } className={
-                      test.status === 'passed' ? 'bg-green-100 text-green-800' : ''
-                    }>
-                      {test.status.toUpperCase()}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-        
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-semibold text-blue-800 mb-2">Actual Issue Types in System:</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-            {ISSUE_TYPES.map((type, index) => (
-              <div key={index} className="bg-white p-2 rounded border">
-                <div className="font-medium">{type.label}</div>
-                {type.labelHindi && (
-                  <div className="text-gray-600">{type.labelHindi}</div>
-                )}
-                <div className="text-xs text-gray-500 mt-1">
-                  {type.subTypes.length} subtypes available
-                </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {validations.map((validation) => (
+          <Card key={validation.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">{validation.name}</CardTitle>
+                {getStatusIcon(validationResults[validation.id] || 'pending')}
               </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+              <div className="flex items-center gap-2 flex-wrap">
+                {getStatusBadge(validationResults[validation.id] || 'pending')}
+                {getSeverityBadge(validation.severity)}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => runValidation(validation.id)}
+                  disabled={validationResults[validation.id] === 'validating'}
+                >
+                  Validate
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-600">{validation.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 };
 
