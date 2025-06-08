@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import AdminLayout from "@/components/AdminLayout";
+import { generateTestSentimentData } from "@/services/sentimentService";
 
 const TestDataGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -16,27 +17,19 @@ const TestDataGenerator = () => {
   const handleGenerateData = async () => {
     try {
       setIsGenerating(true);
-      // Mock data generation simulation
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const mockResult = {
-        employeesProcessed: 150,
-        totalEntriesCreated: 500,
-        success: true
-      };
-      
-      setResults(mockResult);
+      const result = await generateTestSentimentData();
+      setResults(result);
       toast({
         variant: "default",
-        title: "Test Data Generated",
-        description: "Test data has been successfully generated."
+        title: "Test Data Generator",
+        description: "Sentiment functionality has been removed from this application."
       });
     } catch (error) {
       console.error("Error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "An error occurred while generating test data."
+        description: "An error occurred while processing your request."
       });
     } finally {
       setIsGenerating(false);
@@ -50,7 +43,7 @@ const TestDataGenerator = () => {
           <CardHeader>
             <CardTitle>Generate Test Data</CardTitle>
             <CardDescription>
-              Generate sample data for testing and development purposes.
+              This feature has been disabled as sentiment functionality has been removed.
             </CardDescription>
           </CardHeader>
           <CardContent>

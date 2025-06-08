@@ -69,7 +69,6 @@ const App = () => (
               <Route path="/admin/sentiment-analysis" element={<SentimentAnalysis />} />
               <Route path="/admin/test-data" element={<TestDataGenerator />} />
               <Route path="/admin/test-dashboard" element={<TestDashboard />} />
-              <Route path="/admin/exports" element={<DatabaseExport />} />
 
               {/* Mobile Routes */}
               <Route path="/mobile/login" element={<MobileLogin />} />

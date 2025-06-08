@@ -1,192 +1,195 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare, TrendingUp, Star, Users } from "lucide-react";
+import AdminLayout from "@/components/AdminLayout";
+import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
+import { Loader2, AlertTriangle, FileText } from 'lucide-react';
+import FeedbackFiltersPanel from './FeedbackFiltersPanel';
+import FeedbackMetricsOverview from './FeedbackMetricsOverview';
+import FeedbackInsightsSummary from './FeedbackInsightsSummary';
+import SentimentDistributionChart from './SentimentDistributionChart';
+import FeedbackHierarchyChart from './FeedbackHierarchyChart';
+import FeedbackSubmissionRate from './FeedbackSubmissionRate';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { exportToCSV } from '@/utils/csvExportUtils';
+import { formatDateToDDMMYYYY } from '@/utils/dateUtils';
 
-const FeedbackAnalyticsPage = () => {
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
-
+const FeedbackAnalyticsPage: React.FC = () => {
+  const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  const {
+    isLoading,
+    error,
+    metrics,
+    comparisonMetrics,
+    rawData,
+    filters,
+    updateFilters,
+    toggleComparison
+  } = useFeedbackAnalytics();
+  
+  // Mark as initialized after first load
   useEffect(() => {
-    fetchFeedbackAnalytics();
-  }, []);
-
-  const fetchFeedbackAnalytics = async () => {
-    try {
-      setLoading(true);
-      // Mock data for now
-      const mockData = {
-        totalFeedback: 156,
-        averageRating: 4.2,
-        responseRate: 78.5,
-        sentimentBreakdown: {
-          positive: 65,
-          neutral: 25,
-          negative: 10
-        },
-        recentFeedback: [
-          { id: 1, rating: 5, comment: "Excellent service!", date: new Date() },
-          { id: 2, rating: 4, comment: "Good experience overall", date: new Date() },
-          { id: 3, rating: 3, comment: "Average service", date: new Date() }
-        ]
-      };
-      setAnalytics(mockData);
-    } catch (error) {
-      console.error('Error fetching feedback analytics:', error);
-    } finally {
-      setLoading(false);
+    if (!isInitialized && !isLoading) {
+      setIsInitialized(true);
     }
+  }, [isLoading, isInitialized]);
+  
+  // Handle comparison toggle
+  const handleComparisonToggle = (enabled: boolean) => {
+    setIsComparisonEnabled(enabled);
+    toggleComparison(enabled);
   };
 
-  if (loading) {
+  // Handle export data to CSV
+  const handleExportData = () => {
+    if (!rawData || rawData.length === 0) return;
+    
+    // Format data for export with date in DD-MM-YYYY format
+    const formattedData = rawData.map(item => {
+      // Convert date from ISO to DD-MM-YYYY
+      const formattedDate = item.created_at ? formatDateToDDMMYYYY(item.created_at) : 'N/A';
+      
+      return {
+        'Feedback ID': item.id,
+        'Issue ID': item.issue_id,
+        'Employee ID': item.employee_uuid,
+        'Date': formattedDate,
+        'Sentiment': item.sentiment,
+        'Feedback Option': item.feedback_option,
+        'Cluster': item.cluster || 'N/A',
+        'City': item.city || 'N/A',
+        'Agent ID': item.agent_id || 'N/A',
+        'Agent Name': item.agent_name || 'N/A'
+      };
+    });
+    
+    // Generate filename with current date
+    const today = new Date();
+    const dateStr = today.toISOString().split('T')[0];
+    const filename = `feedback-data-export-${dateStr}.csv`;
+    
+    // Export to CSV
+    exportToCSV(formattedData, filename);
+  };
+  
+  const renderContent = () => {
+    if (isLoading && !isInitialized) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg shadow p-6">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+          <span className="text-lg">Loading feedback data...</span>
+        </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Error loading feedback data: {error.message}
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    if (!metrics || metrics.totalCount === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-center bg-white rounded-lg shadow p-6">
+          <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+          <h3 className="text-xl font-medium">No feedback data available</h3>
+          <p className="text-muted-foreground mt-2">
+            Try changing your filters or check if feedback has been submitted for the selected period.
+          </p>
+        </div>
+      );
+    }
+    
     return (
       <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-32 bg-gray-200 rounded mb-4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="h-48 bg-gray-200 rounded"></div>
-            <div className="h-48 bg-gray-200 rounded"></div>
-            <div className="h-48 bg-gray-200 rounded"></div>
-          </div>
-        </div>
+        {/* Feedback Submission Rate - Positioned above Metrics Overview */}
+        <FeedbackSubmissionRate
+          totalFeedback={metrics.totalCount}
+          totalClosedTickets={metrics.totalClosedTickets || 0}
+          submissionRate={metrics.feedbackSubmissionRate || 0}
+        />
+        
+        {/* Insights Summary */}
+        <FeedbackInsightsSummary 
+          insights={metrics.insightData || []}
+          showComparison={isComparisonEnabled}
+        />
+        
+        {/* Metrics Overview */}
+        <FeedbackMetricsOverview 
+          metrics={metrics} 
+          comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
+          comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
+        />
+        
+        {/* Feedback Hierarchy Chart */}
+        <FeedbackHierarchyChart 
+          data={metrics.hierarchyData || []}
+          totalCount={metrics.totalCount}
+        />
+        
+        {/* Sentiment Distribution Chart */}
+        <SentimentDistributionChart 
+          data={metrics.trendData} 
+          showComparison={isComparisonEnabled}
+          title="Sentiment Distribution Over Time"
+        />
       </div>
     );
-  }
-
+  };
+  
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Feedback Analytics</h1>
-        <p className="text-gray-600">Customer feedback insights and sentiment analysis</p>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Feedback</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics?.totalFeedback || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline mr-1" />
-              +12% from last month
+    <AdminLayout title="Feedback Analytics">
+      <div className="space-y-6">
+        {/* Header with Export Button */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Feedback Analytics</h2>
+            <p className="text-muted-foreground">
+              Analyze and visualize customer feedback data
             </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics?.averageRating || 0}/5</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline mr-1" />
-              +0.3 from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics?.responseRate || 0}%</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline mr-1" />
-              +5% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Satisfaction Score</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">84%</div>
-            <p className="text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3 inline mr-1" />
-              +2% from last month
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Sentiment Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Sentiment Breakdown</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>Positive</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{analytics?.sentimentBreakdown?.positive || 0}%</span>
-                  <Badge variant="secondary">Good</Badge>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span>Neutral</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{analytics?.sentimentBreakdown?.neutral || 0}%</span>
-                  <Badge variant="outline">Average</Badge>
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Negative</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{analytics?.sentimentBreakdown?.negative || 0}%</span>
-                  <Badge variant="destructive">Needs Attention</Badge>
-                </div>
+          </div>
+          <Button 
+            onClick={handleExportData} 
+            className="ml-auto" 
+            disabled={!rawData || rawData.length === 0 || isLoading}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Export Data
+          </Button>
+        </div>
+        
+        {/* Filters Panel */}
+        <FeedbackFiltersPanel 
+          filters={filters}
+          onFilterChange={updateFilters}
+          isComparisonEnabled={isComparisonEnabled}
+          onComparisonToggle={handleComparisonToggle}
+        />
+        
+        {/* Loading state overlay for subsequent data loads */}
+        <div className="relative">
+          {isLoading && isInitialized && (
+            <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10 rounded-lg">
+              <div className="flex items-center space-x-2 px-6 py-3 bg-white border rounded-lg shadow-sm">
+                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                <span className="font-medium">Updating data...</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Feedback</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics?.recentFeedback?.map((feedback) => (
-                <div key={feedback.id} className="border-l-4 border-blue-200 pl-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center space-x-2">
-                      <Star className="h-4 w-4 text-yellow-500" />
-                      <span className="font-medium">{feedback.rating}/5</span>
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {feedback.date.toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-700">{feedback.comment}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+          )}
+          
+          {/* Main Content */}
+          {renderContent()}
+        </div>
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 

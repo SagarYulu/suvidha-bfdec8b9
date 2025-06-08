@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 
 import BaseLayout from './layouts/BaseLayout';
 import AdminHeader from './layouts/headers/AdminHeader';
-import { AdminSidebar } from './layouts/sidebars/AdminSidebar';
+import AdminSidebar from './layouts/sidebars/AdminSidebar';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -58,7 +59,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
       } 
       sidebar={
-        <AdminSidebar />
+        <AdminSidebar onLogout={handleLogout} />
       }
       className={className}
     >
