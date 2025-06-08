@@ -1,215 +1,192 @@
 
-const { pool } = require('../config/database');
+const db = require('../config/database');
 
 class RBACService {
+  // Check if user has role
+  async hasRole(userId, roleName) {
+    try {
+      const query = `
+        SELECT ur.id 
+        FROM rbac_user_roles ur
+        JOIN rbac_roles r ON ur.role_id = r.id
+        WHERE ur.user_id = ? AND r.name = ?
+      `;
+      
+      const [rows] = await db.execute(query, [userId, roleName]);
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error checking user role:', error);
+      return false;
+    }
+  }
+  
+  // Check if user has permission
+  async hasPermission(userId, permissionName) {
+    try {
+      const query = `
+        SELECT rp.id 
+        FROM rbac_user_roles ur
+        JOIN rbac_role_permissions rp ON ur.role_id = rp.role_id
+        JOIN rbac_permissions p ON rp.permission_id = p.id
+        WHERE ur.user_id = ? AND p.name = ?
+      `;
+      
+      const [rows] = await db.execute(query, [userId, permissionName]);
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error checking user permission:', error);
+      return false;
+    }
+  }
+  
   // Get user roles
   async getUserRoles(userId) {
     try {
-      const [roles] = await pool.execute(`
-        SELECT r.id, r.name, r.description
-        FROM rbac_roles r
-        JOIN rbac_user_roles ur ON r.id = ur.role_id
+      const query = `
+        SELECT r.name, r.description 
+        FROM rbac_user_roles ur
+        JOIN rbac_roles r ON ur.role_id = r.id
         WHERE ur.user_id = ?
-      `, [userId]);
+      `;
       
-      return roles;
+      const [rows] = await db.execute(query, [userId]);
+      return rows;
     } catch (error) {
       console.error('Error getting user roles:', error);
-      throw error;
+      return [];
     }
   }
-
+  
   // Get user permissions
   async getUserPermissions(userId) {
     try {
-      const [permissions] = await pool.execute(`
-        SELECT DISTINCT p.id, p.name, p.description
-        FROM rbac_permissions p
-        JOIN rbac_role_permissions rp ON p.id = rp.permission_id
-        JOIN rbac_user_roles ur ON rp.role_id = ur.role_id
+      const query = `
+        SELECT DISTINCT p.name, p.description 
+        FROM rbac_user_roles ur
+        JOIN rbac_role_permissions rp ON ur.role_id = rp.role_id
+        JOIN rbac_permissions p ON rp.permission_id = p.id
         WHERE ur.user_id = ?
-      `, [userId]);
+      `;
       
-      return permissions;
+      const [rows] = await db.execute(query, [userId]);
+      return rows;
     } catch (error) {
       console.error('Error getting user permissions:', error);
-      throw error;
+      return [];
     }
   }
-
-  // Check if user has specific permission
-  async userHasPermission(userId, permissionName) {
-    try {
-      const [result] = await pool.execute(`
-        SELECT COUNT(*) as count
-        FROM rbac_permissions p
-        JOIN rbac_role_permissions rp ON p.id = rp.permission_id
-        JOIN rbac_user_roles ur ON rp.role_id = ur.role_id
-        WHERE ur.user_id = ? AND p.name = ?
-      `, [userId, permissionName]);
-      
-      return result[0].count > 0;
-    } catch (error) {
-      console.error('Error checking user permission:', error);
-      throw error;
-    }
-  }
-
-  // Check if user has specific role
-  async userHasRole(userId, roleName) {
-    try {
-      const [result] = await pool.execute(`
-        SELECT COUNT(*) as count
-        FROM rbac_roles r
-        JOIN rbac_user_roles ur ON r.id = ur.role_id
-        WHERE ur.user_id = ? AND r.name = ?
-      `, [userId, roleName]);
-      
-      return result[0].count > 0;
-    } catch (error) {
-      console.error('Error checking user role:', error);
-      throw error;
-    }
-  }
-
+  
   // Assign role to user
-  async assignRole(userId, roleId) {
+  async assignRole(userId, roleName) {
     try {
-      await pool.execute(`
-        INSERT INTO rbac_user_roles (user_id, role_id)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE user_id = user_id
-      `, [userId, roleId]);
+      // Get role ID
+      const roleQuery = 'SELECT id FROM rbac_roles WHERE name = ?';
+      const [roleRows] = await db.execute(roleQuery, [roleName]);
       
+      if (roleRows.length === 0) {
+        throw new Error(`Role '${roleName}' not found`);
+      }
+      
+      const roleId = roleRows[0].id;
+      
+      // Assign role
+      const assignQuery = `
+        INSERT IGNORE INTO rbac_user_roles (user_id, role_id) 
+        VALUES (?, ?)
+      `;
+      
+      await db.execute(assignQuery, [userId, roleId]);
       return true;
     } catch (error) {
       console.error('Error assigning role:', error);
       throw error;
     }
   }
-
+  
   // Remove role from user
-  async removeRole(userId, roleId) {
+  async removeRole(userId, roleName) {
     try {
-      const [result] = await pool.execute(`
-        DELETE FROM rbac_user_roles
-        WHERE user_id = ? AND role_id = ?
-      `, [userId, roleId]);
+      const query = `
+        DELETE ur FROM rbac_user_roles ur
+        JOIN rbac_roles r ON ur.role_id = r.id
+        WHERE ur.user_id = ? AND r.name = ?
+      `;
       
+      const [result] = await db.execute(query, [userId, roleName]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error removing role:', error);
       throw error;
     }
   }
-
-  // Get all roles
-  async getAllRoles() {
+  
+  // Check if user owns resource
+  async canAccessResource(userId, resourceType, resourceId) {
     try {
-      const [roles] = await pool.execute(`
-        SELECT id, name, description, created_at, updated_at
-        FROM rbac_roles
-        ORDER BY name
-      `);
-      
-      return roles;
+      switch (resourceType) {
+        case 'issue':
+          return await this.canAccessIssue(userId, resourceId);
+        case 'comment':
+          return await this.canAccessComment(userId, resourceId);
+        default:
+          return false;
+      }
     } catch (error) {
-      console.error('Error getting all roles:', error);
-      throw error;
+      console.error('Error checking resource access:', error);
+      return false;
     }
   }
-
-  // Get all permissions
-  async getAllPermissions() {
+  
+  // Check if user can access issue
+  async canAccessIssue(userId, issueId) {
     try {
-      const [permissions] = await pool.execute(`
-        SELECT id, name, description, created_at, updated_at
-        FROM rbac_permissions
-        ORDER BY name
-      `);
+      // Admin can access all issues
+      if (await this.hasRole(userId, 'admin')) {
+        return true;
+      }
       
-      return permissions;
+      // User can access their own issues
+      const query = 'SELECT employee_uuid FROM issues WHERE id = ?';
+      const [rows] = await db.execute(query, [issueId]);
+      
+      if (rows.length > 0) {
+        return rows[0].employee_uuid === userId;
+      }
+      
+      return false;
     } catch (error) {
-      console.error('Error getting all permissions:', error);
-      throw error;
+      console.error('Error checking issue access:', error);
+      return false;
     }
   }
-
-  // Get role permissions
-  async getRolePermissions(roleId) {
+  
+  // Check if user can access comment
+  async canAccessComment(userId, commentId) {
     try {
-      const [permissions] = await pool.execute(`
-        SELECT p.id, p.name, p.description
-        FROM rbac_permissions p
-        JOIN rbac_role_permissions rp ON p.id = rp.permission_id
-        WHERE rp.role_id = ?
-      `, [roleId]);
+      // Admin can access all comments
+      if (await this.hasRole(userId, 'admin')) {
+        return true;
+      }
       
-      return permissions;
-    } catch (error) {
-      console.error('Error getting role permissions:', error);
-      throw error;
-    }
-  }
-
-  // Assign permission to role
-  async assignPermissionToRole(roleId, permissionId) {
-    try {
-      await pool.execute(`
-        INSERT INTO rbac_role_permissions (role_id, permission_id)
-        VALUES (?, ?)
-        ON DUPLICATE KEY UPDATE role_id = role_id
-      `, [roleId, permissionId]);
+      // User can access their own comments or comments on their issues
+      const query = `
+        SELECT c.employee_uuid, i.employee_uuid as issue_owner
+        FROM issue_comments c
+        JOIN issues i ON c.issue_id = i.id
+        WHERE c.id = ?
+      `;
       
-      return true;
-    } catch (error) {
-      console.error('Error assigning permission to role:', error);
-      throw error;
-    }
-  }
-
-  // Remove permission from role
-  async removePermissionFromRole(roleId, permissionId) {
-    try {
-      const [result] = await pool.execute(`
-        DELETE FROM rbac_role_permissions
-        WHERE role_id = ? AND permission_id = ?
-      `, [roleId, permissionId]);
+      const [rows] = await db.execute(query, [commentId]);
       
-      return result.affectedRows > 0;
-    } catch (error) {
-      console.error('Error removing permission from role:', error);
-      throw error;
-    }
-  }
-
-  // Create new role
-  async createRole(name, description) {
-    try {
-      const [result] = await pool.execute(`
-        INSERT INTO rbac_roles (name, description)
-        VALUES (?, ?)
-      `, [name, description]);
+      if (rows.length > 0) {
+        const comment = rows[0];
+        return comment.employee_uuid === userId || comment.issue_owner === userId;
+      }
       
-      return result.insertId;
+      return false;
     } catch (error) {
-      console.error('Error creating role:', error);
-      throw error;
-    }
-  }
-
-  // Create new permission
-  async createPermission(name, description) {
-    try {
-      const [result] = await pool.execute(`
-        INSERT INTO rbac_permissions (name, description)
-        VALUES (?, ?)
-      `, [name, description]);
-      
-      return result.insertId;
-    } catch (error) {
-      console.error('Error creating permission:', error);
-      throw error;
+      console.error('Error checking comment access:', error);
+      return false;
     }
   }
 }

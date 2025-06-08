@@ -5,7 +5,6 @@ import { Upload, X, File, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ApiService } from '@/services/apiService';
 
 interface FileUploadProps {
   onFilesUploaded?: (files: { url: string; name: string; type: string }[]) => void;
@@ -44,6 +43,12 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
     // Check file type
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     const mimeType = file.type;
+    
+    // Reject dangerous file types
+    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.js', '.jar'];
+    if (dangerousExtensions.includes(fileExtension)) {
+      return `File type not allowed for security reasons: ${fileExtension}`;
+    }
     
     const isValidType = acceptedFileTypes.some(type => {
       if (type.includes('*')) {

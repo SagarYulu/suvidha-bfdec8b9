@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface RealtimeMessage {
@@ -174,7 +175,7 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     };
   }, []);
 
-  // Convenience subscription methods matching Supabase behavior
+  // Convenience subscription methods
   const subscribeToIssueUpdates = useCallback((callback: (data: any) => void) => {
     return subscribe('issue_updated', callback);
   }, [subscribe]);

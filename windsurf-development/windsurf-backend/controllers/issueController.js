@@ -1,4 +1,3 @@
-
 const issueService = require('../services/issueService');
 const enhancedEmailService = require('../services/enhancedEmailService');
 const realTimeService = require('../services/realTimeService');
@@ -84,7 +83,11 @@ class IssueController {
 
       const issueData = {
         ...req.body,
-        createdBy: req.user.id
+        createdBy: req.user.id,
+        // Auto-assign priority based on type if not provided
+        priority: req.body.priority || this.determinePriority(req.body.type_id),
+        // Set initial status
+        status: 'open'
       };
 
       const issueId = await issueService.createIssue(issueData);
@@ -96,16 +99,37 @@ class IssueController {
         });
       }
 
+      // Get the created issue for response
+      const issue = await issueService.getIssueById(issueId);
+
+      // Send email notification
+      try {
+        await enhancedEmailService.sendIssueCreatedEmail(
+          issue.employee_email,
+          issue.employee_name,
+          issue
+        );
+      } catch (emailError) {
+        console.error('Failed to send issue creation email:', emailError);
+        // Don't fail the request if email fails
+      }
+
       // Send real-time notification
       realTimeService.broadcast('issue_created', {
-        issueId,
-        createdBy: req.user.id,
+        issue,
         timestamp: new Date().toISOString()
+      });
+
+      // Log audit trail
+      await this.logAuditTrail(issueId, req.user.id, 'issue_created', {
+        priority: issue.priority,
+        type: issue.type_id,
+        status: issue.status
       });
 
       res.status(201).json({
         success: true,
-        issueId,
+        issue,
         message: 'Issue created successfully'
       });
     } catch (error) {
@@ -138,6 +162,20 @@ class IssueController {
           success: false,
           error: 'Issue not found'
         });
+      }
+
+      // Check SLA breach if status is changing to resolved/closed
+      if (updateData.status && ['resolved', 'closed'].includes(updateData.status)) {
+        const slaCheck = await tatService.checkSLABreach(id);
+        if (slaCheck && slaCheck.isBreached) {
+          updateData.sla_breached = true;
+          updateData.breach_hours = slaCheck.hours_open;
+        }
+        
+        // Set closed_at timestamp
+        if (updateData.status === 'closed') {
+          updateData.closed_at = new Date();
+        }
       }
 
       const updated = await issueService.updateIssue(id, updateData);
@@ -185,6 +223,13 @@ class IssueController {
           updatedBy: req.user.id
         }
       );
+
+      // Log audit trail
+      await this.logAuditTrail(id, req.user.id, 'issue_updated', {
+        changes: updateData,
+        previous_status: currentIssue.status,
+        new_status: updateData.status
+      });
 
       res.json({
         success: true,
@@ -248,6 +293,12 @@ class IssueController {
           issueTitle: issue.title || issue.description.substring(0, 50)
         }
       );
+
+      // Log audit trail
+      await this.logAuditTrail(id, req.user.id, 'issue_assigned', {
+        assigned_to: assignedTo,
+        previous_assignee: issue.assigned_to
+      });
 
       res.json({
         success: true,
@@ -372,6 +423,121 @@ class IssueController {
       res.status(500).json({
         success: false,
         error: 'Failed to add internal comment'
+      });
+    }
+  }
+
+  // Helper method to determine priority based on issue type
+  determinePriority(typeId) {
+    const criticalTypes = ['system_down', 'security_breach', 'data_loss'];
+    const highTypes = ['performance_issue', 'login_problem', 'payment_issue'];
+    const lowTypes = ['feature_request', 'documentation', 'question'];
+    
+    if (criticalTypes.includes(typeId)) return 'critical';
+    if (highTypes.includes(typeId)) return 'high';
+    if (lowTypes.includes(typeId)) return 'low';
+    
+    return 'medium'; // default
+  }
+
+  // Helper method to get fallback assignee
+  async getFallbackAssignee(issue) {
+    try {
+      // Logic: Assign to least busy agent in the same city
+      const query = `
+        SELECT assigned_to, COUNT(*) as workload
+        FROM issues 
+        WHERE status IN ('open', 'in_progress') 
+          AND city = ?
+          AND assigned_to IS NOT NULL
+        GROUP BY assigned_to
+        ORDER BY workload ASC
+        LIMIT 1
+      `;
+      
+      const [rows] = await db.execute(query, [issue.city || 'default']);
+      
+      if (rows.length > 0) {
+        return rows[0].assigned_to;
+      }
+      
+      // If no agents found, assign to default admin
+      return 'admin_user_id'; // This should be configurable
+    } catch (error) {
+      console.error('Error getting fallback assignee:', error);
+      return null;
+    }
+  }
+
+  // Helper method to log audit trail
+  async logAuditTrail(issueId, userId, action, details = {}) {
+    try {
+      const query = `
+        INSERT INTO issue_audit_trail (issue_id, employee_uuid, action, details, created_at)
+        VALUES (?, ?, ?, ?, NOW())
+      `;
+      
+      await db.execute(query, [
+        issueId,
+        userId,
+        action,
+        JSON.stringify(details)
+      ]);
+    } catch (error) {
+      console.error('Error logging audit trail:', error);
+      // Don't throw error as this is not critical for main operation
+    }
+  }
+
+  // New method to get SLA breaches
+  async getSLABreaches(req, res) {
+    try {
+      const slaThreshold = req.query.threshold || 48; // hours
+      const breaches = await tatService.getSLABreaches(slaThreshold);
+      
+      res.json({
+        success: true,
+        breaches,
+        threshold: slaThreshold
+      });
+    } catch (error) {
+      console.error('Get SLA breaches error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get SLA breaches'
+      });
+    }
+  }
+
+  // New method to get issue audit trail
+  async getIssueAuditTrail(req, res) {
+    try {
+      const { id } = req.params;
+      const { limit = 50 } = req.query;
+      
+      const query = `
+        SELECT 
+          iat.*,
+          e.name as performer_name,
+          e.email as performer_email
+        FROM issue_audit_trail iat
+        LEFT JOIN employees e ON iat.employee_uuid = e.user_id
+        WHERE iat.issue_id = ?
+        ORDER BY iat.created_at DESC
+        LIMIT ?
+      `;
+      
+      const [rows] = await db.execute(query, [id, parseInt(limit)]);
+      
+      res.json({
+        success: true,
+        auditTrail: rows
+      });
+    } catch (error) {
+      console.error('Get audit trail error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get audit trail'
       });
     }
   }
