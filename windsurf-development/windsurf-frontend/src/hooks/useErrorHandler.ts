@@ -1,39 +1,53 @@
 
-import { useToast } from "@/hooks/use-toast";
 import { useCallback } from 'react';
+import { toast } from '@/hooks/use-toast';
+
+interface ErrorWithMessage {
+  message: string;
+}
+
+function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as Record<string, unknown>).message === 'string'
+  );
+}
+
+function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
+  if (isErrorWithMessage(maybeError)) return maybeError;
+
+  try {
+    return new Error(JSON.stringify(maybeError));
+  } catch {
+    return new Error(String(maybeError));
+  }
+}
 
 export const useErrorHandler = () => {
-  const { toast } = useToast();
-
-  const handleError = useCallback((error: any, context?: string) => {
-    console.error(`Error${context ? ` in ${context}` : ''}:`, error);
+  const handleError = useCallback((error: unknown, context?: string) => {
+    const errorWithMessage = toErrorWithMessage(error);
+    const title = context ? `${context} Error` : 'Error';
     
-    let errorMessage = 'An unexpected error occurred';
-    
-    if (error?.message) {
-      errorMessage = error.message;
-    } else if (typeof error === 'string') {
-      errorMessage = error;
-    }
-    
-    // Handle validation errors specifically
-    if (error?.details && Array.isArray(error.details)) {
-      errorMessage = error.details.join(', ');
-    }
+    console.error(`${title}:`, error);
     
     toast({
-      title: "Error",
-      description: errorMessage,
+      title,
+      description: errorWithMessage.message,
       variant: "destructive",
     });
-  }, [toast]);
+  }, []);
 
-  const handleSuccess = useCallback((message: string) => {
+  const handleSuccess = useCallback((message: string, title: string = 'Success') => {
     toast({
-      title: "Success",
+      title,
       description: message,
     });
-  }, [toast]);
+  }, []);
 
-  return { handleError, handleSuccess };
+  return {
+    handleError,
+    handleSuccess,
+  };
 };
