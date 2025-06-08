@@ -1,118 +1,92 @@
 
 const express = require('express');
-const path = require('path');
-const fileUploadService = require('../services/fileUploadService');
+const multer = require('multer');
+const uploadController = require('../controllers/uploadController');
 const { authenticateToken } = require('../middleware/auth');
+const ValidationMiddleware = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
-// Upload single file
-router.post('/single', authenticateToken, (req, res) => {
-  const upload = fileUploadService.getMulterConfig('attachments').single('file');
-  
-  upload(req, res, (err) => {
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        error: err.message
-      });
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760, // 10MB
+    files: 10 // Maximum 10 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'jpeg,jpg,png,gif,pdf,doc,docx,txt').split(',');
+    const fileExt = file.originalname.split('.').pop().toLowerCase();
+    
+    if (allowedTypes.includes(fileExt)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type '${fileExt}' not allowed`), false);
     }
-
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        error: 'No file uploaded'
-      });
-    }
-
-    res.json({
-      success: true,
-      file: {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        size: req.file.size,
-        url: fileUploadService.generateFileUrl(req.file.filename),
-        path: req.file.path
-      }
-    });
-  });
+  }
 });
+
+// Upload single file
+router.post('/single',
+  authenticateToken,
+  upload.single('file'),
+  ValidationMiddleware.validateFileUpload(),
+  ValidationMiddleware.handleValidationErrors,
+  uploadController.uploadSingleFile
+);
 
 // Upload multiple files
-router.post('/multiple', authenticateToken, (req, res) => {
-  const upload = fileUploadService.getMulterConfig('attachments').array('files', 5);
-  
-  upload(req, res, (err) => {
-    if (err) {
-      return res.status(400).json({
-        success: false,
-        error: err.message
-      });
-    }
-
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'No files uploaded'
-      });
-    }
-
-    const files = req.files.map(file => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      size: file.size,
-      url: fileUploadService.generateFileUrl(file.filename),
-      path: file.path
-    }));
-
-    res.json({
-      success: true,
-      files
-    });
-  });
-});
-
-// Serve uploaded files
-router.get('/:category/:filename', (req, res) => {
-  const { category, filename } = req.params;
-  const filePath = path.join(__dirname, '../uploads', category, filename);
-  
-  res.sendFile(filePath, (err) => {
-    if (err) {
-      res.status(404).json({
-        success: false,
-        error: 'File not found'
-      });
-    }
-  });
-});
+router.post('/multiple',
+  authenticateToken,
+  upload.array('files', 10),
+  ValidationMiddleware.validateFileUpload(),
+  ValidationMiddleware.handleValidationErrors,
+  uploadController.uploadMultipleFiles
+);
 
 // Delete file
-router.delete('/:category/:filename', authenticateToken, async (req, res) => {
-  try {
-    const { category, filename } = req.params;
-    const filePath = path.join(category, filename);
-    
-    const deleted = await fileUploadService.deleteFile(filePath);
-    
-    if (deleted) {
-      res.json({
-        success: true,
-        message: 'File deleted successfully'
-      });
-    } else {
-      res.status(404).json({
+router.delete('/:category/:filename',
+  authenticateToken,
+  uploadController.deleteFile
+);
+
+// Get file info
+router.get('/:category/:filename',
+  authenticateToken,
+  uploadController.getFile
+);
+
+// Get user's files
+router.get('/user/files',
+  authenticateToken,
+  uploadController.getUserFiles
+);
+
+// Error handling middleware for multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
         success: false,
-        error: 'File not found'
+        error: 'File too large'
       });
     }
-  } catch (error) {
-    console.error('Delete file error:', error);
-    res.status(500).json({
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(413).json({
+        success: false,
+        error: 'Too many files'
+      });
+    }
+  }
+  
+  if (error.message.includes('File type')) {
+    return res.status(415).json({
       success: false,
-      error: 'Failed to delete file'
+      error: error.message
     });
   }
+  
+  next(error);
 });
 
 module.exports = router;

@@ -1,85 +1,184 @@
 
-import { useState } from 'react';
-import { ApiService } from '../services/apiService';
+import { useState, useCallback } from 'react';
+import { ApiService } from '@/services/apiService';
 
-export interface UploadProgress {
-  loaded: number;
-  total: number;
-  percentage: number;
-}
-
-export interface FileUploadResult {
-  success: boolean;
-  file?: {
-    filename: string;
-    originalName: string;
-    size: number;
-    url: string;
-  };
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+  status: 'uploading' | 'success' | 'error';
   error?: string;
 }
 
-export const useFileUpload = () => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
-  const [error, setError] = useState<string | null>(null);
+interface UseFileUploadOptions {
+  maxFiles?: number;
+  maxFileSize?: number; // in MB
+  acceptedFileTypes?: string[];
+  category?: string;
+  onProgress?: (progress: UploadProgress[]) => void;
+  onComplete?: (files: any[]) => void;
+  onError?: (error: string) => void;
+}
 
-  const uploadFile = async (file: File, category = 'attachments'): Promise<FileUploadResult> => {
-    setIsUploading(true);
-    setError(null);
-    setUploadProgress({ loaded: 0, total: file.size, percentage: 0 });
+export const useFileUpload = (options: UseFileUploadOptions = {}) => {
+  const {
+    maxFiles = 5,
+    maxFileSize = 10,
+    acceptedFileTypes = ['image/*', 'application/pdf', '.doc', '.docx', '.txt'],
+    category = 'attachments',
+    onProgress,
+    onComplete,
+    onError
+  } = options;
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+
+  const validateFile = useCallback((file: File): string | null => {
+    // Check file size
+    if (file.size > maxFileSize * 1024 * 1024) {
+      return `File size must be less than ${maxFileSize}MB`;
+    }
+
+    // Check file type
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    const mimeType = file.type;
+    
+    const isValidType = acceptedFileTypes.some(type => {
+      if (type.includes('*')) {
+        return mimeType.startsWith(type.replace('*', ''));
+      }
+      return type === fileExtension || type === mimeType;
+    });
+
+    if (!isValidType) {
+      return `File type not supported. Allowed types: ${acceptedFileTypes.join(', ')}`;
+    }
+
+    return null;
+  }, [maxFileSize, acceptedFileTypes]);
+
+  const uploadFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0) return;
+
+    // Validate all files first
+    const validationErrors: string[] = [];
+    const validFiles: File[] = [];
+
+    for (const file of files) {
+      const error = validateFile(file);
+      if (error) {
+        validationErrors.push(`${file.name}: ${error}`);
+      } else {
+        validFiles.push(file);
+      }
+    }
+
+    if (validationErrors.length > 0) {
+      const errorMessage = validationErrors.join(', ');
+      onError?.(errorMessage);
+      return;
+    }
+
+    if (validFiles.length > maxFiles) {
+      onError?.(`Maximum ${maxFiles} files allowed`);
+      return;
+    }
+
+    setUploading(true);
+    
+    // Initialize progress tracking
+    const initialProgress: UploadProgress[] = validFiles.map(file => ({
+      fileName: file.name,
+      progress: 0,
+      status: 'uploading'
+    }));
+    
+    setUploadProgress(initialProgress);
+    onProgress?.(initialProgress);
 
     try {
-      // Validate file size (10MB limit)
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error('File size must be less than 10MB');
-      }
+      const uploadPromises = validFiles.map(async (file, index) => {
+        try {
+          // Simulate progress updates
+          const progressInterval = setInterval(() => {
+            setUploadProgress(prev => {
+              const updated = prev.map(p => 
+                p.fileName === file.name 
+                  ? { ...p, progress: Math.min(p.progress + 10, 90) }
+                  : p
+              );
+              onProgress?.(updated);
+              return updated;
+            });
+          }, 200);
 
-      // Validate file type
-      const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt|xlsx|xls/;
-      const isValidType = allowedTypes.test(file.name.toLowerCase()) || 
-                         allowedTypes.test(file.type.toLowerCase());
-      
-      if (!isValidType) {
-        throw new Error('Invalid file type. Only images, PDFs, and documents are allowed.');
-      }
+          const result = await ApiService.uploadFile(file, category);
+          
+          clearInterval(progressInterval);
+          
+          // Update final progress
+          setUploadProgress(prev => {
+            const updated = prev.map(p => 
+              p.fileName === file.name 
+                ? { ...p, progress: 100, status: 'success' as const }
+                : p
+            );
+            onProgress?.(updated);
+            return updated;
+          });
 
-      const result = await ApiService.uploadFile(file, category);
+          return result;
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+          
+          setUploadProgress(prev => {
+            const updated = prev.map(p => 
+              p.fileName === file.name 
+                ? { ...p, status: 'error' as const, error: errorMessage }
+                : p
+            );
+            onProgress?.(updated);
+            return updated;
+          });
+          
+          return null;
+        }
+      });
+
+      const results = await Promise.all(uploadPromises);
+      const successfulUploads = results.filter(result => result !== null);
       
-      setUploadProgress({ loaded: file.size, total: file.size, percentage: 100 });
+      setUploadedFiles(prev => [...prev, ...successfulUploads]);
+      onComplete?.(successfulUploads);
       
-      return {
-        success: true,
-        file: result.file
-      };
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.error || error.message || 'Upload failed';
-      setError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      onError?.(errorMessage);
     } finally {
-      setIsUploading(false);
-      setTimeout(() => {
-        setUploadProgress(null);
-        setError(null);
-      }, 3000);
+      setUploading(false);
     }
-  };
+  }, [validateFile, maxFiles, category, onProgress, onComplete, onError]);
 
-  const uploadMultipleFiles = async (files: File[], category = 'attachments') => {
-    const results = await Promise.all(
-      files.map(file => uploadFile(file, category))
-    );
-    return results;
-  };
+  const clearFiles = useCallback(() => {
+    setUploadProgress([]);
+    setUploadedFiles([]);
+  }, []);
+
+  const removeFile = useCallback((fileName: string) => {
+    setUploadProgress(prev => prev.filter(p => p.fileName !== fileName));
+    setUploadedFiles(prev => prev.filter(f => f.name !== fileName));
+  }, []);
 
   return {
-    uploadFile,
-    uploadMultipleFiles,
-    isUploading,
+    uploading,
     uploadProgress,
-    error
+    uploadedFiles,
+    uploadFiles,
+    clearFiles,
+    removeFile,
+    validateFile
   };
 };
+
+export default useFileUpload;

@@ -1,116 +1,102 @@
 
 const rbacService = require('../services/rbacService');
 
-// Enhanced RBAC middleware with permission checking
-const requirePermission = (permission) => {
+// Check if user has required role
+const requireRole = (allowedRoles) => {
   return async (req, res, next) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ 
-          success: false,
-          error: 'Authentication required' 
-        });
-      }
-
-      const hasPermission = await rbacService.hasPermission(req.user.id, permission);
+      const userId = req.user.id;
+      const userRoles = await rbacService.getUserRoles(userId);
       
-      if (!hasPermission) {
-        return res.status(403).json({ 
+      const hasRequiredRole = userRoles.some(role => 
+        allowedRoles.includes(role.name)
+      );
+      
+      if (!hasRequiredRole) {
+        return res.status(403).json({
           success: false,
           error: 'Insufficient permissions',
-          required: permission,
-          userRole: req.user.role
+          required: allowedRoles,
+          current: userRoles.map(r => r.name)
         });
       }
-
-      next();
-    } catch (error) {
-      console.error('Permission check error:', error);
-      res.status(500).json({ 
-        success: false,
-        error: 'Authorization check failed' 
-      });
-    }
-  };
-};
-
-// Role-based middleware
-const requireRole = (roles) => {
-  return async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(401).json({ 
-          success: false,
-          error: 'Authentication required' 
-        });
-      }
-
-      const userRoles = await rbacService.getUserRoles(req.user.id);
-      const userRoleNames = userRoles.map(role => role.name);
       
-      const hasRole = roles.some(role => userRoleNames.includes(role));
-      
-      if (!hasRole) {
-        return res.status(403).json({ 
-          success: false,
-          error: 'Insufficient role permissions',
-          required: roles,
-          userRoles: userRoleNames
-        });
-      }
-
+      req.user.roles = userRoles;
       next();
     } catch (error) {
       console.error('Role check error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        error: 'Role check failed' 
+        error: 'Permission check failed'
       });
     }
   };
 };
 
-// Resource ownership middleware
-const requireOwnership = (getResourceOwner) => {
+// Check if user has required permission
+const requirePermission = (permissionName) => {
   return async (req, res, next) => {
     try {
-      if (!req.user) {
-        return res.status(401).json({ 
+      const userId = req.user.id;
+      const hasPermission = await rbacService.userHasPermission(userId, permissionName);
+      
+      if (!hasPermission) {
+        return res.status(403).json({
           success: false,
-          error: 'Authentication required' 
+          error: 'Insufficient permissions',
+          required: permissionName
         });
       }
-
-      // Admin users can access everything
-      const userRoles = await rbacService.getUserRoles(req.user.id);
-      const isAdmin = userRoles.some(role => ['admin', 'super_admin'].includes(role.name));
       
-      if (isAdmin) {
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Permission check failed'
+      });
+    }
+  };
+};
+
+// Check if user can access resource (owns it or has admin role)
+const requireOwnershipOrRole = (roles = ['admin']) => {
+  return async (req, res, next) => {
+    try {
+      const userId = req.user.id;
+      const resourceUserId = req.params.userId || req.body.userId;
+      
+      // If user owns the resource
+      if (userId === resourceUserId) {
         return next();
       }
-
-      const ownerId = await getResourceOwner(req);
       
-      if (ownerId !== req.user.id) {
-        return res.status(403).json({ 
+      // Check if user has required role
+      const userRoles = await rbacService.getUserRoles(userId);
+      const hasRequiredRole = userRoles.some(role => 
+        roles.includes(role.name)
+      );
+      
+      if (!hasRequiredRole) {
+        return res.status(403).json({
           success: false,
-          error: 'Access denied - resource not owned by user' 
+          error: 'Access denied - insufficient permissions'
         });
       }
-
+      
       next();
     } catch (error) {
       console.error('Ownership check error:', error);
-      res.status(500).json({ 
+      res.status(500).json({
         success: false,
-        error: 'Ownership check failed' 
+        error: 'Access check failed'
       });
     }
   };
 };
 
 module.exports = {
-  requirePermission,
   requireRole,
-  requireOwnership
+  requirePermission,
+  requireOwnershipOrRole
 };
