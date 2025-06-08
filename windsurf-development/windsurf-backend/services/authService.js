@@ -1,60 +1,48 @@
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/database');
 
 class AuthService {
-  // Mobile login: Email + Employee ID (matching original business logic)
   async mobileLogin(email, employeeId) {
     try {
-      // Check in employee_auth_credentials table first
-      const [credentials] = await db.execute(
-        `SELECT eac.*, du.* FROM employee_auth_credentials eac
-         JOIN dashboard_users du ON eac.user_id = du.id
-         WHERE eac.email = ? AND eac.employee_id = ?`,
-        [email.toLowerCase(), employeeId]
-      );
-
-      if (credentials.length > 0) {
-        const user = credentials[0];
-        
-        // Check mobile access restrictions (matching original logic)
-        const accessCheck = this.checkMobileAccess(user);
-        if (!accessCheck.allowed) {
-          throw new Error(accessCheck.message);
-        }
-
-        return this.generateUserResponse(user);
-      }
-
-      // Fallback to dashboard_users table
       const [users] = await db.execute(
-        'SELECT * FROM dashboard_users WHERE email = ? AND employee_id = ?',
-        [email.toLowerCase(), employeeId]
+        'SELECT * FROM employees WHERE email = ? AND employee_id = ?',
+        [email, employeeId]
       );
 
       if (users.length === 0) {
-        throw new Error('Invalid email or employee ID');
+        throw new Error('Invalid credentials');
       }
 
       const user = users[0];
-      const accessCheck = this.checkMobileAccess(user);
-      if (!accessCheck.allowed) {
-        throw new Error(accessCheck.message);
-      }
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-      return this.generateUserResponse(user);
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          employeeId: user.employee_id
+        }
+      };
     } catch (error) {
       console.error('Mobile login error:', error);
       throw error;
     }
   }
 
-  // Admin login: Email + Password (unchanged)
   async adminLogin(email, password) {
     try {
       const [users] = await db.execute(
         'SELECT * FROM dashboard_users WHERE email = ?',
-        [email.toLowerCase()]
+        [email]
       );
 
       if (users.length === 0) {
@@ -63,90 +51,60 @@ class AuthService {
 
       const user = users[0];
       const isValidPassword = await bcrypt.compare(password, user.password);
-      
+
       if (!isValidPassword) {
         throw new Error('Invalid credentials');
       }
 
-      const accessCheck = this.checkAdminAccess(user);
-      if (!accessCheck.allowed) {
-        throw new Error(accessCheck.message);
-      }
+      const token = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-      return this.generateUserResponse(user);
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role
+        }
+      };
     } catch (error) {
       console.error('Admin login error:', error);
       throw error;
     }
   }
 
-  // Mobile access control logic (matching original)
-  checkMobileAccess(user) {
-    const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
-    const dashboardUserRoles = [
-      'City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head',
-      'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'
-    ];
+  async getUserById(id) {
+    try {
+      const [users] = await db.execute(
+        'SELECT id, email, name, role FROM dashboard_users WHERE id = ?',
+        [id]
+      );
 
-    if (restrictedEmails.includes(user.email)) {
-      return {
-        allowed: false,
-        message: "Access denied. Please use the admin dashboard."
-      };
+      return users[0] || null;
+    } catch (error) {
+      console.error('Get user by ID error:', error);
+      throw error;
     }
-    
-    if (dashboardUserRoles.includes(user.role)) {
-      return {
-        allowed: false,
-        message: "Access denied. Please use the admin dashboard."
-      };
-    }
-
-    return { allowed: true };
   }
 
-  // Admin access control logic (matching original)
-  checkAdminAccess(user) {
-    const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
-    const dashboardUserRoles = [
-      'City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head',
-      'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'
-    ];
+  async refreshToken(token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const newToken = jwt.sign(
+        { id: decoded.id, email: decoded.email, role: decoded.role },
+        process.env.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
-    const hasAdminAccess = dashboardUserRoles.includes(user.role) || 
-                          restrictedEmails.includes(user.email);
-
-    if (!hasAdminAccess) {
-      return {
-        allowed: false,
-        message: "Access denied. Admin privileges required."
-      };
+      return { success: true, token: newToken };
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      return { success: false, message: 'Invalid token' };
     }
-
-    return { allowed: true };
-  }
-
-  generateUserResponse(user) {
-    const token = jwt.sign(
-      { 
-        id: user.id || user.user_id, 
-        email: user.email, 
-        role: user.role 
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
-
-    return {
-      token,
-      user: {
-        id: user.id || user.user_id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        employeeId: user.employee_id
-      }
-    };
   }
 }
 

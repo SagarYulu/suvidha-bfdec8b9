@@ -1,29 +1,13 @@
 
-import { apiService } from './api';
-import type { Issue, Comment, PaginatedResponse } from '@/types';
+import { apiService } from './apiService';
 
 export const issueService = {
-  async getIssues(params: any = {}): Promise<PaginatedResponse<Issue>> {
-    return apiService.getIssues(params);
-  },
-
-  async getIssue(id: string): Promise<{ issue: Issue }> {
-    return apiService.getIssue(id);
-  },
-
-  async createIssue(issueData: Partial<Issue>): Promise<{ issueId: string; message: string }> {
-    return apiService.createIssue(issueData);
-  },
-
-  async updateIssue(id: string, updates: Partial<Issue>): Promise<{ message: string }> {
-    return apiService.updateIssue(id, updates);
-  },
-
-  async addComment(issueId: string, content: string): Promise<{ commentId: string; message: string }> {
-    return apiService.addComment(issueId, content);
-  },
-
-  async addInternalComment(issueId: string, content: string): Promise<{ commentId: string; message: string }> {
-    return apiService.addInternalComment(issueId, content);
-  }
+  getIssues: (params: any = {}) => apiService.getIssues(params),
+  getIssue: (id: string) => apiService.getIssue(id),
+  createIssue: (issueData: any) => apiService.createIssue(issueData),
+  updateIssue: (id: string, updates: any) => apiService.updateIssue(id, updates),
+  deleteIssue: (id: string) => apiService.deleteIssue(id),
+  assignIssue: (id: string, assignedTo: string) => apiService.assignIssue(id, assignedTo),
+  addComment: (issueId: string, content: string) => apiService.addComment(issueId, content),
+  addInternalComment: (issueId: string, content: string) => apiService.addInternalComment(issueId, content),
 };

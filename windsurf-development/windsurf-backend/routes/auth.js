@@ -1,4 +1,6 @@
+
 const express = require('express');
+const authController = require('../controllers/authController');
 const authService = require('../services/authService');
 const { body, validationResult } = require('express-validator');
 const { authenticateToken } = require('../middleware/auth');
@@ -67,6 +69,15 @@ router.post('/admin/login',
       });
     }
   }
+);
+
+// Standard login endpoint
+router.post('/login', 
+  [
+    body('email').isEmail().withMessage('Valid email is required'),
+    body('password').notEmpty().withMessage('Password is required')
+  ],
+  authController.login
 );
 
 // Get current user

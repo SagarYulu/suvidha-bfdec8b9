@@ -1,19 +1,19 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { issueService } from '@/services/issueService';
+import { apiService } from '../services/apiService';
 import { toast } from 'sonner';
 
 export function useIssues(params: any = {}) {
   return useQuery({
     queryKey: ['issues', params],
-    queryFn: () => issueService.getIssues(params),
+    queryFn: () => apiService.getIssues(params),
   });
 }
 
 export function useIssue(id: string) {
   return useQuery({
     queryKey: ['issue', id],
-    queryFn: () => issueService.getIssue(id),
+    queryFn: () => apiService.getIssue(id),
     enabled: !!id,
   });
 }
@@ -22,7 +22,7 @@ export function useCreateIssue() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: issueService.createIssue,
+    mutationFn: apiService.createIssue,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
       toast.success('Issue created successfully');
@@ -38,7 +38,7 @@ export function useUpdateIssue() {
 
   return useMutation({
     mutationFn: ({ id, updates }: { id: string; updates: any }) =>
-      issueService.updateIssue(id, updates),
+      apiService.updateIssue(id, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
       toast.success('Issue updated successfully');
@@ -53,7 +53,7 @@ export function useDeleteIssue() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => issueService.deleteIssue(id),
+    mutationFn: (id: string) => apiService.deleteIssue(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
       toast.success('Issue deleted successfully');

@@ -1,86 +1,49 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from '../../contexts/AuthContext';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { toast } from 'sonner';
 
-const AdminLogin: React.FC = () => {
+const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setIsLoading(true);
 
     try {
-      const success = await login({ email, password });
-      
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome to the admin dashboard!",
-        });
-        navigate('/admin/dashboard');
-      } else {
-        setError('Invalid email or password');
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
-      }
+      await login(email, password);
+      navigate('/admin/dashboard');
+      toast.success('Login successful');
     } catch (error: any) {
-      console.error('Login error:', error);
-      setError(error.message || 'An unexpected error occurred');
-      toast({
-        title: "Login error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Login failed');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setEmail('admin@windsurf.com');
-    setPassword('admin123');
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold text-blue-600">
-            Windsurf Admin Dashboard
-          </CardTitle>
-          <p className="text-center text-gray-600">Sign in to access the admin portal</p>
+          <CardTitle className="text-2xl text-center">Admin Login</CardTitle>
         </CardHeader>
         <CardContent>
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Input
                 type="email"
-                placeholder="Email Address"
+                placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full"
               />
             </div>
             <div>
@@ -90,38 +53,12 @@ const AdminLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full"
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600 mb-2">Demo Credentials:</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fillDemoCredentials}
-              className="text-xs"
-            >
-              Use Demo Admin Account
-            </Button>
-          </div>
-
-          <div className="mt-4 text-center">
-            <a 
-              href="/mobile/login" 
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Go to Mobile Employee Login →
-            </a>
-          </div>
         </CardContent>
       </Card>
     </div>

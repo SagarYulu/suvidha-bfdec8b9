@@ -1,77 +1,54 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiService } from '../services/apiService';
 import { toast } from 'sonner';
 
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  timestamp: Date;
-  read: boolean;
+export function useNotifications() {
+  return useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => apiService.getNotifications(),
+  });
 }
 
-export const useNotifications = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+export function useUnreadCount() {
+  return useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: () => apiService.getUnreadCount(),
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+}
 
-  useEffect(() => {
-    // Simulate WebSocket connection for real-time notifications
-    const connectWebSocket = () => {
-      setIsConnected(true);
-      
-      // Simulate receiving notifications
-      const interval = setInterval(() => {
-        const mockNotifications: Notification[] = [
-          {
-            id: Date.now().toString(),
-            title: 'New Issue Assigned',
-            message: 'Issue #123 has been assigned to you',
-            type: 'info',
-            timestamp: new Date(),
-            read: false
-          }
-        ];
-        
-        mockNotifications.forEach(notification => {
-          setNotifications(prev => [notification, ...prev]);
-          toast(notification.title, {
-            description: notification.message,
-          });
-        });
-      }, 30000); // Every 30 seconds
+export function useMarkAsRead() {
+  const queryClient = useQueryClient();
 
-      return () => {
-        clearInterval(interval);
-        setIsConnected(false);
-      };
-    };
+  return useMutation({
+    mutationFn: (id: string) => apiService.markNotificationAsRead(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+}
 
-    const cleanup = connectWebSocket();
-    return cleanup;
-  }, []);
+export function useMarkAllAsRead() {
+  const queryClient = useQueryClient();
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  };
+  return useMutation({
+    mutationFn: () => apiService.markAllNotificationsAsRead(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('All notifications marked as read');
+    },
+  });
+}
 
-  const clearAll = () => {
-    setNotifications([]);
-  };
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  return {
-    notifications,
-    unreadCount,
-    isConnected,
-    markAsRead,
-    clearAll
-  };
-};
+  return useMutation({
+    mutationFn: (id: string) => apiService.deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast.success('Notification deleted');
+    },
+  });
+}

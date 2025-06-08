@@ -1,25 +1,12 @@
 
-import { apiService } from './api';
-import type { User, PaginatedResponse } from '@/types';
+import { apiService } from './apiService';
 
 export const userService = {
-  async getUsers(params: any = {}): Promise<PaginatedResponse<User>> {
-    return apiService.getUsers(params);
-  },
-
-  async getUser(id: string): Promise<{ user: User }> {
-    return apiService.getUser(id);
-  },
-
-  async createUser(userData: Partial<User>): Promise<{ userId: string; message: string; user: User }> {
-    return apiService.createUser(userData);
-  },
-
-  async updateUser(id: string, updates: Partial<User>): Promise<{ message: string }> {
-    return apiService.updateUser(id, updates);
-  },
-
-  async deleteUser(id: string): Promise<{ message: string }> {
-    return apiService.deleteUser(id);
-  }
+  getUsers: (params: any = {}) => apiService.getUsers(params),
+  getUser: (id: string) => apiService.getUser(id),
+  createUser: (userData: any) => apiService.createUser(userData),
+  updateUser: (id: string, updates: any) => apiService.updateUser(id, updates),
+  deleteUser: (id: string) => apiService.deleteUser(id),
+  bulkCreateUsers: (usersData: any[]) => apiService.bulkCreateUsers(usersData),
+  validateBulkUsers: (users: any[]) => apiService.validateBulkUsers(users),
 };
