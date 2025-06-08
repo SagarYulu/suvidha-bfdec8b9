@@ -10,6 +10,7 @@ interface RealTimeContextType {
   subscribeToComments: (callback: (data: any) => void) => () => void;
   subscribeToAssignments: (callback: (data: any) => void) => () => void;
   subscribeToStatusChanges: (callback: (data: any) => void) => () => void;
+  reconnect: () => void;
 }
 
 const RealTimeContext = createContext<RealTimeContextType | null>(null);
@@ -23,10 +24,34 @@ export const useRealTimeContext = () => {
 };
 
 export const RealTimeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const realtime = useRealtime();
-  
+  const {
+    isConnected,
+    connectionStatus,
+    subscribe,
+    subscribeToIssueUpdates,
+    subscribeToComments,
+    subscribeToAssignments,
+    subscribeToStatusChanges,
+    connect
+  } = useRealtime({
+    autoReconnect: true,
+    reconnectInterval: 5000,
+    maxReconnectAttempts: 10
+  });
+
+  const contextValue: RealTimeContextType = {
+    isConnected,
+    connectionStatus,
+    subscribe,
+    subscribeToIssueUpdates,
+    subscribeToComments,
+    subscribeToAssignments,
+    subscribeToStatusChanges,
+    reconnect: connect
+  };
+
   return (
-    <RealTimeContext.Provider value={realtime}>
+    <RealTimeContext.Provider value={contextValue}>
       {children}
     </RealTimeContext.Provider>
   );

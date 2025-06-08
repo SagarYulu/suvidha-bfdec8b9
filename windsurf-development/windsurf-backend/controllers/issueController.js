@@ -3,7 +3,6 @@ const issueService = require('../services/issueService');
 const enhancedEmailService = require('../services/enhancedEmailService');
 const realTimeService = require('../services/realTimeService');
 const { validationResult } = require('express-validator');
-const { v4: uuidv4 } = require('uuid');
 
 class IssueController {
   async getIssues(req, res) {
@@ -160,8 +159,9 @@ class IssueController {
             currentIssue.status,
             updateData.status
           );
+          console.log('Status change email sent successfully');
         } catch (emailError) {
-          console.error('Email notification failed:', emailError);
+          console.error('Status change email failed:', emailError);
         }
 
         // Send real-time notification
@@ -175,6 +175,16 @@ class IssueController {
           }
         );
       }
+
+      // Send real-time update notification
+      realTimeService.notifyIssueUpdate(
+        id,
+        currentIssue.employee_uuid,
+        {
+          ...updateData,
+          updatedBy: req.user.id
+        }
+      );
 
       res.json({
         success: true,
@@ -218,8 +228,12 @@ class IssueController {
         await enhancedEmailService.sendIssueAssignmentEmail(
           issue.assigned_email,
           issue.assigned_name,
-          issue
+          {
+            ...issue,
+            assigned_by_name: req.user.name
+          }
         );
+        console.log('Assignment email sent successfully');
       } catch (emailError) {
         console.error('Assignment email failed:', emailError);
       }
@@ -230,6 +244,7 @@ class IssueController {
         assignedTo,
         {
           assignedBy: req.user.id,
+          assignedByName: req.user.name,
           issueTitle: issue.title || issue.description.substring(0, 50)
         }
       );
@@ -283,6 +298,7 @@ class IssueController {
             { content },
             req.user.name
           );
+          console.log('Comment notification email sent successfully');
         } catch (emailError) {
           console.error('Comment email failed:', emailError);
         }
