@@ -27,6 +27,11 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/issues', require('./routes/issues'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/master', require('./routes/masterData'));
+app.use('/api/feedback', require('./routes/feedback'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/bulk-users', require('./routes/bulkUsers'));
+app.use('/api/export', require('./routes/export'));
+app.use('/api/rbac', require('./routes/rbac'));
 
 // Global error handler
 app.use((err, req, res, next) => {

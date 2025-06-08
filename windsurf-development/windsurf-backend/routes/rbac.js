@@ -1,50 +1,25 @@
 
 const express = require('express');
-const rbacController = require('../controllers/rbacController');
-const { authenticateToken, requireRole } = require('../middleware/auth');
-
 const router = express.Router();
+const rbacController = require('../controllers/rbacController');
+const auth = require('../middleware/auth');
 
 // Get user permissions
-router.get('/users/:userId/permissions', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.getUserPermissions
-);
+router.get('/users/:userId/permissions', auth, rbacController.getUserPermissions);
 
 // Get user roles
-router.get('/users/:userId/roles', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.getUserRoles
-);
+router.get('/users/:userId/roles', auth, rbacController.getUserRoles);
 
 // Assign role to user
-router.post('/assign-role', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.assignRole
-);
+router.post('/assign-role', auth, rbacController.assignRole);
 
 // Remove role from user
-router.post('/remove-role', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.removeRole
-);
+router.post('/remove-role', auth, rbacController.removeRole);
 
 // Get all roles
-router.get('/roles', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.getAllRoles
-);
+router.get('/roles', auth, rbacController.getAllRoles);
 
 // Get all permissions
-router.get('/permissions', 
-  authenticateToken, 
-  requireRole(['admin', 'super-admin']), 
-  rbacController.getAllPermissions
-);
+router.get('/permissions', auth, rbacController.getAllPermissions);
 
 module.exports = router;
