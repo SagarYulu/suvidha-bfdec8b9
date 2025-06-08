@@ -16,10 +16,17 @@ import Index from './pages/Index';
 // Admin Pages
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
+import TestDashboard from './pages/admin/TestDashboard';
 import AdminIssues from './pages/admin/Issues';
+import AssignedIssues from './pages/admin/AssignedIssues';
 import AdminUsers from './pages/admin/Users';
+import AddUser from './pages/admin/AddUser';
 import AdminAnalytics from './pages/admin/Analytics';
+import IssueAnalytics from './pages/admin/IssueAnalytics';
 import AdminSettings from './pages/admin/Settings';
+import AccessControl from './pages/admin/AccessControl';
+import FeedbackAnalytics from './pages/admin/FeedbackAnalytics';
+import AddDashboardUser from './pages/admin/AddDashboardUser';
 
 // Mobile Pages
 import MobileLogin from './pages/mobile/Login';
@@ -55,10 +62,17 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route index element={<Navigate to="/admin/dashboard" replace />} />
                   <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="test-dashboard" element={<TestDashboard />} />
                   <Route path="issues" element={<AdminIssues />} />
+                  <Route path="assigned-issues" element={<AssignedIssues />} />
                   <Route path="users" element={<AdminUsers />} />
+                  <Route path="users/add" element={<AddUser />} />
                   <Route path="analytics" element={<AdminAnalytics />} />
+                  <Route path="issue-analytics" element={<IssueAnalytics />} />
+                  <Route path="dashboard-users/add" element={<AddDashboardUser />} />
+                  <Route path="access-control" element={<AccessControl />} />
                   <Route path="settings" element={<AdminSettings />} />
+                  <Route path="feedback-analytics" element={<FeedbackAnalytics />} />
                 </Route>
 
                 {/* Mobile Authentication */}
