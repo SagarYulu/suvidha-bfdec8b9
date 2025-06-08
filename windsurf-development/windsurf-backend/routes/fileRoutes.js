@@ -3,54 +3,43 @@ const express = require('express');
 const multer = require('multer');
 const fileController = require('../controllers/fileController');
 const { authenticateToken } = require('../middleware/auth');
-const ValidationMiddleware = require('../middleware/validationMiddleware');
 
 const router = express.Router();
 
-// Configure multer for file uploads
+// Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10485760, // 10MB
-    files: 10 // Maximum 10 files per request
+    fileSize: 10 * 1024 * 1024, // 10MB
+    files: 5 // Maximum 5 files
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'jpeg,jpg,png,gif,pdf,doc,docx,txt').split(',');
-    const fileExt = file.originalname.split('.').pop().toLowerCase();
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 
+                         'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     
-    // Security: Block dangerous file types
-    const dangerousTypes = ['exe', 'bat', 'cmd', 'scr', 'pif', 'com', 'js', 'jar'];
-    if (dangerousTypes.includes(fileExt)) {
-      return cb(new Error(`File type '${fileExt}' is not allowed for security reasons`), false);
-    }
-    
-    if (allowedTypes.includes(fileExt)) {
+    if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`File type '${fileExt}' not allowed`), false);
+      cb(new Error(`File type ${file.mimetype} not allowed`), false);
     }
   }
 });
 
 // Upload single file
-router.post('/upload/single',
+router.post('/upload',
   authenticateToken,
   upload.single('file'),
-  ValidationMiddleware.validateFileUpload(),
-  ValidationMiddleware.handleValidationErrors,
   fileController.uploadSingle
 );
 
 // Upload multiple files
-router.post('/upload/multiple',
+router.post('/upload-multiple',
   authenticateToken,
-  upload.array('files', 10),
-  ValidationMiddleware.validateFileUpload(),
-  ValidationMiddleware.handleValidationErrors,
+  upload.array('files', 5),
   fileController.uploadMultiple
 );
 
-// Get file (generates presigned URL for S3 or serves local file)
+// Get file (with presigned URL)
 router.get('/:fileId',
   authenticateToken,
   fileController.getFile
@@ -75,36 +64,9 @@ router.get('/user/files',
 );
 
 // Storage health check
-router.get('/system/health',
+router.get('/health/storage',
   authenticateToken,
   fileController.checkStorageHealth
 );
-
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({
-        success: false,
-        error: 'File too large'
-      });
-    }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(413).json({
-        success: false,
-        error: 'Too many files'
-      });
-    }
-  }
-  
-  if (error.message.includes('File type') || error.message.includes('not allowed')) {
-    return res.status(415).json({
-      success: false,
-      error: error.message
-    });
-  }
-  
-  next(error);
-});
 
 module.exports = router;

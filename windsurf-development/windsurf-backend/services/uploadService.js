@@ -1,199 +1,177 @@
 
-const fs = require('fs').promises;
-const path = require('path');
+const AWS = require('aws-sdk');
 const { v4: uuidv4 } = require('uuid');
 const { pool } = require('../config/database');
 
+// Configure AWS S3
+const s3 = new AWS.S3({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION || 'us-east-1'
+});
+
 class UploadService {
   constructor() {
-    this.uploadDir = process.env.UPLOAD_DIR || 'uploads';
-    this.maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 10485760; // 10MB
-    this.allowedTypes = (process.env.ALLOWED_FILE_TYPES || 'jpeg,jpg,png,gif,pdf,doc,docx,txt').split(',');
-    this.ensureUploadDirs();
+    this.bucketName = process.env.S3_BUCKET_NAME;
+    this.allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    this.maxFileSize = 10 * 1024 * 1024; // 10MB
   }
 
-  async ensureUploadDirs() {
+  async uploadFile(file, category = 'attachments', userId, issueId = null) {
     try {
-      const categories = ['attachments', 'profile_pictures', 'documents'];
-      
-      // Create main upload directory
-      await fs.mkdir(this.uploadDir, { recursive: true });
-      
-      // Create category subdirectories
-      for (const category of categories) {
-        await fs.mkdir(path.join(this.uploadDir, category), { recursive: true });
-      }
-    } catch (error) {
-      console.error('Error creating upload directories:', error);
-    }
-  }
-
-  validateFile(file) {
-    // Check file size
-    if (file.size > this.maxFileSize) {
-      throw new Error(`File size exceeds limit of ${this.maxFileSize / 1024 / 1024}MB`);
-    }
-
-    // Check file type
-    const fileExt = path.extname(file.originalname).toLowerCase().substring(1);
-    if (!this.allowedTypes.includes(fileExt)) {
-      throw new Error(`File type '${fileExt}' not allowed. Allowed types: ${this.allowedTypes.join(', ')}`);
-    }
-
-    return true;
-  }
-
-  async uploadFile(file, category = 'attachments', userId) {
-    try {
+      // Validate file
       this.validateFile(file);
 
       const fileId = uuidv4();
-      const fileExt = path.extname(file.originalname);
-      const filename = `${fileId}${fileExt}`;
-      const filePath = path.join(this.uploadDir, category, filename);
-      
-      // Save file to disk
-      await fs.writeFile(filePath, file.buffer);
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `${category}/${fileId}.${fileExt}`;
 
-      // Save file info to database
-      const [result] = await pool.execute(`
-        INSERT INTO file_uploads (
-          id, original_name, filename, file_path, file_size, 
-          mime_type, category, uploaded_by, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-      `, [
+      // Upload to S3
+      const uploadParams = {
+        Bucket: this.bucketName,
+        Key: fileName,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        Metadata: {
+          'original-name': file.originalname,
+          'uploaded-by': userId,
+          'category': category
+        }
+      };
+
+      const s3Result = await s3.upload(uploadParams).promise();
+
+      // Store file metadata in database
+      const query = `
+        INSERT INTO file_attachments 
+        (id, original_name, filename, file_path, file_size, mime_type, category, uploaded_by, issue_id, s3_key, s3_url)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      await pool.execute(query, [
         fileId,
         file.originalname,
-        filename,
-        filePath,
+        fileName,
+        s3Result.Location,
         file.size,
         file.mimetype,
         category,
-        userId
+        userId,
+        issueId,
+        fileName,
+        s3Result.Location
       ]);
 
       return {
-        id: fileId,
-        filename,
-        originalName: file.originalname,
-        size: file.size,
-        mimeType: file.mimetype,
-        category,
-        url: `/api/upload/${category}/${filename}`,
-        createdAt: new Date()
+        success: true,
+        file: {
+          id: fileId,
+          originalName: file.originalname,
+          filename: fileName,
+          size: file.size,
+          mimetype: file.mimetype,
+          url: s3Result.Location,
+          category
+        }
       };
     } catch (error) {
       console.error('File upload error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async uploadMultipleFiles(files, category = 'attachments', userId, issueId = null) {
+    const results = [];
+
+    for (const file of files) {
+      const result = await this.uploadFile(file, category, userId, issueId);
+      results.push(result);
+    }
+
+    return results;
+  }
+
+  async getFileUrl(fileId) {
+    try {
+      // Get file info from database
+      const query = 'SELECT * FROM file_attachments WHERE id = ?';
+      const [rows] = await pool.execute(query, [fileId]);
+
+      if (rows.length === 0) {
+        return null;
+      }
+
+      const file = rows[0];
+
+      // Generate presigned URL for S3 file
+      const params = {
+        Bucket: this.bucketName,
+        Key: file.s3_key,
+        Expires: 3600 // 1 hour
+      };
+
+      const presignedUrl = await s3.getSignedUrlPromise('getObject', params);
+      return presignedUrl;
+    } catch (error) {
+      console.error('Error generating file URL:', error);
       throw error;
     }
   }
 
-  async uploadMultipleFiles(files, category = 'attachments', userId) {
-    const results = [];
-    
-    for (const file of files) {
-      try {
-        const result = await this.uploadFile(file, category, userId);
-        results.push(result);
-      } catch (error) {
-        results.push({
-          originalName: file.originalname,
-          error: error.message
-        });
-      }
-    }
-    
-    return results;
-  }
-
   async deleteFile(filename, category, userId) {
     try {
-      // Check if file exists and user has permission
-      const [files] = await pool.execute(`
-        SELECT id, file_path, uploaded_by
-        FROM file_uploads
-        WHERE filename = ? AND category = ?
-      `, [filename, category]);
+      // Get file info
+      const query = 'SELECT * FROM file_attachments WHERE filename = ? AND category = ? AND uploaded_by = ?';
+      const [rows] = await pool.execute(query, [filename, category, userId]);
 
-      if (files.length === 0) {
+      if (rows.length === 0) {
         return false;
       }
 
-      const file = files[0];
-      
-      // Check if user owns the file or is admin
-      if (file.uploaded_by !== userId) {
-        // Check if user is admin
-        const [userRoles] = await pool.execute(`
-          SELECT r.name
-          FROM rbac_roles r
-          JOIN rbac_user_roles ur ON r.id = ur.role_id
-          WHERE ur.user_id = ? AND r.name = 'admin'
-        `, [userId]);
+      const file = rows[0];
 
-        if (userRoles.length === 0) {
-          return false; // Not authorized
-        }
-      }
+      // Delete from S3
+      const deleteParams = {
+        Bucket: this.bucketName,
+        Key: file.s3_key
+      };
 
-      // Delete file from disk
-      try {
-        await fs.unlink(file.file_path);
-      } catch (error) {
-        console.error('Error deleting file from disk:', error);
-      }
+      await s3.deleteObject(deleteParams).promise();
 
-      // Delete record from database
-      await pool.execute(`
-        DELETE FROM file_uploads WHERE id = ?
-      `, [file.id]);
+      // Delete from database
+      await pool.execute('DELETE FROM file_attachments WHERE id = ?', [file.id]);
 
       return true;
     } catch (error) {
-      console.error('File deletion error:', error);
+      console.error('Error deleting file:', error);
       throw error;
     }
   }
 
   async getFileInfo(filename, category) {
     try {
-      const [files] = await pool.execute(`
-        SELECT id, original_name, filename, file_size, mime_type, 
-               category, uploaded_by, created_at
-        FROM file_uploads
-        WHERE filename = ? AND category = ?
-      `, [filename, category]);
+      const query = 'SELECT * FROM file_attachments WHERE filename = ? AND category = ?';
+      const [rows] = await pool.execute(query, [filename, category]);
 
-      if (files.length === 0) {
-        return null;
-      }
-
-      const file = files[0];
-      return {
-        id: file.id,
-        filename: file.filename,
-        originalName: file.original_name,
-        size: file.file_size,
-        mimeType: file.mime_type,
-        category: file.category,
-        uploadedBy: file.uploaded_by,
-        url: `/api/upload/${category}/${filename}`,
-        createdAt: file.created_at
-      };
+      return rows.length > 0 ? rows[0] : null;
     } catch (error) {
-      console.error('Get file info error:', error);
+      console.error('Error getting file info:', error);
       throw error;
     }
   }
 
   async getUserFiles(userId, category = null) {
     try {
-      let query = `
-        SELECT id, original_name, filename, file_size, mime_type, 
-               category, created_at
-        FROM file_uploads
-        WHERE uploaded_by = ?
-      `;
+      let query = 'SELECT * FROM file_attachments WHERE uploaded_by = ?';
       const params = [userId];
 
       if (category) {
@@ -203,22 +181,34 @@ class UploadService {
 
       query += ' ORDER BY created_at DESC';
 
-      const [files] = await pool.execute(query, params);
-
-      return files.map(file => ({
-        id: file.id,
-        filename: file.filename,
-        originalName: file.original_name,
-        size: file.file_size,
-        mimeType: file.mime_type,
-        category: file.category,
-        url: `/api/upload/${file.category}/${file.filename}`,
-        createdAt: file.created_at
-      }));
+      const [rows] = await pool.execute(query, params);
+      return rows;
     } catch (error) {
-      console.error('Get user files error:', error);
+      console.error('Error getting user files:', error);
       throw error;
     }
+  }
+
+  async checkS3Connection() {
+    try {
+      await s3.headBucket({ Bucket: this.bucketName }).promise();
+      return { status: 'connected', message: 'S3 bucket accessible' };
+    } catch (error) {
+      console.error('S3 connection error:', error);
+      return { status: 'error', message: error.message };
+    }
+  }
+
+  validateFile(file) {
+    if (file.size > this.maxFileSize) {
+      throw new Error(`File size exceeds maximum limit of ${this.maxFileSize / 1024 / 1024}MB`);
+    }
+
+    if (!this.allowedMimeTypes.includes(file.mimetype)) {
+      throw new Error(`File type ${file.mimetype} not allowed`);
+    }
+
+    return true;
   }
 }
 

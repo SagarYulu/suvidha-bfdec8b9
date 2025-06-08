@@ -1,321 +1,333 @@
 
--- Grievance Portal MySQL Schema (Windsurf Version)
+-- Database schema for Windsurf Development (MySQL)
+-- This matches the original Supabase schema structure
 
 -- Create database if not exists
 CREATE DATABASE IF NOT EXISTS grievance_portal;
 USE grievance_portal;
 
--- Master Cities Table
-CREATE TABLE master_cities (
-  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  name VARCHAR(255) NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name)
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- Enable foreign key checks
+SET FOREIGN_KEY_CHECKS = 1;
 
--- Master Clusters Table
-CREATE TABLE master_clusters (
+-- Employees table (matches Supabase employees structure)
+CREATE TABLE IF NOT EXISTS employees (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  city_id VARCHAR(36) NOT NULL,
+  emp_id VARCHAR(50) NOT NULL UNIQUE,
   name VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_city_id (city_id),
-  INDEX idx_name (name),
-  FOREIGN KEY (city_id) REFERENCES master_cities(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_cluster_per_city (city_id, name)
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Master Roles Table
-CREATE TABLE master_roles (
-  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  name VARCHAR(255) NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_name (name)
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Master Audit Logs Table
-CREATE TABLE master_audit_logs (
-  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  entity_type VARCHAR(100) NOT NULL,
-  entity_id VARCHAR(36) NOT NULL,
-  action VARCHAR(50) NOT NULL,
-  changes JSON,
-  created_by VARCHAR(36) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_entity (entity_type, entity_id),
-  INDEX idx_created_by (created_by),
-  INDEX idx_created_at (created_at)
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Users table (employees)
-CREATE TABLE users (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(20),
-  employee_id VARCHAR(50) UNIQUE,
-  department VARCHAR(100),
-  role VARCHAR(50) DEFAULT 'employee',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_employee_id (employee_id),
-  INDEX idx_department (department)
-);
-
--- Dashboard users table (admin users)
-CREATE TABLE dashboard_users (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) UNIQUE NOT NULL,
+  user_id VARCHAR(50),
   password VARCHAR(255) NOT NULL,
-  role VARCHAR(50) NOT NULL,
-  phone VARCHAR(20),
-  department VARCHAR(100),
+  role VARCHAR(50),
+  city VARCHAR(100),
+  cluster VARCHAR(100),
+  manager VARCHAR(255),
+  date_of_birth DATE,
+  date_of_joining DATE,
+  blood_group VARCHAR(10),
+  account_number VARCHAR(50),
+  ifsc_code VARCHAR(20),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_role (role)
+  INDEX idx_employees_emp_id (emp_id),
+  INDEX idx_employees_email (email),
+  INDEX idx_employees_city (city),
+  INDEX idx_employees_cluster (cluster),
+  INDEX idx_employees_role (role)
 );
 
--- Dashboard User Audit Logs Table
-CREATE TABLE dashboard_user_audit_logs (
+-- Dashboard users table (for admin panel users)
+CREATE TABLE IF NOT EXISTS dashboard_users (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-  entity_type VARCHAR(100) NOT NULL,
-  entity_id VARCHAR(36) NOT NULL,
-  action VARCHAR(50) NOT NULL,
-  changes JSON,
-  performed_by VARCHAR(36),
-  performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_entity (entity_type, entity_id),
-  INDEX idx_performed_by (performed_by),
-  INDEX idx_performed_at (performed_at)
-) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- Issues table
-CREATE TABLE issues (
-  id VARCHAR(36) PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL,
-  category VARCHAR(100) NOT NULL,
-  priority ENUM('low', 'medium', 'high', 'urgent') DEFAULT 'medium',
-  status ENUM('open', 'in_progress', 'resolved', 'closed') DEFAULT 'open',
-  employee_id VARCHAR(36),
-  assigned_to VARCHAR(36),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  employee_id VARCHAR(50),
+  user_id VARCHAR(50),
+  phone VARCHAR(20),
+  city VARCHAR(100),
+  cluster VARCHAR(100),
+  manager VARCHAR(255),
+  role VARCHAR(50) NOT NULL DEFAULT 'employee',
+  password VARCHAR(255) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE SET NULL,
-  FOREIGN KEY (assigned_to) REFERENCES dashboard_users(id) ON DELETE SET NULL,
-  INDEX idx_status (status),
-  INDEX idx_priority (priority),
-  INDEX idx_category (category),
-  INDEX idx_employee_id (employee_id),
-  INDEX idx_assigned_to (assigned_to),
-  INDEX idx_created_at (created_at)
+  created_by VARCHAR(36),
+  last_updated_by VARCHAR(36),
+  INDEX idx_dashboard_users_email (email),
+  INDEX idx_dashboard_users_role (role),
+  INDEX idx_dashboard_users_employee_id (employee_id)
+);
+
+-- Issues table (core table for ticket management)
+CREATE TABLE IF NOT EXISTS issues (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  employee_uuid VARCHAR(36) NOT NULL,
+  type_id VARCHAR(50) NOT NULL,
+  sub_type_id VARCHAR(50) NOT NULL,
+  description TEXT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'open',
+  priority VARCHAR(20) NOT NULL DEFAULT 'low',
+  assigned_to VARCHAR(36),
+  attachment_url TEXT,
+  attachments JSON,
+  mapped_type_id VARCHAR(50),
+  mapped_sub_type_id VARCHAR(50),
+  mapped_by VARCHAR(36),
+  mapped_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  closed_at TIMESTAMP NULL,
+  INDEX idx_issues_employee (employee_uuid),
+  INDEX idx_issues_status (status),
+  INDEX idx_issues_priority (priority),
+  INDEX idx_issues_assigned_to (assigned_to),
+  INDEX idx_issues_created_at (created_at),
+  INDEX idx_issues_type (type_id),
+  INDEX idx_issues_sub_type (sub_type_id),
+  FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- Issue comments table
-CREATE TABLE issue_comments (
-  id VARCHAR(36) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS issue_comments (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   issue_id VARCHAR(36) NOT NULL,
-  author_id VARCHAR(36),
+  employee_uuid VARCHAR(36) NOT NULL,
   content TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_comments_issue (issue_id),
+  INDEX idx_comments_employee (employee_uuid),
   FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-  FOREIGN KEY (author_id) REFERENCES dashboard_users(id) ON DELETE SET NULL,
-  INDEX idx_issue_id (issue_id),
-  INDEX idx_author_id (author_id),
-  INDEX idx_created_at (created_at)
+  FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
--- Internal comments table (admin only)
-CREATE TABLE internal_comments (
-  id VARCHAR(36) PRIMARY KEY,
+-- Internal comments table (for admin/agent internal notes)
+CREATE TABLE IF NOT EXISTS issue_internal_comments (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   issue_id VARCHAR(36) NOT NULL,
-  author_id VARCHAR(36),
+  employee_uuid VARCHAR(36) NOT NULL,
   content TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-  FOREIGN KEY (author_id) REFERENCES dashboard_users(id) ON DELETE SET NULL,
-  INDEX idx_issue_id (issue_id),
-  INDEX idx_author_id (author_id)
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_internal_comments_issue (issue_id),
+  INDEX idx_internal_comments_employee (employee_uuid),
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE
 );
 
--- Feedback table
-CREATE TABLE feedback (
-  id VARCHAR(36) PRIMARY KEY,
+-- Issue audit trail table (tracks all changes)
+CREATE TABLE IF NOT EXISTS issue_audit_trail (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   issue_id VARCHAR(36) NOT NULL,
-  employee_id VARCHAR(36),
-  rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  feedback_text TEXT,
-  resolution_satisfaction ENUM('very_unsatisfied', 'unsatisfied', 'neutral', 'satisfied', 'very_satisfied'),
+  employee_uuid VARCHAR(36) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  previous_status VARCHAR(20),
+  new_status VARCHAR(20),
+  details JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-  FOREIGN KEY (employee_id) REFERENCES users(id) ON DELETE SET NULL,
-  INDEX idx_issue_id (issue_id),
-  INDEX idx_employee_id (employee_id),
-  INDEX idx_rating (rating)
+  INDEX idx_audit_issue (issue_id),
+  INDEX idx_audit_employee (employee_uuid),
+  INDEX idx_audit_action (action),
+  INDEX idx_audit_created_at (created_at),
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE
 );
 
--- File attachments table
-CREATE TABLE attachments (
-  id VARCHAR(36) PRIMARY KEY,
+-- Ticket feedback table (emoji-based feedback)
+CREATE TABLE IF NOT EXISTS ticket_feedback (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   issue_id VARCHAR(36) NOT NULL,
-  filename VARCHAR(255) NOT NULL,
+  employee_uuid VARCHAR(36) NOT NULL,
+  feedback_option VARCHAR(10) NOT NULL, -- 😊, 😐, 😞
+  sentiment VARCHAR(20) NOT NULL, -- positive, neutral, negative
+  agent_id VARCHAR(36),
+  agent_name VARCHAR(255),
+  city VARCHAR(100),
+  cluster VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_feedback_issue (issue_id),
+  INDEX idx_feedback_employee (employee_uuid),
+  INDEX idx_feedback_sentiment (sentiment),
+  INDEX idx_feedback_created_at (created_at),
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
+  FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+-- File attachments table (for S3 file tracking)
+CREATE TABLE IF NOT EXISTS file_attachments (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   original_name VARCHAR(255) NOT NULL,
-  file_path VARCHAR(500) NOT NULL,
-  file_size INT,
-  mime_type VARCHAR(100),
-  uploaded_by VARCHAR(36),
+  filename VARCHAR(255) NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size BIGINT NOT NULL,
+  mime_type VARCHAR(100) NOT NULL,
+  category VARCHAR(50) DEFAULT 'attachments',
+  uploaded_by VARCHAR(36) NOT NULL,
+  issue_id VARCHAR(36),
+  s3_key VARCHAR(500),
+  s3_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-  FOREIGN KEY (uploaded_by) REFERENCES users(id) ON DELETE SET NULL,
-  INDEX idx_issue_id (issue_id)
+  INDEX idx_attachments_uploaded_by (uploaded_by),
+  INDEX idx_attachments_issue (issue_id),
+  INDEX idx_attachments_category (category),
+  FOREIGN KEY (uploaded_by) REFERENCES employees(id) ON DELETE CASCADE,
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE SET NULL
 );
 
--- RBAC Tables
-CREATE TABLE rbac_roles (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL,
+-- Issue notifications table
+CREATE TABLE IF NOT EXISTS issue_notifications (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  issue_id VARCHAR(36) NOT NULL,
+  user_id VARCHAR(36) NOT NULL,
+  content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_notifications_user (user_id),
+  INDEX idx_notifications_issue (issue_id),
+  INDEX idx_notifications_read (is_read),
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE
+);
+
+-- Master data tables
+
+-- Master cities table
+CREATE TABLE IF NOT EXISTS master_cities (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Master clusters table
+CREATE TABLE IF NOT EXISTS master_clusters (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(100) NOT NULL,
+  city_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (city_id) REFERENCES master_cities(id) ON DELETE CASCADE
+);
+
+-- Master roles table
+CREATE TABLE IF NOT EXISTS master_roles (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(50) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- RBAC tables
+
+-- RBAC roles table
+CREATE TABLE IF NOT EXISTS rbac_roles (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(50) NOT NULL UNIQUE,
   description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE rbac_permissions (
-  id VARCHAR(36) PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL,
+-- RBAC permissions table
+CREATE TABLE IF NOT EXISTS rbac_permissions (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  name VARCHAR(100) NOT NULL UNIQUE,
   description TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
-CREATE TABLE rbac_role_permissions (
-  role_id VARCHAR(36),
-  permission_id VARCHAR(36),
-  PRIMARY KEY (role_id, permission_id),
+-- RBAC role permissions table
+CREATE TABLE IF NOT EXISTS rbac_role_permissions (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  role_id VARCHAR(36) NOT NULL,
+  permission_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_role_permission (role_id, permission_id),
   FOREIGN KEY (role_id) REFERENCES rbac_roles(id) ON DELETE CASCADE,
   FOREIGN KEY (permission_id) REFERENCES rbac_permissions(id) ON DELETE CASCADE
 );
 
-CREATE TABLE rbac_user_roles (
-  user_id VARCHAR(36),
-  role_id VARCHAR(36),
-  PRIMARY KEY (user_id, role_id),
-  FOREIGN KEY (user_id) REFERENCES dashboard_users(id) ON DELETE CASCADE,
+-- RBAC user roles table
+CREATE TABLE IF NOT EXISTS rbac_user_roles (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  user_id VARCHAR(36) NOT NULL,
+  role_id VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY unique_user_role (user_id, role_id),
   FOREIGN KEY (role_id) REFERENCES rbac_roles(id) ON DELETE CASCADE
 );
 
--- Issue activities/audit log
-CREATE TABLE issue_activities (
-  id VARCHAR(36) PRIMARY KEY,
-  issue_id VARCHAR(36) NOT NULL,
-  actor_id VARCHAR(36),
-  action VARCHAR(100) NOT NULL,
-  old_value TEXT,
-  new_value TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-  FOREIGN KEY (actor_id) REFERENCES dashboard_users(id) ON DELETE SET NULL,
-  INDEX idx_issue_id (issue_id),
-  INDEX idx_actor_id (actor_id),
-  INDEX idx_created_at (created_at)
+-- Audit logs tables
+
+-- Dashboard user audit logs
+CREATE TABLE IF NOT EXISTS dashboard_user_audit_logs (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  entity_type VARCHAR(50) NOT NULL,
+  entity_id VARCHAR(36) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  changes JSON NOT NULL,
+  performed_by VARCHAR(36),
+  performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_logs_entity (entity_type, entity_id),
+  INDEX idx_audit_logs_performed_by (performed_by),
+  INDEX idx_audit_logs_performed_at (performed_at)
 );
 
--- Sentiment analysis table
-CREATE TABLE sentiment_analysis (
-  id VARCHAR(36) PRIMARY KEY,
-  user_id VARCHAR(36),
-  mood ENUM('very_bad', 'bad', 'neutral', 'good', 'excellent') NOT NULL,
-  topics JSON,
-  feedback_text TEXT,
-  rating INT CHECK (rating BETWEEN 1 AND 5),
+-- Master audit logs
+CREATE TABLE IF NOT EXISTS master_audit_logs (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  entity_type VARCHAR(50) NOT NULL,
+  entity_id VARCHAR(36) NOT NULL,
+  action VARCHAR(50) NOT NULL,
+  changes JSON NOT NULL,
+  created_by VARCHAR(36) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-  INDEX idx_user_id (user_id),
-  INDEX idx_mood (mood),
-  INDEX idx_created_at (created_at)
+  INDEX idx_master_audit_entity (entity_type, entity_id),
+  INDEX idx_master_audit_created_by (created_by),
+  INDEX idx_master_audit_created_at (created_at)
 );
 
--- Insert default master data
-INSERT INTO master_cities (id, name) VALUES 
-('city-1', 'Bangalore'),
-('city-2', 'Mumbai'), 
-('city-3', 'Delhi'),
-('city-4', 'Chennai'),
-('city-5', 'Hyderabad'),
-('city-6', 'Pune'),
-('city-7', 'Kolkata');
+-- Insert default data
 
-INSERT INTO master_clusters (id, city_id, name) VALUES
-('cluster-1', 'city-1', 'North Bangalore'),
-('cluster-2', 'city-1', 'South Bangalore'),
-('cluster-3', 'city-2', 'Central Mumbai'),
-('cluster-4', 'city-2', 'Suburban Mumbai'),
-('cluster-5', 'city-3', 'Central Delhi'),
-('cluster-6', 'city-3', 'South Delhi');
+-- Insert default cities
+INSERT IGNORE INTO master_cities (name) VALUES 
+('Bangalore'), ('Delhi'), ('Mumbai'), ('Chennai'), ('Hyderabad'), ('Pune');
 
-INSERT INTO master_roles (id, name) VALUES
-('role-1', 'admin'),
-('role-2', 'security-admin'),
-('role-3', 'employee'),
-('role-4', 'City Head'),
-('role-5', 'Cluster Head'),
-('role-6', 'HR Admin');
-
--- Insert RBAC permissions
-INSERT INTO rbac_permissions (id, name, description) VALUES
-('perm-1', 'manage:issues', 'Can manage all issues'),
-('perm-2', 'view:issues', 'Can view issues'),
-('perm-3', 'create:issues', 'Can create issues'),
-('perm-4', 'manage:users', 'Can manage users'),
-('perm-5', 'view:analytics', 'Can view analytics'),
-('perm-6', 'manage:analytics', 'Can manage analytics'),
-('perm-7', 'manage:feedback', 'Can manage feedback'),
-('perm-8', 'view:feedback', 'Can view feedback');
+-- Insert default roles
+INSERT IGNORE INTO master_roles (name) VALUES 
+('Admin'), ('Manager'), ('Agent'), ('Recruiter'), ('CRM'), ('Trainer'), ('Employee');
 
 -- Insert RBAC roles
-INSERT INTO rbac_roles (id, name, description) VALUES
-('rbac-role-1', 'Admin', 'Full system access'),
-('rbac-role-2', 'Security Admin', 'Security and user management'),
-('rbac-role-3', 'Employee', 'Basic employee access');
+INSERT IGNORE INTO rbac_roles (name, description) VALUES 
+('admin', 'System Administrator with full access'),
+('manager', 'Team Manager with supervisory access'),
+('agent', 'Support Agent with issue management access'),
+('recruiter', 'Recruiter with employee management access'),
+('crm', 'CRM with customer relationship access'),
+('trainer', 'Trainer with training content access'),
+('employee', 'Regular employee with basic access');
 
--- Assign permissions to roles
-INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES
-('rbac-role-1', 'perm-1'),
-('rbac-role-1', 'perm-2'),
-('rbac-role-1', 'perm-3'),
-('rbac-role-1', 'perm-4'),
-('rbac-role-1', 'perm-5'),
-('rbac-role-1', 'perm-6'),
-('rbac-role-1', 'perm-7'),
-('rbac-role-1', 'perm-8'),
-('rbac-role-2', 'perm-1'),
-('rbac-role-2', 'perm-2'),
-('rbac-role-2', 'perm-4'),
-('rbac-role-2', 'perm-5'),
-('rbac-role-3', 'perm-2'),
-('rbac-role-3', 'perm-3'),
-('rbac-role-3', 'perm-8');
+-- Insert RBAC permissions
+INSERT IGNORE INTO rbac_permissions (name, description) VALUES 
+('issues:create', 'Create new issues'),
+('issues:read', 'View issues'),
+('issues:update', 'Update existing issues'),
+('issues:delete', 'Delete issues'),
+('issues:assign', 'Assign issues to agents'),
+('issues:comment', 'Add comments to issues'),
+('users:create', 'Create new users'),
+('users:read', 'View user information'),
+('users:update', 'Update user information'),
+('users:delete', 'Delete users'),
+('reports:read', 'View reports and analytics'),
+('feedback:read', 'View feedback'),
+('feedback:create', 'Submit feedback'),
+('admin:all', 'Full administrative access');
 
--- Create indexes for better performance
-CREATE INDEX idx_issues_status_priority ON issues(status, priority);
-CREATE INDEX idx_issues_created_at_status ON issues(created_at, status);
-CREATE INDEX idx_feedback_rating_created ON feedback(rating, created_at);
+-- Create default admin user (password should be hashed in production)
+INSERT IGNORE INTO dashboard_users (id, name, email, role, password) VALUES 
+('admin-uuid-1', 'System Admin', 'admin@company.com', 'admin', '$2b$10$dummyhashedpassword');
 
--- Create default admin user (password: admin123)
-INSERT INTO dashboard_users (
-    id, name, email, password, role, created_at
-) VALUES (
-    'admin-user-1',
-    'System Admin',
-    'admin@yulu.com',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeA.U0rqERAWLpK3u',
-    'admin',
-    NOW()
-);
+-- Set up foreign key relationships properly
+ALTER TABLE issues ADD CONSTRAINT fk_issues_assigned_to 
+  FOREIGN KEY (assigned_to) REFERENCES dashboard_users(id) ON DELETE SET NULL;
 
--- Assign admin role to default user
-INSERT INTO rbac_user_roles (user_id, role_id) VALUES
-('admin-user-1', 'rbac-role-1');
+ALTER TABLE issue_audit_trail ADD CONSTRAINT fk_audit_employee 
+  FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE;

@@ -1,29 +1,51 @@
 
 const { pool } = require('../config/database');
-const { v4: uuidv4 } = require('uuid');
 
 class FeedbackService {
   async submitFeedback(feedbackData) {
     try {
-      const id = uuidv4();
-      const {
-        employeeId,
-        sentiment,
-        feedbackText,
-        rating,
-        category,
-        issueId = null,
-        submittedAt
+      const { 
+        issue_id, 
+        employee_uuid, 
+        feedback_option, 
+        sentiment, 
+        agent_id, 
+        agent_name,
+        city,
+        cluster 
       } = feedbackData;
 
-      await pool.execute(`
-        INSERT INTO feedback (
-          id, employee_id, sentiment, feedback_text, rating, 
-          category, issue_id, submitted_at, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-      `, [id, employeeId, sentiment, feedbackText, rating, category, issueId, submittedAt]);
+      // Map emoji feedback to sentiment scores
+      const sentimentMapping = {
+        '😊': 'positive',
+        '😐': 'neutral', 
+        '😞': 'negative'
+      };
 
-      return id;
+      const mappedSentiment = sentimentMapping[feedback_option] || sentiment;
+
+      const query = `
+        INSERT INTO ticket_feedback 
+        (issue_id, employee_uuid, feedback_option, sentiment, agent_id, agent_name, city, cluster)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const [result] = await pool.execute(query, [
+        issue_id,
+        employee_uuid,
+        feedback_option,
+        mappedSentiment,
+        agent_id,
+        agent_name,
+        city,
+        cluster
+      ]);
+
+      return {
+        id: result.insertId,
+        ...feedbackData,
+        sentiment: mappedSentiment
+      };
     } catch (error) {
       console.error('Error submitting feedback:', error);
       throw error;
@@ -32,30 +54,48 @@ class FeedbackService {
 
   async getFeedbackHistory(employeeId, options = {}) {
     try {
-      const { page = 1, limit = 10 } = options;
+      const { page = 1, limit = 10, sentiment } = options;
       const offset = (page - 1) * limit;
 
-      const [feedback] = await pool.execute(`
-        SELECT 
-          f.*,
-          i.title as issue_title
-        FROM feedback f
+      let query = `
+        SELECT f.*, i.description as issue_description, i.status as issue_status
+        FROM ticket_feedback f
         LEFT JOIN issues i ON f.issue_id = i.id
-        WHERE f.employee_id = ?
-        ORDER BY f.created_at DESC
-        LIMIT ? OFFSET ?
-      `, [employeeId, parseInt(limit), offset]);
+        WHERE f.employee_uuid = ?
+      `;
 
-      const [countResult] = await pool.execute(
-        'SELECT COUNT(*) as total FROM feedback WHERE employee_id = ?',
-        [employeeId]
-      );
+      const params = [employeeId];
+
+      if (sentiment) {
+        query += ' AND f.sentiment = ?';
+        params.push(sentiment);
+      }
+
+      query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
+      params.push(limit, offset);
+
+      const [feedback] = await pool.execute(query, params);
+
+      // Get total count
+      let countQuery = 'SELECT COUNT(*) as total FROM ticket_feedback WHERE employee_uuid = ?';
+      const countParams = [employeeId];
+
+      if (sentiment) {
+        countQuery += ' AND sentiment = ?';
+        countParams.push(sentiment);
+      }
+
+      const [countResult] = await pool.execute(countQuery, countParams);
+      const total = countResult[0].total;
 
       return {
         feedback,
-        total: countResult[0].total,
-        page: parseInt(page),
-        totalPages: Math.ceil(countResult[0].total / limit)
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
       };
     } catch (error) {
       console.error('Error fetching feedback history:', error);
@@ -63,253 +103,168 @@ class FeedbackService {
     }
   }
 
-  async getEmployeeFeedbackAnalytics(employeeId) {
+  async getFeedbackAnalytics(filters = {}) {
     try {
-      // Get basic stats
-      const [stats] = await pool.execute(`
-        SELECT 
-          COUNT(*) as total_feedback,
-          AVG(rating) as average_rating,
-          COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_count,
-          COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_count,
-          COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_count
-        FROM feedback 
-        WHERE employee_id = ?
-      `, [employeeId]);
-
-      // Get feedback by category
-      const [categoryStats] = await pool.execute(`
-        SELECT 
-          category,
-          COUNT(*) as count,
-          AVG(rating) as avg_rating
-        FROM feedback 
-        WHERE employee_id = ?
-        GROUP BY category
-        ORDER BY count DESC
-      `, [employeeId]);
-
-      return {
-        stats: stats[0],
-        categoryBreakdown: categoryStats
-      };
-    } catch (error) {
-      console.error('Error fetching employee feedback analytics:', error);
-      throw error;
-    }
-  }
-
-  async getAdminFeedbackAnalytics(filters = {}) {
-    try {
-      let whereClause = 'WHERE 1=1';
-      const params = [];
-
-      if (filters.dateRange) {
-        const { start, end } = filters.dateRange;
-        whereClause += ' AND f.created_at BETWEEN ? AND ?';
-        params.push(start, end);
-      }
-
-      if (filters.category && filters.category !== 'all') {
-        whereClause += ' AND f.category = ?';
-        params.push(filters.category);
-      }
-
-      if (filters.sentiment && filters.sentiment !== 'all') {
-        whereClause += ' AND f.sentiment = ?';
-        params.push(filters.sentiment);
-      }
-
-      // Get overall statistics
-      const [overallStats] = await pool.execute(`
-        SELECT 
-          COUNT(*) as total_feedback,
-          AVG(rating) as average_rating,
-          COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_count,
-          COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_count,
-          COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_count,
-          COUNT(DISTINCT employee_id) as unique_employees
-        FROM feedback f
-        ${whereClause}
-      `, params);
-
-      // Get sentiment distribution
-      const [sentimentDist] = await pool.execute(`
+      const { dateRange, city, cluster } = filters;
+      
+      let query = `
         SELECT 
           sentiment,
           COUNT(*) as count,
-          ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as percentage
-        FROM feedback f
-        ${whereClause}
-        GROUP BY sentiment
-      `, params);
+          AVG(CASE 
+            WHEN sentiment = 'positive' THEN 5
+            WHEN sentiment = 'neutral' THEN 3
+            WHEN sentiment = 'negative' THEN 1
+            ELSE 3
+          END) as avg_score
+        FROM ticket_feedback f
+        WHERE 1=1
+      `;
 
-      // Get category analysis
-      const [categoryAnalysis] = await pool.execute(`
-        SELECT 
-          category,
-          COUNT(*) as count,
-          AVG(rating) as avg_rating,
-          COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_count,
-          COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_count
-        FROM feedback f
-        ${whereClause}
-        GROUP BY category
-        ORDER BY count DESC
-      `, params);
+      const params = [];
 
-      // Get recent feedback
-      const [recentFeedback] = await pool.execute(`
-        SELECT 
-          f.*,
-          e.name as employee_name,
-          i.title as issue_title
-        FROM feedback f
-        LEFT JOIN employees e ON f.employee_id = e.id
-        LEFT JOIN issues i ON f.issue_id = i.id
-        ${whereClause}
-        ORDER BY f.created_at DESC
-        LIMIT 10
-      `, params);
+      if (dateRange) {
+        const [startDate, endDate] = dateRange.split(',');
+        query += ' AND f.created_at BETWEEN ? AND ?';
+        params.push(startDate, endDate);
+      }
+
+      if (city) {
+        query += ' AND f.city = ?';
+        params.push(city);
+      }
+
+      if (cluster) {
+        query += ' AND f.cluster = ?';
+        params.push(cluster);
+      }
+
+      query += ' GROUP BY sentiment';
+
+      const [results] = await pool.execute(query, params);
+
+      // Calculate overall metrics
+      const totalFeedback = results.reduce((sum, row) => sum + row.count, 0);
+      const overallScore = results.reduce((sum, row) => sum + (row.avg_score * row.count), 0) / totalFeedback;
 
       return {
-        overallStats: overallStats[0],
-        sentimentDistribution: sentimentDist,
-        categoryAnalysis,
-        recentFeedback
+        distribution: results,
+        totalFeedback,
+        overallScore: Math.round(overallScore * 100) / 100,
+        sentimentBreakdown: {
+          positive: results.find(r => r.sentiment === 'positive')?.count || 0,
+          neutral: results.find(r => r.sentiment === 'neutral')?.count || 0,
+          negative: results.find(r => r.sentiment === 'negative')?.count || 0
+        }
       };
     } catch (error) {
-      console.error('Error fetching admin feedback analytics:', error);
+      console.error('Error fetching feedback analytics:', error);
       throw error;
     }
   }
 
-  async getSentimentTrends(timeframe) {
+  async getSentimentTrends(timeframe, filters = {}) {
     try {
-      let dateCondition = '';
+      const { city, cluster } = filters;
       
+      let dateCondition;
       switch (timeframe) {
+        case '1month':
+          dateCondition = 'DATE_SUB(NOW(), INTERVAL 1 MONTH)';
+          break;
         case '3months':
-          dateCondition = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)';
+          dateCondition = 'DATE_SUB(NOW(), INTERVAL 3 MONTH)';
           break;
         case '6months':
-          dateCondition = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)';
+        default:
+          dateCondition = 'DATE_SUB(NOW(), INTERVAL 6 MONTH)';
           break;
         case '1year':
-          dateCondition = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)';
+          dateCondition = 'DATE_SUB(NOW(), INTERVAL 1 YEAR)';
           break;
-        default:
-          dateCondition = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)';
       }
 
-      const [trends] = await pool.execute(`
+      let query = `
         SELECT 
           DATE_FORMAT(created_at, '%Y-%m') as month,
-          COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_count,
-          COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_count,
-          COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_count,
-          AVG(rating) as avg_rating,
-          COUNT(*) as total_feedback
-        FROM feedback 
-        WHERE 1=1 ${dateCondition}
-        GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-        ORDER BY month
-      `);
+          sentiment,
+          COUNT(*) as count
+        FROM ticket_feedback
+        WHERE created_at >= ${dateCondition}
+      `;
 
-      return trends;
+      const params = [];
+
+      if (city) {
+        query += ' AND city = ?';
+        params.push(city);
+      }
+
+      if (cluster) {
+        query += ' AND cluster = ?';
+        params.push(cluster);
+      }
+
+      query += ' GROUP BY month, sentiment ORDER BY month';
+
+      const [results] = await pool.execute(query, params);
+
+      return results;
     } catch (error) {
       console.error('Error fetching sentiment trends:', error);
       throw error;
     }
   }
 
-  async getCategoryAnalysis(dateRange) {
+  async getFeedbackByIssue(issueId) {
     try {
-      let whereClause = 'WHERE 1=1';
-      const params = [];
+      const query = `
+        SELECT f.*, e.name as employee_name
+        FROM ticket_feedback f
+        LEFT JOIN employees e ON f.employee_uuid = e.id
+        WHERE f.issue_id = ?
+        ORDER BY f.created_at DESC
+      `;
 
-      if (dateRange) {
-        const { start, end } = dateRange;
-        whereClause += ' AND created_at BETWEEN ? AND ?';
-        params.push(start, end);
-      }
-
-      const [analysis] = await pool.execute(`
-        SELECT 
-          category,
-          COUNT(*) as total_feedback,
-          AVG(rating) as avg_rating,
-          COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) as positive_count,
-          COUNT(CASE WHEN sentiment = 'neutral' THEN 1 END) as neutral_count,
-          COUNT(CASE WHEN sentiment = 'negative' THEN 1 END) as negative_count,
-          ROUND(COUNT(CASE WHEN sentiment = 'positive' THEN 1 END) * 100.0 / COUNT(*), 2) as positive_percentage
-        FROM feedback 
-        ${whereClause}
-        GROUP BY category
-        ORDER BY total_feedback DESC
-      `, params);
-
-      return analysis;
+      const [feedback] = await pool.execute(query, [issueId]);
+      return feedback;
     } catch (error) {
-      console.error('Error fetching category analysis:', error);
+      console.error('Error fetching feedback by issue:', error);
       throw error;
     }
   }
 
-  async exportFeedbackData(options = {}) {
+  async updateFeedback(id, updateData) {
     try {
-      const { format = 'csv', dateRange, category, sentiment } = options;
+      const { feedback_option, sentiment } = updateData;
       
-      let whereClause = 'WHERE 1=1';
-      const params = [];
+      const query = `
+        UPDATE ticket_feedback 
+        SET feedback_option = ?, sentiment = ?, updated_at = NOW()
+        WHERE id = ?
+      `;
 
-      if (dateRange) {
-        const { start, end } = dateRange;
-        whereClause += ' AND f.created_at BETWEEN ? AND ?';
-        params.push(start, end);
+      const [result] = await pool.execute(query, [feedback_option, sentiment, id]);
+
+      if (result.affectedRows === 0) {
+        return null;
       }
 
-      if (category && category !== 'all') {
-        whereClause += ' AND f.category = ?';
-        params.push(category);
-      }
-
-      if (sentiment && sentiment !== 'all') {
-        whereClause += ' AND f.sentiment = ?';
-        params.push(sentiment);
-      }
-
-      const [feedback] = await pool.execute(`
-        SELECT 
-          f.id,
-          f.employee_id,
-          e.name as employee_name,
-          f.sentiment,
-          f.feedback_text,
-          f.rating,
-          f.category,
-          f.issue_id,
-          i.title as issue_title,
-          f.created_at
-        FROM feedback f
-        LEFT JOIN employees e ON f.employee_id = e.id
-        LEFT JOIN issues i ON f.issue_id = i.id
-        ${whereClause}
-        ORDER BY f.created_at DESC
-      `, params);
-
-      if (format === 'csv') {
-        const csvHeader = 'ID,Employee ID,Employee Name,Sentiment,Feedback,Rating,Category,Issue ID,Issue Title,Created At\n';
-        const csvRows = feedback.map(row => 
-          `${row.id},"${row.employee_id}","${row.employee_name}","${row.sentiment}","${row.feedback_text}",${row.rating},"${row.category}","${row.issue_id || ''}","${row.issue_title || ''}","${row.created_at}"`
-        ).join('\n');
-        
-        return csvHeader + csvRows;
-      }
-
-      return feedback;
+      // Return updated feedback
+      const [updated] = await pool.execute('SELECT * FROM ticket_feedback WHERE id = ?', [id]);
+      return updated[0];
     } catch (error) {
-      console.error('Error exporting feedback data:', error);
+      console.error('Error updating feedback:', error);
+      throw error;
+    }
+  }
+
+  async deleteFeedback(id) {
+    try {
+      const [result] = await pool.execute('DELETE FROM ticket_feedback WHERE id = ?', [id]);
+      return result.affectedRows > 0;
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
       throw error;
     }
   }

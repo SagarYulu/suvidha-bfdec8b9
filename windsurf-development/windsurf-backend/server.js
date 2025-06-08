@@ -12,7 +12,6 @@ require('dotenv').config();
 const authMiddleware = require('./middleware/auth');
 const errorHandler = require('./middleware/errorHandler');
 const realTimeService = require('./services/realTimeService');
-const slaService = require('./services/slaService');
 
 // Import routes
 const issueRoutes = require('./routes/issueRoutes');
@@ -48,8 +47,8 @@ app.use(cors({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   message: {
     error: 'Too many requests from this IP, please try again later.',
   },
@@ -65,9 +64,9 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
+// Health check endpoint with comprehensive status
+app.get('/health', async (req, res) => {
+  const health = {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -76,9 +75,37 @@ app.get('/health', (req, res) => {
     services: {
       database: 'connected',
       webSocket: 'running',
-      email: 'configured'
+      email: 'configured',
+      storage: 'available'
     }
-  });
+  };
+
+  // Check database connection
+  try {
+    const { pool } = require('./config/database');
+    await pool.execute('SELECT 1');
+    health.services.database = 'connected';
+  } catch (error) {
+    health.services.database = 'error';
+    health.status = 'DEGRADED';
+  }
+
+  // Check WebSocket service
+  try {
+    health.services.webSocket = realTimeService.getConnectedClients() >= 0 ? 'running' : 'stopped';
+  } catch (error) {
+    health.services.webSocket = 'error';
+    health.status = 'DEGRADED';
+  }
+
+  // Check email service
+  health.services.email = process.env.SMTP_HOST ? 'configured' : 'not_configured';
+
+  // Check storage service
+  health.services.storage = process.env.AWS_ACCESS_KEY_ID ? 'configured' : 'not_configured';
+
+  const statusCode = health.status === 'OK' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // API routes
@@ -86,17 +113,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/issues', authMiddleware.authenticateToken, issueRoutes);
 app.use('/api/feedback', authMiddleware.authenticateToken, feedbackRoutes);
 app.use('/api/upload', authMiddleware.authenticateToken, uploadRoutes);
-app.use('/api/files', fileRoutes); // File routes with built-in auth
+app.use('/api/files', authMiddleware.authenticateToken, fileRoutes);
 app.use('/api/analytics', authMiddleware.authenticateToken, analyticsRoutes);
 
 // Serve static files for uploads
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'uploads'));
-
-// WebSocket setup for real-time functionality
-const wss = new WebSocket.Server({ 
-  server,
-  path: '/realtime'
-});
 
 // Initialize real-time service with WebSocket server
 realTimeService.initialize(server);
@@ -105,19 +126,41 @@ realTimeService.initialize(server);
 cron.schedule('0 * * * *', async () => {
   try {
     console.log('Running scheduled SLA breach check...');
-    const result = await slaService.checkSLABreaches();
-    console.log(`SLA check completed: ${result.checked} issues checked, ${result.breached} breaches found`);
+    const tatService = require('./services/tatService');
+    const breaches = await tatService.getSLABreaches();
+    console.log(`SLA check completed: ${breaches.total} issues checked, ${breaches.breached} breaches found`);
+    
+    // Send notifications for SLA breaches if needed
+    if (breaches.breached > 0) {
+      console.log(`⚠️  ${breaches.breached} SLA breaches detected`);
+      // Here you could trigger email notifications
+    }
   } catch (error) {
     console.error('Scheduled SLA check failed:', error);
   }
 });
 
-// Additional cron jobs
-// Clean up old audit logs (monthly)
+// Cleanup old audit logs monthly
 cron.schedule('0 0 1 * *', async () => {
   try {
-    console.log('Running monthly cleanup...');
-    // Add cleanup logic here if needed
+    console.log('Running monthly audit log cleanup...');
+    const { pool } = require('./config/database');
+    
+    // Keep only last 12 months of audit logs
+    const cutoffDate = new Date();
+    cutoffDate.setMonth(cutoffDate.getMonth() - 12);
+    
+    await pool.execute(
+      'DELETE FROM issue_audit_trail WHERE created_at < ?',
+      [cutoffDate]
+    );
+    
+    await pool.execute(
+      'DELETE FROM dashboard_user_audit_logs WHERE performed_at < ?',
+      [cutoffDate]
+    );
+    
+    console.log('Monthly cleanup completed');
   } catch (error) {
     console.error('Monthly cleanup failed:', error);
   }
@@ -150,12 +193,12 @@ const gracefulShutdown = (signal) => {
   
   isShuttingDown = true;
 
-  // Close WebSocket server
-  if (wss) {
-    console.log('Closing WebSocket server...');
-    wss.close(() => {
-      console.log('WebSocket server closed');
-    });
+  // Close WebSocket connections
+  try {
+    realTimeService.closeAllConnections();
+    console.log('WebSocket connections closed');
+  } catch (error) {
+    console.error('Error closing WebSocket connections:', error);
   }
 
   // Stop cron jobs
@@ -170,8 +213,14 @@ const gracefulShutdown = (signal) => {
     
     console.log('HTTP server closed');
     
-    // Close database connections if needed
-    // db.end() if using connection pool
+    // Close database connections
+    try {
+      const { pool } = require('./config/database');
+      pool.end();
+      console.log('Database connections closed');
+    } catch (error) {
+      console.error('Error closing database connections:', error);
+    }
     
     console.log('Graceful shutdown completed');
     process.exit(0);
@@ -201,14 +250,17 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`WebSocket server running on ws://localhost:${PORT}/realtime`);
-  console.log(`Health check available at http://localhost:${PORT}/health`);
-  console.log('SLA monitoring: Enabled (hourly checks)');
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 WebSocket server running on ws://localhost:${PORT}/realtime`);
+  console.log(`🏥 Health check available at http://localhost:${PORT}/health`);
+  console.log(`📊 SLA monitoring: Enabled (hourly checks)`);
+  console.log(`🔒 Security: Helmet, CORS, Rate limiting enabled`);
   
   if (process.env.NODE_ENV === 'development') {
-    console.log(`Frontend CORS allowed from: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    console.log(`🎯 Frontend CORS allowed from: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    console.log(`📧 Email service: ${process.env.SMTP_HOST ? 'Configured' : 'Not configured'}`);
+    console.log(`☁️  AWS S3 storage: ${process.env.AWS_ACCESS_KEY_ID ? 'Configured' : 'Not configured'}`);
   }
 });
 
-module.exports = { app, server, wss };
+module.exports = { app, server };

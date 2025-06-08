@@ -8,6 +8,7 @@ class FeedbackController {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({
+          success: false,
           error: 'Validation failed',
           details: errors.array()
         });
@@ -15,19 +16,21 @@ class FeedbackController {
 
       const feedbackData = {
         ...req.body,
-        submittedAt: new Date()
+        employee_uuid: req.user.id,
+        submitted_at: new Date()
       };
       
-      const feedbackId = await feedbackService.submitFeedback(feedbackData);
+      const feedback = await feedbackService.submitFeedback(feedbackData);
       
       res.status(201).json({
         success: true,
-        data: { id: feedbackId },
+        data: feedback,
         message: 'Feedback submitted successfully'
       });
     } catch (error) {
       console.error('Submit feedback error:', error);
       res.status(500).json({
+        success: false,
         error: 'Failed to submit feedback',
         message: error.message
       });
@@ -37,48 +40,36 @@ class FeedbackController {
   async getFeedbackHistory(req, res) {
     try {
       const { employeeId } = req.params;
-      const { page = 1, limit = 10 } = req.query;
+      const { page = 1, limit = 10, sentiment } = req.query;
       
-      const history = await feedbackService.getFeedbackHistory(employeeId, { page, limit });
+      const history = await feedbackService.getFeedbackHistory(employeeId, { 
+        page: parseInt(page), 
+        limit: parseInt(limit),
+        sentiment 
+      });
       
       res.json({
         success: true,
-        data: history
+        data: history.feedback,
+        pagination: history.pagination
       });
     } catch (error) {
       console.error('Get feedback history error:', error);
       res.status(500).json({
+        success: false,
         error: 'Failed to fetch feedback history',
         message: error.message
       });
     }
   }
 
-  async getEmployeeFeedbackAnalytics(req, res) {
+  async getFeedbackAnalytics(req, res) {
     try {
-      const { employeeId } = req.params;
-      const analytics = await feedbackService.getEmployeeFeedbackAnalytics(employeeId);
-      
-      res.json({
-        success: true,
-        data: analytics
-      });
-    } catch (error) {
-      console.error('Get employee feedback analytics error:', error);
-      res.status(500).json({
-        error: 'Failed to fetch employee feedback analytics',
-        message: error.message
-      });
-    }
-  }
-
-  async getAdminFeedbackAnalytics(req, res) {
-    try {
-      const { dateRange, category, sentiment } = req.query;
-      const analytics = await feedbackService.getAdminFeedbackAnalytics({ 
+      const { dateRange, city, cluster } = req.query;
+      const analytics = await feedbackService.getFeedbackAnalytics({ 
         dateRange, 
-        category, 
-        sentiment 
+        city, 
+        cluster 
       });
       
       res.json({
@@ -86,31 +77,10 @@ class FeedbackController {
         data: analytics
       });
     } catch (error) {
-      console.error('Get admin feedback analytics error:', error);
+      console.error('Get feedback analytics error:', error);
       res.status(500).json({
-        error: 'Failed to fetch admin feedback analytics',
-        message: error.message
-      });
-    }
-  }
-
-  async exportFeedbackData(req, res) {
-    try {
-      const { format = 'csv', dateRange, category, sentiment } = req.query;
-      const data = await feedbackService.exportFeedbackData({ 
-        format, 
-        dateRange, 
-        category, 
-        sentiment 
-      });
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=feedback-export.csv');
-      res.send(data);
-    } catch (error) {
-      console.error('Export feedback data error:', error);
-      res.status(500).json({
-        error: 'Failed to export feedback data',
+        success: false,
+        error: 'Failed to fetch feedback analytics',
         message: error.message
       });
     }
@@ -118,8 +88,8 @@ class FeedbackController {
 
   async getSentimentTrends(req, res) {
     try {
-      const { timeframe = '6months' } = req.query;
-      const trends = await feedbackService.getSentimentTrends(timeframe);
+      const { timeframe = '6months', city, cluster } = req.query;
+      const trends = await feedbackService.getSentimentTrends(timeframe, { city, cluster });
       
       res.json({
         success: true,
@@ -128,25 +98,83 @@ class FeedbackController {
     } catch (error) {
       console.error('Get sentiment trends error:', error);
       res.status(500).json({
+        success: false,
         error: 'Failed to fetch sentiment trends',
         message: error.message
       });
     }
   }
 
-  async getCategoryAnalysis(req, res) {
+  async getFeedbackByIssue(req, res) {
     try {
-      const { dateRange } = req.query;
-      const analysis = await feedbackService.getCategoryAnalysis(dateRange);
+      const { issueId } = req.params;
+      const feedback = await feedbackService.getFeedbackByIssue(issueId);
       
       res.json({
         success: true,
-        data: analysis
+        data: feedback
       });
     } catch (error) {
-      console.error('Get category analysis error:', error);
+      console.error('Get feedback by issue error:', error);
       res.status(500).json({
-        error: 'Failed to fetch category analysis',
+        success: false,
+        error: 'Failed to fetch issue feedback',
+        message: error.message
+      });
+    }
+  }
+
+  async updateFeedback(req, res) {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const feedback = await feedbackService.updateFeedback(id, updateData);
+      
+      if (!feedback) {
+        return res.status(404).json({
+          success: false,
+          error: 'Feedback not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        data: feedback,
+        message: 'Feedback updated successfully'
+      });
+    } catch (error) {
+      console.error('Update feedback error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to update feedback',
+        message: error.message
+      });
+    }
+  }
+
+  async deleteFeedback(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const deleted = await feedbackService.deleteFeedback(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          error: 'Feedback not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Feedback deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete feedback error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to delete feedback',
         message: error.message
       });
     }
