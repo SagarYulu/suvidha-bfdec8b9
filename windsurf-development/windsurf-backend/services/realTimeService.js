@@ -1,31 +1,33 @@
 
 const WebSocket = require('ws');
+const jwt = require('jsonwebtoken');
 
 class RealTimeService {
   constructor() {
     this.wss = null;
     this.clients = new Map();
+    this.subscriptions = new Map();
   }
 
   initialize(server) {
     this.wss = new WebSocket.Server({ 
       server,
-      path: '/realtime'
+      path: '/realtime',
+      verifyClient: this.verifyClient.bind(this)
     });
 
     this.wss.on('connection', (ws, req) => {
-      console.log('New WebSocket connection established');
-      
-      const url = new URL(req.url, `http://${req.headers.host}`);
-      const token = url.searchParams.get('token');
-      
       const clientId = this.generateClientId();
+      const token = this.extractToken(req);
+      
       this.clients.set(clientId, {
         ws,
         token,
         userId: null,
         subscriptions: new Set()
       });
+
+      console.log(`WebSocket client connected: ${clientId}`);
 
       ws.on('message', (message) => {
         try {
@@ -37,7 +39,7 @@ class RealTimeService {
       });
 
       ws.on('close', () => {
-        console.log('WebSocket connection closed');
+        console.log(`WebSocket client disconnected: ${clientId}`);
         this.clients.delete(clientId);
       });
 
@@ -46,6 +48,7 @@ class RealTimeService {
         this.clients.delete(clientId);
       });
 
+      // Send connection confirmation
       ws.send(JSON.stringify({
         type: 'connection_established',
         clientId,
@@ -56,32 +59,55 @@ class RealTimeService {
     console.log('Real-time WebSocket server initialized');
   }
 
+  verifyClient(info) {
+    try {
+      const token = this.extractToken(info.req);
+      if (!token) return false;
+      
+      jwt.verify(token, process.env.JWT_SECRET);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  extractToken(req) {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    return url.searchParams.get('token');
+  }
+
+  generateClientId() {
+    return `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  }
+
   handleMessage(clientId, data) {
     const client = this.clients.get(clientId);
     if (!client) return;
 
     switch (data.type) {
       case 'subscribe':
-        this.handleSubscription(clientId, data);
+        this.handleSubscription(clientId, data.channel);
         break;
       case 'unsubscribe':
-        this.handleUnsubscription(clientId, data);
+        this.handleUnsubscription(clientId, data.channel);
         break;
       case 'ping':
         this.sendToClient(clientId, { type: 'pong', timestamp: new Date().toISOString() });
         break;
-      default:
-        console.log('Unknown message type:', data.type);
     }
   }
 
-  handleSubscription(clientId, data) {
+  handleSubscription(clientId, channel) {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const { channel } = data;
     client.subscriptions.add(channel);
     
+    if (!this.subscriptions.has(channel)) {
+      this.subscriptions.set(channel, new Set());
+    }
+    this.subscriptions.get(channel).add(clientId);
+
     this.sendToClient(clientId, {
       type: 'subscribed',
       channel,
@@ -89,13 +115,20 @@ class RealTimeService {
     });
   }
 
-  handleUnsubscription(clientId, data) {
+  handleUnsubscription(clientId, channel) {
     const client = this.clients.get(clientId);
     if (!client) return;
 
-    const { channel } = data;
     client.subscriptions.delete(channel);
     
+    const channelSubs = this.subscriptions.get(channel);
+    if (channelSubs) {
+      channelSubs.delete(clientId);
+      if (channelSubs.size === 0) {
+        this.subscriptions.delete(channel);
+      }
+    }
+
     this.sendToClient(clientId, {
       type: 'unsubscribed',
       channel,
@@ -111,6 +144,9 @@ class RealTimeService {
   }
 
   broadcast(channel, message) {
+    const channelSubs = this.subscriptions.get(channel);
+    if (!channelSubs) return;
+
     const broadcastMessage = {
       type: 'broadcast',
       channel,
@@ -118,24 +154,27 @@ class RealTimeService {
       timestamp: new Date().toISOString()
     };
 
-    this.clients.forEach((client, clientId) => {
-      if (client.subscriptions.has(channel) && client.ws.readyState === WebSocket.OPEN) {
-        client.ws.send(JSON.stringify(broadcastMessage));
-      }
+    channelSubs.forEach(clientId => {
+      this.sendToClient(clientId, broadcastMessage);
     });
   }
 
-  notifyIssueUpdate(issueId, updateType, data) {
+  // Issue-specific methods
+  notifyIssueStatusChange(issueId, oldStatus, newStatus, updatedBy) {
     this.broadcast(`issue:${issueId}`, {
-      type: updateType,
+      type: 'status_changed',
       issueId,
-      data
+      oldStatus,
+      newStatus,
+      updatedBy,
+      timestamp: new Date().toISOString()
     });
-    
+
     this.broadcast('issues', {
-      type: updateType,
+      type: 'issue_updated',
       issueId,
-      data
+      changes: { status: newStatus },
+      timestamp: new Date().toISOString()
     });
   }
 
@@ -143,36 +182,25 @@ class RealTimeService {
     this.broadcast(`issue:${issueId}`, {
       type: 'comment_added',
       issueId,
-      comment
+      comment,
+      timestamp: new Date().toISOString()
     });
   }
 
-  notifyStatusChange(issueId, oldStatus, newStatus, updatedBy) {
-    this.broadcast(`issue:${issueId}`, {
-      type: 'status_changed',
-      issueId,
-      oldStatus,
-      newStatus,
-      updatedBy
-    });
-  }
-
-  notifyAssignment(issueId, assigneeId, assignedBy) {
+  notifyIssueAssignment(issueId, assigneeId, assignedBy) {
     this.broadcast(`issue:${issueId}`, {
       type: 'issue_assigned',
       issueId,
       assigneeId,
-      assignedBy
+      assignedBy,
+      timestamp: new Date().toISOString()
     });
-    
+
     this.broadcast(`user:${assigneeId}`, {
       type: 'new_assignment',
-      issueId
+      issueId,
+      timestamp: new Date().toISOString()
     });
-  }
-
-  generateClientId() {
-    return `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   }
 
   getConnectedClients() {
@@ -186,6 +214,7 @@ class RealTimeService {
       }
     });
     this.clients.clear();
+    this.subscriptions.clear();
   }
 }
 
