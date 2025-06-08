@@ -1,128 +1,89 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
-import { MailIcon, UserIcon } from "lucide-react";
-import { apiService } from "@/services/api";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
-const MobileLogin = () => {
-  const [email, setEmail] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+const MobileLogin: React.FC = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    email: '',
+    employeeId: '',
+  });
+  
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     try {
-      const response = await apiService.login({ 
-        email, 
-        password: employeeId 
-      });
-      
-      if (response.success) {
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        toast({
-          title: "Verification successful",
-          description: "Welcome back!",
-        });
-        navigate("/mobile/issues", { replace: true });
-      } else {
-        setError("Invalid email or employee ID. Please try again.");
-        toast({
-          title: "Verification failed",
-          description: "Invalid email or employee ID. Please try again.",
-          variant: "destructive",
-        });
-      }
+      await login(formData.email, formData.employeeId, 'mobile');
+      navigate('/mobile/issues');
     } catch (error: any) {
-      console.error("Verification error:", error);
-      setError(error.message || "An unexpected error occurred. Please try again.");
-      toast({
-        title: "Verification error",
-        description: error.message || "An unexpected error occurred. Please try again.",
-        variant: "destructive",
-      });
+      toast.error(error.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#1E40AF]/10">
-      <div className="bg-[#1E40AF] h-[40vh] w-full"></div>
-
-      <div className="relative px-6 mx-auto max-w-md -mt-32">
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
-          <div className="px-8 py-10">
-            <h1 className="text-3xl font-bold text-center text-[#1E40AF] mb-10">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-blue-600">
               Yulu Suvidha
-            </h1>
-            
-            {error && (
-              <div className="mb-6 p-3 bg-red-50 border border-red-100 rounded-xl text-red-700 text-sm">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleVerify} className="space-y-8">
+            </CardTitle>
+            <p className="text-gray-600">Employee Portal</p>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-gray-500 text-sm font-medium ml-1">Email ID</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <MailIcon className="h-5 w-5 text-[#1E40AF]" />
-                  </div>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
-                              focus:border-[#1E40AF] text-base py-2 mobile-input"
-                  />
-                </div>
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  placeholder="Enter your email"
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <label className="text-gray-500 text-sm font-medium ml-1">Employee ID</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                    <UserIcon className="h-5 w-5 text-[#1E40AF]" />
-                  </div>
-                  <Input
-                    type="text"
-                    value={employeeId}
-                    onChange={(e) => setEmployeeId(e.target.value)}
-                    required
-                    className="pl-10 border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 
-                              focus:border-[#1E40AF] text-base py-2 mobile-input"
-                  />
-                </div>
+                <Label htmlFor="employeeId">Employee ID</Label>
+                <Input
+                  id="employeeId"
+                  value={formData.employeeId}
+                  onChange={(e) => setFormData({...formData, employeeId: e.target.value})}
+                  placeholder="Enter your employee ID"
+                  required
+                />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full py-6 text-lg font-medium rounded-full bg-[#1E40AF] hover:bg-[#1E3A8A] text-white mt-8"
+              <Button 
+                type="submit" 
+                className="w-full"
                 disabled={isLoading}
               >
-                {isLoading ? "Verifying..." : "Verify"}
+                {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </form>
 
-            <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
-                Use your employee email and employee ID
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600">
+                Need help? Contact your administrator
               </p>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

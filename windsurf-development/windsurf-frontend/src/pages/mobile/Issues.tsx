@@ -1,53 +1,28 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import MobileLayout from "@/components/MobileLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Plus, Filter } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useIssues } from '@/hooks/useIssues';
+import { useAuth } from '@/hooks/useAuth';
+import { Plus, Eye, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const MobileIssues = () => {
-  const { authState } = useAuth();
+const MobileIssues: React.FC = () => {
   const navigate = useNavigate();
-  const [issues, setIssues] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    // Mock data for issues
-    const mockIssues = [
-      {
-        id: '1',
-        title: 'Login Problem',
-        description: 'Cannot access employee portal',
-        status: 'open',
-        priority: 'high',
-        createdAt: '2024-01-15T10:30:00Z',
-        category: 'technical'
-      },
-      {
-        id: '2',
-        title: 'Salary Query',
-        description: 'Questions about monthly salary calculation',
-        status: 'in_progress',
-        priority: 'medium',
-        createdAt: '2024-01-14T14:20:00Z',
-        category: 'personal'
-      }
-    ];
-    
-    setTimeout(() => {
-      setIssues(mockIssues);
-      setLoading(false);
-    }, 1000);
-  }, []);
+  const { data: issuesData, isLoading } = useIssues({
+    employeeUuid: user?.id,
+    status: statusFilter,
+  });
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-red-100 text-red-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'open': return 'bg-yellow-100 text-yellow-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
       case 'resolved': return 'bg-green-100 text-green-800';
       case 'closed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -55,88 +30,106 @@ const MobileIssues = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
-      year: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const rightAction = (
-    <Button
-      size="sm"
-      onClick={() => navigate("/mobile/issues/new")}
-      className="bg-white/20 hover:bg-white/30 text-white"
-    >
-      <Plus className="h-4 w-4" />
-    </Button>
-  );
+  if (isLoading) {
+    return (
+      <div className="p-4">
+        <div className="text-center">Loading your issues...</div>
+      </div>
+    );
+  }
 
   return (
-    <MobileLayout 
-      title="My Issues / मेरे टिकट"
-      rightAction={rightAction}
-    >
-      <div className="p-4 space-y-4">
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : issues.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-500 mb-4">
-              <p className="text-lg">No issues found</p>
-              <p className="text-sm">कोई टिकट नहीं मिला</p>
-            </div>
-            <Button 
-              onClick={() => navigate("/mobile/issues/new")}
-              className="bg-[#1E40AF] hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Issue / पहला टिकट बनाएं
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {issues.map((issue: any) => (
-              <Card 
-                key={issue.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        {issue.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {issue.description}
-                      </p>
-                    </div>
-                    <Badge className={getStatusColor(issue.status)}>
-                      {issue.status.replace('_', ' ').toUpperCase()}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between text-xs text-gray-500">
-                    <span>#{issue.id}</span>
-                    <span>{formatDate(issue.createdAt)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+    <div className="p-4 space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">My Issues</h1>
+        <Button
+          onClick={() => navigate('/mobile/new-issue')}
+          size="sm"
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          New Issue
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Filter className="h-4 w-4 text-gray-500" />
+        <Select onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+            <SelectItem value="closed">Closed</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-3">
+        {issuesData?.issues?.map((issue: any) => (
+          <Card key={issue.id} className="cursor-pointer hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <h3 className="font-medium text-sm">
+                    {issue.title || `Issue #${issue.id.slice(0, 8)}`}
+                  </h3>
+                  <Badge className={`${getStatusBadgeColor(issue.status)} text-xs`}>
+                    {issue.status.replace('_', ' ')}
+                  </Badge>
+                </div>
+                
+                <p className="text-sm text-gray-600 line-clamp-2">
+                  {issue.description}
+                </p>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-500">
+                    {formatDate(issue.created_at)}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+                  >
+                    <Eye className="h-3 w-3 mr-1" />
+                    View
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {(!issuesData?.issues || issuesData.issues.length === 0) && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <div className="text-gray-500">
+                <p>No issues found</p>
+                <Button
+                  onClick={() => navigate('/mobile/new-issue')}
+                  className="mt-4"
+                  size="sm"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Create Your First Issue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         )}
       </div>
-    </MobileLayout>
+    </div>
   );
 };
 

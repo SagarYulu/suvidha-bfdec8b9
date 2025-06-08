@@ -6,16 +6,25 @@ import { AuthProvider } from './contexts/AuthContext';
 import { RBACProvider } from './contexts/RBACContext';
 import { Toaster } from 'sonner';
 
-// Pages
+// Layout Components
+import AdminLayout from './components/layout/AdminLayout';
+import MobileLayout from './components/layout/MobileLayout';
+
+// Admin Pages
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminIssues from './pages/admin/Issues';
 import AdminUsers from './pages/admin/Users';
 import AdminAnalytics from './pages/admin/Analytics';
 import AdminSettings from './pages/admin/Settings';
+
+// Mobile Pages
 import MobileLogin from './pages/mobile/Login';
 import MobileIssues from './pages/mobile/Issues';
 import MobileNewIssue from './pages/mobile/NewIssue';
+
+// Index page
+import Index from './pages/Index';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -23,6 +32,7 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -35,23 +45,34 @@ function App() {
           <Router>
             <div className="min-h-screen bg-background">
               <Routes>
-                {/* Admin Routes */}
+                {/* Index Route */}
+                <Route path="/" element={<Index />} />
+
+                {/* Admin Authentication */}
                 <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/issues" element={<AdminIssues />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
 
-                {/* Mobile Routes */}
+                {/* Admin Routes with Layout */}
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<Navigate to="/admin/dashboard" replace />} />
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="issues" element={<AdminIssues />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="analytics" element={<AdminAnalytics />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
+
+                {/* Mobile Authentication */}
                 <Route path="/mobile/login" element={<MobileLogin />} />
-                <Route path="/mobile/issues" element={<MobileIssues />} />
-                <Route path="/mobile/new-issue" element={<MobileNewIssue />} />
 
-                {/* Default Routes */}
-                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                <Route path="/mobile" element={<Navigate to="/mobile/issues" replace />} />
-                <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+                {/* Mobile Routes with Layout */}
+                <Route path="/mobile" element={<MobileLayout />}>
+                  <Route index element={<Navigate to="/mobile/issues" replace />} />
+                  <Route path="issues" element={<MobileIssues />} />
+                  <Route path="new-issue" element={<MobileNewIssue />} />
+                </Route>
+
+                {/* Fallback for unknown routes */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <Toaster />
             </div>

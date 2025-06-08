@@ -1,383 +1,168 @@
 
-// Real API service for windsurf backend
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 class ApiService {
   private async request(endpoint: string, options: RequestInit = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    const config = {
+    const token = localStorage.getItem('token');
+    
+    const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
     };
 
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${token}`
-      };
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }));
+      throw new Error(error.message || 'Request failed');
     }
 
-    try {
-      const response = await fetch(url, config);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('API request failed:', error);
-      throw error;
-    }
+    return response.json();
   }
 
-  // Issues API
-  async getIssues(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/issues?${queryString}`);
-  }
-
-  async getIssue(id: string) {
-    return this.request(`/api/issues/${id}`);
-  }
-
-  async createIssue(issueData: any) {
-    return this.request('/api/issues', {
+  // Auth endpoints
+  async login(credentials: { email: string; password: string }) {
+    return this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(issueData),
+      body: JSON.stringify(credentials),
     });
   }
 
-  async updateIssue(id: string, updates: any) {
-    return this.request(`/api/issues/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
-  }
-
-  async deleteIssue(id: string) {
-    return this.request(`/api/issues/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async assignIssue(id: string, assignedTo: string) {
-    return this.request(`/api/issues/${id}/assign`, {
+  async mobileLogin(credentials: { email: string; employeeId: string }) {
+    return this.request('/auth/mobile-login', {
       method: 'POST',
-      body: JSON.stringify({ assignedTo }),
+      body: JSON.stringify(credentials),
     });
   }
 
-  async reopenIssue(issueId: string) {
-    return this.request(`/api/issues/${issueId}/reopen`, {
-      method: 'POST',
-    });
+  async logout() {
+    return this.request('/auth/logout', { method: 'POST' });
   }
 
-  // Users API
+  // User endpoints
   async getUsers(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/users?${queryString}`);
+    return this.request(`/users${queryString ? `?${queryString}` : ''}`);
   }
 
   async getUser(id: string) {
-    return this.request(`/api/users/${id}`);
+    return this.request(`/users/${id}`);
   }
 
   async createUser(userData: any) {
-    return this.request('/api/users', {
+    return this.request('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
   }
 
   async updateUser(id: string, updates: any) {
-    return this.request(`/api/users/${id}`, {
+    return this.request(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updates),
     });
   }
 
   async deleteUser(id: string) {
-    return this.request(`/api/users/${id}`, {
-      method: 'DELETE',
-    });
+    return this.request(`/users/${id}`, { method: 'DELETE' });
   }
 
   async bulkCreateUsers(usersData: any[]) {
-    return this.request('/api/bulk-users/create', {
+    return this.request('/users/bulk', {
       method: 'POST',
       body: JSON.stringify({ users: usersData }),
     });
   }
 
-  // Analytics API
-  async getDashboardMetrics() {
-    return this.request('/api/analytics/dashboard');
+  async validateBulkUsers(users: any[]) {
+    return this.request('/users/validate-bulk', {
+      method: 'POST',
+      body: JSON.stringify({ users }),
+    });
   }
 
-  async getIssueAnalytics(params: any = {}) {
+  // Issue endpoints
+  async getIssues(params: any = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/analytics/issues?${queryString}`);
+    return this.request(`/issues${queryString ? `?${queryString}` : ''}`);
   }
 
-  // Export API
-  async exportData(entityType: string, format: string, filters: any = {}) {
-    const queryString = new URLSearchParams({ format, ...filters }).toString();
-    const response = await fetch(`${API_BASE_URL}/api/export/${entityType}?${queryString}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      }
+  async getIssue(id: string) {
+    return this.request(`/issues/${id}`);
+  }
+
+  async createIssue(issueData: any) {
+    return this.request('/issues', {
+      method: 'POST',
+      body: JSON.stringify(issueData),
     });
-    
-    if (!response.ok) {
-      throw new Error(`Export failed: ${response.status}`);
-    }
-
-    const blob = await response.blob();
-    const filename = response.headers.get('content-disposition')?.split('filename=')[1] || `${entityType}-export.${format}`;
-    
-    // Create download link
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename.replace(/"/g, '');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
   }
 
-  // Notifications API
-  async getNotifications() {
-    return this.request('/api/notifications');
-  }
-
-  async getUnreadCount() {
-    return this.request('/api/notifications/unread-count');
-  }
-
-  async markNotificationAsRead(id: string) {
-    return this.request(`/api/notifications/${id}/read`, {
+  async updateIssue(id: string, updates: any) {
+    return this.request(`/issues/${id}`, {
       method: 'PUT',
+      body: JSON.stringify(updates),
     });
   }
 
-  async markAllNotificationsAsRead() {
-    return this.request('/api/notifications/mark-all-read', {
-      method: 'PUT',
-    });
+  async deleteIssue(id: string) {
+    return this.request(`/issues/${id}`, { method: 'DELETE' });
   }
 
-  async deleteNotification(id: string) {
-    return this.request(`/api/notifications/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  // Authentication API
-  async login(email: string, password: string) {
-    return this.request('/api/auth/login', {
+  async assignIssue(id: string, assignedTo: string) {
+    return this.request(`/issues/${id}/assign`, {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ assignedTo }),
     });
   }
 
-  async getCurrentUser() {
-    return this.request('/api/auth/me');
-  }
-
-  async refreshToken(token: string) {
-    return this.request('/api/auth/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    });
-  }
-
-  async logout() {
-    return this.request('/api/auth/logout', {
-      method: 'POST',
-    });
-  }
-
-  // Comments API
   async addComment(issueId: string, content: string) {
-    return this.request(`/api/issues/${issueId}/comments`, {
+    return this.request(`/issues/${issueId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
   }
 
   async addInternalComment(issueId: string, content: string) {
-    return this.request(`/api/issues/${issueId}/internal-comments`, {
+    return this.request(`/issues/${issueId}/internal-comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
   }
 
-  // Feedback API
-  async submitFeedback(feedbackData: any) {
-    return this.request('/api/feedback', {
-      method: 'POST',
-      body: JSON.stringify(feedbackData),
-    });
+  // Analytics endpoints
+  async getDashboardMetrics() {
+    return this.request('/analytics/dashboard');
   }
 
-  async getFeedbackAnalytics(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/api/feedback/analytics?${queryString}`);
+  async getIssueAnalytics(timeframe?: string) {
+    const params = timeframe ? `?timeframe=${timeframe}` : '';
+    return this.request(`/analytics/issues${params}`);
   }
 
-  async getFeedback(id: string) {
-    return this.request(`/api/feedback/${id}`);
+  // Notification endpoints
+  async getNotifications() {
+    return this.request('/notifications');
   }
 
-  // File Upload API
-  async uploadFile(file: File, issueId?: string) {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (issueId) {
-      formData.append('issueId', issueId);
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
-    }
-
-    return await response.json();
+  async getUnreadCount() {
+    return this.request('/notifications/unread-count');
   }
 
-  // Master Data API
-  async getRoles() {
-    return this.request('/api/master/roles');
+  async markNotificationAsRead(id: string) {
+    return this.request(`/notifications/${id}/read`, { method: 'POST' });
   }
 
-  async createRole(name: string) {
-    return this.request('/api/master/roles', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
+  async markAllNotificationsAsRead() {
+    return this.request('/notifications/mark-all-read', { method: 'POST' });
   }
 
-  async updateRole(id: string, name: string) {
-    return this.request(`/api/master/roles/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name }),
-    });
-  }
-
-  async deleteRole(id: string) {
-    return this.request(`/api/master/roles/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getCities() {
-    return this.request('/api/master/cities');
-  }
-
-  async createCity(name: string) {
-    return this.request('/api/master/cities', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
-  }
-
-  async updateCity(id: string, name: string) {
-    return this.request(`/api/master/cities/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name }),
-    });
-  }
-
-  async deleteCity(id: string) {
-    return this.request(`/api/master/cities/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getClusters(cityId?: string) {
-    const params = cityId ? `?cityId=${cityId}` : '';
-    return this.request(`/api/master/clusters${params}`);
-  }
-
-  async createCluster(name: string, cityId: string) {
-    return this.request('/api/master/clusters', {
-      method: 'POST',
-      body: JSON.stringify({ name, cityId }),
-    });
-  }
-
-  async updateCluster(id: string, name: string, cityId: string) {
-    return this.request(`/api/master/clusters/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name, cityId }),
-    });
-  }
-
-  async deleteCluster(id: string) {
-    return this.request(`/api/master/clusters/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getAuditLogs(entityType?: string) {
-    const params = entityType ? `?entityType=${entityType}` : '';
-    return this.request(`/api/master/audit-logs${params}`);
-  }
-
-  // RBAC API
-  async getUserPermissions(userId: string) {
-    return this.request(`/api/rbac/users/${userId}/permissions`);
-  }
-
-  async getUserRoles(userId: string) {
-    return this.request(`/api/rbac/users/${userId}/roles`);
-  }
-
-  async assignRole(userId: string, roleId: string) {
-    return this.request('/api/rbac/assign-role', {
-      method: 'POST',
-      body: JSON.stringify({ userId, roleId }),
-    });
-  }
-
-  async removeRole(userId: string, roleId: string) {
-    return this.request('/api/rbac/remove-role', {
-      method: 'POST',
-      body: JSON.stringify({ userId, roleId }),
-    });
-  }
-
-  async getAllRoles() {
-    return this.request('/api/rbac/roles');
-  }
-
-  async getAllPermissions() {
-    return this.request('/api/rbac/permissions');
-  }
-
-  // Bulk Users API
-  async validateBulkUsers(users: any[]) {
-    return this.request('/api/bulk-users/validate', {
-      method: 'POST',
-      body: JSON.stringify({ users }),
-    });
-  }
-
-  // Health check
-  async healthCheck() {
-    return this.request('/api/health');
+  async deleteNotification(id: string) {
+    return this.request(`/notifications/${id}`, { method: 'DELETE' });
   }
 }
 
