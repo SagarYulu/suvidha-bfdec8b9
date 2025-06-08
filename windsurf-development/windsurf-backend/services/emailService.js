@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer');
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || 'localhost',
+      host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT || 587,
       secure: false,
       auth: {
@@ -14,128 +14,98 @@ class EmailService {
     });
   }
 
-  async sendStatusEmail(employeeEmail, employeeName, issue, oldStatus, newStatus) {
-    const mailOptions = {
-      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
-      to: employeeEmail,
-      subject: `Issue Status Update: #${issue.id}`,
-      html: `
+  async sendStatusChangeEmail(issue, employee, previousStatus) {
+    try {
+      const subject = `Issue #${issue.id.slice(0, 8)} Status Updated to ${issue.status}`;
+      const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1E40AF;">Issue Status Update</h2>
-          <p>Hello ${employeeName},</p>
+          <h2 style="color: #333;">Issue Status Update</h2>
+          <p>Dear ${employee.name},</p>
           <p>Your issue status has been updated:</p>
-          <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Issue ID:</strong> #${issue.id}</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Issue ID:</strong> #${issue.id.slice(0, 8)}</p>
+            <p><strong>Previous Status:</strong> ${previousStatus}</p>
+            <p><strong>New Status:</strong> ${issue.status}</p>
             <p><strong>Description:</strong> ${issue.description}</p>
-            <p><strong>Previous Status:</strong> <span style="color: #EF4444;">${oldStatus}</span></p>
-            <p><strong>New Status:</strong> <span style="color: #10B981;">${newStatus}</span></p>
           </div>
-          <p>Log in to the portal to view more details about your issue.</p>
-          <p>Best regards,<br>Windsurf Support Team</p>
+          <p>Thank you for your patience.</p>
+          <p>Best regards,<br>Support Team</p>
         </div>
-      `
-    };
-
-    try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Status update email sent to ${employeeEmail}`);
+      `;
+      
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@company.com',
+        to: employee.email,
+        subject,
+        html
+      });
+      
+      console.log(`Status change email sent to ${employee.email}`);
     } catch (error) {
-      console.error('Failed to send status update email:', error);
-      throw error;
+      console.error('Error sending status change email:', error);
     }
   }
 
-  async sendCommentEmail(employeeEmail, employeeName, issue, comment, commenterName) {
-    const mailOptions = {
-      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
-      to: employeeEmail,
-      subject: `New Comment on Issue #${issue.id}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1E40AF;">New Comment Added</h2>
-          <p>Hello ${employeeName},</p>
-          <p>A new comment has been added to your issue:</p>
-          <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Issue ID:</strong> #${issue.id}</p>
-            <p><strong>Comment by:</strong> ${commenterName}</p>
-            <p><strong>Comment:</strong></p>
-            <div style="background: white; padding: 15px; border-left: 4px solid #1E40AF; margin-top: 10px;">
-              ${comment.content}
-            </div>
-          </div>
-          <p>Log in to the portal to reply or view more details.</p>
-          <p>Best regards,<br>Windsurf Support Team</p>
-        </div>
-      `
-    };
-
+  async sendAssignmentEmail(issue, assignee, employee) {
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Comment notification email sent to ${employeeEmail}`);
-    } catch (error) {
-      console.error('Failed to send comment email:', error);
-      throw error;
-    }
-  }
-
-  async sendAssignmentEmail(assigneeEmail, assigneeName, issue, assignedByName) {
-    const mailOptions = {
-      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
-      to: assigneeEmail,
-      subject: `Issue Assigned: #${issue.id}`,
-      html: `
+      const subject = `New Issue Assigned: #${issue.id.slice(0, 8)}`;
+      const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1E40AF;">New Issue Assignment</h2>
-          <p>Hello ${assigneeName},</p>
+          <h2 style="color: #333;">New Issue Assignment</h2>
+          <p>Dear ${assignee.name},</p>
           <p>A new issue has been assigned to you:</p>
-          <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Issue ID:</strong> #${issue.id}</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Issue ID:</strong> #${issue.id.slice(0, 8)}</p>
+            <p><strong>Employee:</strong> ${employee.name}</p>
+            <p><strong>Priority:</strong> ${issue.priority}</p>
             <p><strong>Description:</strong> ${issue.description}</p>
-            <p><strong>Priority:</strong> <span style="color: #EF4444;">${issue.priority}</span></p>
-            <p><strong>Assigned by:</strong> ${assignedByName}</p>
-            <p><strong>Created:</strong> ${new Date(issue.created_at).toLocaleDateString()}</p>
           </div>
-          <p>Please log in to the admin portal to review and take action on this issue.</p>
-          <p>Best regards,<br>Windsurf Support Team</p>
+          <p>Please review and take appropriate action.</p>
+          <p>Best regards,<br>System Administrator</p>
         </div>
-      `
-    };
-
-    try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Assignment email sent to ${assigneeEmail}`);
+      `;
+      
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@company.com',
+        to: assignee.email,
+        subject,
+        html
+      });
+      
+      console.log(`Assignment email sent to ${assignee.email}`);
     } catch (error) {
-      console.error('Failed to send assignment email:', error);
-      throw error;
+      console.error('Error sending assignment email:', error);
     }
   }
 
-  async sendWelcomeEmail(userEmail, userName, temporaryPassword) {
-    const mailOptions = {
-      from: process.env.FROM_EMAIL || 'noreply@windsurf.com',
-      to: userEmail,
-      subject: 'Welcome to Windsurf - Account Created',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1E40AF;">Welcome to Windsurf!</h2>
-          <p>Hello ${userName},</p>
-          <p>Your account has been created successfully.</p>
-          <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Email:</strong> ${userEmail}</p>
-            <p><strong>Temporary Password:</strong> <span style="color: #EF4444;">${temporaryPassword}</span></p>
-          </div>
-          <p><strong>Important:</strong> Please log in and change your password immediately for security.</p>
-          <p>Best regards,<br>Windsurf Team</p>
-        </div>
-      `
-    };
-
+  async sendCommentNotification(issue, commenter, employee, comment) {
     try {
-      await this.transporter.sendMail(mailOptions);
-      console.log(`Welcome email sent to ${userEmail}`);
+      const subject = `New Comment on Issue #${issue.id.slice(0, 8)}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">New Comment Added</h2>
+          <p>Dear ${employee.name},</p>
+          <p>A new comment has been added to your issue:</p>
+          <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Issue ID:</strong> #${issue.id.slice(0, 8)}</p>
+            <p><strong>Comment by:</strong> ${commenter.name}</p>
+            <p><strong>Comment:</strong> ${comment.content}</p>
+          </div>
+          <p>You can view the full issue details in your portal.</p>
+          <p>Best regards,<br>Support Team</p>
+        </div>
+      `;
+      
+      await this.transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@company.com',
+        to: employee.email,
+        subject,
+        html
+      });
+      
+      console.log(`Comment notification sent to ${employee.email}`);
     } catch (error) {
-      console.error('Failed to send welcome email:', error);
-      throw error;
+      console.error('Error sending comment notification:', error);
     }
   }
 }

@@ -1,5 +1,7 @@
+
 const issueService = require('../services/issueService');
-const enhancedEmailService = require('../services/enhancedEmailService');
+const tatService = require('../services/tatService');
+const emailService = require('../services/emailService');
 const realTimeService = require('../services/realTimeService');
 const { validationResult } = require('express-validator');
 
@@ -15,18 +17,15 @@ class IssueController {
         });
       }
 
-      const { page = 1, limit = 10, ...filters } = req.query;
+      const { page = 1, limit = 10, status, priority, assignedTo, city, cluster } = req.query;
+      const filters = { status, priority, assignedTo, city, cluster };
       
-      // Apply role-based filtering
-      if (req.user.role === 'employee') {
-        filters.employeeUuid = req.user.id;
-      }
-
-      const result = await issueService.getIssues(filters, parseInt(page), parseInt(limit));
+      const result = await issueService.getIssues(filters, { page: parseInt(page), limit: parseInt(limit) });
       
       res.json({
         success: true,
-        ...result
+        data: result.issues,
+        pagination: result.pagination
       });
     } catch (error) {
       console.error('Get issues error:', error);
@@ -48,18 +47,10 @@ class IssueController {
           error: 'Issue not found'
         });
       }
-
-      // Role-based access control
-      if (req.user.role === 'employee' && issue.employee_uuid !== req.user.id) {
-        return res.status(403).json({
-          success: false,
-          error: 'Access denied'
-        });
-      }
-
+      
       res.json({
         success: true,
-        issue
+        data: issue
       });
     } catch (error) {
       console.error('Get issue error:', error);
@@ -83,53 +74,26 @@ class IssueController {
 
       const issueData = {
         ...req.body,
-        createdBy: req.user.id,
-        // Auto-assign priority based on type if not provided
-        priority: req.body.priority || this.determinePriority(req.body.type_id),
-        // Set initial status
-        status: 'open'
+        created_by: req.user.id
       };
-
-      const issueId = await issueService.createIssue(issueData);
       
-      if (!issueId) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to create issue'
-        });
+      const issue = await issueService.createIssue(issueData);
+      
+      // Notify real-time subscribers
+      realTimeService.notifyIssueUpdate(issue.id, 'issue_created', issue);
+      
+      // Send email notification if assigned
+      if (issue.assigned_to) {
+        const assignee = await issueService.getUserById(issue.assigned_to);
+        const creator = await issueService.getUserById(issue.employee_uuid);
+        if (assignee && creator) {
+          await emailService.sendAssignmentEmail(issue, assignee, creator);
+        }
       }
-
-      // Get the created issue for response
-      const issue = await issueService.getIssueById(issueId);
-
-      // Send email notification
-      try {
-        await enhancedEmailService.sendIssueCreatedEmail(
-          issue.employee_email,
-          issue.employee_name,
-          issue
-        );
-      } catch (emailError) {
-        console.error('Failed to send issue creation email:', emailError);
-        // Don't fail the request if email fails
-      }
-
-      // Send real-time notification
-      realTimeService.broadcast('issue_created', {
-        issue,
-        timestamp: new Date().toISOString()
-      });
-
-      // Log audit trail
-      await this.logAuditTrail(issueId, req.user.id, 'issue_created', {
-        priority: issue.priority,
-        type: issue.type_id,
-        status: issue.status
-      });
-
+      
       res.status(201).json({
         success: true,
-        issue,
+        data: issue,
         message: 'Issue created successfully'
       });
     } catch (error) {
@@ -153,86 +117,38 @@ class IssueController {
       }
 
       const { id } = req.params;
-      const updateData = req.body;
-
-      // Get current issue for comparison
-      const currentIssue = await issueService.getIssueById(id);
-      if (!currentIssue) {
+      const updateData = {
+        ...req.body,
+        updated_by: req.user.id
+      };
+      
+      const oldIssue = await issueService.getIssueById(id);
+      if (!oldIssue) {
         return res.status(404).json({
           success: false,
           error: 'Issue not found'
         });
       }
-
-      // Check SLA breach if status is changing to resolved/closed
-      if (updateData.status && ['resolved', 'closed'].includes(updateData.status)) {
-        const slaCheck = await tatService.checkSLABreach(id);
-        if (slaCheck && slaCheck.isBreached) {
-          updateData.sla_breached = true;
-          updateData.breach_hours = slaCheck.hours_open;
+      
+      const updatedIssue = await issueService.updateIssue(id, updateData);
+      
+      // Notify real-time subscribers
+      realTimeService.notifyIssueUpdate(id, 'issue_updated', updatedIssue);
+      
+      // Send status change email if status changed
+      if (oldIssue.status !== updatedIssue.status) {
+        const employee = await issueService.getUserById(updatedIssue.employee_uuid);
+        if (employee) {
+          await emailService.sendStatusChangeEmail(updatedIssue, employee, oldIssue.status);
         }
         
-        // Set closed_at timestamp
-        if (updateData.status === 'closed') {
-          updateData.closed_at = new Date();
-        }
+        // Notify about status change
+        realTimeService.notifyStatusChange(id, oldIssue.status, updatedIssue.status, req.user.id);
       }
-
-      const updated = await issueService.updateIssue(id, updateData);
       
-      if (!updated) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to update issue'
-        });
-      }
-
-      // Send email notification for status changes
-      if (updateData.status && updateData.status !== currentIssue.status) {
-        try {
-          await enhancedEmailService.sendIssueStatusUpdateEmail(
-            currentIssue.employee_email,
-            currentIssue.employee_name,
-            currentIssue,
-            currentIssue.status,
-            updateData.status
-          );
-          console.log('Status change email sent successfully');
-        } catch (emailError) {
-          console.error('Status change email failed:', emailError);
-        }
-
-        // Send real-time notification
-        realTimeService.notifyStatusChange(
-          id,
-          currentIssue.employee_uuid,
-          {
-            oldStatus: currentIssue.status,
-            newStatus: updateData.status,
-            updatedBy: req.user.id
-          }
-        );
-      }
-
-      // Send real-time update notification
-      realTimeService.notifyIssueUpdate(
-        id,
-        currentIssue.employee_uuid,
-        {
-          ...updateData,
-          updatedBy: req.user.id
-        }
-      );
-
-      // Log audit trail
-      await this.logAuditTrail(id, req.user.id, 'issue_updated', {
-        changes: updateData,
-        previous_status: currentIssue.status,
-        new_status: updateData.status
-      });
-
       res.json({
         success: true,
+        data: updatedIssue,
         message: 'Issue updated successfully'
       });
     } catch (error) {
@@ -248,60 +164,29 @@ class IssueController {
     try {
       const { id } = req.params;
       const { assignedTo } = req.body;
-
-      if (!assignedTo) {
-        return res.status(400).json({
+      
+      const issue = await issueService.assignIssue(id, assignedTo, req.user.id);
+      
+      if (!issue) {
+        return res.status(404).json({
           success: false,
-          error: 'Assigned user ID is required'
+          error: 'Issue not found'
         });
       }
-
-      const assigned = await issueService.assignIssue(id, assignedTo, req.user.id);
       
-      if (!assigned) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to assign issue'
-        });
-      }
-
-      // Get issue and assignee details for email
-      const issue = await issueService.getIssueById(id);
+      // Notify real-time subscribers
+      realTimeService.notifyAssignment(id, assignedTo, req.user.id);
       
-      // Send email notification to assignee
-      try {
-        await enhancedEmailService.sendIssueAssignmentEmail(
-          issue.assigned_email,
-          issue.assigned_name,
-          {
-            ...issue,
-            assigned_by_name: req.user.name
-          }
-        );
-        console.log('Assignment email sent successfully');
-      } catch (emailError) {
-        console.error('Assignment email failed:', emailError);
+      // Send assignment email
+      const assignee = await issueService.getUserById(assignedTo);
+      const employee = await issueService.getUserById(issue.employee_uuid);
+      if (assignee && employee) {
+        await emailService.sendAssignmentEmail(issue, assignee, employee);
       }
-
-      // Send real-time notification
-      realTimeService.notifyAssignment(
-        id,
-        assignedTo,
-        {
-          assignedBy: req.user.id,
-          assignedByName: req.user.name,
-          issueTitle: issue.title || issue.description.substring(0, 50)
-        }
-      );
-
-      // Log audit trail
-      await this.logAuditTrail(id, req.user.id, 'issue_assigned', {
-        assigned_to: assignedTo,
-        previous_assignee: issue.assigned_to
-      });
-
+      
       res.json({
         success: true,
+        data: issue,
         message: 'Issue assigned successfully'
       });
     } catch (error) {
@@ -326,50 +211,28 @@ class IssueController {
 
       const { id } = req.params;
       const { content } = req.body;
-
-      const commentId = await issueService.addComment(id, req.user.id, content);
       
-      if (!commentId) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to add comment'
-        });
-      }
-
-      // Get issue details for notification
+      const comment = await issueService.addComment(id, {
+        content,
+        employee_uuid: req.user.id,
+        is_internal: false
+      });
+      
       const issue = await issueService.getIssueById(id);
       
-      // Send email notification to issue creator (if not the commenter)
-      if (issue.employee_uuid !== req.user.id) {
-        try {
-          await enhancedEmailService.sendNewCommentEmail(
-            issue.employee_email,
-            issue.employee_name,
-            issue,
-            { content },
-            req.user.name
-          );
-          console.log('Comment notification email sent successfully');
-        } catch (emailError) {
-          console.error('Comment email failed:', emailError);
-        }
+      // Notify real-time subscribers
+      realTimeService.notifyNewComment(id, comment);
+      
+      // Send comment notification email
+      const commenter = await issueService.getUserById(req.user.id);
+      const employee = await issueService.getUserById(issue.employee_uuid);
+      if (commenter && employee && commenter.id !== employee.id) {
+        await emailService.sendCommentNotification(issue, commenter, employee, comment);
       }
-
-      // Send real-time notification
-      realTimeService.notifyNewComment(
-        id,
-        issue.employee_uuid,
-        {
-          commentId,
-          content,
-          commenterName: req.user.name,
-          commenterRole: req.user.role
-        }
-      );
-
+      
       res.status(201).json({
         success: true,
-        commentId,
+        data: comment,
         message: 'Comment added successfully'
       });
     } catch (error) {
@@ -394,28 +257,23 @@ class IssueController {
 
       const { id } = req.params;
       const { content } = req.body;
-
-      const commentId = await issueService.addInternalComment(id, req.user.id, content);
       
-      if (!commentId) {
-        return res.status(500).json({
-          success: false,
-          error: 'Failed to add internal comment'
-        });
-      }
-
-      // Send real-time notification to other admin users
-      realTimeService.broadcast('internal_comment_added', {
-        issueId: id,
-        commentId,
+      const comment = await issueService.addComment(id, {
         content,
-        commenterName: req.user.name,
-        timestamp: new Date().toISOString()
+        employee_uuid: req.user.id,
+        is_internal: true
       });
-
+      
+      // Notify real-time subscribers (internal comments go to admins only)
+      realTimeService.broadcast('internal_comments', {
+        type: 'internal_comment_added',
+        issueId: id,
+        comment
+      });
+      
       res.status(201).json({
         success: true,
-        commentId,
+        data: comment,
         message: 'Internal comment added successfully'
       });
     } catch (error) {
@@ -427,117 +285,20 @@ class IssueController {
     }
   }
 
-  // Helper method to determine priority based on issue type
-  determinePriority(typeId) {
-    const criticalTypes = ['system_down', 'security_breach', 'data_loss'];
-    const highTypes = ['performance_issue', 'login_problem', 'payment_issue'];
-    const lowTypes = ['feature_request', 'documentation', 'question'];
-    
-    if (criticalTypes.includes(typeId)) return 'critical';
-    if (highTypes.includes(typeId)) return 'high';
-    if (lowTypes.includes(typeId)) return 'low';
-    
-    return 'medium'; // default
-  }
-
-  // Helper method to get fallback assignee
-  async getFallbackAssignee(issue) {
-    try {
-      // Logic: Assign to least busy agent in the same city
-      const query = `
-        SELECT assigned_to, COUNT(*) as workload
-        FROM issues 
-        WHERE status IN ('open', 'in_progress') 
-          AND city = ?
-          AND assigned_to IS NOT NULL
-        GROUP BY assigned_to
-        ORDER BY workload ASC
-        LIMIT 1
-      `;
-      
-      const [rows] = await db.execute(query, [issue.city || 'default']);
-      
-      if (rows.length > 0) {
-        return rows[0].assigned_to;
-      }
-      
-      // If no agents found, assign to default admin
-      return 'admin_user_id'; // This should be configurable
-    } catch (error) {
-      console.error('Error getting fallback assignee:', error);
-      return null;
-    }
-  }
-
-  // Helper method to log audit trail
-  async logAuditTrail(issueId, userId, action, details = {}) {
-    try {
-      const query = `
-        INSERT INTO issue_audit_trail (issue_id, employee_uuid, action, details, created_at)
-        VALUES (?, ?, ?, ?, NOW())
-      `;
-      
-      await db.execute(query, [
-        issueId,
-        userId,
-        action,
-        JSON.stringify(details)
-      ]);
-    } catch (error) {
-      console.error('Error logging audit trail:', error);
-      // Don't throw error as this is not critical for main operation
-    }
-  }
-
-  // New method to get SLA breaches
-  async getSLABreaches(req, res) {
-    try {
-      const slaThreshold = req.query.threshold || 48; // hours
-      const breaches = await tatService.getSLABreaches(slaThreshold);
-      
-      res.json({
-        success: true,
-        breaches,
-        threshold: slaThreshold
-      });
-    } catch (error) {
-      console.error('Get SLA breaches error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to get SLA breaches'
-      });
-    }
-  }
-
-  // New method to get issue audit trail
   async getIssueAuditTrail(req, res) {
     try {
       const { id } = req.params;
-      const { limit = 50 } = req.query;
-      
-      const query = `
-        SELECT 
-          iat.*,
-          e.name as performer_name,
-          e.email as performer_email
-        FROM issue_audit_trail iat
-        LEFT JOIN employees e ON iat.employee_uuid = e.user_id
-        WHERE iat.issue_id = ?
-        ORDER BY iat.created_at DESC
-        LIMIT ?
-      `;
-      
-      const [rows] = await db.execute(query, [id, parseInt(limit)]);
+      const auditTrail = await issueService.getAuditTrail(id);
       
       res.json({
         success: true,
-        auditTrail: rows
+        data: auditTrail
       });
     } catch (error) {
       console.error('Get audit trail error:', error);
       res.status(500).json({
         success: false,
-        error: 'Failed to get audit trail'
+        error: 'Failed to fetch audit trail'
       });
     }
   }

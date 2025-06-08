@@ -1,376 +1,265 @@
 
 import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
-import { Upload, X, File, AlertCircle, CheckCircle, Eye, Download } from 'lucide-react';
+import { Upload, X, File, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface FileUploadProps {
-  onFilesUploaded?: (files: { url: string; name: string; type: string; id: string }[]) => void;
+  onFileUpload: (files: File[]) => Promise<void>;
   maxFiles?: number;
-  maxFileSize?: number; // in MB
+  maxFileSize?: number; // in bytes
   acceptedFileTypes?: string[];
-  category?: string;
-  issueId?: string;
-  className?: string;
+  multiple?: boolean;
+  disabled?: boolean;
 }
 
-interface UploadingFile {
+interface UploadedFile {
   file: File;
   progress: number;
-  status: 'uploading' | 'success' | 'error';
-  url?: string;
-  id?: string;
+  status: 'uploading' | 'completed' | 'error';
   error?: string;
+  url?: string;
 }
 
 export const CloudFileUpload: React.FC<FileUploadProps> = ({
-  onFilesUploaded,
+  onFileUpload,
   maxFiles = 5,
-  maxFileSize = 10, // 10MB default
-  acceptedFileTypes = ['image/*', 'application/pdf', '.doc', '.docx', '.txt'],
-  category = 'attachments',
-  issueId,
-  className = ''
+  maxFileSize = 10 * 1024 * 1024, // 10MB
+  acceptedFileTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'],
+  multiple = true,
+  disabled = false
 }) => {
-  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [storageStatus, setStorageStatus] = useState<'s3' | 'local' | 'unknown'>('unknown');
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const validateFile = (file: File): string | null => {
     // Check file size
-    if (file.size > maxFileSize * 1024 * 1024) {
-      return `File size must be less than ${maxFileSize}MB`;
+    if (file.size > maxFileSize) {
+      return `File "${file.name}" is too large. Maximum size is ${formatFileSize(maxFileSize)}.`;
     }
 
     // Check file type
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    const mimeType = file.type;
-    
-    // Security: Block dangerous file types
-    const dangerousExtensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.js', '.jar'];
-    if (dangerousExtensions.includes(fileExtension)) {
-      return `File type not allowed for security reasons: ${fileExtension}`;
-    }
-    
-    const isValidType = acceptedFileTypes.some(type => {
-      if (type.includes('*')) {
-        return mimeType.startsWith(type.replace('*', ''));
-      }
-      return type === fileExtension || type === mimeType;
-    });
-
-    if (!isValidType) {
-      return `File type not supported. Allowed types: ${acceptedFileTypes.join(', ')}`;
+    if (!acceptedFileTypes.includes(fileExtension)) {
+      return `File type "${fileExtension}" is not allowed. Accepted types: ${acceptedFileTypes.join(', ')}.`;
     }
 
     return null;
   };
 
-  const uploadFile = async (file: File): Promise<{ url: string; name: string; type: string; id: string }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('category', category);
-    if (issueId) {
-      formData.append('issueId', issueId);
-    }
-
-    const response = await fetch('/api/files/upload/single', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    
-    // Detect storage type
-    if (result.file.storageType) {
-      setStorageStatus(result.file.storageType);
-    }
-    
-    return {
-      url: result.file.url,
-      name: file.name,
-      type: file.type,
-      id: result.file.id
-    };
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const checkStorageHealth = async () => {
-    try {
-      const response = await fetch('/api/files/system/health', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      if (response.ok) {
-        const result = await response.json();
-        if (result.storage?.s3?.status === 'connected') {
-          setStorageStatus('s3');
-        } else {
-          setStorageStatus('local');
-        }
-      }
-    } catch (error) {
-      console.warn('Storage health check failed:', error);
-      setStorageStatus('local');
-    }
-  };
+  const handleFiles = useCallback(async (selectedFiles: FileList) => {
+    setError(null);
 
-  const handleFilesAdded = useCallback(async (acceptedFiles: File[]) => {
-    setUploadError(null);
-    
-    // Check storage health on first upload
-    if (storageStatus === 'unknown') {
-      await checkStorageHealth();
+    // Convert FileList to Array
+    const fileArray = Array.from(selectedFiles);
+
+    // Check if adding these files would exceed the maximum
+    if (files.length + fileArray.length > maxFiles) {
+      setError(`Maximum ${maxFiles} files allowed. You can upload ${maxFiles - files.length} more files.`);
+      return;
     }
 
-    // Validate files
-    const validFiles: File[] = [];
-    const errors: string[] = [];
-
-    for (const file of acceptedFiles) {
+    // Validate each file
+    const validationErrors: string[] = [];
+    fileArray.forEach(file => {
       const error = validateFile(file);
       if (error) {
-        errors.push(`${file.name}: ${error}`);
-      } else {
-        validFiles.push(file);
-      }
-    }
-
-    if (errors.length > 0) {
-      setUploadError(errors.join(', '));
-      return;
-    }
-
-    // Check total file limit
-    if (uploadingFiles.length + validFiles.length > maxFiles) {
-      setUploadError(`Maximum ${maxFiles} files allowed`);
-      return;
-    }
-
-    // Initialize uploading state
-    const newUploadingFiles: UploadingFile[] = validFiles.map(file => ({
-      file,
-      progress: 0,
-      status: 'uploading'
-    }));
-
-    setUploadingFiles(prev => [...prev, ...newUploadingFiles]);
-
-    // Upload files
-    const uploadPromises = validFiles.map(async (file, index) => {
-      try {
-        // Simulate progress for better UX
-        const progressInterval = setInterval(() => {
-          setUploadingFiles(prev => 
-            prev.map(uf => 
-              uf.file === file 
-                ? { ...uf, progress: Math.min(uf.progress + 10, 90) }
-                : uf
-            )
-          );
-        }, 200);
-
-        const result = await uploadFile(file);
-        
-        clearInterval(progressInterval);
-        
-        setUploadingFiles(prev => 
-          prev.map(uf => 
-            uf.file === file 
-              ? { ...uf, progress: 100, status: 'success', url: result.url, id: result.id }
-              : uf
-          )
-        );
-
-        return result;
-      } catch (error) {
-        setUploadingFiles(prev => 
-          prev.map(uf => 
-            uf.file === file 
-              ? { 
-                  ...uf, 
-                  status: 'error', 
-                  error: error instanceof Error ? error.message : 'Upload failed' 
-                }
-              : uf
-          )
-        );
-        return null;
+        validationErrors.push(error);
       }
     });
 
-    const results = await Promise.all(uploadPromises);
-    const successfulUploads = results.filter(result => result !== null);
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(' '));
+      return;
+    }
+
+    // Add files to state with initial upload status
+    const newFiles: UploadedFile[] = fileArray.map(file => ({
+      file,
+      progress: 0,
+      status: 'uploading' as const
+    }));
+
+    setFiles(prev => [...prev, ...newFiles]);
+    setIsUploading(true);
+
+    try {
+      // Call the upload function
+      await onFileUpload(fileArray);
+
+      // Update status to completed
+      setFiles(prev => 
+        prev.map(f => 
+          newFiles.some(nf => nf.file === f.file) 
+            ? { ...f, status: 'completed' as const, progress: 100 }
+            : f
+        )
+      );
+    } catch (error) {
+      // Update status to error
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      setFiles(prev => 
+        prev.map(f => 
+          newFiles.some(nf => nf.file === f.file) 
+            ? { ...f, status: 'error' as const, error: errorMessage }
+            : f
+        )
+      );
+      setError(errorMessage);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [files.length, maxFiles, onFileUpload]);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    if (!disabled) {
+      setIsDragOver(true);
+    }
+  }, [disabled]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
     
-    if (successfulUploads.length > 0 && onFilesUploaded) {
-      onFilesUploaded(successfulUploads);
+    if (disabled) return;
+
+    const droppedFiles = e.dataTransfer.files;
+    if (droppedFiles.length > 0) {
+      handleFiles(droppedFiles);
     }
-  }, [uploadingFiles.length, maxFiles, category, issueId, onFilesUploaded, storageStatus]);
+  }, [disabled, handleFiles]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleFilesAdded,
-    maxFiles,
-    maxSize: maxFileSize * 1024 * 1024,
-    accept: acceptedFileTypes.reduce((acc, type) => {
-      acc[type] = [];
-      return acc;
-    }, {} as Record<string, string[]>)
-  });
-
-  const removeFile = (fileToRemove: UploadingFile) => {
-    setUploadingFiles(prev => prev.filter(uf => uf !== fileToRemove));
-  };
-
-  const clearAllFiles = () => {
-    setUploadingFiles([]);
-    setUploadError(null);
-  };
-
-  const openFilePreview = (file: UploadingFile) => {
-    if (file.url) {
-      window.open(file.url, '_blank');
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      handleFiles(selectedFiles);
     }
-  };
+    // Clear the input
+    e.target.value = '';
+  }, [handleFiles]);
 
-  const getStorageIcon = () => {
-    switch (storageStatus) {
-      case 's3':
-        return '☁️';
-      case 'local':
-        return '💾';
-      default:
-        return '📁';
+  const removeFile = useCallback((index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+    if (files.length === 1) {
+      setError(null);
+    }
+  }, [files.length]);
+
+  const getStatusIcon = (status: UploadedFile['status']) => {
+    switch (status) {
+      case 'uploading':
+        return <Upload className="h-4 w-4 animate-spin" />;
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
     }
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className="w-full space-y-4">
       {/* Upload Area */}
       <div
-        {...getRootProps()}
         className={`
-          border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors
-          ${isDragActive 
-            ? 'border-primary bg-primary/5' 
-            : 'border-muted-foreground/25 hover:border-primary/50'
-          }
+          border-2 border-dashed rounded-lg p-6 text-center transition-colors
+          ${isDragOver ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}
+          ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer'}
         `}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        onClick={() => !disabled && document.getElementById('file-input')?.click()}
       >
-        <input {...getInputProps()} />
-        <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-lg font-medium mb-2">
-          {isDragActive ? 'Drop files here' : 'Choose files or drag and drop'}
+        <input
+          id="file-input"
+          type="file"
+          multiple={multiple}
+          accept={acceptedFileTypes.join(',')}
+          onChange={handleFileSelect}
+          className="hidden"
+          disabled={disabled}
+        />
+        
+        <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+        <p className="text-sm text-gray-600 mb-1">
+          {isDragOver ? 'Drop files here' : 'Click to upload or drag and drop'}
         </p>
-        <p className="text-sm text-muted-foreground">
-          Supports: {acceptedFileTypes.join(', ')} (max {maxFileSize}MB each)
+        <p className="text-xs text-gray-500">
+          {acceptedFileTypes.join(', ')} up to {formatFileSize(maxFileSize)} each
         </p>
-        {storageStatus !== 'unknown' && (
-          <p className="text-xs text-muted-foreground mt-2">
-            {getStorageIcon()} Storage: {storageStatus === 's3' ? 'Cloud (S3)' : 'Local'}
-          </p>
-        )}
+        <p className="text-xs text-gray-500">
+          Maximum {maxFiles} files
+        </p>
       </div>
 
-      {/* Error Display */}
-      {uploadError && (
+      {/* Error Message */}
+      {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{uploadError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {/* Uploading Files */}
-      {uploadingFiles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">
-              Uploading Files ({uploadingFiles.length}/{maxFiles})
-            </h4>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={clearAllFiles}
-              className="text-xs"
+      {/* File List */}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-700">
+            Uploaded Files ({files.length}/{maxFiles})
+          </h4>
+          
+          {files.map((uploadedFile, index) => (
+            <div
+              key={index}
+              className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
             >
-              Clear All
-            </Button>
-          </div>
-
-          {uploadingFiles.map((uploadingFile, index) => (
-            <div key={index} className="border rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  <File className="h-4 w-4" />
-                  <span className="text-sm font-medium truncate">
-                    {uploadingFile.file.name}
-                  </span>
-                  {uploadingFile.status === 'success' && (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                  )}
-                  {uploadingFile.status === 'error' && (
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                  )}
-                  {storageStatus === 's3' && uploadingFile.status === 'success' && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      ☁️ Cloud
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center space-x-2">
-                  {uploadingFile.status === 'success' && uploadingFile.url && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openFilePreview(uploadingFile)}
-                        className="p-1"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => window.open(uploadingFile.url, '_blank')}
-                        className="p-1"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(uploadingFile)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {uploadingFile.status === 'uploading' && (
-                <Progress value={uploadingFile.progress} className="h-2" />
-              )}
-
-              {uploadingFile.status === 'error' && (
-                <p className="text-sm text-red-600">{uploadingFile.error}</p>
-              )}
-
-              {uploadingFile.status === 'success' && (
-                <p className="text-sm text-green-600">
-                  Upload completed {storageStatus === 's3' ? 'to cloud storage' : 'locally'}
+              <File className="h-4 w-4 text-gray-500 flex-shrink-0" />
+              
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {uploadedFile.file.name}
                 </p>
-              )}
+                <p className="text-xs text-gray-500">
+                  {formatFileSize(uploadedFile.file.size)}
+                </p>
+                
+                {uploadedFile.status === 'uploading' && (
+                  <Progress value={uploadedFile.progress} className="mt-1" />
+                )}
+                
+                {uploadedFile.status === 'error' && uploadedFile.error && (
+                  <p className="text-xs text-red-600 mt-1">{uploadedFile.error}</p>
+                )}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {getStatusIcon(uploadedFile.status)}
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile(index)}
+                  disabled={isUploading}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

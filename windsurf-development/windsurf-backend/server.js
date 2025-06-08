@@ -1,4 +1,3 @@
-
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -99,10 +98,10 @@ const wss = new WebSocket.Server({
   path: '/realtime'
 });
 
-// Initialize real-time service
-realTimeService.initialize(wss);
+// Initialize real-time service with WebSocket server
+realTimeService.initialize(server);
 
-// SLA Monitoring - Check every hour
+// SLA Monitoring - Check every hour for breaches
 cron.schedule('0 * * * *', async () => {
   try {
     console.log('Running scheduled SLA breach check...');

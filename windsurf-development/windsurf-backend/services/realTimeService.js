@@ -1,239 +1,200 @@
-const EventEmitter = require('events');
+
 const WebSocket = require('ws');
 
-class RealTimeService extends EventEmitter {
+class RealTimeService {
   constructor() {
-    super();
-    this.clients = new Map(); // userId -> Set of connections
-    this.wsServer = null;
-    this.setMaxListeners(0);
+    this.wss = null;
+    this.clients = new Map(); // Map to store client connections with metadata
   }
 
-  // Initialize WebSocket server
-  initializeWebSocketServer(server) {
-    this.wsServer = new WebSocket.Server({ 
+  initialize(server) {
+    this.wss = new WebSocket.Server({ 
       server,
       path: '/realtime'
     });
 
-    this.wsServer.on('connection', (ws, req) => {
-      this.handleWebSocketConnection(ws, req);
-    });
-
-    console.log('WebSocket server initialized on /realtime');
-  }
-
-  // Handle WebSocket connection
-  handleWebSocketConnection(ws, req) {
-    const url = new URL(req.url, 'http://localhost');
-    const token = url.searchParams.get('token');
-    
-    if (!token) {
-      ws.close(1008, 'Authentication required');
-      return;
-    }
-
-    // Verify token and get user
-    this.verifyTokenAndAddClient(ws, token);
-  }
-
-  async verifyTokenAndAddClient(ws, token) {
-    try {
-      const jwt = require('jsonwebtoken');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decoded.id;
-
-      // Add client to tracking
-      if (!this.clients.has(userId)) {
-        this.clients.set(userId, new Set());
-      }
-      this.clients.get(userId).add(ws);
-
-      // Setup WebSocket handlers
-      ws.userId = userId;
-      ws.isAlive = true;
+    this.wss.on('connection', (ws, req) => {
+      console.log('New WebSocket connection established');
       
-      ws.on('pong', () => {
-        ws.isAlive = true;
-      });
-
-      ws.on('close', () => {
-        this.removeClient(userId, ws);
+      // Extract user info from connection if available
+      const url = new URL(req.url, `http://${req.headers.host}`);
+      const token = url.searchParams.get('token');
+      
+      // Store client with metadata
+      const clientId = this.generateClientId();
+      this.clients.set(clientId, {
+        ws,
+        token,
+        userId: null, // Will be set after authentication
+        subscriptions: new Set()
       });
 
       ws.on('message', (message) => {
-        this.handleWebSocketMessage(ws, message);
+        try {
+          const data = JSON.parse(message);
+          this.handleMessage(clientId, data);
+        } catch (error) {
+          console.error('Error parsing WebSocket message:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        console.log('WebSocket connection closed');
+        this.clients.delete(clientId);
+      });
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        this.clients.delete(clientId);
       });
 
       // Send connection confirmation
-      this.sendToClient(ws, 'connected', {
-        message: 'Real-time connection established',
-        userId: userId,
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        clientId,
         timestamp: new Date().toISOString()
-      });
+      }));
+    });
 
-      console.log(`WebSocket client connected: ${userId}`);
+    console.log('Real-time WebSocket server initialized');
+  }
 
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      ws.close(1008, 'Invalid token');
+  handleMessage(clientId, data) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    switch (data.type) {
+      case 'subscribe':
+        this.handleSubscription(clientId, data);
+        break;
+      case 'unsubscribe':
+        this.handleUnsubscription(clientId, data);
+        break;
+      case 'ping':
+        this.sendToClient(clientId, { type: 'pong', timestamp: new Date().toISOString() });
+        break;
+      default:
+        console.log('Unknown message type:', data.type);
     }
   }
 
-  // Handle incoming WebSocket messages
-  handleWebSocketMessage(ws, message) {
-    try {
-      const data = JSON.parse(message);
-      
-      switch (data.type) {
-        case 'subscribe':
-          this.handleSubscription(ws, data);
-          break;
-        case 'unsubscribe':
-          this.handleUnsubscription(ws, data);
-          break;
-        case 'ping':
-          this.sendToClient(ws, 'pong', { timestamp: new Date().toISOString() });
-          break;
-        default:
-          console.log('Unknown message type:', data.type);
-      }
-    } catch (error) {
-      console.error('Error handling WebSocket message:', error);
-    }
-  }
+  handleSubscription(clientId, data) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
 
-  // Handle subscription requests
-  handleSubscription(ws, data) {
-    const { channel, filters } = data;
+    const { channel } = data;
+    client.subscriptions.add(channel);
     
-    if (!ws.subscriptions) {
-      ws.subscriptions = new Set();
-    }
-    
-    ws.subscriptions.add(channel);
-    
-    this.sendToClient(ws, 'subscription_success', {
+    this.sendToClient(clientId, {
+      type: 'subscribed',
       channel,
-      message: `Subscribed to ${channel}`
-    });
-  }
-
-  // Remove client
-  removeClient(userId, ws) {
-    if (this.clients.has(userId)) {
-      this.clients.get(userId).delete(ws);
-      if (this.clients.get(userId).size === 0) {
-        this.clients.delete(userId);
-      }
-    }
-    console.log(`WebSocket client disconnected: ${userId}`);
-  }
-
-  // Send message to specific client
-  sendToClient(ws, event, data) {
-    try {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          event,
-          data,
-          timestamp: new Date().toISOString()
-        }));
-      }
-    } catch (error) {
-      console.error('Error sending WebSocket message:', error);
-    }
-  }
-
-  // Broadcast to specific user
-  notifyUser(userId, event, data) {
-    if (this.clients.has(userId)) {
-      this.clients.get(userId).forEach(ws => {
-        this.sendToClient(ws, event, data);
-      });
-    }
-  }
-
-  // Broadcast to all connected clients
-  broadcast(event, data) {
-    this.clients.forEach((clientSet, userId) => {
-      clientSet.forEach(ws => {
-        this.sendToClient(ws, event, data);
-      });
-    });
-  }
-
-  // Real-time event handlers matching Supabase behavior
-  notifyIssueUpdate(issueId, userId, updateData) {
-    this.notifyUser(userId, 'issue_updated', {
-      issueId,
-      ...updateData,
       timestamp: new Date().toISOString()
+    });
+  }
+
+  handleUnsubscription(clientId, data) {
+    const client = this.clients.get(clientId);
+    if (!client) return;
+
+    const { channel } = data;
+    client.subscriptions.delete(channel);
+    
+    this.sendToClient(clientId, {
+      type: 'unsubscribed',
+      channel,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  sendToClient(clientId, message) {
+    const client = this.clients.get(clientId);
+    if (client && client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify(message));
+    }
+  }
+
+  broadcast(channel, message) {
+    const broadcastMessage = {
+      type: 'broadcast',
+      channel,
+      data: message,
+      timestamp: new Date().toISOString()
+    };
+
+    this.clients.forEach((client, clientId) => {
+      if (client.subscriptions.has(channel) && client.ws.readyState === WebSocket.OPEN) {
+        client.ws.send(JSON.stringify(broadcastMessage));
+      }
+    });
+  }
+
+  // Notify about issue updates
+  notifyIssueUpdate(issueId, updateType, data) {
+    this.broadcast(`issue:${issueId}`, {
+      type: updateType,
+      issueId,
+      data
     });
     
-    // Also notify assigned user if different
-    if (updateData.assigned_to && updateData.assigned_to !== userId) {
-      this.notifyUser(updateData.assigned_to, 'issue_updated', {
-        issueId,
-        ...updateData,
-        timestamp: new Date().toISOString()
-      });
-    }
-  }
-
-  notifyNewComment(issueId, userId, commentData) {
-    this.notifyUser(userId, 'comment_added', {
+    // Also broadcast to general issues channel
+    this.broadcast('issues', {
+      type: updateType,
       issueId,
-      ...commentData,
-      timestamp: new Date().toISOString()
+      data
     });
   }
 
-  notifyAssignment(issueId, assignedUserId, assignmentData) {
-    this.notifyUser(assignedUserId, 'issue_assigned', {
+  // Notify about new comments
+  notifyNewComment(issueId, comment) {
+    this.broadcast(`issue:${issueId}`, {
+      type: 'comment_added',
       issueId,
-      ...assignmentData,
-      timestamp: new Date().toISOString()
+      comment
     });
   }
 
-  notifyStatusChange(issueId, userId, statusData) {
-    this.notifyUser(userId, 'status_changed', {
+  // Notify about status changes
+  notifyStatusChange(issueId, oldStatus, newStatus, updatedBy) {
+    this.broadcast(`issue:${issueId}`, {
+      type: 'status_changed',
       issueId,
-      ...statusData,
-      timestamp: new Date().toISOString()
+      oldStatus,
+      newStatus,
+      updatedBy
     });
   }
 
-  // Keep connection alive with heartbeat
-  startHeartbeat() {
-    setInterval(() => {
-      this.clients.forEach((clientSet, userId) => {
-        clientSet.forEach(ws => {
-          if (!ws.isAlive) {
-            this.removeClient(userId, ws);
-            ws.terminate();
-            return;
-          }
-          
-          ws.isAlive = false;
-          ws.ping();
-        });
-      });
-    }, 30000); // 30 seconds
-  }
-
-  // Get connection statistics
-  getConnectionCount() {
-    let count = 0;
-    this.clients.forEach(clientSet => {
-      count += clientSet.size;
+  // Notify about assignments
+  notifyAssignment(issueId, assigneeId, assignedBy) {
+    this.broadcast(`issue:${issueId}`, {
+      type: 'issue_assigned',
+      issueId,
+      assigneeId,
+      assignedBy
     });
-    return count;
+    
+    // Notify the assignee specifically
+    this.broadcast(`user:${assigneeId}`, {
+      type: 'new_assignment',
+      issueId
+    });
   }
 
-  getConnectedUsers() {
-    return Array.from(this.clients.keys());
+  generateClientId() {
+    return `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  }
+
+  getConnectedClients() {
+    return this.clients.size;
+  }
+
+  closeAllConnections() {
+    this.clients.forEach((client) => {
+      if (client.ws.readyState === WebSocket.OPEN) {
+        client.ws.close();
+      }
+    });
+    this.clients.clear();
   }
 }
 
