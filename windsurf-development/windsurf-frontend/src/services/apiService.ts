@@ -1,169 +1,218 @@
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import axios from 'axios';
 
-class ApiService {
-  private async request(endpoint: string, options: RequestInit = {}) {
-    const token = localStorage.getItem('token');
-    
-    const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      ...options,
-    };
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(error.message || 'Request failed');
+// Create axios instance with default config
+const apiClient = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
-    return response.json();
+// Response interceptor for error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export class ApiService {
+  // Authentication
+  static async login(credentials: { email: string; password: string }) {
+    const response = await apiClient.post('/auth/login', credentials);
+    return response.data;
   }
 
-  // Auth endpoints
-  async login(credentials: { email: string; password: string }) {
-    return this.request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
+  static async mobileLogin(credentials: { employeeId: string; email: string }) {
+    const response = await apiClient.post('/auth/mobile-login', credentials);
+    return response.data;
+  }
+
+  static async logout() {
+    const response = await apiClient.post('/auth/logout');
+    return response.data;
+  }
+
+  // Issues
+  static async getIssues(params?: any) {
+    const response = await apiClient.get('/issues', { params });
+    return response.data;
+  }
+
+  static async getIssue(id: string) {
+    const response = await apiClient.get(`/issues/${id}`);
+    return response.data;
+  }
+
+  static async createIssue(issueData: any) {
+    const response = await apiClient.post('/issues', issueData);
+    return response.data;
+  }
+
+  static async updateIssue(id: string, updateData: any) {
+    const response = await apiClient.put(`/issues/${id}`, updateData);
+    return response.data;
+  }
+
+  static async assignIssue(id: string, assigneeId: string) {
+    const response = await apiClient.post(`/issues/${id}/assign`, { assignedTo: assigneeId });
+    return response.data;
+  }
+
+  static async addComment(id: string, content: string) {
+    const response = await apiClient.post(`/issues/${id}/comments`, { content });
+    return response.data;
+  }
+
+  static async addInternalComment(id: string, content: string) {
+    const response = await apiClient.post(`/issues/${id}/internal-comments`, { content });
+    return response.data;
+  }
+
+  // File Upload
+  static async uploadFile(file: File, category = 'attachments') {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('category', category);
+
+    const response = await apiClient.post('/upload/single', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
+    return response.data;
   }
 
-  async mobileLogin(credentials: { email: string; employeeId: string }) {
-    return this.request('/auth/mobile-login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
+  static async uploadMultipleFiles(files: File[], category = 'attachments') {
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
     });
-  }
+    formData.append('category', category);
 
-  async logout() {
-    return this.request('/auth/logout', { method: 'POST' });
-  }
-
-  // User endpoints
-  async getUsers(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/users${queryString ? `?${queryString}` : ''}`);
-  }
-
-  async getUser(id: string) {
-    return this.request(`/users/${id}`);
-  }
-
-  async createUser(userData: any) {
-    return this.request('/users', {
-      method: 'POST',
-      body: JSON.stringify(userData),
+    const response = await apiClient.post('/upload/multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
+    return response.data;
   }
 
-  async updateUser(id: string, updates: any) {
-    return this.request(`/users/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
+  static async deleteFile(filename: string, category = 'attachments') {
+    const response = await apiClient.delete(`/upload/${category}/${filename}`);
+    return response.data;
+  }
+
+  // Real-time connection
+  static createRealtimeConnection() {
+    const token = localStorage.getItem('authToken');
+    const eventSource = new EventSource(`${API_BASE_URL}/api/realtime/stream?token=${token}`);
+    return eventSource;
+  }
+
+  // Dashboard
+  static async getDashboardMetrics(filters?: any) {
+    const response = await apiClient.get('/dashboard/metrics', { params: filters });
+    return response.data;
+  }
+
+  static async getChartData(type: string, filters?: any) {
+    const response = await apiClient.get('/dashboard/charts', { 
+      params: { type, filters: JSON.stringify(filters) } 
     });
+    return response.data;
   }
 
-  async deleteUser(id: string) {
-    return this.request(`/users/${id}`, { method: 'DELETE' });
+  // Users
+  static async getUsers(params?: any) {
+    const response = await apiClient.get('/users', { params });
+    return response.data;
   }
 
-  async bulkCreateUsers(usersData: any[]) {
-    return this.request('/users/bulk', {
-      method: 'POST',
-      body: JSON.stringify({ users: usersData }),
+  static async createUser(userData: any) {
+    const response = await apiClient.post('/users', userData);
+    return response.data;
+  }
+
+  static async updateUser(id: string, userData: any) {
+    const response = await apiClient.put(`/users/${id}`, userData);
+    return response.data;
+  }
+
+  // Feedback
+  static async submitFeedback(feedbackData: any) {
+    const response = await apiClient.post('/feedback', feedbackData);
+    return response.data;
+  }
+
+  static async getFeedback(params?: any) {
+    const response = await apiClient.get('/feedback', { params });
+    return response.data;
+  }
+
+  // Analytics
+  static async getAnalytics(params?: any) {
+    const response = await apiClient.get('/analytics', { params });
+    return response.data;
+  }
+
+  static async exportData(type: string, filters?: any) {
+    const response = await apiClient.get(`/analytics/export/${type}`, {
+      params: filters,
+      responseType: 'blob'
     });
+    return response.data;
   }
 
-  async validateBulkUsers(users: any[]) {
-    return this.request('/users/validate-bulk', {
-      method: 'POST',
-      body: JSON.stringify({ users }),
-    });
+  // Notifications
+  static async getNotifications(userId: string, params?: any) {
+    const response = await apiClient.get(`/notifications/${userId}`, { params });
+    return response.data;
   }
 
-  // Issue endpoints
-  async getIssues(params: any = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/issues${queryString ? `?${queryString}` : ''}`);
+  static async markNotificationAsRead(notificationId: string) {
+    const response = await apiClient.post(`/notifications/${notificationId}/read`);
+    return response.data;
   }
 
-  async getIssue(id: string) {
-    return this.request(`/issues/${id}`);
+  static async markAllNotificationsAsRead(userId: string) {
+    const response = await apiClient.post(`/notifications/read-all/${userId}`);
+    return response.data;
   }
 
-  async createIssue(issueData: any) {
-    return this.request('/issues', {
-      method: 'POST',
-      body: JSON.stringify(issueData),
-    });
+  // Health check
+  static async getHealthStatus() {
+    const response = await apiClient.get('/health');
+    return response.data;
   }
 
-  async updateIssue(id: string, updates: any) {
-    return this.request(`/issues/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updates),
-    });
-  }
-
-  async deleteIssue(id: string) {
-    return this.request(`/issues/${id}`, { method: 'DELETE' });
-  }
-
-  async assignIssue(id: string, assignedTo: string) {
-    return this.request(`/issues/${id}/assign`, {
-      method: 'POST',
-      body: JSON.stringify({ assignedTo }),
-    });
-  }
-
-  async addComment(issueId: string, content: string) {
-    return this.request(`/issues/${issueId}/comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-  }
-
-  async addInternalComment(issueId: string, content: string) {
-    return this.request(`/issues/${issueId}/internal-comments`, {
-      method: 'POST',
-      body: JSON.stringify({ content }),
-    });
-  }
-
-  // Analytics endpoints
-  async getDashboardMetrics() {
-    return this.request('/analytics/dashboard');
-  }
-
-  async getIssueAnalytics(timeframe?: string) {
-    const params = timeframe ? `?timeframe=${timeframe}` : '';
-    return this.request(`/analytics/issues${params}`);
-  }
-
-  // Notification endpoints
-  async getNotifications() {
-    return this.request('/notifications');
-  }
-
-  async getUnreadCount() {
-    return this.request('/notifications/unread-count');
-  }
-
-  async markNotificationAsRead(id: string) {
-    return this.request(`/notifications/${id}/read`, { method: 'POST' });
-  }
-
-  async markAllNotificationsAsRead() {
-    return this.request('/notifications/mark-all-read', { method: 'POST' });
-  }
-
-  async deleteNotification(id: string) {
-    return this.request(`/notifications/${id}`, { method: 'DELETE' });
+  static async getServiceStatus() {
+    const response = await apiClient.get('/status');
+    return response.data;
   }
 }
 
-export const apiService = new ApiService();
+export default ApiService;
