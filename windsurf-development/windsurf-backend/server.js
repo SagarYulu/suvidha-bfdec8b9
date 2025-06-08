@@ -18,6 +18,7 @@ const issueRoutes = require('./routes/issueRoutes');
 const authRoutes = require('./routes/authRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const fileRoutes = require('./routes/fileRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
@@ -79,6 +80,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/issues', authMiddleware.authenticateToken, issueRoutes);
 app.use('/api/feedback', authMiddleware.authenticateToken, feedbackRoutes);
 app.use('/api/upload', authMiddleware.authenticateToken, uploadRoutes);
+app.use('/api/files', fileRoutes); // New file routes with built-in auth
 app.use('/api/analytics', authMiddleware.authenticateToken, analyticsRoutes);
 
 // Serve static files for uploads
