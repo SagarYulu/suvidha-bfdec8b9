@@ -1,33 +1,31 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiService } from '@/services/api';
 
 interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
   role: string;
-  employee_id?: string;
 }
 
 interface AuthState {
   user: User | null;
-  isAuthenticated: boolean;
-  role: string | null;
+  isAuthenticated: boolean | undefined;
+  isLoading: boolean;
 }
 
 interface AuthContextType {
   authState: AuthState;
-  login: (credentials: { email: string; password: string }) => Promise<boolean>;
-  logout: () => void;
-  refreshAuth: () => Promise<void>;
+  user: User | null;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -40,68 +38,67 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
-    isAuthenticated: false,
-    role: null,
+    isAuthenticated: undefined,
+    isLoading: true,
   });
 
-  const login = async (credentials: { email: string; password: string }): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await apiService.login(credentials);
-      
-      if (response.success) {
-        localStorage.setItem('authToken', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
-        
-        setAuthState({
-          user: response.user,
-          isAuthenticated: true,
-          role: response.user.role,
-        });
-        
-        return true;
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
       }
-      return false;
+
+      const data = await response.json();
+      localStorage.setItem('authToken', data.token);
+      
+      setAuthState({
+        user: data.user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      throw error;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
     setAuthState({
       user: null,
       isAuthenticated: false,
-      role: null,
+      isLoading: false,
     });
   };
 
-  const refreshAuth = async () => {
-    try {
-      const token = localStorage.getItem('authToken');
-      const userStr = localStorage.getItem('user');
-      
-      if (token && userStr) {
-        const user = JSON.parse(userStr);
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          role: user.role,
-        });
-      }
-    } catch (error) {
-      console.error('Auth refresh error:', error);
-      logout();
-    }
-  };
-
   useEffect(() => {
-    refreshAuth();
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      // In a real app, you would verify the token with the server
+      setAuthState({
+        user: { id: '1', name: 'Admin', email: 'admin@example.com', role: 'admin' },
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } else {
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }
   }, []);
 
   return (
-    <AuthContext.Provider value={{ authState, login, logout, refreshAuth }}>
+    <AuthContext.Provider value={{ authState, user: authState.user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
