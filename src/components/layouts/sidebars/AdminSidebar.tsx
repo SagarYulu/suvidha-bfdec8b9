@@ -1,306 +1,80 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useRBAC } from '@/contexts/RBACContext';
-import { useAuth } from '@/contexts/AuthContext';
-import {
-  LayoutDashboard,
-  TicketCheck,
-  Users,
-  BarChart3,
-  LogOut,
-  Settings,
+
+import { Link, useLocation } from "react-router-dom";
+import { 
+  LayoutDashboard, 
+  Users, 
+  AlertCircle, 
+  BarChart3, 
+  Settings, 
+  UserCheck,
+  MessageSquare,
+  BrainCircuit,
+  FileDown,
   Shield,
-  ChevronDown,
-  UserPlus,
-  Ticket,
-  BarChart2,
+  Database,
   TestTube,
-} from 'lucide-react';
+  UserPlus
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+const navigation = [
+  { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
+  { name: "Issues", href: "/admin/issues", icon: AlertCircle },
+  { name: "Assigned Issues", href: "/admin/assigned-issues", icon: UserCheck },
+  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { name: "Feedback Analytics", href: "/admin/feedback-analytics", icon: MessageSquare },
+  { name: "Sentiment Analysis", href: "/admin/sentiment-analysis", icon: BrainCircuit },
+  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Add Users", href: "/admin/users/add", icon: UserPlus },
+  { name: "Access Control", href: "/admin/access-control", icon: Shield },
+  { name: "Exports", href: "/admin/exports", icon: FileDown },
+  { name: "Test Data", href: "/admin/test-data", icon: Database },
+  { name: "Test Dashboard", href: "/admin/test-dashboard", icon: TestTube },
+  { name: "Settings", href: "/admin/settings", icon: Settings },
+];
 
-interface SidebarLinkProps {
-  href: string;
-  icon: React.ElementType;
-  label: string;
-  isActive?: boolean;
-}
-
-interface AdminSidebarProps {
-  onLogout: () => void;
-}
-
-interface DropdownMenuProps {
-  label: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
-  isOpen: boolean;
-  toggleOpen: () => void;
-}
-
-const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, isActive: forcedActiveState }) => {
+export function AdminSidebar() {
   const location = useLocation();
-  const isActive = forcedActiveState !== undefined ? forcedActiveState : location.pathname === href;
 
   return (
-    <Link
-      to={href}
-      className={cn(
-        "flex items-center py-3 px-6 text-sm font-medium border-l-2 transition-colors",
-        isActive
-          ? "bg-blue-50 border-blue-500 text-blue-700"
-          : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-      )}
-    >
-      <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
-      {label}
-    </Link>
-  );
-};
-
-const DropdownMenu: React.FC<DropdownMenuProps> = ({ 
-  label, 
-  icon: Icon, 
-  children, 
-  isOpen, 
-  toggleOpen 
-}) => {
-  const isActive = isOpen || React.Children.toArray(children).some((child) => {
-    if (React.isValidElement(child) && 
-        'props' in child && 
-        child.props && 
-        typeof child.props === 'object' && 
-        child.props !== null &&
-        'href' in child.props && 
-        typeof child.props.href === 'string') {
-      return window.location.pathname === child.props.href;
-    }
-    return false;
-  });
-
-  return (
-    <div className="flex flex-col">
-      <button 
-        onClick={toggleOpen}
-        className={cn(
-          "flex items-center justify-between py-3 px-6 text-sm font-medium border-l-2 transition-colors",
-          isActive
-            ? "bg-blue-50 border-blue-500 text-blue-700"
-            : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-        )}
-      >
-        <div className="flex items-center">
-          <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
-          {label}
+    <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
+      <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4 border-r border-gray-200">
+        <div className="flex h-16 shrink-0 items-center">
+          <h1 className="text-xl font-bold text-gray-900">Admin Portal</h1>
         </div>
-        <ChevronDown 
-          className={cn(
-            "h-4 w-4 transition-transform", 
-            isOpen ? "transform rotate-180" : ""
-          )} 
-        />
-      </button>
-      {isOpen && (
-        <div className="bg-gray-50 pl-4">
-          {children}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
-  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
-    dashboardUsers: false,
-    tickets: false,
-    analytics: false
-  });
-  const { hasPermission, userRole } = useRBAC();
-  const location = useLocation();
-  const { logout, authState } = useAuth();
-
-  const toggleMenu = (menuName: string) => {
-    setOpenMenus(prev => ({
-      ...prev,
-      [menuName]: !prev[menuName]
-    }));
-  };
-
-  // Check if user is HR Admin
-  const isHrAdmin = authState.role === 'HR Admin';
-
-  // Check if user is Super Admin
-  const isSuperAdmin = authState.role === 'Super Admin' || authState.role === 'admin';
-
-  // Determine active link based on current location
-  useEffect(() => {
-    // Check if we're in a subpath and open the corresponding dropdown
-    if (location.pathname.includes('/admin/dashboard-users')) {
-      setOpenMenus(prev => ({
-        ...prev,
-        dashboardUsers: true
-      }));
-    }
-    
-    // Check if we're in tickets pages
-    if (location.pathname.includes('/admin/issues') || location.pathname.includes('/admin/assigned-issues')) {
-      setOpenMenus(prev => ({
-        ...prev,
-        tickets: true
-      }));
-    }
-    
-    // Check if we're in analytics pages
-    if (location.pathname.includes('/admin/analytics') || location.pathname.includes('/admin/feedback-analytics') || location.pathname.includes('/admin/sentiment-analysis')) {
-      setOpenMenus(prev => ({
-        ...prev,
-        analytics: true
-      }));
-    }
-  }, [location]);
-
-  // Create a proper logout handler function
-  const handleLogout = async () => {
-    try {
-      await logout();
-      onLogout(); // Call the passed onLogout prop
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
-
-  console.log("Current user role:", userRole);
-  console.log("Has dashboard permission:", hasPermission("view:dashboard"));
-  console.log("Has issues permission:", hasPermission("manage:issues"));
-  console.log("Has users permission:", hasPermission("manage:users"));
-  console.log("Has analytics permission:", hasPermission("manage:analytics"));
-  console.log("Has security permission:", hasPermission("access:security"));
-
-  const showAllTickets = isHrAdmin || isSuperAdmin;
-
-  return (
-    <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
-      <div className="py-6 px-6 border-b">
-        <Link to="/admin/dashboard" className="flex items-center">
-          <span className="text-xl font-bold text-blue-700">Yulu Suvidha Management</span>
-        </Link>
-      </div>
-
-      <div className="py-3 flex-grow">
-        {/* Dashboard - All admin users have access */}
-        {hasPermission("view:dashboard") && (
-          <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
-        )}
-
-        {/* Test Dashboard - Available to all users */}
-        <SidebarLink href="/admin/test-dashboard" icon={TestTube} label="Test Dashboard" />
-        
-        {/* Tickets dropdown - Available to users with manage:issues permission */}
-        {hasPermission("manage:issues") && (
-          <DropdownMenu 
-            label="Tickets" 
-            icon={TicketCheck} 
-            isOpen={openMenus.tickets} 
-            toggleOpen={() => toggleMenu('tickets')}
-          >
-            {/* All Tickets - Only visible to HR Admin and Super Admin */}
-            {showAllTickets && (
-              <SidebarLink 
-                href="/admin/issues" 
-                icon={TicketCheck} 
-                label="All Tickets" 
-                isActive={location.pathname === "/admin/issues"}
-              />
-            )}
-            
-            {/* Assigned To Me - Available to all users with manage:issues */}
-            <SidebarLink 
-              href="/admin/assigned-issues" 
-              icon={Ticket} 
-              label="Assigned To Me" 
-              isActive={location.pathname === "/admin/assigned-issues"}
-            />
-          </DropdownMenu>
-        )}
-        
-        {/* Users - Available to users with manage:users permission */}
-        {hasPermission("manage:users") && (
-          <SidebarLink href="/admin/users" icon={Users} label="Users" />
-        )}
-        
-        {/* Analytics dropdown - Available to users with manage:analytics permission */}
-        {hasPermission("manage:analytics") && (
-          <DropdownMenu 
-            label="Analytics" 
-            icon={BarChart3} 
-            isOpen={openMenus.analytics} 
-            toggleOpen={() => toggleMenu('analytics')}
-          >
-            <SidebarLink 
-              href="/admin/analytics" 
-              icon={BarChart3} 
-              label="Issue Analytics" 
-              isActive={location.pathname === "/admin/analytics"}
-            />
-            <SidebarLink 
-              href="/admin/feedback-analytics" 
-              icon={BarChart2} 
-              label="Feedback Analytics" 
-              isActive={location.pathname === "/admin/feedback-analytics"}
-            />
-            <SidebarLink 
-              href="/admin/sentiment-analysis" 
-              icon={BarChart2} 
-              label="Sentiment Analysis" 
-              isActive={location.pathname === "/admin/sentiment-analysis"}
-            />
-          </DropdownMenu>
-        )}
-        
-        {/* Dashboard Users dropdown - Available to users with create:dashboardUser permission */}
-        {hasPermission("create:dashboardUser") && (
-          <DropdownMenu 
-            label="Dashboard Users" 
-            icon={Users} 
-            isOpen={openMenus.dashboardUsers} 
-            toggleOpen={() => toggleMenu('dashboardUsers')}
-          >
-            <SidebarLink 
-              href="/admin/dashboard-users/add" 
-              icon={UserPlus} 
-              label="Add Dashboard User" 
-              isActive={location.pathname === "/admin/dashboard-users/add"}
-            />
-          </DropdownMenu>
-        )}
-        
-        {/* Access Control - Available to users with access:security permission */}
-        {hasPermission("access:security") && (
-          <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
-        )}
-        
-        {/* Settings - Available to users with manage:settings permission */}
-        {hasPermission("manage:settings") && (
-          <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
-        )}
-        
-        {/* Test Data Generator - Available to all users */}
-        <SidebarLink href="/admin/test-data" icon={TestTube} label="Test Data Generator" />
-      </div>
-
-      <div className="p-4 border-t">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-gray-500 hover:text-gray-700"
-          onClick={handleLogout}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Logout
-        </Button>
+        <nav className="flex flex-1 flex-col">
+          <ul role="list" className="flex flex-1 flex-col gap-y-7">
+            <li>
+              <ul role="list" className="-mx-2 space-y-1">
+                {navigation.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      to={item.href}
+                      className={cn(
+                        location.pathname === item.href
+                          ? "bg-blue-50 text-blue-600"
+                          : "text-gray-700 hover:text-blue-600 hover:bg-gray-50",
+                        "group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold"
+                      )}
+                    >
+                      <item.icon
+                        className={cn(
+                          location.pathname === item.href
+                            ? "text-blue-600"
+                            : "text-gray-400 group-hover:text-blue-600",
+                          "h-6 w-6 shrink-0"
+                        )}
+                        aria-hidden="true"
+                      />
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
   );
-};
-
-export default AdminSidebar;
+}
