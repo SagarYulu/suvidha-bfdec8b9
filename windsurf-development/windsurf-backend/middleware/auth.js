@@ -1,69 +1,47 @@
 
 const jwt = require('jsonwebtoken');
-const db = require('../config/database');
+const { pool } = require('../config/database');
 
 const authenticateToken = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ 
-        error: 'Access denied',
-        message: 'No token provided' 
-      });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // Get fresh user data from database
-    const [users] = await db.execute(
-      'SELECT id, email, role, name FROM dashboard_users WHERE id = ?',
-      [decoded.id]
+    // Get user from database
+    const [users] = await pool.execute(
+      'SELECT * FROM dashboard_users WHERE id = ?',
+      [decoded.userId]
     );
 
     if (users.length === 0) {
-      return res.status(401).json({ 
-        error: 'Access denied',
-        message: 'User not found' 
-      });
+      return res.status(403).json({ error: 'User not found' });
     }
 
     req.user = users[0];
     next();
   } catch (error) {
-    console.error('Auth middleware error:', error);
-    return res.status(403).json({ 
-      error: 'Access denied',
-      message: 'Invalid token' 
-    });
+    return res.status(403).json({ error: 'Invalid token' });
   }
 };
 
-const requireRole = (allowedRoles) => {
+const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
-        error: 'Access denied',
-        message: 'Authentication required' 
-      });
+      return res.status(401).json({ error: 'Authentication required' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        message: 'Insufficient permissions' 
-      });
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
     next();
   };
 };
 
-module.exports = {
-  authenticateToken,
-  requireRole,
-  // For backward compatibility
-  default: authenticateToken,
-  auth: authenticateToken
-};
+module.exports = { authenticateToken, requireRole };

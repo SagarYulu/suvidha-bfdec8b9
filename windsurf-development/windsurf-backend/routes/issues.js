@@ -6,54 +6,58 @@ const { body } = require('express-validator');
 
 const router = express.Router();
 
-// Validation middleware
 const issueValidation = [
-  body('title').notEmpty().withMessage('Title is required'),
+  body('typeId').notEmpty().withMessage('Type ID is required'),
+  body('subTypeId').notEmpty().withMessage('Sub-type ID is required'),
   body('description').notEmpty().withMessage('Description is required'),
-  body('category').notEmpty().withMessage('Category is required'),
-  body('priority').optional().isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority'),
-  body('status').optional().isIn(['open', 'in_progress', 'resolved', 'closed']).withMessage('Invalid status')
+  body('employeeUuid').notEmpty().withMessage('Employee UUID is required')
 ];
 
-// Get all issues with filtering and pagination
+// Get all issues
 router.get('/', 
-  authenticateToken, 
+  authenticateToken,
   issueController.getIssues
 );
 
 // Get single issue
 router.get('/:id', 
-  authenticateToken, 
+  authenticateToken,
   issueController.getIssue
 );
 
 // Create new issue
 router.post('/', 
-  authenticateToken, 
+  authenticateToken,
   issueValidation,
   issueController.createIssue
 );
 
 // Update issue
 router.put('/:id', 
-  authenticateToken, 
-  requireRole(['admin', 'manager', 'support']),
+  authenticateToken,
   issueController.updateIssue
 );
 
-// Delete issue
-router.delete('/:id', 
-  authenticateToken, 
-  requireRole(['admin', 'manager']), 
-  issueController.deleteIssue
+// Assign issue
+router.post('/:id/assign',
+  authenticateToken,
+  requireRole(['admin', 'manager']),
+  issueController.assignIssue
 );
 
-// Assign issue
-router.post('/:id/assign', 
-  authenticateToken, 
-  requireRole(['admin', 'manager', 'support']),
-  body('assignedTo').notEmpty().withMessage('Assigned to is required'),
-  issueController.assignIssue
+// Add comment to issue
+router.post('/:id/comments',
+  authenticateToken,
+  body('content').notEmpty().withMessage('Comment content is required'),
+  issueController.addComment
+);
+
+// Add internal comment to issue
+router.post('/:id/internal-comments',
+  authenticateToken,
+  requireRole(['admin', 'manager', 'agent']),
+  body('content').notEmpty().withMessage('Comment content is required'),
+  issueController.addInternalComment
 );
 
 module.exports = router;

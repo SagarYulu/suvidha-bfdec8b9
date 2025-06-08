@@ -1,23 +1,22 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { apiService } from '../services/apiService';
 
 interface Permission {
   id: string;
   name: string;
-  resource: string;
-  action: string;
+  description?: string;
 }
 
 interface Role {
   id: string;
   name: string;
+  permissions: Permission[];
 }
 
 interface RBACContextType {
+  userRoles: Role[];
   permissions: Permission[];
-  roles: Role[];
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
   isLoading: boolean;
@@ -33,55 +32,57 @@ export const useRBAC = () => {
   return context;
 };
 
-export const RBACProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+interface RBACProviderProps {
+  children: ReactNode;
+}
+
+export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
+  const { user } = useAuth();
+  const [userRoles, setUserRoles] = useState<Role[]>([]);
   const [permissions, setPermissions] = useState<Permission[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPermissions = async () => {
-      if (isAuthenticated && user) {
-        try {
-          const [permissionsResponse, rolesResponse] = await Promise.all([
-            apiService.getUserPermissions(user.id),
-            apiService.getUserRoles(user.id)
-          ]);
-          
-          if (permissionsResponse.permissions) {
-            setPermissions(permissionsResponse.permissions);
-          }
-          
-          if (rolesResponse.roles) {
-            setRoles(rolesResponse.roles);
-          }
-        } catch (error) {
-          console.error('Failed to fetch RBAC data:', error);
+    if (user) {
+      // Mock RBAC data - replace with actual API calls
+      const mockRoles: Role[] = [
+        {
+          id: '1',
+          name: user.role,
+          permissions: [
+            { id: '1', name: 'view:dashboard' },
+            { id: '2', name: 'manage:issues' },
+            { id: '3', name: 'view:analytics' },
+          ]
         }
-      }
-      setIsLoading(false);
-    };
+      ];
+      
+      setUserRoles(mockRoles);
+      setPermissions(mockRoles.flatMap(role => role.permissions));
+    } else {
+      setUserRoles([]);
+      setPermissions([]);
+    }
+    setIsLoading(false);
+  }, [user]);
 
-    fetchPermissions();
-  }, [isAuthenticated, user]);
-
-  const hasPermission = (permission: string) => {
-    return permissions.some(p => p.name === permission);
+  const hasPermission = (permissionName: string): boolean => {
+    return permissions.some(permission => permission.name === permissionName);
   };
 
-  const hasRole = (role: string) => {
-    return roles.some(r => r.name === role);
+  const hasRole = (roleName: string): boolean => {
+    return userRoles.some(role => role.name === roleName);
   };
 
-  const value = {
-    permissions,
-    roles,
-    hasPermission,
-    hasRole,
-    isLoading,
-  };
-
-  return <RBACContext.Provider value={value}>{children}</RBACContext.Provider>;
+  return (
+    <RBACContext.Provider value={{
+      userRoles,
+      permissions,
+      hasPermission,
+      hasRole,
+      isLoading,
+    }}>
+      {children}
+    </RBACContext.Provider>
+  );
 };
-
-export { RBACContext };

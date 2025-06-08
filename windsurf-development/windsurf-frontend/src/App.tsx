@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { RBACProvider } from './contexts/RBACContext';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/toaster';
 
 // Layout Components
 import AdminLayout from './components/layout/AdminLayout';

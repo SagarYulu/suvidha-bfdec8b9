@@ -1,5 +1,7 @@
 
-const authService = require('../services/authService');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { pool } = require('../config/database');
 const { validationResult } = require('express-validator');
 
 class AuthController {
@@ -14,88 +16,104 @@ class AuthController {
       }
 
       const { email, password } = req.body;
-      const result = await authService.login(email, password);
-      
-      if (!result.success) {
-        return res.status(401).json({ 
-          error: 'Authentication failed',
-          message: result.message 
-        });
+
+      const [users] = await pool.execute(
+        'SELECT * FROM dashboard_users WHERE email = ?',
+        [email]
+      );
+
+      if (users.length === 0) {
+        return res.status(401).json({ error: 'Invalid credentials' });
       }
-      
+
+      const user = users[0];
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const token = jwt.sign(
+        { userId: user.id, email: user.email, role: user.role },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
       res.json({
         success: true,
-        token: result.token,
-        user: result.user,
-        message: 'Login successful'
+        data: {
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role
+          },
+          token
+        }
       });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ 
-        error: 'Authentication failed',
+        error: 'Login failed',
         message: error.message 
       });
     }
   }
 
-  async getCurrentUser(req, res) {
+  async mobileLogin(req, res) {
     try {
-      const user = await authService.getUserById(req.user.id);
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      res.json({ success: true, user });
-    } catch (error) {
-      console.error('Get current user error:', error);
-      res.status(500).json({ 
-        error: 'Failed to fetch user data',
-        message: error.message 
-      });
-    }
-  }
-
-  async refreshToken(req, res) {
-    try {
-      const { token } = req.body;
-      const result = await authService.refreshToken(token);
-      
-      if (!result.success) {
-        return res.status(401).json({ 
-          error: 'Token refresh failed',
-          message: result.message 
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          error: 'Validation failed', 
+          details: errors.array() 
         });
       }
-      
+
+      const { email, employeeId } = req.body;
+
+      const [employees] = await pool.execute(
+        'SELECT * FROM employees WHERE email = ? AND emp_id = ?',
+        [email, employeeId]
+      );
+
+      if (employees.length === 0) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const employee = employees[0];
+
+      const token = jwt.sign(
+        { userId: employee.id, email: employee.email, employeeId: employee.emp_id },
+        process.env.JWT_SECRET || 'your-secret-key',
+        { expiresIn: '24h' }
+      );
+
       res.json({
         success: true,
-        token: result.token,
-        message: 'Token refreshed successfully'
+        data: {
+          user: {
+            id: employee.id,
+            name: employee.name,
+            email: employee.email,
+            employeeId: employee.emp_id,
+            role: employee.role
+          },
+          token
+        }
       });
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('Mobile login error:', error);
       res.status(500).json({ 
-        error: 'Token refresh failed',
+        error: 'Login failed',
         message: error.message 
       });
     }
   }
 
   async logout(req, res) {
-    try {
-      // Implement logout logic (e.g., blacklist token)
-      res.json({
-        success: true,
-        message: 'Logout successful'
-      });
-    } catch (error) {
-      console.error('Logout error:', error);
-      res.status(500).json({ 
-        error: 'Logout failed',
-        message: error.message 
-      });
-    }
+    // In a real application, you might want to blacklist the token
+    res.json({ success: true, message: 'Logged out successfully' });
   }
 }
 
