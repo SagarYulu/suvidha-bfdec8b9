@@ -1,4 +1,3 @@
-
 const Joi = require('joi');
 
 // Enhanced validation middleware with comprehensive schemas
@@ -131,8 +130,52 @@ const sanitizeRequest = (req, res, next) => {
   next();
 };
 
+const validateMasterData = (req, res, next) => {
+  const { name } = req.body;
+  
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ 
+      error: 'Name is required and must be a non-empty string' 
+    });
+  }
+  
+  if (name.trim().length < 2) {
+    return res.status(400).json({ 
+      error: 'Name must be at least 2 characters long' 
+    });
+  }
+  
+  if (name.trim().length > 255) {
+    return res.status(400).json({ 
+      error: 'Name must not exceed 255 characters' 
+    });
+  }
+  
+  next();
+};
+
+const validateClusterData = (req, res, next) => {
+  const { name, cityId } = req.body;
+  
+  // First validate name using existing function
+  validateMasterData(req, res, (err) => {
+    if (err) return;
+    
+    // Then validate cityId
+    if (!cityId || typeof cityId !== 'string' || !cityId.trim()) {
+      return res.status(400).json({ 
+        error: 'City ID is required' 
+      });
+    }
+    
+    next();
+  });
+};
+
 module.exports = {
   validateRequest,
   schemas,
-  sanitizeRequest
+  sanitizeRequest,
+  validateMasterData,
+  validateClusterData
 };
