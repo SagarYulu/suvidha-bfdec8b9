@@ -1,3 +1,4 @@
+
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -80,7 +81,6 @@ app.get('/health', async (req, res) => {
     }
   };
 
-  // Check database connection
   try {
     const { pool } = require('./config/database');
     await pool.execute('SELECT 1');
@@ -90,7 +90,6 @@ app.get('/health', async (req, res) => {
     health.status = 'DEGRADED';
   }
 
-  // Check WebSocket service
   try {
     health.services.webSocket = realTimeService.getConnectedClients() >= 0 ? 'running' : 'stopped';
   } catch (error) {
@@ -98,10 +97,7 @@ app.get('/health', async (req, res) => {
     health.status = 'DEGRADED';
   }
 
-  // Check email service
   health.services.email = process.env.SMTP_HOST ? 'configured' : 'not_configured';
-
-  // Check storage service
   health.services.storage = process.env.AWS_ACCESS_KEY_ID ? 'configured' : 'not_configured';
 
   const statusCode = health.status === 'OK' ? 200 : 503;
@@ -116,7 +112,6 @@ app.use('/api/upload', authMiddleware.authenticateToken, uploadRoutes);
 app.use('/api/files', authMiddleware.authenticateToken, fileRoutes);
 app.use('/api/analytics', authMiddleware.authenticateToken, analyticsRoutes);
 
-// Serve static files for uploads
 app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'uploads'));
 
 // Initialize real-time service with WebSocket server
@@ -130,10 +125,8 @@ cron.schedule('0 * * * *', async () => {
     const breaches = await tatService.getSLABreaches();
     console.log(`SLA check completed: ${breaches.total} issues checked, ${breaches.breached} breaches found`);
     
-    // Send notifications for SLA breaches if needed
     if (breaches.breached > 0) {
       console.log(`⚠️  ${breaches.breached} SLA breaches detected`);
-      // Here you could trigger email notifications
     }
   } catch (error) {
     console.error('Scheduled SLA check failed:', error);
@@ -146,7 +139,6 @@ cron.schedule('0 0 1 * *', async () => {
     console.log('Running monthly audit log cleanup...');
     const { pool } = require('./config/database');
     
-    // Keep only last 12 months of audit logs
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - 12);
     
@@ -193,7 +185,6 @@ const gracefulShutdown = (signal) => {
   
   isShuttingDown = true;
 
-  // Close WebSocket connections
   try {
     realTimeService.closeAllConnections();
     console.log('WebSocket connections closed');
@@ -201,10 +192,8 @@ const gracefulShutdown = (signal) => {
     console.error('Error closing WebSocket connections:', error);
   }
 
-  // Stop cron jobs
   cron.destroy();
 
-  // Close HTTP server
   server.close((err) => {
     if (err) {
       console.error('Error during server shutdown:', err);
@@ -213,7 +202,6 @@ const gracefulShutdown = (signal) => {
     
     console.log('HTTP server closed');
     
-    // Close database connections
     try {
       const { pool } = require('./config/database');
       pool.end();
@@ -226,18 +214,15 @@ const gracefulShutdown = (signal) => {
     process.exit(0);
   });
 
-  // Force shutdown after 30 seconds
   setTimeout(() => {
     console.error('Forced shutdown due to timeout');
     process.exit(1);
   }, 30000);
 };
 
-// Handle shutdown signals
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
   gracefulShutdown('uncaughtException');
@@ -248,7 +233,6 @@ process.on('unhandledRejection', (reason, promise) => {
   gracefulShutdown('unhandledRejection');
 });
 
-// Start server
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 WebSocket server running on ws://localhost:${PORT}/realtime`);

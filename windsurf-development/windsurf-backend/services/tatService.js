@@ -51,7 +51,6 @@ class TATService {
       
       const [results] = await pool.execute(query, params);
       
-      // Format results for frontend
       const tatData = {
         '≤14 days': 0,
         '14-30 days': 0,

@@ -2,6 +2,7 @@
 const AWS = require('aws-sdk');
 const multer = require('multer');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 // Configure AWS S3
 const s3 = new AWS.S3({
@@ -13,53 +14,50 @@ const s3 = new AWS.S3({
 class FileUploadService {
   constructor() {
     this.bucketName = process.env.S3_BUCKET_NAME;
-    this.allowedFileTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
+    this.allowedMimeTypes = [
+      'image/jpeg', 'image/png', 'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
     this.maxFileSize = 10 * 1024 * 1024; // 10MB
   }
 
-  // Multer configuration for memory storage
-  getMulterConfig() {
-    return multer({
-      storage: multer.memoryStorage(),
-      limits: {
-        fileSize: this.maxFileSize
-      },
-      fileFilter: (req, file, cb) => {
-        const fileExt = path.extname(file.originalname).toLowerCase();
-        if (this.allowedFileTypes.includes(fileExt)) {
-          cb(null, true);
-        } else {
-          cb(new Error(`File type ${fileExt} not allowed`), false);
-        }
-      }
-    });
-  }
-
-  async uploadToS3(file, folder = 'attachments') {
+  async uploadFile(file, category = 'attachments') {
     try {
-      const fileExt = path.extname(file.originalname);
-      const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}${fileExt}`;
+      this.validateFile(file);
       
+      const fileId = uuidv4();
+      const fileExt = path.extname(file.originalname);
+      const fileName = `${category}/${fileId}${fileExt}`;
+
       const uploadParams = {
         Bucket: this.bucketName,
         Key: fileName,
         Body: file.buffer,
         ContentType: file.mimetype,
-        ACL: 'private' // Files are private by default
+        ACL: 'private'
       };
-      
+
       const result = await s3.upload(uploadParams).promise();
       
       return {
-        key: fileName,
-        url: result.Location,
-        size: file.size,
-        mimetype: file.mimetype,
-        originalName: file.originalname
+        success: true,
+        file: {
+          id: fileId,
+          originalName: file.originalname,
+          filename: fileName,
+          size: file.size,
+          mimetype: file.mimetype,
+          url: result.Location
+        }
       };
     } catch (error) {
-      console.error('Error uploading to S3:', error);
-      throw new Error('File upload failed');
+      console.error('File upload error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 
@@ -68,7 +66,7 @@ class FileUploadService {
       const params = {
         Bucket: this.bucketName,
         Key: key,
-        Expires: expiresIn // 1 hour by default
+        Expires: expiresIn
       };
       
       const url = await s3.getSignedUrlPromise('getObject', params);
@@ -89,33 +87,20 @@ class FileUploadService {
       await s3.deleteObject(params).promise();
       return true;
     } catch (error) {
-      console.error('Error deleting file from S3:', error);
+      console.error('Error deleting file:', error);
       throw new Error('File deletion failed');
     }
   }
 
-  async uploadMultipleFiles(files, folder = 'attachments') {
-    try {
-      const uploadPromises = files.map(file => this.uploadToS3(file, folder));
-      const results = await Promise.all(uploadPromises);
-      return results;
-    } catch (error) {
-      console.error('Error uploading multiple files:', error);
-      throw new Error('Multiple file upload failed');
-    }
-  }
-
   validateFile(file) {
-    const fileExt = path.extname(file.originalname).toLowerCase();
-    
-    if (!this.allowedFileTypes.includes(fileExt)) {
-      throw new Error(`File type ${fileExt} not allowed`);
-    }
-    
     if (file.size > this.maxFileSize) {
-      throw new Error('File size exceeds maximum limit');
+      throw new Error(`File size exceeds maximum limit of ${this.maxFileSize / 1024 / 1024}MB`);
     }
-    
+
+    if (!this.allowedMimeTypes.includes(file.mimetype)) {
+      throw new Error(`File type ${file.mimetype} not allowed`);
+    }
+
     return true;
   }
 }

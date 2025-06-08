@@ -4,7 +4,7 @@ const WebSocket = require('ws');
 class RealTimeService {
   constructor() {
     this.wss = null;
-    this.clients = new Map(); // Map to store client connections with metadata
+    this.clients = new Map();
   }
 
   initialize(server) {
@@ -16,16 +16,14 @@ class RealTimeService {
     this.wss.on('connection', (ws, req) => {
       console.log('New WebSocket connection established');
       
-      // Extract user info from connection if available
       const url = new URL(req.url, `http://${req.headers.host}`);
       const token = url.searchParams.get('token');
       
-      // Store client with metadata
       const clientId = this.generateClientId();
       this.clients.set(clientId, {
         ws,
         token,
-        userId: null, // Will be set after authentication
+        userId: null,
         subscriptions: new Set()
       });
 
@@ -48,7 +46,6 @@ class RealTimeService {
         this.clients.delete(clientId);
       });
 
-      // Send connection confirmation
       ws.send(JSON.stringify({
         type: 'connection_established',
         clientId,
@@ -128,7 +125,6 @@ class RealTimeService {
     });
   }
 
-  // Notify about issue updates
   notifyIssueUpdate(issueId, updateType, data) {
     this.broadcast(`issue:${issueId}`, {
       type: updateType,
@@ -136,7 +132,6 @@ class RealTimeService {
       data
     });
     
-    // Also broadcast to general issues channel
     this.broadcast('issues', {
       type: updateType,
       issueId,
@@ -144,7 +139,6 @@ class RealTimeService {
     });
   }
 
-  // Notify about new comments
   notifyNewComment(issueId, comment) {
     this.broadcast(`issue:${issueId}`, {
       type: 'comment_added',
@@ -153,7 +147,6 @@ class RealTimeService {
     });
   }
 
-  // Notify about status changes
   notifyStatusChange(issueId, oldStatus, newStatus, updatedBy) {
     this.broadcast(`issue:${issueId}`, {
       type: 'status_changed',
@@ -164,7 +157,6 @@ class RealTimeService {
     });
   }
 
-  // Notify about assignments
   notifyAssignment(issueId, assigneeId, assignedBy) {
     this.broadcast(`issue:${issueId}`, {
       type: 'issue_assigned',
@@ -173,7 +165,6 @@ class RealTimeService {
       assignedBy
     });
     
-    // Notify the assignee specifically
     this.broadcast(`user:${assigneeId}`, {
       type: 'new_assignment',
       issueId

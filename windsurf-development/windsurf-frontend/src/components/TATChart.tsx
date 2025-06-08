@@ -13,9 +13,9 @@ interface TATChartProps {
 }
 
 const COLORS = {
-  '≤14 days': '#10B981', // Green
-  '14-30 days': '#F59E0B', // Yellow
-  '>30 days': '#EF4444'   // Red
+  '≤14 days': '#10B981',
+  '14-30 days': '#F59E0B',
+  '>30 days': '#EF4444'
 };
 
 export const TATChart: React.FC<TATChartProps> = ({ data }) => {
@@ -82,7 +82,6 @@ export const TATChart: React.FC<TATChartProps> = ({ data }) => {
         </PieChart>
       </ResponsiveContainer>
       
-      {/* Summary Stats */}
       <div className="mt-4 grid grid-cols-3 gap-4 text-center">
         {Object.entries(data).map(([key, value]) => {
           const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';

@@ -57,7 +57,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
         setError(null);
         reconnectAttemptsRef.current = 0;
 
-        // Resubscribe to channels
         subscriptionsRef.current.forEach(channel => {
           ws.send(JSON.stringify({
             type: 'subscribe',
@@ -87,7 +86,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
         setIsConnecting(false);
         wsRef.current = null;
 
-        // Attempt to reconnect
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
           reconnectTimeoutRef.current = setTimeout(() => {
@@ -124,20 +122,17 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
 
     setIsConnected(false);
     setIsConnecting(false);
-    reconnectAttemptsRef.current = maxReconnectAttempts; // Prevent auto-reconnect
+    reconnectAttemptsRef.current = maxReconnectAttempts;
   }, [maxReconnectAttempts]);
 
   const subscribe = useCallback((channel: string, handler: (data: any) => void) => {
-    // Add to subscriptions
     subscriptionsRef.current.add(channel);
     
-    // Add handler
     if (!messageHandlersRef.current.has(channel)) {
       messageHandlersRef.current.set(channel, new Set());
     }
     messageHandlersRef.current.get(channel)!.add(handler);
 
-    // Send subscription message if connected
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'subscribe',
@@ -145,7 +140,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
       }));
     }
 
-    // Return unsubscribe function
     return () => {
       const handlers = messageHandlersRef.current.get(channel);
       if (handlers) {
@@ -154,7 +148,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
           messageHandlersRef.current.delete(channel);
           subscriptionsRef.current.delete(channel);
           
-          // Send unsubscription message if connected
           if (wsRef.current?.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify({
               type: 'unsubscribe',
@@ -174,7 +167,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     }
   }, []);
 
-  // Auto-connect on mount
   useEffect(() => {
     if (autoConnect) {
       connect();
@@ -185,7 +177,6 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     };
   }, [autoConnect, connect, disconnect]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (reconnectTimeoutRef.current) {

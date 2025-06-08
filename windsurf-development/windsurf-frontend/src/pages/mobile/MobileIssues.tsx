@@ -1,37 +1,82 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Plus, Clock, AlertCircle, CheckCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Search, Filter, Plus, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface Issue {
   id: string;
   title: string;
   description: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: string;
+  priority: string;
   created_at: string;
-  updated_at: string;
+  type: string;
 }
 
-const MobileIssues: React.FC = () => {
+export const MobileIssues: React.FC = () => {
+  const navigate = useNavigate();
   const [issues, setIssues] = useState<Issue[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [filteredIssues, setFilteredIssues] = useState<Issue[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchIssues();
   }, []);
 
+  useEffect(() => {
+    filterIssues();
+  }, [issues, searchTerm, selectedFilter]);
+
   const fetchIssues = async () => {
     try {
-      const response = await fetch('/api/issues/mobile');
-      const data = await response.json();
-      setIssues(data.issues || []);
+      setLoading(true);
+      // Simulated API call - replace with actual API
+      const mockIssues: Issue[] = [
+        {
+          id: '1',
+          title: 'Salary Clarification Required',
+          description: 'Need clarification on overtime calculation',
+          status: 'open',
+          priority: 'medium',
+          created_at: '2024-01-15T10:30:00Z',
+          type: 'Payroll'
+        },
+        {
+          id: '2',
+          title: 'Leave Application Issue',
+          description: 'Unable to submit annual leave request',
+          status: 'pending',
+          priority: 'low',
+          created_at: '2024-01-14T15:45:00Z',
+          type: 'Leave Management'
+        },
+        {
+          id: '3',
+          title: 'Performance Review Query',
+          description: 'Questions about performance evaluation process',
+          status: 'resolved',
+          priority: 'high',
+          created_at: '2024-01-13T09:15:00Z',
+          type: 'Performance'
+        },
+        {
+          id: '4',
+          title: 'Training Schedule Conflict',
+          description: 'Conflict with mandatory training schedule',
+          status: 'closed',
+          priority: 'medium',
+          created_at: '2024-01-12T14:20:00Z',
+          type: 'Training'
+        }
+      ];
+      
+      setIssues(mockIssues);
     } catch (error) {
       console.error('Error fetching issues:', error);
     } finally {
@@ -39,23 +84,30 @@ const MobileIssues: React.FC = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open':
-        return <Clock className="w-4 h-4 text-orange-500" />;
-      case 'in_progress':
-        return <AlertCircle className="w-4 h-4 text-blue-500" />;
-      case 'resolved':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
-      default:
-        return <Clock className="w-4 h-4 text-gray-500" />;
+  const filterIssues = () => {
+    let filtered = issues;
+
+    // Filter by status
+    if (selectedFilter !== 'all') {
+      filtered = filtered.filter(issue => issue.status === selectedFilter);
     }
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(issue =>
+        issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        issue.type.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredIssues(filtered);
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-orange-100 text-orange-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'open': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'resolved': return 'bg-green-100 text-green-800';
       case 'closed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -64,48 +116,57 @@ const MobileIssues: React.FC = () => {
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
       case 'critical': return 'bg-red-100 text-red-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const filteredIssues = issues.filter(issue => {
-    const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         issue.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || issue.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
-  if (loading) {
-    return (
-      <div className="p-4 space-y-4">
-        <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="h-24 bg-gray-200 rounded"></div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const filterOptions = [
+    { value: 'all', label: 'All Issues' },
+    { value: 'open', label: 'Open' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'resolved', label: 'Resolved' },
+    { value: 'closed', label: 'Closed' }
+  ];
 
   return (
-    <div className="p-4 space-y-4 pb-20">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">My Issues</h1>
-        <Link to="/mobile/create-issue">
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            New
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => navigate('/mobile/dashboard')}
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <h1 className="text-xl font-semibold">My Issues</h1>
+          </div>
+          <Button 
+            size="sm"
+            onClick={() => navigate('/mobile/issues/new')}
+          >
+            <Plus className="h-4 w-4" />
           </Button>
-        </Link>
-      </div>
+        </div>
 
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Search issues..."
             value={searchTerm}
@@ -114,66 +175,82 @@ const MobileIssues: React.FC = () => {
           />
         </div>
 
-        <div className="flex space-x-2 overflow-x-auto pb-2">
-          {['all', 'open', 'in_progress', 'resolved', 'closed'].map(status => (
+        {/* Filter Tabs */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {filterOptions.map((option) => (
             <Button
-              key={status}
-              variant={statusFilter === status ? 'default' : 'outline'}
+              key={option.value}
+              variant={selectedFilter === option.value ? "default" : "outline"}
               size="sm"
-              onClick={() => setStatusFilter(status)}
               className="whitespace-nowrap"
+              onClick={() => setSelectedFilter(option.value)}
             >
-              {status === 'all' ? 'All' : status.replace('_', ' ').toUpperCase()}
+              {option.label}
             </Button>
           ))}
         </div>
       </div>
 
-      <div className="space-y-3">
-        {filteredIssues.map(issue => (
-          <Link key={issue.id} to={`/mobile/issues/${issue.id}`}>
-            <Card className="cursor-pointer hover:bg-gray-50">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-2 mb-2">
-                      {getStatusIcon(issue.status)}
-                      <span className="font-medium text-gray-900 truncate">{issue.title}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">{issue.description}</p>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={getStatusColor(issue.status)}>
-                        {issue.status.replace('_', ' ')}
-                      </Badge>
+      {/* Issues List */}
+      <div className="p-4">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="text-gray-500">Loading issues...</div>
+          </div>
+        ) : filteredIssues.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-gray-500 mb-4">
+              {searchTerm || selectedFilter !== 'all' 
+                ? 'No issues match your filters' 
+                : 'No issues found'
+              }
+            </div>
+            <Button onClick={() => navigate('/mobile/issues/new')}>
+              Create Your First Issue
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredIssues.map((issue) => (
+              <Card 
+                key={issue.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="font-medium text-gray-900 flex-1 pr-2">
+                      {issue.title}
+                    </h3>
+                    <Badge className={getStatusColor(issue.status)}>
+                      {issue.status}
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                    {issue.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
                       <Badge className={getPriorityColor(issue.priority)}>
                         {issue.priority}
                       </Badge>
-                      <span className="text-xs text-gray-500">
-                        {new Date(issue.created_at).toLocaleDateString()}
-                      </span>
+                      <span className="text-gray-500">{issue.type}</span>
                     </div>
+                    <span className="text-gray-500">
+                      {formatDate(issue.created_at)}
+                    </span>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
-      {filteredIssues.length === 0 && (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No issues found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm ? 'Try adjusting your search terms' : 'Get started by creating your first issue'}
-            </p>
-            <Link to="/mobile/create-issue">
-              <Button>Create Issue</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
+      {/* Bottom Navigation Spacer */}
+      <div className="h-20"></div>
     </div>
   );
 };

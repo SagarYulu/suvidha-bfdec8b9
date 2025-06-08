@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback } from 'react';
-import { Upload, X, File, AlertCircle, CheckCircle } from 'lucide-react';
+import { Upload, X, File, AlertCircle, CheckCircle, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface FileUploadProps {
   onFileUpload: (files: File[]) => Promise<void>;
   maxFiles?: number;
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number;
   acceptedFileTypes?: string[];
   multiple?: boolean;
   disabled?: boolean;
@@ -25,7 +25,7 @@ interface UploadedFile {
 export const CloudFileUpload: React.FC<FileUploadProps> = ({
   onFileUpload,
   maxFiles = 5,
-  maxFileSize = 10 * 1024 * 1024, // 10MB
+  maxFileSize = 10 * 1024 * 1024,
   acceptedFileTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'],
   multiple = true,
   disabled = false
@@ -36,12 +36,10 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
 
   const validateFile = (file: File): string | null => {
-    // Check file size
     if (file.size > maxFileSize) {
       return `File "${file.name}" is too large. Maximum size is ${formatFileSize(maxFileSize)}.`;
     }
 
-    // Check file type
     const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
     if (!acceptedFileTypes.includes(fileExtension)) {
       return `File type "${fileExtension}" is not allowed. Accepted types: ${acceptedFileTypes.join(', ')}.`;
@@ -60,17 +58,13 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
 
   const handleFiles = useCallback(async (selectedFiles: FileList) => {
     setError(null);
-
-    // Convert FileList to Array
     const fileArray = Array.from(selectedFiles);
 
-    // Check if adding these files would exceed the maximum
     if (files.length + fileArray.length > maxFiles) {
       setError(`Maximum ${maxFiles} files allowed. You can upload ${maxFiles - files.length} more files.`);
       return;
     }
 
-    // Validate each file
     const validationErrors: string[] = [];
     fileArray.forEach(file => {
       const error = validateFile(file);
@@ -84,7 +78,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
       return;
     }
 
-    // Add files to state with initial upload status
     const newFiles: UploadedFile[] = fileArray.map(file => ({
       file,
       progress: 0,
@@ -95,10 +88,7 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
     setIsUploading(true);
 
     try {
-      // Call the upload function
       await onFileUpload(fileArray);
-
-      // Update status to completed
       setFiles(prev => 
         prev.map(f => 
           newFiles.some(nf => nf.file === f.file) 
@@ -107,7 +97,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
         )
       );
     } catch (error) {
-      // Update status to error
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       setFiles(prev => 
         prev.map(f => 
@@ -151,7 +140,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
     if (selectedFiles && selectedFiles.length > 0) {
       handleFiles(selectedFiles);
     }
-    // Clear the input
     e.target.value = '';
   }, [handleFiles]);
 
@@ -175,7 +163,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
 
   return (
     <div className="w-full space-y-4">
-      {/* Upload Area */}
       <div
         className={`
           border-2 border-dashed rounded-lg p-6 text-center transition-colors
@@ -209,7 +196,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
         </p>
       </div>
 
-      {/* Error Message */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -217,7 +203,6 @@ export const CloudFileUpload: React.FC<FileUploadProps> = ({
         </Alert>
       )}
 
-      {/* File List */}
       {files.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700">
