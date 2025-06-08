@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import AdminLayout from '@/components/AdminLayout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useAuth } from '../../contexts/AuthContext';
+import AdminLayout from '../../components/AdminLayout';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { 
   Card, 
   CardContent,
@@ -10,9 +10,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+} from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
 import { 
   Table,
   TableBody,
@@ -20,7 +20,7 @@ import {
   TableHead,
   TableHeader,
   TableRow
-} from '@/components/ui/table';
+} from '../../components/ui/table';
 import { 
   Dialog,
   DialogContent,
@@ -29,16 +29,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger
-} from '@/components/ui/dialog';
+} from '../../components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../../components/ui/select";
 import { Loader2, PlusCircle, Pencil, Trash2, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../hooks/use-toast';
 import { 
   getRoles,
   createRole,
@@ -53,9 +53,9 @@ import {
   updateCluster,
   deleteCluster,
   getAuditLogs
-} from '@/services/masterDataService';
-import { Role, City, Cluster, AuditLog } from '@/types/admin';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+} from '../../services/masterDataService';
+import { Role, City, Cluster, AuditLog } from '../../types/admin';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../../components/ui/alert-dialog";
 
 const Settings = () => {
   const auth = useAuth();
@@ -117,7 +117,7 @@ const Settings = () => {
       const data = await getRoles();
       setRoles(data);
     } catch (error) {
-      console.error('Error loading roles:', error);
+      console.error("Error loading roles:", error);
       toast({
         title: "Error",
         description: "Failed to load roles",
@@ -199,7 +199,7 @@ const Settings = () => {
       const data = await getCities();
       setCities(data);
     } catch (error) {
-      console.error('Error loading cities:', error);
+      console.error("Error loading cities:", error);
       toast({
         title: "Error",
         description: "Failed to load cities",
@@ -281,7 +281,7 @@ const Settings = () => {
       const data = await getClusters();
       setClusters(data);
     } catch (error) {
-      console.error('Error loading clusters:', error);
+      console.error("Error loading clusters:", error);
       toast({
         title: "Error",
         description: "Failed to load clusters",
@@ -369,7 +369,7 @@ const Settings = () => {
       const data = await getAuditLogs();
       setAuditLogs(data);
     } catch (error) {
-      console.error('Error loading audit logs:', error);
+      console.error("Error loading audit logs:", error);
       toast({
         title: "Error",
         description: "Failed to load audit logs",

@@ -1,51 +1,19 @@
 
+import { Role, City, Cluster, AuditLog } from '../types/admin';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Types
-export interface Role {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface City {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Cluster {
-  id: string;
-  name: string;
-  cityId: string;
-  cityName: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AuditLog {
-  id: string;
-  entityType: string;
-  entityId: string;
-  action: string;
-  changes: any;
-  createdBy: string;
-  userName?: string;
-  createdAt: string;
-}
-
-// API request helper
-const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
+const getAuthHeaders = () => {
   const token = localStorage.getItem('authToken');
-  
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` })
+  };
+};
+
+const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
+    headers: getAuthHeaders(),
     ...options,
   });
 
