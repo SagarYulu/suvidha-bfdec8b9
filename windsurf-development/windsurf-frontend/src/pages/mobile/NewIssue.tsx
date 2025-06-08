@@ -3,201 +3,126 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCreateIssue } from '@/hooks/useIssues';
+import { 
+  Send,
+  Paperclip,
+  Image
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
 
-const NewIssue: React.FC = () => {
+const MobileNewIssue: React.FC = () => {
   const navigate = useNavigate();
-  const createIssueMutation = useCreateIssue();
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    priority: 'medium',
-    typeId: '',
-    subTypeId: '',
+    priority: 'medium'
   });
 
-  const issueTypes = [
-    { id: 'technical', label: 'Technical Issue' },
-    { id: 'account', label: 'Account Issue' },
-    { id: 'payment', label: 'Payment Issue' },
-    { id: 'service', label: 'Service Issue' },
-    { id: 'other', label: 'Other' },
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Submit issue logic here
+    console.log('Submitting issue:', formData);
+    navigate('/mobile/issues');
+  };
+
+  const categories = [
+    'Technical Issue',
+    'HR Query', 
+    'Payroll',
+    'Leave Request',
+    'Equipment',
+    'Other'
   ];
 
-  const subTypes = {
-    technical: [
-      { id: 'app_crash', label: 'App Crash' },
-      { id: 'login_issue', label: 'Login Issue' },
-      { id: 'performance', label: 'Performance Issue' },
-    ],
-    account: [
-      { id: 'profile_update', label: 'Profile Update' },
-      { id: 'verification', label: 'Account Verification' },
-      { id: 'suspension', label: 'Account Suspension' },
-    ],
-    payment: [
-      { id: 'salary', label: 'Salary Issue' },
-      { id: 'incentive', label: 'Incentive Issue' },
-      { id: 'reimbursement', label: 'Reimbursement' },
-    ],
-    service: [
-      { id: 'vehicle', label: 'Vehicle Issue' },
-      { id: 'uniform', label: 'Uniform Issue' },
-      { id: 'equipment', label: 'Equipment Issue' },
-    ],
-    other: [
-      { id: 'general', label: 'General Query' },
-      { id: 'feedback', label: 'Feedback' },
-      { id: 'complaint', label: 'Complaint' },
-    ],
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      await createIssueMutation.mutateAsync({
-        title: formData.title,
-        description: formData.description,
-        category: formData.category,
-        priority: formData.priority,
-        type_id: formData.typeId,
-        sub_type_id: formData.subTypeId,
-      });
-      
-      navigate('/mobile/issues');
-    } catch (error) {
-      console.error('Failed to create issue:', error);
-    }
-  };
-
-  const currentSubTypes = formData.typeId ? subTypes[formData.typeId as keyof typeof subTypes] || [] : [];
+  const priorities = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' }
+  ];
 
   return (
     <div className="p-4">
-      <div className="flex items-center mb-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="mr-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="text-xl font-bold">Create New Issue</h1>
-      </div>
-
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Issue Details</CardTitle>
+          <CardTitle>Create New Issue</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+            {/* Title */}
+            <div>
+              <label className="text-sm font-medium block mb-1">Title</label>
               <Input
-                id="title"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="Brief description of the issue"
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Brief description of your issue"
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="typeId">Issue Type</Label>
-              <Select 
-                onValueChange={(value) => setFormData({...formData, typeId: value, subTypeId: ''})}
+            {/* Category */}
+            <div>
+              <label className="text-sm font-medium block mb-1">Category</label>
+              <select 
+                className="w-full p-2 border rounded-md"
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 required
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select issue type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {issueTypes.map((type) => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <option value="">Select a category</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {formData.typeId && (
-              <div className="space-y-2">
-                <Label htmlFor="subTypeId">Sub Type</Label>
-                <Select 
-                  onValueChange={(value) => setFormData({...formData, subTypeId: value})}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sub type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currentSubTypes.map((subType) => (
-                      <SelectItem key={subType.id} value={subType.id}>
-                        {subType.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="priority">Priority</Label>
-              <Select 
-                onValueChange={(value) => setFormData({...formData, priority: value})}
-                defaultValue="medium"
+            {/* Priority */}
+            <div>
+              <label className="text-sm font-medium block mb-1">Priority</label>
+              <select 
+                className="w-full p-2 border rounded-md"
+                value={formData.priority}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
+                {priorities.map((priority) => (
+                  <option key={priority.value} value={priority.value}>
+                    {priority.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
+            {/* Description */}
+            <div>
+              <label className="text-sm font-medium block mb-1">Description</label>
+              <textarea
+                className="w-full p-2 border rounded-md h-32 resize-none"
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Detailed description of the issue"
-                rows={4}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Provide detailed information about your issue..."
                 required
               />
             </div>
 
-            <div className="flex space-x-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => navigate(-1)}
-                className="flex-1"
-              >
-                Cancel
+            {/* Attachments */}
+            <div className="flex space-x-2">
+              <Button type="button" variant="outline" size="sm">
+                <Paperclip className="h-4 w-4 mr-1" />
+                Attach File
               </Button>
-              <Button 
-                type="submit" 
-                className="flex-1"
-                disabled={createIssueMutation.isPending}
-              >
-                {createIssueMutation.isPending ? 'Creating...' : 'Create Issue'}
+              <Button type="button" variant="outline" size="sm">
+                <Image className="h-4 w-4 mr-1" />
+                Add Photo
               </Button>
             </div>
+
+            {/* Submit Button */}
+            <Button type="submit" className="w-full">
+              <Send className="h-4 w-4 mr-2" />
+              Submit Issue
+            </Button>
           </form>
         </CardContent>
       </Card>
@@ -205,4 +130,4 @@ const NewIssue: React.FC = () => {
   );
 };
 
-export default NewIssue;
+export default MobileNewIssue;

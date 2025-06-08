@@ -10,6 +10,9 @@ import { Toaster } from '@/components/ui/toaster';
 import AdminLayout from './components/layout/AdminLayout';
 import MobileLayout from './components/layout/MobileLayout';
 
+// Index page
+import Index from './pages/Index';
+
 // Admin Pages
 import AdminLogin from './pages/admin/Login';
 import AdminDashboard from './pages/admin/Dashboard';
@@ -22,9 +25,6 @@ import AdminSettings from './pages/admin/Settings';
 import MobileLogin from './pages/mobile/Login';
 import MobileIssues from './pages/mobile/Issues';
 import MobileNewIssue from './pages/mobile/NewIssue';
-
-// Index page
-import Index from './pages/Index';
 
 // Create a client
 const queryClient = new QueryClient({

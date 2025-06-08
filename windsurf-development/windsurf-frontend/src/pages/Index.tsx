@@ -1,122 +1,128 @@
 
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Users, 
+  Smartphone, 
+  BarChart3,
+  Shield
+} from 'lucide-react';
 
-const Index = () => {
+const Index: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
-  
-  useEffect(() => {
-    // If already logged in, show welcoming toast
-    if (isAuthenticated && user) {
-      toast.success(`Welcome back, ${user.name}!`);
-    }
-  }, [isAuthenticated, user]);
 
-  const handleAdminClick = () => {
-    // If the user is already authenticated and is an admin, navigate directly
-    if (isAuthenticated && (user?.role === "admin" || user?.role === "security-admin")) {
-      navigate("/admin/dashboard");
-    } else {
-      // Not authenticated or not admin - redirect to admin login page
-      navigate("/admin/login");
-    }
-  };
-
-  const handleEmployeeClick = () => {
-    // If the user is already authenticated and is an employee, navigate directly
-    if (isAuthenticated && user?.role === "employee") {
-      navigate("/mobile/issues");
-    } else {
-      // Not authenticated or not employee - redirect to login
-      navigate("/mobile/login");
-    }
-  };
-
-  const togglePresentationMode = () => {
-    setIsPresentationMode(!isPresentationMode);
-    if (!isPresentationMode) {
-      toast.success("Presentation mode activated", {
-        description: "Press P key to exit presentation mode",
-      });
-    }
-  };
-
-  // Event listener for P key to toggle presentation mode
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 'p') {
-        togglePresentationMode();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isPresentationMode]);
-  
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="bg-blue-600 p-8">
-          <h1 className="text-4xl font-bold text-white text-center">Windsurf Development</h1>
-          <p className="text-blue-100 text-center mt-2">Issue Management System</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-16">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+            Windsurf Management
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Comprehensive platform for employee issue management and administrative oversight
+          </p>
         </div>
-        <div className="p-8 space-y-6">
-          <div className="space-y-2">
-            <h2 className="text-2xl font-semibold text-center">Welcome</h2>
-            <p className="text-gray-600 text-center">
-              Choose which application you want to access
-            </p>
-          </div>
-          <div className="flex flex-col space-y-4">
-            <Button 
-              onClick={handleAdminClick}
-              className="py-6 bg-blue-600 hover:bg-blue-700"
-            >
-              Admin Dashboard
-            </Button>
-            <Button 
-              onClick={handleEmployeeClick}
-              variant="outline"
-              className="py-6 border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-            >
-              Employee Mobile App
-            </Button>
+
+        {/* Access Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          {/* Admin Dashboard Access */}
+          <Card className="hover:shadow-xl transition-shadow duration-300 cursor-pointer" 
+                onClick={() => navigate('/admin/login')}>
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-8 w-8 text-blue-600" />
+              </div>
+              <CardTitle className="text-2xl">Admin Dashboard</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Access comprehensive administrative tools, user management, analytics, and system oversight
+              </p>
+              <ul className="text-left space-y-2 mb-6 text-sm text-gray-500">
+                <li className="flex items-center">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Analytics & Reporting
+                </li>
+                <li className="flex items-center">
+                  <Users className="h-4 w-4 mr-2" />
+                  User Management
+                </li>
+                <li className="flex items-center">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Issue Resolution
+                </li>
+              </ul>
+              <Button className="w-full" onClick={() => navigate('/admin/login')}>
+                Access Admin Panel
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Mobile App Access */}
+          <Card className="hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                onClick={() => navigate('/mobile/login')}>
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <Smartphone className="h-8 w-8 text-green-600" />
+              </div>
+              <CardTitle className="text-2xl">Employee Mobile</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-gray-600 mb-6">
+                Employee portal for issue reporting, status tracking, and communication with support team
+              </p>
+              <ul className="text-left space-y-2 mb-6 text-sm text-gray-500">
+                <li className="flex items-center">
+                  <Smartphone className="h-4 w-4 mr-2" />
+                  Submit Issues
+                </li>
+                <li className="flex items-center">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Track Progress
+                </li>
+                <li className="flex items-center">
+                  <Users className="h-4 w-4 mr-2" />
+                  Direct Communication
+                </li>
+              </ul>
+              <Button className="w-full" variant="outline" onClick={() => navigate('/mobile/login')}>
+                Access Mobile App
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-20 text-center">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">Platform Features</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">User Management</h3>
+              <p className="text-gray-600">Comprehensive user administration and role-based access control</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <BarChart3 className="h-6 w-6 text-green-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Analytics</h3>
+              <p className="text-gray-600">Real-time insights and detailed reporting on issue resolution</p>
+            </div>
+            <div className="text-center">
+              <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                <Shield className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Security</h3>
+              <p className="text-gray-600">Enterprise-grade security with audit trails and compliance</p>
+            </div>
           </div>
         </div>
       </div>
-      
-      {!isPresentationMode && (
-        <Alert className="fixed bottom-4 right-4 max-w-md shadow-lg border border-gray-200">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Press the <strong>P</strong> key to enter presentation mode and hide this message box.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* This div will cover the chat interface when in presentation mode */}
-      {isPresentationMode && (
-        <div 
-          className="fixed top-0 left-0 w-1/2 h-full bg-white z-50"
-          onClick={togglePresentationMode}
-        >
-          <div className="h-full flex items-center justify-center">
-            <p className="text-gray-400 text-xl p-4 text-center">
-              Presentation Mode<br/>
-              Click anywhere or press P to exit
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -3,165 +3,191 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
+import { 
+  Settings as SettingsIcon, 
+  Save,
+  Bell,
+  Shield,
+  Database,
+  Mail
+} from 'lucide-react';
 
-const Settings: React.FC = () => {
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [autoAssign, setAutoAssign] = useState(false);
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-
-  const [systemSettings, setSystemSettings] = useState({
-    companyName: 'Yulu Suvidha',
-    supportEmail: 'support@yulu.com',
-    maxFileSize: '10',
-    sessionTimeout: '30',
+const AdminSettings: React.FC = () => {
+  const [settings, setSettings] = useState({
+    siteName: 'Windsurf Admin',
+    adminEmail: 'admin@windsurf.com',
+    notificationsEnabled: true,
+    emailNotifications: true,
+    autoAssignment: false
   });
 
-  const handleSystemSettingsChange = (field: string, value: string) => {
-    setSystemSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSaveSystemSettings = () => {
-    // In a real app, this would make an API call
-    toast.success('System settings saved successfully');
-  };
-
-  const handleSaveNotificationSettings = () => {
-    // In a real app, this would make an API call
-    toast.success('Notification settings saved successfully');
+  const handleSave = () => {
+    // Save settings logic here
+    console.log('Saving settings:', settings);
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <Button onClick={handleSave}>
+          <Save className="h-4 w-4 mr-2" />
+          Save Changes
+        </Button>
+      </div>
 
-      <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
-        </TabsList>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* General Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <SettingsIcon className="h-5 w-5 mr-2" />
+              General Settings
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Site Name</label>
+              <Input
+                value={settings.siteName}
+                onChange={(e) => setSettings({ ...settings, siteName: e.target.value })}
+                placeholder="Enter site name"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Admin Email</label>
+              <Input
+                value={settings.adminEmail}
+                onChange={(e) => setSettings({ ...settings, adminEmail: e.target.value })}
+                placeholder="Enter admin email"
+                type="email"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="general" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Company Name</Label>
-                  <Input
-                    id="companyName"
-                    value={systemSettings.companyName}
-                    onChange={(e) => handleSystemSettingsChange('companyName', e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="supportEmail">Support Email</Label>
-                  <Input
-                    id="supportEmail"
-                    type="email"
-                    value={systemSettings.supportEmail}
-                    onChange={(e) => handleSystemSettingsChange('supportEmail', e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button onClick={handleSaveSystemSettings}>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Notification Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Bell className="h-5 w-5 mr-2" />
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Enable Notifications</span>
+              <Button
+                variant={settings.notificationsEnabled ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSettings({ 
+                  ...settings, 
+                  notificationsEnabled: !settings.notificationsEnabled 
+                })}
+              >
+                {settings.notificationsEnabled ? 'On' : 'Off'}
+              </Button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Email Notifications</span>
+              <Button
+                variant={settings.emailNotifications ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSettings({ 
+                  ...settings, 
+                  emailNotifications: !settings.emailNotifications 
+                })}
+              >
+                {settings.emailNotifications ? 'On' : 'Off'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="notifications" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Email Notifications</Label>
-                  <p className="text-sm text-gray-600">Receive email notifications for new issues</p>
-                </div>
-                <Switch
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Auto-assign Issues</Label>
-                  <p className="text-sm text-gray-600">Automatically assign new issues to available agents</p>
-                </div>
-                <Switch
-                  checked={autoAssign}
-                  onCheckedChange={setAutoAssign}
-                />
-              </div>
-              <Button onClick={handleSaveNotificationSettings}>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Security Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Shield className="h-5 w-5 mr-2" />
+              Security
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button variant="outline" className="w-full">
+              Change Password
+            </Button>
+            <Button variant="outline" className="w-full">
+              Two-Factor Authentication
+            </Button>
+            <Button variant="outline" className="w-full">
+              Login History
+            </Button>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="security" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                <Input
-                  id="sessionTimeout"
-                  type="number"
-                  value={systemSettings.sessionTimeout}
-                  onChange={(e) => handleSystemSettingsChange('sessionTimeout', e.target.value)}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Maintenance Mode</Label>
-                  <p className="text-sm text-gray-600">Enable maintenance mode to restrict access</p>
-                </div>
-                <Switch
-                  checked={maintenanceMode}
-                  onCheckedChange={setMaintenanceMode}
-                />
-              </div>
-              <Button onClick={handleSaveSystemSettings}>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* System Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Database className="h-5 w-5 mr-2" />
+              System
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Auto Assignment</span>
+              <Button
+                variant={settings.autoAssignment ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSettings({ 
+                  ...settings, 
+                  autoAssignment: !settings.autoAssignment 
+                })}
+              >
+                {settings.autoAssignment ? 'On' : 'Off'}
+              </Button>
+            </div>
+            <Button variant="outline" className="w-full">
+              Database Backup
+            </Button>
+            <Button variant="outline" className="w-full">
+              System Logs
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-        <TabsContent value="system" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
-                <Input
-                  id="maxFileSize"
-                  type="number"
-                  value={systemSettings.maxFileSize}
-                  onChange={(e) => handleSystemSettingsChange('maxFileSize', e.target.value)}
-                />
-              </div>
-              <Button onClick={handleSaveSystemSettings}>Save Changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      {/* Email Configuration */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Mail className="h-5 w-5 mr-2" />
+            Email Configuration
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">SMTP Server</label>
+              <Input placeholder="smtp.example.com" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">SMTP Port</label>
+              <Input placeholder="587" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Username</label>
+              <Input placeholder="username@example.com" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Password</label>
+              <Input type="password" placeholder="••••••••" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default Settings;
+export default AdminSettings;
