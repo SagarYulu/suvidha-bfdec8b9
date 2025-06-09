@@ -151,7 +151,7 @@ const AdminIssueDetails = () => {
               currentLevel={issue.escalation_level || 0}
               escalatedAt={issue.escalated_at}
               priority={issue.priority}
-              createdAt={issue.created_at}
+              createdAt={issue.createdAt}
               onEscalationChange={handleEscalationChange}
             />
             
