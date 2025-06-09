@@ -1,11 +1,12 @@
 
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/User');
 const EmployeeModel = require('../models/Employee');
 const config = require('../config/env');
 
 class AuthService {
-  static generateToken(user) {
+  generateToken(user) {
     return jwt.sign(
       { 
         userId: user.id, 
@@ -17,57 +18,73 @@ class AuthService {
     );
   }
 
-  static async login(email, password) {
+  async login(email, password) {
     const user = await UserModel.findByEmail(email);
+    
     if (!user) {
       throw new Error('Invalid credentials');
     }
 
-    const isPasswordValid = await UserModel.verifyPassword(password, user.password);
-    if (!isPasswordValid) {
+    const isValidPassword = await UserModel.verifyPassword(password, user.password);
+    if (!isValidPassword) {
       throw new Error('Invalid credentials');
     }
 
     const token = this.generateToken(user);
-    
+
     return {
+      token,
       user: {
         id: user.id,
-        name: user.name,
         email: user.email,
-        role: user.role
-      },
-      token
+        name: user.name,
+        role: user.role,
+        employee_id: user.employee_id
+      }
     };
   }
 
-  static async mobileLogin(email, employeeId) {
+  async mobileLogin(email, employeeId) {
     const employee = await EmployeeModel.findByEmailAndId(email, employeeId);
+    
     if (!employee) {
       throw new Error('Invalid credentials');
     }
 
     const token = this.generateToken(employee);
-    
+
     return {
+      token,
       user: {
         id: employee.id,
-        name: employee.name,
         email: employee.email,
-        employeeId: employee.emp_id,
-        role: employee.role
-      },
-      token
+        name: employee.name,
+        emp_id: employee.emp_id,
+        role: employee.role || 'employee'
+      }
     };
   }
 
-  static verifyToken(token) {
-    try {
-      return jwt.verify(token, config.jwtSecret);
-    } catch (error) {
-      throw new Error('Invalid token');
+  async getProfile(userId) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
     }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      employee_id: user.employee_id,
+      phone: user.phone,
+      city: user.city,
+      cluster: user.cluster,
+      manager: user.manager,
+      created_at: user.created_at,
+      updated_at: user.updated_at
+    };
   }
 }
 
-module.exports = AuthService;
+module.exports = new AuthService();

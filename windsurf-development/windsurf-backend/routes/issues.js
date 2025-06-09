@@ -27,4 +27,7 @@ router.post('/:id/comments', authenticateToken, validateComment, handleValidatio
 // Add internal comment (admin/agent only)
 router.post('/:id/internal-comments', authenticateToken, requireRole(['admin', 'agent', 'manager']), validateComment, handleValidationErrors, issueController.addInternalComment);
 
+// Get issue audit trail
+router.get('/:id/audit-trail', authenticateToken, issueController.getIssueAuditTrail);
+
 module.exports = router;

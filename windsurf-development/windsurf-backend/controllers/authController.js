@@ -7,6 +7,7 @@ class AuthController {
     try {
       const { email, password } = req.body;
       const result = await AuthService.login(email, password);
+      
       successResponse(res, result, 'Login successful');
     } catch (error) {
       console.error('Login error:', error);
@@ -18,6 +19,7 @@ class AuthController {
     try {
       const { email, employeeId } = req.body;
       const result = await AuthService.mobileLogin(email, employeeId);
+      
       successResponse(res, result, 'Mobile login successful');
     } catch (error) {
       console.error('Mobile login error:', error);
@@ -26,30 +28,42 @@ class AuthController {
   }
 
   async logout(req, res) {
-    successResponse(res, null, 'Logged out successfully');
+    try {
+      // JWT is stateless, so logout is handled client-side
+      successResponse(res, null, 'Logged out successfully');
+    } catch (error) {
+      console.error('Logout error:', error);
+      errorResponse(res, error.message);
+    }
   }
 
   async refreshToken(req, res) {
     try {
-      const token = AuthService.generateToken(req.user);
-      successResponse(res, { token }, 'Token refreshed successfully');
+      const newToken = AuthService.generateToken(req.user);
+      successResponse(res, { token: newToken }, 'Token refreshed successfully');
     } catch (error) {
       console.error('Token refresh error:', error);
-      errorResponse(res, 'Token refresh failed', 500);
+      errorResponse(res, error.message);
     }
   }
 
   async getProfile(req, res) {
     try {
-      successResponse(res, { user: req.user }, 'Profile fetched successfully');
+      const profile = await AuthService.getProfile(req.user.id);
+      successResponse(res, { user: profile }, 'Profile retrieved successfully');
     } catch (error) {
       console.error('Get profile error:', error);
-      errorResponse(res, 'Failed to fetch profile', 500);
+      errorResponse(res, error.message);
     }
   }
 
   async verifyToken(req, res) {
-    successResponse(res, { user: req.user }, 'Token is valid');
+    try {
+      successResponse(res, { user: req.user }, 'Token is valid');
+    } catch (error) {
+      console.error('Token verification error:', error);
+      errorResponse(res, error.message);
+    }
   }
 }
 

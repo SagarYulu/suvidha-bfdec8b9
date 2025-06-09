@@ -35,6 +35,20 @@ const validateComment = [
   body('content').notEmpty().isLength({ min: 1, max: 2000 }).withMessage('Comment content is required and must be less than 2000 characters')
 ];
 
+const validateCreateUser = [
+  body('name').notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').isIn(['admin', 'manager', 'agent', 'employee']).withMessage('Valid role is required')
+];
+
+const validateUpdateUser = [
+  body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+  body('email').optional().isEmail().withMessage('Valid email is required'),
+  body('password').optional().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('role').optional().isIn(['admin', 'manager', 'agent', 'employee']).withMessage('Valid role is required')
+];
+
 const validateMasterData = [
   body('name').notEmpty().withMessage('Name is required')
 ];
@@ -50,6 +64,8 @@ module.exports = {
   validateMobileLogin,
   validateIssue,
   validateComment,
+  validateCreateUser,
+  validateUpdateUser,
   validateMasterData,
   validateClusterData
 };

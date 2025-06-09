@@ -1,58 +1,76 @@
 
 const IssueModel = require('../models/Issue');
 const CommentModel = require('../models/Comment');
+const { v4: uuidv4 } = require('uuid');
 
 class IssueService {
-  static async createIssue(issueData) {
-    return await IssueModel.create(issueData);
+  async getIssues(filters = {}) {
+    return await IssueModel.getAll(filters);
   }
 
-  static async getIssueById(id) {
+  async getIssueById(id) {
+    return await IssueModel.findById(id);
+  }
+
+  async createIssue(issueData) {
+    const issueWithId = {
+      ...issueData,
+      id: uuidv4()
+    };
+    
+    return await IssueModel.create(issueWithId);
+  }
+
+  async updateIssue(id, updateData) {
     const issue = await IssueModel.findById(id);
     if (!issue) {
       throw new Error('Issue not found');
     }
 
-    const comments = await CommentModel.getByIssue(id);
-    return { ...issue, comments };
+    return await IssueModel.update(id, updateData);
   }
 
-  static async getAllIssues(filters) {
-    return await IssueModel.getAll(filters);
-  }
-
-  static async updateIssue(id, updateData) {
-    const updated = await IssueModel.update(id, updateData);
-    if (!updated) {
-      throw new Error('Issue not found or no changes made');
+  async assignIssue(issueId, assignedTo) {
+    const issue = await IssueModel.findById(issueId);
+    if (!issue) {
+      throw new Error('Issue not found');
     }
-    return await IssueModel.findById(id);
-  }
 
-  static async assignIssue(issueId, assignedTo) {
     await IssueModel.assignIssue(issueId, assignedTo);
     return await IssueModel.findById(issueId);
   }
 
-  static async addComment(issueId, employeeId, content) {
+  async addComment(issueId, employeeUuid, content) {
+    const issue = await IssueModel.findById(issueId);
+    if (!issue) {
+      throw new Error('Issue not found');
+    }
+
     return await CommentModel.create({
       issue_id: issueId,
-      employee_uuid: employeeId,
+      employee_uuid: employeeUuid,
       content
     });
   }
 
-  static async addInternalComment(issueId, userId, content) {
+  async addInternalComment(issueId, employeeUuid, content) {
+    const issue = await IssueModel.findById(issueId);
+    if (!issue) {
+      throw new Error('Issue not found');
+    }
+
     return await CommentModel.createInternal({
       issue_id: issueId,
-      employee_uuid: userId,
+      employee_uuid: employeeUuid,
       content
     });
   }
 
-  static async getEmployeeIssues(employeeId) {
-    return await IssueModel.getByEmployee(employeeId);
+  async getAuditTrail(issueId) {
+    // Implementation would depend on audit trail model
+    // This is a placeholder for the audit trail functionality
+    return [];
   }
 }
 
-module.exports = IssueService;
+module.exports = new IssueService();
