@@ -19,7 +19,6 @@ module.exports = {
     },
     extend: {
       colors: {
-        'yulu-blue': '#2563eb',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -53,6 +52,8 @@ module.exports = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        'yulu-dashboard-blue': '#2563eb',
+        'yulu-dashboard-blue-dark': '#1d4ed8',
       },
       borderRadius: {
         lg: "var(--radius)",

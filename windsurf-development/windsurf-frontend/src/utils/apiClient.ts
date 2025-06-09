@@ -1,16 +1,14 @@
 
-import { API_CONFIG } from '@/config/api';
-import { APP_CONFIG } from '@/config/app';
-
 class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = API_CONFIG.BASE_URL;
+    // Use the windsurf-backend URL
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   }
 
   private getAuthHeaders(): Record<string, string> {
-    const token = localStorage.getItem(APP_CONFIG.TOKEN_STORAGE_KEY);
+    const token = localStorage.getItem('token');
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
@@ -64,25 +62,6 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: 'DELETE',
     });
-  }
-
-  async uploadFile<T>(endpoint: string, formData: FormData): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        // Don't set Content-Type for FormData, let browser set it
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Upload failed');
-    }
-
-    return await response.json();
   }
 }
 

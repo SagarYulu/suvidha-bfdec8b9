@@ -1,21 +1,13 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiService } from '@/services/apiService';
-import { Issue } from '@/types';
+import { Issue, IssueFilters } from '@/types';
+import { toast } from 'sonner';
 
-interface UseIssuesParams {
-  page?: number;
-  limit?: number;
-  status?: string;
-  priority?: string;
-  assignedTo?: string;
-  employeeUuid?: string;
-}
-
-export const useIssues = (params: UseIssuesParams = {}) => {
+export const useIssues = (filters?: IssueFilters) => {
   return useQuery({
-    queryKey: ['issues', params],
-    queryFn: () => apiService.getIssues(params),
+    queryKey: ['issues', filters],
+    queryFn: () => apiService.getIssues(filters),
   });
 };
 
@@ -34,6 +26,10 @@ export const useCreateIssue = () => {
     mutationFn: (issueData: Partial<Issue>) => apiService.createIssue(issueData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
+      toast.success('Issue created successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to create issue');
     },
   });
 };
@@ -47,6 +43,10 @@ export const useUpdateIssue = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
       queryClient.invalidateQueries({ queryKey: ['issue', id] });
+      toast.success('Issue updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to update issue');
     },
   });
 };
@@ -60,6 +60,25 @@ export const useAssignIssue = () => {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['issues'] });
       queryClient.invalidateQueries({ queryKey: ['issue', id] });
+      toast.success('Issue assigned successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to assign issue');
+    },
+  });
+};
+
+export const useDeleteIssue = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (id: string) => apiService.deleteIssue(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['issues'] });
+      toast.success('Issue deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to delete issue');
     },
   });
 };

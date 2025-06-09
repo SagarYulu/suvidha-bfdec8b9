@@ -12,10 +12,10 @@ const Index: React.FC = () => {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-800 mb-4">
-            Yulu Suvidha Portal
+            Windsurf Grievance Portal
           </h1>
           <p className="text-xl text-gray-600 mb-8">
-            Your Gateway to Employee Support and Issue Resolution
+            Employee Support and Issue Resolution System
           </p>
         </div>
         
@@ -43,28 +43,22 @@ const Index: React.FC = () => {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="text-2xl text-center">
-                Mobile App
+                Employee Portal
               </CardTitle>
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <p className="text-gray-600">
-                Access the mobile interface to submit issues and track your requests.
+                Submit and track your grievances and support requests.
               </p>
               <Button 
                 onClick={() => navigate('/mobile/login')}
                 className="w-full bg-green-600 hover:bg-green-700"
                 size="lg"
               >
-                Mobile Login
+                Employee Login
               </Button>
             </CardContent>
           </Card>
-        </div>
-        
-        <div className="text-center mt-12">
-          <p className="text-gray-500 text-sm">
-            Built with React, TypeScript, and modern web technologies
-          </p>
         </div>
       </div>
     </div>

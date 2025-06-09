@@ -8,9 +8,6 @@ export interface User {
   phone?: string;
   city?: string;
   cluster?: string;
-  manager?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface Issue {
@@ -18,75 +15,45 @@ export interface Issue {
   employeeUuid: string;
   typeId: string;
   subTypeId: string;
-  title?: string;
   description: string;
-  category?: string;
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'critical';
   assignedTo?: string;
-  attachmentUrl?: string;
-  attachments?: string[];
-  mappedTypeId?: string;
-  mappedSubTypeId?: string;
-  mappedBy?: string;
-  mappedAt?: string;
-  closedAt?: string;
   createdAt: string;
   updatedAt: string;
-  comments?: Comment[];
-  internalComments?: InternalComment[];
+  closedAt?: string;
+  attachmentUrl?: string;
+  attachments?: string;
+  comments?: IssueComment[];
+  employeeName?: string;
+  assigneeName?: string;
 }
 
-export interface Comment {
+export interface IssueComment {
   id: string;
-  issueId: string;
-  authorId?: string;
-  employeeUuid?: string;
-  content: string;
-  createdAt: string;
-}
-
-export interface InternalComment {
-  id: string;
-  issueId: string;
-  authorId?: string;
   employeeUuid: string;
   content: string;
   createdAt: string;
-  updatedAt: string;
+  employeeName?: string;
+}
+
+export interface IssueFilters {
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+  employeeUuid?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface Analytics {
   totalIssues: number;
   openIssues: number;
-  inProgressIssues: number;
   resolvedIssues: number;
-  closedIssues: number;
-  avgResolutionTime: string;
-  resolvedToday: number;
-}
-
-export interface Feedback {
-  id: string;
-  issueId: string;
-  employeeUuid: string;
-  feedbackOption: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  rating?: number;
-  feedbackText?: string;
-  resolutionSatisfaction?: string;
-  agentId?: string;
-  agentName?: string;
-  city?: string;
-  cluster?: string;
-  createdAt: string;
-}
-
-export interface Notification {
-  id: string;
-  issueId: string;
-  userId: string;
-  content: string;
-  isRead: boolean;
-  createdAt: string;
+  inProgressIssues: number;
+  criticalIssues: number;
+  averageResolutionTime: number;
+  issuesByType: Array<{ type: string; count: number }>;
+  issuesByPriority: Array<{ priority: string; count: number }>;
+  trendsData: Array<{ date: string; issues: number }>;
 }

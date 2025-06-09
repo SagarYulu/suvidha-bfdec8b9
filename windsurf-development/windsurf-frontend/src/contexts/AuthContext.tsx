@@ -1,14 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiService } from '@/services/apiService';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  employeeId?: string;
-}
+import { User } from '@/types';
 
 interface AuthState {
   user: User | null;

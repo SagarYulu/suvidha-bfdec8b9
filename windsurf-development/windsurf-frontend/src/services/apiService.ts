@@ -1,140 +1,89 @@
 
-// Main API service that re-exports all the modular services
-// This maintains backwards compatibility while using the new modular structure
+import { apiClient } from '@/utils/apiClient';
+import { Issue, User, IssueFilters, Analytics } from '@/types';
 
-export { AuthService } from './authService';
-export { IssueService } from './issueService';
-export { UserService } from './userService';
-export { DashboardService } from './dashboardService';
-export { FileService } from './fileService';
-export { AnalyticsService } from './analyticsService';
-export { NotificationService } from './notificationService';
-
-// Legacy ApiService class for backwards compatibility
-import { AuthService } from './authService';
-import { IssueService } from './issueService';
-import { UserService } from './userService';
-import { DashboardService } from './dashboardService';
-import { FileService } from './fileService';
-import { AnalyticsService } from './analyticsService';
-import { NotificationService } from './notificationService';
-import { API_CONFIG } from '@/config/api';
-
-export class ApiService {
-  // Authentication methods
-  static async login(credentials: { email: string; password: string }) {
-    return AuthService.login(credentials);
+class ApiService {
+  // Authentication
+  async login(credentials: { email: string; password: string }) {
+    return apiClient.post('/api/auth/login', credentials);
   }
 
-  static async mobileLogin(credentials: { employeeId: string; email: string }) {
-    return AuthService.mobileLogin(credentials);
+  async mobileLogin(credentials: { email: string; employeeId: string }) {
+    return apiClient.post('/api/auth/mobile-login', credentials);
   }
 
-  static async logout() {
-    return AuthService.logout();
+  async logout() {
+    return apiClient.post('/api/auth/logout');
   }
 
-  // Issues methods
-  static async getIssues(params?: any) {
-    return IssueService.getIssues(params);
+  async getCurrentUser() {
+    return apiClient.get('/api/auth/me');
   }
 
-  static async getIssue(id: string) {
-    return IssueService.getIssue(id);
+  // Issues
+  async getIssues(filters?: IssueFilters) {
+    return apiClient.get('/api/issues', filters);
   }
 
-  static async createIssue(issueData: any) {
-    return IssueService.createIssue(issueData);
+  async getIssue(id: string) {
+    return apiClient.get(`/api/issues/${id}`);
   }
 
-  static async updateIssue(id: string, updateData: any) {
-    return IssueService.updateIssue(id, updateData);
+  async createIssue(issueData: Partial<Issue>) {
+    return apiClient.post('/api/issues', issueData);
   }
 
-  static async assignIssue(id: string, assigneeId: string) {
-    return IssueService.assignIssue(id, assigneeId);
+  async updateIssue(id: string, updates: Partial<Issue>) {
+    return apiClient.put(`/api/issues/${id}`, updates);
   }
 
-  static async addComment(id: string, content: string) {
-    return IssueService.addComment(id, content);
+  async deleteIssue(id: string) {
+    return apiClient.delete(`/api/issues/${id}`);
   }
 
-  static async addInternalComment(id: string, content: string) {
-    return IssueService.addInternalComment(id, content);
+  async assignIssue(id: string, assignedTo: string) {
+    return apiClient.post(`/api/issues/${id}/assign`, { assignedTo });
   }
 
-  // File upload methods
-  static async uploadFile(file: File, category = 'attachments') {
-    return FileService.uploadFile(file, category);
+  async addComment(issueId: string, content: string) {
+    return apiClient.post(`/api/issues/${issueId}/comments`, { content });
   }
 
-  static async uploadMultipleFiles(files: File[], category = 'attachments') {
-    return FileService.uploadMultipleFiles(files, category);
+  async addInternalComment(issueId: string, content: string) {
+    return apiClient.post(`/api/issues/${issueId}/internal-comments`, { content });
   }
 
-  static async deleteFile(filename: string, category = 'attachments') {
-    return FileService.deleteFile(filename, category);
+  async getAuditTrail(issueId: string) {
+    return apiClient.get(`/api/issues/${issueId}/audit-trail`);
   }
 
-  // Real-time connection
-  static createRealtimeConnection() {
-    const token = localStorage.getItem('authToken');
-    const eventSource = new EventSource(`${API_CONFIG.BASE_URL}/api/realtime/stream?token=${token}`);
-    return eventSource;
+  // Users
+  async getUsers(filters?: any) {
+    return apiClient.get('/api/users', filters);
   }
 
-  // Dashboard methods
-  static async getDashboardMetrics(filters?: any) {
-    return DashboardService.getMetrics(filters);
+  async createUser(userData: Partial<User>) {
+    return apiClient.post('/api/users', userData);
   }
 
-  static async getChartData(type: string, filters?: any) {
-    return DashboardService.getChartData(type, filters);
+  async updateUser(id: string, updates: Partial<User>) {
+    return apiClient.put(`/api/users/${id}`, updates);
   }
 
-  // Users methods
-  static async getUsers(params?: any) {
-    return UserService.getUsers(params);
+  async deleteUser(id: string) {
+    return apiClient.delete(`/api/users/${id}`);
   }
 
-  static async createUser(userData: any) {
-    return UserService.createUser(userData);
+  // Analytics
+  async getAnalytics(filters?: any) {
+    return apiClient.get('/api/analytics', filters);
   }
 
-  static async updateUser(id: string, userData: any) {
-    return UserService.updateUser(id, userData);
-  }
-
-  // Analytics methods
-  static async getAnalytics(params?: any) {
-    return AnalyticsService.getAnalytics(params);
-  }
-
-  static async exportData(type: string, filters?: any) {
-    return AnalyticsService.exportData(type, 'csv', filters);
-  }
-
-  // Notifications methods
-  static async getNotifications(userId: string, params?: any) {
-    return NotificationService.getNotifications(userId, params);
-  }
-
-  static async markNotificationAsRead(notificationId: string) {
-    return NotificationService.markNotificationAsRead(notificationId);
-  }
-
-  static async markAllNotificationsAsRead(userId: string) {
-    return NotificationService.markAllNotificationsAsRead(userId);
-  }
-
-  // Health check
-  static async getHealthStatus() {
-    return fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.HEALTH}`).then(res => res.json());
-  }
-
-  static async getServiceStatus() {
-    return fetch(`${API_CONFIG.BASE_URL}/api/status`).then(res => res.json());
+  // Dashboard stats
+  async getDashboardStats() {
+    return apiClient.get('/api/dashboard/stats');
   }
 }
 
-export default ApiService;
+export const apiService = new ApiService();
+export default apiService;
