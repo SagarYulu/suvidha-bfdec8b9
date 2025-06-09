@@ -1,27 +1,21 @@
 
 const express = require('express');
-const authController = require('../controllers/authController');
-const { authenticateToken } = require('../middlewares/auth');
-const { validateLogin, validateMobileLogin, handleValidationErrors } = require('../middlewares/validation');
-
 const router = express.Router();
+const authController = require('../controllers/authController');
+const { authenticateToken } = require('../middleware/auth');
+const { 
+  validateLogin, 
+  validateMobileLogin, 
+  handleValidationErrors 
+} = require('../middleware/validation');
 
-// Admin login
+// Public routes
 router.post('/login', validateLogin, handleValidationErrors, authController.login);
-
-// Mobile login
 router.post('/mobile-login', validateMobileLogin, handleValidationErrors, authController.mobileLogin);
 
-// Logout
-router.post('/logout', authController.logout);
-
-// Refresh token
-router.post('/refresh', authenticateToken, authController.refreshToken);
-
-// Get current user profile
-router.get('/profile', authenticateToken, authController.getProfile);
-
-// Verify token
+// Protected routes
+router.post('/logout', authenticateToken, authController.logout);
+router.get('/me', authenticateToken, authController.getProfile);
 router.get('/verify', authenticateToken, authController.verifyToken);
 
 module.exports = router;

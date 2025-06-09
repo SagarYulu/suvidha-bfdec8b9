@@ -1,5 +1,5 @@
 
-const successResponse = (res, data, message = 'Success', statusCode = 200) => {
+const successResponse = (res, data = null, message = 'Success', statusCode = 200) => {
   return res.status(statusCode).json({
     success: true,
     message,
@@ -7,29 +7,35 @@ const successResponse = (res, data, message = 'Success', statusCode = 200) => {
   });
 };
 
-const errorResponse = (res, message = 'Internal Server Error', statusCode = 500, details = null) => {
+const errorResponse = (res, message = 'Internal Server Error', statusCode = 500, errors = null) => {
   const response = {
     success: false,
-    error: message
+    message
   };
-  
-  if (details) {
-    response.details = details;
+
+  if (errors) {
+    response.errors = errors;
   }
-  
+
   return res.status(statusCode).json(response);
 };
 
-const validationErrorResponse = (res, errors) => {
-  return res.status(400).json({
-    success: false,
-    error: 'Validation failed',
-    details: errors
+const paginatedResponse = (res, data, pagination, message = 'Success') => {
+  return res.status(200).json({
+    success: true,
+    message,
+    data,
+    pagination: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total: pagination.total,
+      totalPages: Math.ceil(pagination.total / pagination.limit)
+    }
   });
 };
 
 module.exports = {
   successResponse,
   errorResponse,
-  validationErrorResponse
+  paginatedResponse
 };

@@ -1,39 +1,30 @@
 
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
 const helmet = require('helmet');
-const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const config = require('./config/env');
+const { errorResponse } = require('./utils/responseHelper');
 
 // Import routes
 const authRoutes = require('./routes/auth');
-const issueRoutes = require('./routes/issues');
 const userRoutes = require('./routes/users');
-const mobileRoutes = require('./routes/mobile');
-const dashboardRoutes = require('./routes/dashboard');
-
-// Import middleware
-const { errorHandler } = require('./middlewares/errorHandler');
+const issueRoutes = require('./routes/api/issues');
+const analyticsRoutes = require('./routes/analytics');
 
 const app = express();
 
 // Security middleware
-app.use(helmet({
-  crossOriginEmbedderPolicy: false,
-  contentSecurityPolicy: false,
-}));
+app.use(helmet());
 
 // CORS configuration
 app.use(cors({
   origin: config.frontendUrl,
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-
-// Compression
-app.use(compression());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -43,43 +34,51 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-app.use('/api', limiter);
+app.use(limiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static file serving
-app.use('/uploads', express.static('uploads'));
+// Logging middleware
+if (config.nodeEnv !== 'test') {
+  app.use(morgan('combined'));
+}
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({
-    status: 'OK',
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is healthy',
     timestamp: new Date().toISOString(),
-    environment: config.nodeEnv,
-    version: '1.0.0'
+    environment: config.nodeEnv
   });
 });
 
-// API Routes
+// API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/issues', issueRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/mobile', mobileRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/issues', issueRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
-// 404 handler for API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'API endpoint not found',
-    path: req.path
-  });
+// 404 handler
+app.use('*', (req, res) => {
+  errorResponse(res, `Route ${req.originalUrl} not found`, 404);
 });
 
-// Error handling middleware
-app.use(errorHandler);
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  
+  if (error.type === 'entity.parse.failed') {
+    return errorResponse(res, 'Invalid JSON payload', 400);
+  }
+  
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return errorResponse(res, 'File size too large', 413);
+  }
+  
+  errorResponse(res, 'Internal server error', 500);
+});
 
 module.exports = app;

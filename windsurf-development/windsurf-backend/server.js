@@ -4,34 +4,28 @@ const config = require('./config/env');
 
 const PORT = config.port;
 
-// Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Windsurf Backend Server running on port ${PORT}`);
   console.log(`📊 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 API available at http://localhost:${PORT}/api`);
+  console.log(`🔗 Frontend URL: ${config.frontendUrl}`);
+  console.log(`⚡ Server ready at http://localhost:${PORT}`);
 });
 
 // Graceful shutdown
-const gracefulShutdown = (signal) => {
-  console.log(`\n${signal} signal received: closing HTTP server`);
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
   server.close(() => {
-    console.log('HTTP server closed');
+    console.log('Server closed.');
     process.exit(0);
   });
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  process.exit(1);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed.');
+    process.exit(0);
+  });
 });
 
 module.exports = server;

@@ -1,110 +1,63 @@
 
 const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
+const config = require('../config/env');
+const UserModel = require('../models/User');
+const EmployeeModel = require('../models/Employee');
+const { errorResponse } = require('../utils/responseHelper');
 
 const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Access token required' 
-    });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Verify user still exists in dashboard_users table
-    const [users] = await pool.execute(
-      'SELECT id, email, name, role, employee_id FROM dashboard_users WHERE id = ?',
-      [decoded.userId]
-    );
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-    if (users.length === 0) {
-      return res.status(401).json({ 
-        success: false,
-        error: 'User not found' 
-      });
+    if (!token) {
+      return errorResponse(res, 'Access token required', 401);
     }
 
-    req.user = users[0];
+    const decoded = jwt.verify(token, config.jwtSecret);
+    
+    // Try to find user in dashboard_users first, then employees
+    let user = await UserModel.findById(decoded.userId);
+    if (!user) {
+      user = await EmployeeModel.findById(decoded.userId);
+    }
+
+    if (!user) {
+      return errorResponse(res, 'User not found', 401);
+    }
+
+    req.user = {
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role || user.role,
+      ...user
+    };
+
     next();
   } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      return errorResponse(res, 'Invalid token', 401);
+    }
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Token expired' 
-      });
+      return errorResponse(res, 'Token expired', 401);
     }
     
-    return res.status(403).json({ 
-      success: false,
-      error: 'Invalid token' 
-    });
+    console.error('Auth middleware error:', error);
+    return errorResponse(res, 'Authentication failed', 401);
   }
 };
 
-const authenticateMobile = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ 
-      success: false,
-      error: 'Access token required' 
-    });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // For mobile, check employees table
-    const [employees] = await pool.execute(
-      'SELECT id, emp_id, email, name, role FROM employees WHERE id = ?',
-      [decoded.userId]
-    );
-
-    if (employees.length === 0) {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Employee not found' 
-      });
-    }
-
-    req.user = employees[0];
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Token expired' 
-      });
-    }
-    
-    return res.status(403).json({ 
-      success: false,
-      error: 'Invalid token' 
-    });
-  }
-};
-
-const requireRole = (roles) => {
+const requireRole = (roles = []) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Authentication required' 
-      });
+      return errorResponse(res, 'Authentication required', 401);
     }
 
-    const userRoles = Array.isArray(roles) ? roles : [roles];
-    if (!userRoles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Insufficient permissions' 
-      });
+    const userRole = req.user.role;
+    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+
+    if (!allowedRoles.includes(userRole)) {
+      return errorResponse(res, 'Insufficient permissions', 403);
     }
 
     next();
@@ -112,46 +65,29 @@ const requireRole = (roles) => {
 };
 
 const requirePermission = (permission) => {
-  return async (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ 
-        success: false,
-        error: 'Authentication required' 
-      });
+  return (req, res, next) => {
+    // Basic permission check - can be extended with more complex RBAC
+    const userRole = req.user?.role;
+    
+    const permissions = {
+      'admin': ['*'], // Admin has all permissions
+      'manager': ['issues:read', 'issues:update', 'issues:assign', 'users:read'],
+      'agent': ['issues:read', 'issues:update', 'issues:assign'],
+      'employee': ['issues:read', 'issues:create']
+    };
+
+    const userPermissions = permissions[userRole] || [];
+    
+    if (userPermissions.includes('*') || userPermissions.includes(permission)) {
+      return next();
     }
 
-    try {
-      // Check if user has the required permission
-      const [permissions] = await pool.execute(`
-        SELECT p.name 
-        FROM rbac_permissions p
-        JOIN rbac_role_permissions rp ON p.id = rp.permission_id
-        JOIN rbac_roles r ON rp.role_id = r.id
-        JOIN rbac_user_roles ur ON r.id = ur.role_id
-        WHERE ur.user_id = ? AND p.name = ?
-      `, [req.user.id, permission]);
-
-      if (permissions.length === 0) {
-        return res.status(403).json({ 
-          success: false,
-          error: 'Permission denied' 
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Permission check error:', error);
-      res.status(500).json({ 
-        success: false,
-        error: 'Permission check failed' 
-      });
-    }
+    return errorResponse(res, 'Permission denied', 403);
   };
 };
 
 module.exports = {
   authenticateToken,
-  authenticateMobile,
   requireRole,
   requirePermission
 };

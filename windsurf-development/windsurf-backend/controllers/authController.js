@@ -1,10 +1,16 @@
 
 const AuthService = require('../services/authService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { validationResult } = require('express-validator');
 
 class AuthController {
   async login(req, res) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, errors.array());
+      }
+
       const { email, password } = req.body;
       const result = await AuthService.login(email, password);
       
@@ -17,6 +23,11 @@ class AuthController {
 
   async mobileLogin(req, res) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, errors.array());
+      }
+
       const { email, employeeId } = req.body;
       const result = await AuthService.mobileLogin(email, employeeId);
       
@@ -29,27 +40,20 @@ class AuthController {
 
   async logout(req, res) {
     try {
-      // JWT is stateless, so logout is handled client-side
-      successResponse(res, null, 'Logged out successfully');
+      // In a stateless JWT system, logout is mainly client-side
+      // But we can implement token blacklisting if needed
+      successResponse(res, null, 'Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
       errorResponse(res, error.message);
     }
   }
 
-  async refreshToken(req, res) {
-    try {
-      const newToken = AuthService.generateToken(req.user);
-      successResponse(res, { token: newToken }, 'Token refreshed successfully');
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      errorResponse(res, error.message);
-    }
-  }
-
   async getProfile(req, res) {
     try {
-      const profile = await AuthService.getProfile(req.user.id);
+      const userId = req.user.userId;
+      const profile = await AuthService.getProfile(userId);
+      
       successResponse(res, { user: profile }, 'Profile retrieved successfully');
     } catch (error) {
       console.error('Get profile error:', error);
@@ -59,10 +63,11 @@ class AuthController {
 
   async verifyToken(req, res) {
     try {
-      successResponse(res, { user: req.user }, 'Token is valid');
+      // If we reach here, the token is valid (middleware passed)
+      successResponse(res, { valid: true, user: req.user }, 'Token is valid');
     } catch (error) {
       console.error('Token verification error:', error);
-      errorResponse(res, error.message);
+      errorResponse(res, error.message, 401);
     }
   }
 }

@@ -1,139 +1,40 @@
 
-const analyticsService = require('../services/analyticsService');
-const tatService = require('../services/actualTatService');
-const { validationResult } = require('express-validator');
+const AnalyticsService = require('../services/analyticsService');
+const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 class AnalyticsController {
-  async getDashboardMetrics(req, res) {
+  async getAnalytics(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          error: 'Validation failed',
-          details: errors.array()
-        });
-      }
-
       const filters = req.query;
+      const analytics = await AnalyticsService.getAnalytics(filters);
       
-      // Get core metrics and TAT data
-      const [metrics, tatMetrics, slaMetrics] = await Promise.all([
-        analyticsService.getDashboardMetrics(filters),
-        tatService.getTATMetrics(filters),
-        tatService.getSLABreaches(filters)
-      ]);
-      
-      res.json({
-        success: true,
-        data: {
-          ...metrics,
-          tat: tatMetrics,
-          sla: slaMetrics
-        }
-      });
+      successResponse(res, analytics, 'Analytics retrieved successfully');
     } catch (error) {
-      console.error('Dashboard metrics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch dashboard metrics'
-      });
+      console.error('Get analytics error:', error);
+      errorResponse(res, error.message);
     }
   }
 
-  async getTATAnalytics(req, res) {
+  async getDashboardStats(req, res) {
     try {
-      const filters = req.query;
-      const tatData = await tatService.getTATMetrics(filters);
+      const stats = await AnalyticsService.getDashboardStats();
       
-      res.json({
-        success: true,
-        data: tatData
-      });
+      successResponse(res, stats, 'Dashboard stats retrieved successfully');
     } catch (error) {
-      console.error('TAT analytics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch TAT analytics'
-      });
+      console.error('Get dashboard stats error:', error);
+      errorResponse(res, error.message);
     }
   }
 
-  async getSLABreaches(req, res) {
+  async getIssuesTrend(req, res) {
     try {
-      const filters = req.query;
-      const slaData = await tatService.getSLABreaches(filters);
+      const { days = 30 } = req.query;
+      const trend = await AnalyticsService.getIssuesTrend(parseInt(days));
       
-      res.json({
-        success: true,
-        data: slaData
-      });
+      successResponse(res, trend, 'Issues trend retrieved successfully');
     } catch (error) {
-      console.error('SLA breaches error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch SLA breaches'
-      });
-    }
-  }
-
-  async getAvgResolutionTime(req, res) {
-    try {
-      const filters = req.query;
-      const avgTime = await tatService.getAvgResolutionTime(filters);
-      
-      res.json({
-        success: true,
-        data: avgTime
-      });
-    } catch (error) {
-      console.error('Average resolution time error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch average resolution time'
-      });
-    }
-  }
-
-  async getTrendData(req, res) {
-    try {
-      const period = req.query.period || '30d';
-      const filters = req.query;
-      
-      const trendData = await tatService.getTrendData(period, filters);
-      
-      res.json({
-        success: true,
-        data: trendData
-      });
-    } catch (error) {
-      console.error('Trend data error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch trend data'
-      });
-    }
-  }
-
-  async exportAnalytics(req, res) {
-    try {
-      const { format = 'csv', type = 'issues' } = req.query;
-      const filters = req.query;
-      
-      const exportData = await analyticsService.exportData(type, format, filters);
-      
-      // Set appropriate headers for file download
-      const filename = `${type}_analytics_${new Date().toISOString().split('T')[0]}.${format}`;
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel');
-      
-      res.send(exportData);
-    } catch (error) {
-      console.error('Export analytics error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to export analytics'
-      });
+      console.error('Get issues trend error:', error);
+      errorResponse(res, error.message);
     }
   }
 }

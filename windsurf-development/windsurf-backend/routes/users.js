@@ -1,24 +1,31 @@
 
 const express = require('express');
-const userController = require('../controllers/userController');
-const { authenticateToken, requireRole } = require('../middlewares/auth');
-const { validateCreateUser, validateUpdateUser, handleValidationErrors } = require('../middlewares/validation');
-
 const router = express.Router();
+const userController = require('../controllers/userController');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const { 
+  validateCreateUser, 
+  validateUpdateUser, 
+  validateUUIDParam,
+  handleValidationErrors 
+} = require('../middleware/validation');
+
+// All user routes require authentication
+router.use(authenticateToken);
 
 // Get all users (admin/manager only)
-router.get('/', authenticateToken, requireRole(['admin', 'manager']), userController.getUsers);
+router.get('/', requireRole(['admin', 'manager']), userController.getUsers);
 
-// Get single user by ID (admin/manager only)
-router.get('/:id', authenticateToken, requireRole(['admin', 'manager']), userController.getUser);
+// Get single user
+router.get('/:id', validateUUIDParam('id'), handleValidationErrors, userController.getUser);
 
-// Create new user (admin only)
-router.post('/', authenticateToken, requireRole(['admin']), validateCreateUser, handleValidationErrors, userController.createUser);
+// Create user (admin only)
+router.post('/', requireRole(['admin']), validateCreateUser, handleValidationErrors, userController.createUser);
 
 // Update user (admin only)
-router.put('/:id', authenticateToken, requireRole(['admin']), validateUpdateUser, handleValidationErrors, userController.updateUser);
+router.put('/:id', requireRole(['admin']), validateUUIDParam('id'), validateUpdateUser, handleValidationErrors, userController.updateUser);
 
 // Delete user (admin only)
-router.delete('/:id', authenticateToken, requireRole(['admin']), userController.deleteUser);
+router.delete('/:id', requireRole(['admin']), validateUUIDParam('id'), handleValidationErrors, userController.deleteUser);
 
 module.exports = router;

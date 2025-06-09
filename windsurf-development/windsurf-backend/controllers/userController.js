@@ -1,6 +1,7 @@
 
 const UserService = require('../services/userService');
 const { successResponse, errorResponse } = require('../utils/responseHelper');
+const { validationResult } = require('express-validator');
 
 class UserController {
   async getUsers(req, res) {
@@ -33,12 +34,14 @@ class UserController {
 
   async createUser(req, res) {
     try {
-      const userData = {
-        ...req.body,
-        created_by: req.user.id
-      };
-      
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, errors.array());
+      }
+
+      const userData = req.body;
       const user = await UserService.createUser(userData);
+      
       successResponse(res, user, 'User created successfully', 201);
     } catch (error) {
       console.error('Create user error:', error);
@@ -48,11 +51,13 @@ class UserController {
 
   async updateUser(req, res) {
     try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return errorResponse(res, 'Validation failed', 400, errors.array());
+      }
+
       const { id } = req.params;
-      const updateData = {
-        ...req.body,
-        last_updated_by: req.user.id
-      };
+      const updateData = req.body;
       
       const user = await UserService.updateUser(id, updateData);
       successResponse(res, user, 'User updated successfully');
@@ -65,10 +70,6 @@ class UserController {
   async deleteUser(req, res) {
     try {
       const { id } = req.params;
-      
-      if (id === req.user.id) {
-        return errorResponse(res, 'Cannot delete your own account', 400);
-      }
       
       await UserService.deleteUser(id);
       successResponse(res, null, 'User deleted successfully');
