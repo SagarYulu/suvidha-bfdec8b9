@@ -18,10 +18,12 @@ const notificationRoutes = require('./routes/api/notifications');
 const feedbackRoutes = require('./routes/api/feedback');
 const authRoutes = require('./routes/api/auth');
 const filesRoutes = require('./routes/api/files');
+const healthRoutes = require('./routes/api/health');
+const tatRoutes = require('./routes/api/tat');
 
 // Import services
 const cronService = require('./services/cronService');
-const realTimeService = require('./services/realTimeService');
+const webSocketService = require('./services/webSocketService');
 const autoAssignService = require('./services/autoAssignService');
 
 const app = express();
@@ -61,45 +63,8 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
-app.get('/health', async (req, res) => {
-  try {
-    const { pool } = require('./config/database');
-    
-    // Check database connection
-    await pool.execute('SELECT 1');
-    
-    // Check memory usage
-    const memUsage = process.memoryUsage();
-    const memUsageMB = {
-      rss: Math.round(memUsage.rss / 1024 / 1024),
-      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-      external: Math.round(memUsage.external / 1024 / 1024)
-    };
-
-    // Get cron job status
-    const cronStatus = cronService.getJobStatus();
-
-    res.json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
-      memory: memUsageMB,
-      database: 'connected',
-      cronJobs: cronStatus,
-      version: process.env.npm_package_version || '1.0.0'
-    });
-  } catch (error) {
-    console.error('Health check failed:', error);
-    res.status(500).json({
-      status: 'unhealthy',
-      error: error.message
-    });
-  }
-});
-
 // API Routes
+app.use('/api/health', healthRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -109,6 +74,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/files', filesRoutes);
+app.use('/api/tat', tatRoutes);
 
 // Auto-assignment middleware for new issues
 app.use('/api/issues', async (req, res, next) => {
@@ -180,8 +146,8 @@ const gracefulShutdown = (signal) => {
   // Stop cron jobs
   cronService.stopAllJobs();
   
-  // Close real-time connections
-  realTimeService.closeAllConnections();
+  // Close WebSocket connections
+  webSocketService.closeAllConnections();
   
   process.exit(0);
 };
@@ -198,10 +164,10 @@ if (process.env.NODE_ENV !== 'test') {
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+  console.log(`📊 Health check available at http://localhost:${PORT}/api/health`);
 });
 
 // Initialize WebSocket server for real-time features
-realTimeService.initialize(server);
+webSocketService.initialize(server);
 
 module.exports = app;

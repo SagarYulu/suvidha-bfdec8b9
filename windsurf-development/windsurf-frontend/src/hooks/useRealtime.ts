@@ -3,7 +3,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 
 interface RealtimeMessage {
   type: string;
-  channel?: string;
+  issueId?: string;
+  updateType?: string;
   data?: any;
   timestamp: string;
 }
@@ -28,14 +29,15 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const subscriptionsRef = useRef<Set<string>>(new Set());
   const messageHandlersRef = useRef<Map<string, Set<(data: any) => void>>>(new Map());
 
   const getWebSocketUrl = useCallback(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = process.env.REACT_APP_WS_URL || window.location.host;
+    const host = process.env.NODE_ENV === 'production' 
+      ? window.location.host 
+      : 'localhost:5000';
     const token = localStorage.getItem('authToken');
-    return `${protocol}//${host}/realtime${token ? `?token=${token}` : ''}`;
+    return `${protocol}//${host}/ws${token ? `?token=${token}` : ''}`;
   }, []);
 
   const connect = useCallback(() => {
@@ -56,24 +58,36 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
         setIsConnecting(false);
         setError(null);
         reconnectAttemptsRef.current = 0;
-
-        subscriptionsRef.current.forEach(channel => {
-          ws.send(JSON.stringify({
-            type: 'subscribe',
-            channel
-          }));
-        });
       };
 
       ws.onmessage = (event) => {
         try {
           const message: RealtimeMessage = JSON.parse(event.data);
           
-          if (message.type === 'broadcast' && message.channel) {
-            const handlers = messageHandlersRef.current.get(message.channel);
-            if (handlers) {
-              handlers.forEach(handler => handler(message.data));
-            }
+          // Handle specific message types
+          const handlers = messageHandlersRef.current.get(message.type);
+          if (handlers) {
+            handlers.forEach(handler => handler(message));
+          }
+
+          // Handle global listeners
+          const globalHandlers = messageHandlersRef.current.get('*');
+          if (globalHandlers) {
+            globalHandlers.forEach(handler => handler(message));
+          }
+
+          // Dispatch custom events for other components
+          switch (message.type) {
+            case 'issue_update':
+              window.dispatchEvent(new CustomEvent('issue-updated', { 
+                detail: message 
+              }));
+              break;
+            case 'notification':
+              window.dispatchEvent(new CustomEvent('notification-received', { 
+                detail: message 
+              }));
+              break;
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
@@ -86,8 +100,11 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
         setIsConnecting(false);
         wsRef.current = null;
 
+        // Auto-reconnect if we haven't exceeded max attempts
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current++;
+          console.log(`Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
+          
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, reconnectInterval);
@@ -122,38 +139,23 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
 
     setIsConnected(false);
     setIsConnecting(false);
-    reconnectAttemptsRef.current = maxReconnectAttempts;
+    reconnectAttemptsRef.current = maxReconnectAttempts; // Prevent auto-reconnect
   }, [maxReconnectAttempts]);
 
-  const subscribe = useCallback((channel: string, handler: (data: any) => void) => {
-    subscriptionsRef.current.add(channel);
+  const subscribe = useCallback((eventType: string, handler: (data: any) => void) => {
+    if (!messageHandlersRef.current.has(eventType)) {
+      messageHandlersRef.current.set(eventType, new Set());
+    }
     
-    if (!messageHandlersRef.current.has(channel)) {
-      messageHandlersRef.current.set(channel, new Set());
-    }
-    messageHandlersRef.current.get(channel)!.add(handler);
+    messageHandlersRef.current.get(eventType)!.add(handler);
 
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'subscribe',
-        channel
-      }));
-    }
-
+    // Return unsubscribe function
     return () => {
-      const handlers = messageHandlersRef.current.get(channel);
+      const handlers = messageHandlersRef.current.get(eventType);
       if (handlers) {
         handlers.delete(handler);
         if (handlers.size === 0) {
-          messageHandlersRef.current.delete(channel);
-          subscriptionsRef.current.delete(channel);
-          
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({
-              type: 'unsubscribe',
-              channel
-            }));
-          }
+          messageHandlersRef.current.delete(eventType);
         }
       }
     };
@@ -167,6 +169,20 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     }
   }, []);
 
+  // Convenience methods for common subscriptions
+  const subscribeToIssueUpdates = useCallback((handler: (data: any) => void) => {
+    return subscribe('issue_update', handler);
+  }, [subscribe]);
+
+  const subscribeToNotifications = useCallback((handler: (data: any) => void) => {
+    return subscribe('notification', handler);
+  }, [subscribe]);
+
+  const subscribeToAll = useCallback((handler: (data: any) => void) => {
+    return subscribe('*', handler);
+  }, [subscribe]);
+
+  // Auto-connect on mount if enabled
   useEffect(() => {
     if (autoConnect) {
       connect();
@@ -177,6 +193,7 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     };
   }, [autoConnect, connect, disconnect]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (reconnectTimeoutRef.current) {
@@ -192,6 +209,9 @@ export const useRealtime = (options: UseRealtimeOptions = {}) => {
     connect,
     disconnect,
     subscribe,
+    subscribeToIssueUpdates,
+    subscribeToNotifications,
+    subscribeToAll,
     send
   };
 };
