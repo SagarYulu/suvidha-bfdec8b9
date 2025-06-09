@@ -1,46 +1,33 @@
 
 const express = require('express');
-const dotenv = require('dotenv');
-
-// Load environment variables first
-dotenv.config();
-
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
-// Import route modules
-const issueRoutes = require('./routes/api/issues');
-const analyticsRoutes = require('./routes/api/analytics');
-const uploadRoutes = require('./routes/api/upload');
-const escalationRoutes = require('./routes/api/escalations');
-const reportsRoutes = require('./routes/api/reports');
-const notificationRoutes = require('./routes/api/notifications');
-const feedbackRoutes = require('./routes/api/feedback');
-const authRoutes = require('./routes/api/auth');
-const filesRoutes = require('./routes/api/files');
-const healthRoutes = require('./routes/api/health');
-const tatRoutes = require('./routes/api/tat');
+// Import routes
+const authRoutes = require('./routes/auth');
+const issueRoutes = require('./routes/issues');
+const userRoutes = require('./routes/users');
+const mobileRoutes = require('./routes/mobile');
+const analyticsRoutes = require('./routes/analytics');
+const feedbackRoutes = require('./routes/feedback');
+const dashboardRoutes = require('./routes/dashboard');
+const uploadRoutes = require('./routes/upload');
+const notificationRoutes = require('./routes/notifications');
+const rbacRoutes = require('./routes/rbac');
 
-// Import services
-const cronService = require('./services/cronService');
-const webSocketService = require('./services/webSocketService');
-const autoAssignService = require('./services/autoAssignService');
+// Import middleware
+const { errorHandler } = require('./middleware/errorHandler');
+const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
 // Security middleware
 app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "ws:", "wss:"],
-    },
-  },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false,
 }));
 
 // CORS configuration
@@ -48,142 +35,75 @@ app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey'],
 }));
+
+// Compression
+app.use(compression());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
-  message: {
-    success: false,
-    error: 'Too many requests from this IP, please try again later.'
-  },
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use('/api/', limiter);
 
-// Compression and parsing middleware
-app.use(compression());
+app.use('/api', limiter);
+
+// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Static file serving
+app.use('/uploads', express.static('uploads'));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
+
 // API Routes
-app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/mobile', mobileRoutes);
 app.use('/api/analytics', analyticsRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/escalations', escalationRoutes);
-app.use('/api/reports', reportsRoutes);
-app.use('/api/notifications', notificationRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/files', filesRoutes);
-app.use('/api/tat', tatRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/rbac', rbacRoutes);
 
-// Serve uploaded files
-app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'uploads'));
-
-// Auto-assignment middleware for new issues
-app.use('/api/issues', async (req, res, next) => {
-  if (req.method === 'POST' && req.path === '/') {
-    const originalSend = res.send;
-    res.send = function(data) {
-      if (res.statusCode === 201) {
-        try {
-          const responseData = JSON.parse(data);
-          if (responseData.success && responseData.data?.id) {
-            setImmediate(async () => {
-              try {
-                await autoAssignService.autoAssignIssue(responseData.data.id);
-              } catch (error) {
-                console.error('Auto-assignment failed:', error);
-              }
-            });
-          }
-        } catch (error) {
-          console.error('Auto-assignment hook error:', error);
-        }
-      }
-      originalSend.call(this, data);
-    };
-  }
-  next();
+// 404 handler for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'API endpoint not found',
+    path: req.path
+  });
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid JSON payload'
-    });
-  }
-  
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({
-      success: false,
-      error: 'File too large'
-    });
-  }
-
-  res.status(500).json({
-    success: false,
-    error: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
-      : err.message
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found',
-    path: req.originalUrl
-  });
-});
+app.use(errorHandler);
 
 // Graceful shutdown
-const gracefulShutdown = (signal) => {
-  console.log(`Received ${signal}. Shutting down gracefully...`);
-  
-  // Stop cron jobs
-  cronService.stopAllJobs();
-  
-  // Close WebSocket connections
-  webSocketService.closeAllConnections();
-  
-  process.exit(0);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-// Start cron jobs when server starts
-if (process.env.NODE_ENV !== 'test') {
-  cronService.startAllJobs();
-  console.log('✅ Cron jobs started');
-}
-
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Health check available at http://localhost:${PORT}/api/health`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🎯 Frontend CORS allowed from: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
-    console.log(`📧 Email service: ${process.env.SMTP_HOST ? '✅ Configured' : '❌ Not configured'}`);
-    console.log(`☁️  AWS S3 storage: ${process.env.AWS_ACCESS_KEY_ID ? '✅ Configured' : '❌ Not configured'}`);
-  }
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  server.close(() => {
+    console.log('HTTP server closed');
+  });
 });
 
-// Initialize WebSocket server for real-time features
-webSocketService.initialize(server);
-console.log('✅ WebSocket server initialized');
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  process.exit(0);
+});
 
 module.exports = app;
