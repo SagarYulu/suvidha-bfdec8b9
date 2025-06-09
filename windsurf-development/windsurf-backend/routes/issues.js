@@ -1,72 +1,30 @@
 
 const express = require('express');
 const issueController = require('../controllers/issueController');
-const { authenticateToken } = require('../middleware/auth');
-const { requireRole, requirePermission } = require('../middleware/rbacMiddleware');
-const ValidationMiddleware = require('../middleware/validationMiddleware');
+const { authenticateToken, requireRole } = require('../middlewares/auth');
+const { validateIssue, validateComment, handleValidationErrors } = require('../middlewares/validation');
 
 const router = express.Router();
 
 // Get all issues with filters and pagination
-router.get('/', 
-  authenticateToken,
-  ValidationMiddleware.validatePagination(),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.getIssues
-);
+router.get('/', authenticateToken, issueController.getIssues);
 
 // Get single issue by ID
-router.get('/:id', 
-  authenticateToken,
-  ValidationMiddleware.validateUUIDParam('id'),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.getIssue
-);
+router.get('/:id', authenticateToken, issueController.getIssue);
 
 // Create new issue
-router.post('/', 
-  authenticateToken,
-  ValidationMiddleware.validateIssue(),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.createIssue
-);
+router.post('/', authenticateToken, validateIssue, handleValidationErrors, issueController.createIssue);
 
 // Update issue (admin/agent only)
-router.put('/:id', 
-  authenticateToken,
-  requirePermission('issues:update'),
-  ValidationMiddleware.validateUUIDParam('id'),
-  ValidationMiddleware.validateIssueUpdate(),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.updateIssue
-);
+router.put('/:id', authenticateToken, requireRole(['admin', 'manager', 'agent']), issueController.updateIssue);
 
 // Assign issue (admin/manager only)
-router.post('/:id/assign',
-  authenticateToken,
-  requireRole(['admin', 'manager', 'agent']),
-  ValidationMiddleware.validateUUIDParam('id'),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.assignIssue
-);
+router.post('/:id/assign', authenticateToken, requireRole(['admin', 'manager', 'agent']), issueController.assignIssue);
 
 // Add comment to issue
-router.post('/:id/comments',
-  authenticateToken,
-  ValidationMiddleware.validateUUIDParam('id'),
-  ValidationMiddleware.validateComment(),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.addComment
-);
+router.post('/:id/comments', authenticateToken, validateComment, handleValidationErrors, issueController.addComment);
 
 // Add internal comment (admin/agent only)
-router.post('/:id/internal-comments',
-  authenticateToken,
-  requireRole(['admin', 'agent', 'manager']),
-  ValidationMiddleware.validateUUIDParam('id'),
-  ValidationMiddleware.validateComment(),
-  ValidationMiddleware.handleValidationErrors,
-  issueController.addInternalComment
-);
+router.post('/:id/internal-comments', authenticateToken, requireRole(['admin', 'agent', 'manager']), validateComment, handleValidationErrors, issueController.addInternalComment);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 
-const dashboardService = require('../services/dashboardService');
+const DashboardService = require('../services/dashboardService');
+const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 class DashboardController {
   async getDashboardMetrics(req, res) {
@@ -10,18 +11,11 @@ class DashboardController {
         priority: req.query.priority
       };
 
-      const metrics = await dashboardService.getDashboardMetrics(filters);
-      
-      res.json({
-        success: true,
-        data: metrics
-      });
+      const metrics = await DashboardService.getDashboardMetrics(filters);
+      successResponse(res, metrics, 'Dashboard metrics fetched successfully');
     } catch (error) {
       console.error('Get dashboard metrics error:', error);
-      res.status(500).json({
-        error: 'Failed to fetch dashboard metrics',
-        message: error.message
-      });
+      errorResponse(res, 'Failed to fetch dashboard metrics', 500);
     }
   }
 
@@ -33,46 +27,33 @@ class DashboardController {
       let data;
       switch (type) {
         case 'issueType':
-          data = await dashboardService.getIssueTypePieData(parsedFilters);
+          data = await DashboardService.getIssueTypePieData(parsedFilters);
           break;
         case 'cityBar':
-          data = await dashboardService.getCityBarData(parsedFilters);
+          data = await DashboardService.getCityBarData(parsedFilters);
           break;
         case 'trends':
-          data = await dashboardService.getTrendData(parsedFilters.timeframe);
+          data = await DashboardService.getTrendData(parsedFilters.timeframe);
           break;
         default:
-          return res.status(400).json({ error: 'Invalid chart type' });
+          return errorResponse(res, 'Invalid chart type', 400);
       }
 
-      res.json({
-        success: true,
-        data
-      });
+      successResponse(res, data, 'Chart data fetched successfully');
     } catch (error) {
       console.error('Get chart data error:', error);
-      res.status(500).json({
-        error: 'Failed to fetch chart data',
-        message: error.message
-      });
+      errorResponse(res, 'Failed to fetch chart data', 500);
     }
   }
 
   async getRecentIssues(req, res) {
     try {
       const { limit = 10 } = req.query;
-      const issues = await dashboardService.getRecentIssues(parseInt(limit));
-      
-      res.json({
-        success: true,
-        data: issues
-      });
+      const issues = await DashboardService.getRecentIssues(parseInt(limit));
+      successResponse(res, issues, 'Recent issues fetched successfully');
     } catch (error) {
       console.error('Get recent issues error:', error);
-      res.status(500).json({
-        error: 'Failed to fetch recent issues',
-        message: error.message
-      });
+      errorResponse(res, 'Failed to fetch recent issues', 500);
     }
   }
 }

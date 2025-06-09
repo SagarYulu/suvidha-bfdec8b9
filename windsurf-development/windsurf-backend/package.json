@@ -2,38 +2,45 @@
 {
   "name": "windsurf-backend",
   "version": "1.0.0",
-  "description": "Grievance Portal Backend",
-  "main": "app.js",
+  "description": "Grievance Portal Backend API with clean MVC architecture",
+  "main": "server.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "nodemon app.js",
-    "test": "jest",
-    "migrate": "node -e \"require('./migrations/001_add_missing_tables.sql')\""
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required for Node.js'",
+    "test": "echo 'Tests not configured yet'",
+    "lint": "echo 'Linting not configured yet'",
+    "migrate": "echo 'Database migrations not configured yet'"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "mysql2": "^3.6.0",
+    "mysql2": "^3.6.3",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2",
     "cors": "^2.8.5",
-    "helmet": "^7.0.0",
-    "express-rate-limit": "^6.10.0",
+    "helmet": "^7.1.0",
     "compression": "^1.7.4",
-    "morgan": "^1.10.0",
-    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
     "express-validator": "^7.0.1",
-    "multer": "^1.4.5-lts.1",
-    "uuid": "^9.0.0",
-    "aws-sdk": "^2.1492.0",
-    "nodemailer": "^6.9.7",
-    "node-cron": "^3.0.2",
-    "ws": "^8.14.2"
+    "dotenv": "^16.3.1",
+    "uuid": "^9.0.1",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1",
-    "jest": "^29.6.2"
+    "nodemon": "^3.0.1"
   },
-  "keywords": ["grievance", "portal", "backend", "mysql", "express"],
+  "keywords": [
+    "express",
+    "mvc",
+    "mysql",
+    "jwt",
+    "api",
+    "grievance-portal"
+  ],
   "author": "Windsurf Development Team",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
 }

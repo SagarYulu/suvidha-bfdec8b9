@@ -1,12 +1,12 @@
 
 const express = require('express');
 const dashboardController = require('../controllers/dashboardController');
-const authMiddleware = require('../middleware/auth');
+const { authenticateAdmin } = require('../middlewares/auth');
 
 const router = express.Router();
 
 // Apply authentication middleware to all dashboard routes
-router.use(authMiddleware.authenticateAdmin);
+router.use(authenticateAdmin);
 
 // Dashboard metrics endpoint
 router.get('/metrics', dashboardController.getDashboardMetrics);
