@@ -1,6 +1,8 @@
+
 const express = require('express');
 const dotenv = require('dotenv');
 
+// Load environment variables first
 dotenv.config();
 
 const cors = require('cors');
@@ -36,6 +38,7 @@ app.use(helmet({
       styleSrc: ["'self'", "'unsafe-inline'"],
       scriptSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
     },
   },
 }));
@@ -50,9 +53,12 @@ app.use(cors({
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX || 1000, // limit each IP to 1000 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.',
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
+  message: {
+    success: false,
+    error: 'Too many requests from this IP, please try again later.'
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -65,6 +71,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Routes
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/upload', uploadRoutes);
@@ -72,21 +79,21 @@ app.use('/api/escalations', escalationRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/feedback', feedbackRoutes);
-app.use('/api/auth', authRoutes);
 app.use('/api/files', filesRoutes);
 app.use('/api/tat', tatRoutes);
+
+// Serve uploaded files
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || 'uploads'));
 
 // Auto-assignment middleware for new issues
 app.use('/api/issues', async (req, res, next) => {
   if (req.method === 'POST' && req.path === '/') {
-    // Hook into issue creation for auto-assignment
     const originalSend = res.send;
     res.send = function(data) {
       if (res.statusCode === 201) {
         try {
           const responseData = JSON.parse(data);
           if (responseData.success && responseData.data?.id) {
-            // Trigger auto-assignment asynchronously
             setImmediate(async () => {
               try {
                 await autoAssignService.autoAssignIssue(responseData.data.id);
@@ -135,7 +142,8 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Route not found'
+    error: 'Route not found',
+    path: req.originalUrl
   });
 });
 
@@ -165,9 +173,17 @@ const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Health check available at http://localhost:${PORT}/api/health`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🎯 Frontend CORS allowed from: ${process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+    console.log(`📧 Email service: ${process.env.SMTP_HOST ? '✅ Configured' : '❌ Not configured'}`);
+    console.log(`☁️  AWS S3 storage: ${process.env.AWS_ACCESS_KEY_ID ? '✅ Configured' : '❌ Not configured'}`);
+  }
 });
 
 // Initialize WebSocket server for real-time features
 webSocketService.initialize(server);
+console.log('✅ WebSocket server initialized');
 
 module.exports = app;

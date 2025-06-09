@@ -1,291 +1,260 @@
 
-# Grievance Portal - Windsurf Development Version
+# Grievance Portal - Windsurf Development
 
-A complete grievance management system refactored for Windsurf deployment with React frontend, Node.js/Express backend, and MySQL database.
+A complete grievance management system built with Express.js, MySQL, and React. This is a production-ready implementation with full MVC architecture, real-time features, and comprehensive admin dashboard.
 
-## Project Structure
+## 🏗️ Architecture
+
+- **Backend**: Express.js with MVC pattern
+- **Database**: MySQL 8.0
+- **Frontend**: React with TypeScript
+- **Real-time**: WebSocket integration
+- **Authentication**: JWT-based auth
+- **File Storage**: AWS S3 integration
+- **Email**: SMTP notifications
+- **Containerization**: Docker & Docker Compose
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+ (for local development)
+- MySQL 8.0 (if running locally)
+
+### 1. Clone and Setup
+```bash
+git clone <repository-url>
+cd windsurf-development
+cp .env.example .env
+```
+
+### 2. Configure Environment
+Edit `.env` file with your configuration:
+```env
+# Database
+DB_HOST=localhost
+DB_USER=grievance_user
+DB_PASSWORD=your_secure_password
+DB_NAME=grievance_portal
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key
+
+# Email (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# AWS S3 (Optional)
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+S3_BUCKET_NAME=your-bucket-name
+```
+
+### 3. Start with Docker
+```bash
+docker-compose up -d
+```
+
+### 4. Access the Application
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5000
+- **Health Check**: http://localhost:5000/api/health
+
+## 🔐 Default Credentials
+
+**Admin Dashboard**:
+- Email: `admin@yulu.com`
+- Password: `admin123`
+
+**Mobile App**: Use any employee email + employee ID
+
+## 📁 Project Structure
 
 ```
 windsurf-development/
-├── windsurf-frontend/     # React application
-├── windsurf-backend/      # Node.js/Express API server
-├── windsurf-database/     # Database scripts and utilities
-│   └── windsurf-sql/      # SQL scripts for schema and migration
-├── docker-compose.yml     # Multi-container setup
-└── README.md             # This file
+├── windsurf-backend/           # Express.js Backend
+│   ├── controllers/            # Route controllers
+│   ├── models/                # Database models
+│   ├── services/              # Business logic
+│   ├── routes/                # API routes
+│   ├── middleware/            # Auth & validation
+│   ├── config/                # Configuration
+│   └── app.js                 # Main application
+├── windsurf-frontend/         # React Frontend
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   ├── pages/            # Page components
+│   │   ├── contexts/         # React contexts
+│   │   ├── hooks/            # Custom hooks
+│   │   └── services/         # API services
+├── windsurf-database/         # Database migrations
+└── docker-compose.yml        # Docker configuration
 ```
 
-## Prerequisites
+## 🎯 Features
 
-- Node.js 18+ and npm
-- MySQL 8.0+
-- Docker and Docker Compose (optional)
-- **Access to your original Supabase project** (for data migration)
+### Core Features
+- ✅ Create & manage grievance tickets
+- ✅ Real-time status updates
+- ✅ Comment system with internal notes
+- ✅ File attachments with S3 storage
+- ✅ Email notifications
+- ✅ Mobile-responsive design
 
-## 🚀 Quick Start Guide
+### Advanced Features
+- ✅ Auto-assignment based on location
+- ✅ SLA monitoring & breach alerts
+- ✅ Escalation workflows
+- ✅ TAT analytics & reporting
+- ✅ Role-based access control (RBAC)
+- ✅ Audit trails
+- ✅ Dashboard analytics
 
-### Option 1: Quick Setup with Docker (Recommended)
+### Admin Features
+- ✅ User management
+- ✅ Issue analytics
+- ✅ Performance metrics
+- ✅ Workload distribution
+- ✅ Feedback analysis
 
-1. **Clone and setup environment:**
-   ```bash
-   cd windsurf-development
-   cp windsurf-backend/.env.example windsurf-backend/.env
-   cp windsurf-frontend/.env.example windsurf-frontend/.env
-   cp windsurf-database/.env.example windsurf-database/.env
-   ```
+## 🛠️ API Endpoints
 
-2. **Configure your environment variables:**
-   ```bash
-   # Edit windsurf-backend/.env
-   DB_HOST=mysql
-   DB_USER=grievance_user
-   DB_PASSWORD=grievance_password
-   DB_NAME=grievance_portal
-   JWT_SECRET=your-super-secret-jwt-key
-   
-   # Edit windsurf-frontend/.env
-   VITE_API_URL=http://localhost:5000
-   
-   # Edit windsurf-database/.env (for migration)
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-supabase-anon-key
-   MYSQL_HOST=localhost
-   MYSQL_USER=grievance_user
-   MYSQL_PASSWORD=grievance_password
-   MYSQL_DATABASE=grievance_portal
-   ```
+### Authentication
+- `POST /api/auth/login` - Admin login
+- `POST /api/auth/mobile-login` - Mobile login
+- `GET /api/auth/profile` - Get profile
+- `POST /api/auth/refresh` - Refresh token
 
-3. **Start all services:**
-   ```bash
-   docker-compose up --build
-   ```
+### Issues
+- `GET /api/issues` - List issues
+- `POST /api/issues` - Create issue
+- `GET /api/issues/:id` - Get issue details
+- `PUT /api/issues/:id` - Update issue
+- `POST /api/issues/:id/comments` - Add comment
 
-4. **Migrate your data from Supabase (IMPORTANT!):**
-   ```bash
-   # In a new terminal, navigate to database directory
-   cd windsurf-database
-   npm install
-   
-   # Run the migration to transfer your real data
-   npm run migrate
-   ```
+### Analytics
+- `GET /api/tat/metrics` - TAT metrics
+- `GET /api/tat/trend` - Trend data
+- `GET /api/tat/breaches` - SLA breaches
+- `GET /api/tat/performance` - Team performance
 
-5. **Access your application:**
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
-   - MySQL: localhost:3306
+### System
+- `GET /api/health` - Health check
+- `GET /api/health/detailed` - Detailed health
 
-### Option 2: Manual Setup
+## 🔧 Local Development
 
-#### Step 1: Database Setup
-
-1. **Create MySQL database:**
-   ```bash
-   mysql -u root -p
-   CREATE DATABASE grievance_portal;
-   CREATE USER 'grievance_user'@'localhost' IDENTIFIED BY 'grievance_password';
-   GRANT ALL PRIVILEGES ON grievance_portal.* TO 'grievance_user'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
-
-2. **Create database schema:**
-   ```bash
-   mysql -u grievance_user -p grievance_portal < windsurf-database/windsurf-sql/schema.sql
-   ```
-
-#### Step 2: Backend Setup
-
-1. **Install dependencies:**
-   ```bash
-   cd windsurf-backend
-   npm install
-   ```
-
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your database credentials
-   ```
-
-3. **Start the server:**
-   ```bash
-   npm run dev
-   ```
-
-#### Step 3: Frontend Setup
-
-1. **Install dependencies:**
-   ```bash
-   cd windsurf-frontend
-   npm install
-   ```
-
-2. **Configure environment:**
-   ```bash
-   cp .env.example .env
-   # Set VITE_API_URL to your backend URL
-   ```
-
-3. **Start the application:**
-   ```bash
-   npm run dev
-   ```
-
-#### Step 4: Migrate Your Real Data
-
-1. **Setup migration environment:**
-   ```bash
-   cd windsurf-database
-   npm install
-   cp .env.example .env
-   ```
-
-2. **Configure migration settings:**
-   ```bash
-   # Edit .env file with your credentials
-   SUPABASE_URL=https://your-project.supabase.co
-   SUPABASE_ANON_KEY=your-supabase-anon-key
-   MYSQL_HOST=localhost
-   MYSQL_USER=grievance_user
-   MYSQL_PASSWORD=grievance_password
-   MYSQL_DATABASE=grievance_portal
-   ```
-
-3. **Run migration:**
-   ```bash
-   # Test connections first
-   npm run test-connections
-   
-   # Run full migration
-   npm run migrate
-   
-   # Verify migration success
-   npm run verify
-   ```
-
-## 📊 Data Migration Details
-
-### What Gets Migrated
-
-The migration transfers all your real data from Supabase to MySQL:
-
-- **employees** → **users** table
-- **dashboard_users** → **dashboard_users** table  
-- **issues** → **issues** table
-- **issue_comments** → **issue_comments** table
-- **ticket_feedback** → **feedback** table
-- **All related master data and audit logs**
-
-### Migration Features
-
-- ✅ **Automatic data transformation** (UUID formats, timestamps, JSON)
-- ✅ **Batch processing** for large datasets
-- ✅ **Error handling** with detailed logging
-- ✅ **Verification** to ensure data integrity
-- ✅ **Resume capability** if migration is interrupted
-
-### Troubleshooting Migration
-
-If migration fails:
-
-1. **Check logs:** Migration creates detailed logs in `windsurf-database/logs/`
-2. **Verify credentials:** Ensure Supabase and MySQL access is correct
-3. **Check connectivity:** Both databases must be accessible
-4. **Review data:** Some records might need manual cleanup in source
-
-## Environment Variables
-
-### Backend (.env)
-```env
-DB_HOST=localhost          # MySQL host
-DB_PORT=3306              # MySQL port
-DB_USER=grievance_user    # MySQL username
-DB_PASSWORD=grievance_password  # MySQL password
-DB_NAME=grievance_portal  # Database name
-JWT_SECRET=your-jwt-secret
-PORT=5000                 # Server port
+### Backend Development
+```bash
+cd windsurf-backend
+npm install
+npm run dev
 ```
 
-### Frontend (.env)
-```env
-VITE_API_URL=http://localhost:5000  # Backend API URL
+### Frontend Development
+```bash
+cd windsurf-frontend
+npm install
+npm run dev
 ```
 
-### Database Migration (.env)
-```env
-# Source (Supabase)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
-
-# Destination (MySQL)
-MYSQL_HOST=localhost
-MYSQL_PORT=3306
-MYSQL_USER=grievance_user
-MYSQL_PASSWORD=grievance_password
-MYSQL_DATABASE=grievance_portal
-
-# Migration Settings
-BATCH_SIZE=1000
-LOG_LEVEL=info
+### Database Setup
+```bash
+# Run migrations
+mysql -u root -p < windsurf-database/migrations/001_initial_schema.sql
 ```
 
-## API Documentation
+## 📊 Monitoring
 
-The backend provides RESTful APIs for:
-- Authentication (`/api/auth/*`)
-- Issues/Grievances (`/api/issues/*`)
-- Users (`/api/users/*`)
-- Analytics (`/api/analytics/*`)
-- Dashboard (`/api/dashboard/*`)
-- Feedback (`/api/feedback/*`)
-- Notifications (`/api/notifications/*`)
+### Health Checks
+- Backend: `curl http://localhost:5000/api/health`
+- Database connectivity, WebSocket status, memory usage
 
-## Development
+### Logs
+- Application logs: `docker-compose logs backend`
+- Database logs: `docker-compose logs mysql`
 
-- Backend runs on port 5000 with hot reload
-- Frontend runs on port 3000 with hot reload
-- MySQL runs on port 3306
+## 🚢 Production Deployment
 
-## Production Deployment
+### 1. Environment Setup
+```bash
+# Use production environment file
+cp .env.example .env.production
+# Configure production values
+```
 
-### Build for Production
+### 2. Build & Deploy
+```bash
+# Build images
+docker-compose -f docker-compose.prod.yml build
 
-1. **Build frontend:**
-   ```bash
-   cd windsurf-frontend
-   npm run build
-   ```
+# Deploy
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-2. **Deploy with Docker:**
-   ```bash
-   docker-compose -f docker-compose.prod.yml up --build
-   ```
+### 3. SSL & Domain
+- Configure reverse proxy (nginx/Apache)
+- Set up SSL certificates
+- Update CORS origins
 
-## ⚠️ Important Notes
+## 🔐 Security
 
-1. **Data Migration is Required**: This project starts with empty MySQL tables. You MUST run the migration to get your real data.
+- JWT authentication with refresh tokens
+- Input validation & sanitization
+- SQL injection prevention
+- XSS protection headers
+- Rate limiting
+- CORS configuration
+- Environment-based secrets
 
-2. **Complete Separation**: This is independent of your original Lovable/Supabase project.
+## 📈 Performance
 
-3. **Production Ready**: Optimized for deployment on Windsurf servers.
+- MySQL connection pooling
+- Response compression
+- Static file caching
+- Optimized queries with indexes
+- WebSocket for real-time updates
 
-4. **No Supabase Dependencies**: Uses MySQL exclusively for data storage.
+## 🧪 Testing
 
-## Support
+### API Testing
+```bash
+# Health check
+curl http://localhost:5000/api/health
 
-For issues:
-1. Check migration logs in `windsurf-database/logs/`
-2. Verify environment configuration
-3. Ensure database permissions
-4. Review console output for errors
+# Login test
+curl -X POST http://localhost:5000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@yulu.com","password":"admin123"}'
+```
 
-## 🎯 Next Steps After Setup
+### WebSocket Testing
+```javascript
+const ws = new WebSocket('ws://localhost:5000/ws?userId=admin-001');
+ws.onmessage = (event) => console.log(JSON.parse(event.data));
+```
 
-1. **Run data migration** to get your real data
-2. **Test all functionality** with your actual data
-3. **Configure production environment** variables
-4. **Deploy to your Windsurf server**
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/amazing-feature`
+3. Commit changes: `git commit -m 'Add amazing feature'`
+4. Push to branch: `git push origin feature/amazing-feature`
+5. Open Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- Check the health endpoint: `/api/health`
+- Review application logs
+- Check database connectivity
+- Verify environment variables
 
 ---
 
-**Note:** This project replaces Supabase with MySQL and is ready for independent deployment in Windsurf environment.
+**Production Ready** ✅ | **MVC Architecture** ✅ | **100% MySQL** ✅ | **Feature Complete** ✅

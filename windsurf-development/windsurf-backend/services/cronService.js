@@ -1,8 +1,7 @@
 
 const cron = require('node-cron');
-const escalationService = require('./escalationService');
-const autoAssignService = require('./autoAssignService');
-const slaService = require('./slaService');
+const { pool } = require('../config/database');
+const emailService = require('./emailService');
 
 class CronService {
   constructor() {
@@ -10,127 +9,143 @@ class CronService {
   }
 
   startAllJobs() {
-    console.log('Starting cron jobs...');
-
-    // Check for escalations every 15 minutes
-    const escalationJob = cron.schedule('*/15 * * * *', async () => {
-      try {
-        console.log('Running escalation check...');
-        const escalatedCount = await escalationService.checkAndEscalateIssues();
-        console.log(`Escalation check completed: ${escalatedCount} issues escalated`);
-      } catch (error) {
-        console.error('Escalation cron job error:', error);
-      }
-    }, {
-      scheduled: false
-    });
-
     // Check for SLA breaches every hour
-    const slaJob = cron.schedule('0 * * * *', async () => {
-      try {
-        console.log('Running SLA breach check...');
-        const result = await slaService.checkSLABreaches();
-        console.log(`SLA check completed: ${result.breached} breaches detected`);
-      } catch (error) {
-        console.error('SLA cron job error:', error);
-      }
-    }, {
-      scheduled: false
-    });
+    const slaCheckJob = cron.schedule('0 * * * *', async () => {
+      await this.checkSLABreaches();
+    }, { scheduled: false });
 
-    // Rebalance workload every 6 hours
-    const rebalanceJob = cron.schedule('0 */6 * * *', async () => {
-      try {
-        console.log('Running workload rebalancing...');
-        const rebalancedCount = await autoAssignService.rebalanceWorkload();
-        console.log(`Workload rebalancing completed: ${rebalancedCount} issues reassigned`);
-      } catch (error) {
-        console.error('Rebalance cron job error:', error);
-      }
-    }, {
-      scheduled: false
-    });
+    // Auto-escalate issues daily at 9 AM
+    const escalationJob = cron.schedule('0 9 * * *', async () => {
+      await this.autoEscalateIssues();
+    }, { scheduled: false });
 
-    // Health check and cleanup every day at 2 AM
-    const cleanupJob = cron.schedule('0 2 * * *', async () => {
-      try {
-        console.log('Running daily cleanup...');
-        await this.dailyCleanup();
-        console.log('Daily cleanup completed');
-      } catch (error) {
-        console.error('Cleanup cron job error:', error);
-      }
-    }, {
-      scheduled: false
-    });
+    // Cleanup old audit logs monthly
+    const cleanupJob = cron.schedule('0 0 1 * *', async () => {
+      await this.cleanupOldAuditLogs();
+    }, { scheduled: false });
 
-    this.jobs = [
-      { name: 'escalation', job: escalationJob },
-      { name: 'sla', job: slaJob },
-      { name: 'rebalance', job: rebalanceJob },
-      { name: 'cleanup', job: cleanupJob }
-    ];
+    this.jobs.push(
+      { name: 'sla-check', job: slaCheckJob },
+      { name: 'auto-escalation', job: escalationJob },
+      { name: 'audit-cleanup', job: cleanupJob }
+    );
 
     // Start all jobs
     this.jobs.forEach(({ name, job }) => {
       job.start();
-      console.log(`✅ ${name} cron job started`);
+      console.log(`✅ Cron job '${name}' started`);
     });
   }
 
   stopAllJobs() {
-    console.log('Stopping cron jobs...');
     this.jobs.forEach(({ name, job }) => {
       job.stop();
-      console.log(`❌ ${name} cron job stopped`);
+      console.log(`🛑 Cron job '${name}' stopped`);
     });
   }
 
-  async dailyCleanup() {
-    const { pool } = require('../config/database');
-    
+  async checkSLABreaches() {
     try {
-      // Clean up old audit trail entries (older than 6 months)
-      const [auditResult] = await pool.execute(`
-        DELETE FROM issue_audit_trail 
-        WHERE created_at < DATE_SUB(NOW(), INTERVAL 6 MONTH)
-      `);
+      console.log('🔍 Running SLA breach check...');
       
-      console.log(`Cleaned up ${auditResult.affectedRows} old audit trail entries`);
-
-      // Clean up old notifications (older than 3 months)
-      const [notifResult] = await pool.execute(`
-        DELETE FROM issue_notifications 
-        WHERE created_at < DATE_SUB(NOW(), INTERVAL 3 MONTH)
+      const [breachedIssues] = await pool.execute(`
+        SELECT i.*, e.name as employee_name, e.email as employee_email,
+               DATEDIFF(NOW(), i.created_at) as days_open
+        FROM issues i
+        LEFT JOIN employees e ON i.employee_uuid = e.emp_id
+        WHERE i.status != 'closed' 
+        AND DATEDIFF(NOW(), i.created_at) > 14
+        AND i.escalated_at IS NULL
       `);
-      
-      console.log(`Cleaned up ${notifResult.affectedRows} old notifications`);
 
-      // Update statistics
-      await this.updateSystemStats();
+      console.log(`📊 Found ${breachedIssues.length} SLA breaches`);
 
+      for (const issue of breachedIssues) {
+        // Mark as escalated
+        await pool.execute(
+          'UPDATE issues SET escalated_at = NOW() WHERE id = ?',
+          [issue.id]
+        );
+
+        // Find manager for escalation
+        const [managers] = await pool.execute(`
+          SELECT * FROM dashboard_users 
+          WHERE role IN ('manager', 'admin') 
+          AND (city = ? OR cluster = ?)
+          LIMIT 1
+        `, [issue.city, issue.cluster]);
+
+        if (managers.length > 0) {
+          await emailService.sendEscalationNotification(
+            issue, 
+            managers[0], 
+            { name: issue.employee_name, email: issue.employee_email }
+          );
+        }
+      }
     } catch (error) {
-      console.error('Daily cleanup error:', error);
-      throw error;
+      console.error('❌ SLA breach check failed:', error);
     }
   }
 
-  async updateSystemStats() {
-    const { pool } = require('../config/database');
-    
+  async autoEscalateIssues() {
     try {
-      // This could be expanded to update cached statistics tables
-      console.log('System statistics updated');
+      console.log('⚡ Running auto-escalation...');
+      
+      const [oldIssues] = await pool.execute(`
+        SELECT i.*, e.name as employee_name, e.email as employee_email
+        FROM issues i
+        LEFT JOIN employees e ON i.employee_uuid = e.emp_id
+        WHERE i.status = 'open' 
+        AND DATEDIFF(NOW(), i.created_at) > 30
+        AND i.escalated_at IS NULL
+      `);
+
+      console.log(`📈 Auto-escalating ${oldIssues.length} issues`);
+
+      for (const issue of oldIssues) {
+        await pool.execute(
+          'UPDATE issues SET status = "escalated", escalated_at = NOW() WHERE id = ?',
+          [issue.id]
+        );
+
+        // Create audit trail
+        await pool.execute(`
+          INSERT INTO issue_audit_trail (
+            issue_id, employee_uuid, action, previous_status, new_status, details
+          ) VALUES (?, ?, 'auto_escalate', 'open', 'escalated', ?)
+        `, [
+          issue.id,
+          'system',
+          JSON.stringify({ reason: 'auto_escalation_30_days' })
+        ]);
+      }
     } catch (error) {
-      console.error('Update stats error:', error);
+      console.error('❌ Auto-escalation failed:', error);
     }
   }
 
-  getJobStatus() {
-    return this.jobs.map(({ name, job }) => ({
-      name,
-      running: job.running || false
-    }));
+  async cleanupOldAuditLogs() {
+    try {
+      console.log('🧹 Cleaning up old audit logs...');
+      
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - 12);
+
+      const [result1] = await pool.execute(
+        'DELETE FROM issue_audit_trail WHERE created_at < ?',
+        [cutoffDate]
+      );
+
+      const [result2] = await pool.execute(
+        'DELETE FROM dashboard_user_audit_logs WHERE performed_at < ?',
+        [cutoffDate]
+      );
+
+      console.log(`🗑️ Deleted ${result1.affectedRows} issue audit logs and ${result2.affectedRows} user audit logs`);
+    } catch (error) {
+      console.error('❌ Audit log cleanup failed:', error);
+    }
   }
 }
 

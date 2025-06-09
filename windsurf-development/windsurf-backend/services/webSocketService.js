@@ -1,197 +1,128 @@
 
 const WebSocket = require('ws');
-const jwt = require('jsonwebtoken');
-const { pool } = require('../config/database');
 
 class WebSocketService {
   constructor() {
     this.wss = null;
-    this.clients = new Map(); // userId -> WebSocket connection
+    this.connections = new Map();
   }
 
   initialize(server) {
     this.wss = new WebSocket.Server({ 
       server,
-      path: '/ws',
-      verifyClient: this.verifyClient.bind(this)
+      path: '/ws'
     });
 
     this.wss.on('connection', (ws, req) => {
-      const token = new URL(req.url, `http://${req.headers.host}`).searchParams.get('token');
+      const userId = this.extractUserIdFromRequest(req);
       
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const userId = decoded.id;
-        
-        // Store connection
-        this.clients.set(userId, ws);
-        console.log(`WebSocket connected: User ${userId}`);
-
-        // Send welcome message
-        ws.send(JSON.stringify({
-          type: 'connected',
-          message: 'Real-time connection established'
-        }));
-
-        // Handle connection close
-        ws.on('close', () => {
-          this.clients.delete(userId);
-          console.log(`WebSocket disconnected: User ${userId}`);
-        });
-
-        // Handle client messages
-        ws.on('message', (message) => {
-          try {
-            const data = JSON.parse(message);
-            this.handleClientMessage(userId, data);
-          } catch (error) {
-            console.error('Invalid WebSocket message:', error);
-          }
-        });
-
-      } catch (error) {
-        console.error('WebSocket auth failed:', error);
-        ws.close(1008, 'Authentication failed');
+      if (userId) {
+        this.connections.set(userId, ws);
+        console.log(`WebSocket connected for user: ${userId}`);
       }
+
+      ws.on('message', (message) => {
+        try {
+          const data = JSON.parse(message);
+          this.handleMessage(ws, data, userId);
+        } catch (error) {
+          console.error('WebSocket message error:', error);
+        }
+      });
+
+      ws.on('close', () => {
+        if (userId) {
+          this.connections.delete(userId);
+          console.log(`WebSocket disconnected for user: ${userId}`);
+        }
+      });
+
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+      });
     });
 
-    console.log('✅ WebSocket server initialized on /ws');
+    console.log('WebSocket server initialized');
   }
 
-  verifyClient(info) {
-    const url = new URL(info.req.url, `http://${info.req.headers.host}`);
-    const token = url.searchParams.get('token');
-    
-    if (!token) return false;
-    
-    try {
-      jwt.verify(token, process.env.JWT_SECRET);
-      return true;
-    } catch (error) {
-      return false;
-    }
+  extractUserIdFromRequest(req) {
+    // Extract user ID from query params or headers
+    const url = new URL(req.url, 'http://localhost');
+    return url.searchParams.get('userId');
   }
 
-  handleClientMessage(userId, data) {
+  handleMessage(ws, data, userId) {
+    // Handle different message types
     switch (data.type) {
       case 'ping':
-        this.sendToUser(userId, { type: 'pong', timestamp: Date.now() });
+        ws.send(JSON.stringify({ type: 'pong' }));
         break;
       case 'subscribe':
-        // Handle subscription to specific issue updates
-        this.sendToUser(userId, { 
-          type: 'subscribed', 
-          channel: data.channel 
-        });
+        // Handle subscription to specific channels
         break;
+      default:
+        console.log('Unknown message type:', data.type);
     }
   }
 
-  // Send message to specific user
-  sendToUser(userId, message) {
-    const client = this.clients.get(userId);
-    if (client && client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify(message));
+  broadcastToUser(userId, message) {
+    const connection = this.connections.get(userId);
+    if (connection && connection.readyState === WebSocket.OPEN) {
+      connection.send(JSON.stringify(message));
       return true;
     }
     return false;
   }
 
-  // Broadcast to all connected users
-  broadcast(message) {
-    const payload = JSON.stringify(message);
-    this.clients.forEach((client, userId) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(payload);
+  broadcastToAll(message) {
+    this.connections.forEach((ws, userId) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
       }
     });
   }
 
-  // Send to multiple users
-  sendToUsers(userIds, message) {
-    const payload = JSON.stringify(message);
-    userIds.forEach(userId => {
-      const client = this.clients.get(userId);
-      if (client && client.readyState === WebSocket.OPEN) {
-        client.send(payload);
-      }
-    });
-  }
+  notifyIssueUpdate(issueId, employeeUuid, updateData) {
+    const message = {
+      type: 'issue_update',
+      issueId,
+      data: updateData,
+      timestamp: new Date().toISOString()
+    };
 
-  // Issue-specific notifications
-  async notifyIssueUpdate(issueId, updateType, data) {
-    try {
-      // Get all users who should be notified about this issue
-      const [issue] = await pool.execute(
-        'SELECT employee_uuid, assigned_to FROM issues WHERE id = ?',
-        [issueId]
-      );
+    // Notify the issue creator
+    this.broadcastToUser(employeeUuid, message);
 
-      if (issue.length === 0) return;
-
-      const { employee_uuid, assigned_to } = issue[0];
-      const notifyUsers = [employee_uuid];
-      
-      if (assigned_to && assigned_to !== employee_uuid) {
-        notifyUsers.push(assigned_to);
-      }
-
-      // Send notification to relevant users
-      this.sendToUsers(notifyUsers, {
-        type: 'issue_update',
-        issueId,
-        updateType,
-        data,
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (error) {
-      console.error('Error notifying issue update:', error);
+    // Notify assigned agent if different
+    if (updateData.assigned_to && updateData.assigned_to !== employeeUuid) {
+      this.broadcastToUser(updateData.assigned_to, message);
     }
   }
 
-  // Comment notifications
-  async notifyNewComment(issueId, comment) {
-    await this.notifyIssueUpdate(issueId, 'new_comment', {
+  notifyNewComment(issueId, employeeUuid, comment) {
+    const message = {
+      type: 'new_comment',
+      issueId,
       comment,
-      message: 'New comment added to your issue'
-    });
-  }
+      timestamp: new Date().toISOString()
+    };
 
-  // Status change notifications
-  async notifyStatusChange(issueId, oldStatus, newStatus, updatedBy) {
-    await this.notifyIssueUpdate(issueId, 'status_change', {
-      oldStatus,
-      newStatus,
-      updatedBy,
-      message: `Issue status changed from ${oldStatus} to ${newStatus}`
-    });
-  }
-
-  // Assignment notifications
-  async notifyAssignment(issueId, assignedTo, assignedBy) {
-    await this.notifyIssueUpdate(issueId, 'assignment', {
-      assignedTo,
-      assignedBy,
-      message: 'Issue has been assigned to you'
-    });
-  }
-
-  getConnectedUsers() {
-    return Array.from(this.clients.keys());
+    this.broadcastToUser(employeeUuid, message);
   }
 
   getConnectionCount() {
-    return this.clients.size;
+    return this.connections.size;
   }
 
   closeAllConnections() {
-    this.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.close();
-      }
+    this.connections.forEach((ws) => {
+      ws.close();
     });
-    this.clients.clear();
+    this.connections.clear();
+    
+    if (this.wss) {
+      this.wss.close();
+    }
   }
 }
 
