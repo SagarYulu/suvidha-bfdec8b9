@@ -18,8 +18,9 @@ interface UploadedFile {
 
 interface CloudFileUploadProps {
   onFilesUploaded: (files: UploadedFile[]) => void;
+  issueId?: string;
   maxFiles?: number;
-  maxFileSize?: number; // in bytes
+  maxFileSize?: number;
   acceptedTypes?: string[];
   disabled?: boolean;
   className?: string;
@@ -27,6 +28,7 @@ interface CloudFileUploadProps {
 
 export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
   onFilesUploaded,
+  issueId,
   maxFiles = 5,
   maxFileSize = 10 * 1024 * 1024, // 10MB
   acceptedTypes = ['image/*', '.pdf', '.doc', '.docx', '.txt', '.xlsx', '.xls'],
@@ -47,12 +49,10 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
   };
 
   const validateFile = (file: File): string | null => {
-    // Check file size
     if (file.size > maxFileSize) {
       return `File "${file.name}" is too large. Maximum size is ${formatFileSize(maxFileSize)}.`;
     }
 
-    // Check file type
     const isValidType = acceptedTypes.some(type => {
       if (type.startsWith('.')) {
         return file.name.toLowerCase().endsWith(type.toLowerCase());
@@ -69,36 +69,72 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
 
   const uploadToS3 = async (file: File): Promise<{ success: boolean; url?: string; error?: string }> => {
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('category', 'attachments');
-
-      const response = await fetch('/api/upload', {
+      // Get presigned URL
+      const presignResponse = await fetch('/api/files/presign', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
-        body: formData
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type,
+          issueId
+        })
       });
 
-      const result = await response.json();
-
-      if (result.success) {
-        return { success: true, url: result.data.url };
-      } else {
-        return { success: false, error: result.error || 'Upload failed' };
+      if (!presignResponse.ok) {
+        throw new Error('Failed to get upload URL');
       }
+
+      const presignData = await presignResponse.json();
+      
+      if (!presignData.success) {
+        throw new Error(presignData.error || 'Failed to get upload URL');
+      }
+
+      // Upload to S3
+      const uploadResponse = await fetch(presignData.data.uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type
+        }
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Upload to S3 failed');
+      }
+
+      // Complete upload
+      await fetch('/api/files/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          fileId: presignData.data.fileId,
+          fileSize: file.size
+        })
+      });
+
+      return { 
+        success: true, 
+        url: presignData.data.publicUrl 
+      };
     } catch (error) {
       console.error('Upload error:', error);
-      return { success: false, error: 'Network error during upload' };
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Upload failed' 
+      };
     }
   };
 
   const handleFiles = async (files: FileList) => {
     setError(null);
 
-    // Check if we're exceeding max files
     if (uploadedFiles.length + files.length > maxFiles) {
       setError(`Maximum ${maxFiles} files allowed. You can upload ${maxFiles - uploadedFiles.length} more files.`);
       return;
@@ -107,7 +143,6 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
     const newFiles: UploadedFile[] = [];
     const validationErrors: string[] = [];
 
-    // Validate all files first
     Array.from(files).forEach(file => {
       const validationError = validateFile(file);
       if (validationError) {
@@ -129,16 +164,15 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
       return;
     }
 
-    // Add files to state immediately
     setUploadedFiles(prev => [...prev, ...newFiles]);
 
-    // Upload files one by one
+    // Upload files
     for (let i = 0; i < newFiles.length; i++) {
       const file = files[i];
       const fileState = newFiles[i];
 
       try {
-        // Simulate upload progress
+        // Simulate progress
         const progressInterval = setInterval(() => {
           setUploadedFiles(prev => 
             prev.map(f => 
@@ -150,7 +184,6 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
         }, 200);
 
         const result = await uploadToS3(file);
-
         clearInterval(progressInterval);
 
         if (result.success) {
@@ -194,7 +227,7 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
       }
     }
 
-    // Notify parent component of successful uploads
+    // Notify parent
     const successfulFiles = uploadedFiles.filter(f => f.status === 'completed');
     if (successfulFiles.length > 0) {
       onFilesUploaded(successfulFiles);
@@ -230,7 +263,6 @@ export const CloudFileUpload: React.FC<CloudFileUploadProps> = ({
     if (selectedFiles && selectedFiles.length > 0) {
       handleFiles(selectedFiles);
     }
-    // Reset input value to allow selecting the same file again
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

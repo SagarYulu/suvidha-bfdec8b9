@@ -16,6 +16,8 @@ const escalationRoutes = require('./routes/api/escalations');
 const reportsRoutes = require('./routes/api/reports');
 const notificationRoutes = require('./routes/api/notifications');
 const feedbackRoutes = require('./routes/api/feedback');
+const authRoutes = require('./routes/api/auth');
+const filesRoutes = require('./routes/api/files');
 
 // Import services
 const cronService = require('./services/cronService');
@@ -105,6 +107,8 @@ app.use('/api/escalations', escalationRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/files', filesRoutes);
 
 // Auto-assignment middleware for new issues
 app.use('/api/issues', async (req, res, next) => {

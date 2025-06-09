@@ -1,9 +1,9 @@
 
-const uploadService = require('../services/uploadService');
+const fileUploadService = require('../services/fileUploadService');
 const { validationResult } = require('express-validator');
 
 class FileController {
-  async uploadSingle(req, res) {
+  async generatePresignedUrl(req, res) {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -14,109 +14,73 @@ class FileController {
         });
       }
 
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: 'No file provided'
-        });
-      }
+      const { fileName, fileType, issueId } = req.body;
+      const userId = req.user.id;
 
-      const { category = 'attachments', issueId } = req.body;
-      const result = await uploadService.uploadFile(req.file, category, req.user.id, issueId);
+      const result = await fileUploadService.generatePresignedUrl(
+        fileName, 
+        fileType, 
+        userId, 
+        issueId
+      );
 
       res.json({
         success: true,
-        file: result,
-        message: 'File uploaded successfully'
+        data: result
       });
     } catch (error) {
-      console.error('Single file upload error:', error);
+      console.error('Presigned URL generation error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'File upload failed'
+        error: error.message || 'Failed to generate upload URL'
       });
     }
   }
 
-  async uploadMultiple(req, res) {
+  async uploadComplete(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          error: 'Validation failed',
-          details: errors.array()
-        });
-      }
-
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'No files provided'
-        });
-      }
-
-      const { category = 'attachments', issueId } = req.body;
-      const results = await uploadService.uploadMultipleFiles(req.files, category, req.user.id, issueId);
+      const { fileId, fileSize } = req.body;
+      
+      await fileUploadService.uploadComplete(fileId, fileSize);
 
       res.json({
         success: true,
-        files: results,
-        message: `${results.length} files processed`
+        message: 'Upload completed successfully'
       });
     } catch (error) {
-      console.error('Multiple file upload error:', error);
+      console.error('Upload completion error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'File upload failed'
+        error: error.message || 'Failed to complete upload'
       });
     }
   }
 
-  async getFile(req, res) {
+  async getFilesByIssue(req, res) {
     try {
-      const { fileId } = req.params;
+      const { issueId } = req.params;
       
-      const fileUrl = await uploadService.getFileUrl(fileId);
-      
-      if (!fileUrl) {
-        return res.status(404).json({
-          success: false,
-          error: 'File not found'
-        });
-      }
+      const files = await fileUploadService.getFilesByIssue(issueId);
 
-      // For S3 files, redirect to presigned URL
-      if (fileUrl.includes('amazonaws.com')) {
-        return res.redirect(fileUrl);
-      }
-
-      // For local files, serve directly
       res.json({
         success: true,
-        url: fileUrl
+        data: files
       });
     } catch (error) {
-      console.error('Get file error:', error);
+      console.error('Get files error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get file'
+        error: error.message || 'Failed to fetch files'
       });
     }
   }
 
   async deleteFile(req, res) {
     try {
-      const { category, filename } = req.params;
+      const { fileId } = req.params;
+      const userId = req.user.id;
       
-      const deleted = await uploadService.deleteFile(filename, category, req.user.id);
-      
-      if (!deleted) {
-        return res.status(404).json({
-          success: false,
-          error: 'File not found or access denied'
-        });
-      }
+      await fileUploadService.deleteFile(fileId, userId);
 
       res.json({
         success: true,
@@ -126,71 +90,27 @@ class FileController {
       console.error('File deletion error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'File deletion failed'
+        error: error.message || 'Failed to delete file'
       });
     }
   }
 
-  async getFileInfo(req, res) {
+  async downloadFile(req, res) {
     try {
-      const { category, filename } = req.params;
+      const { fileId } = req.params;
+      const userId = req.user.id;
       
-      const fileInfo = await uploadService.getFileInfo(filename, category);
-      
-      if (!fileInfo) {
-        return res.status(404).json({
-          success: false,
-          error: 'File not found'
-        });
-      }
+      const downloadUrl = await fileUploadService.generateDownloadUrl(fileId, userId);
 
       res.json({
         success: true,
-        file: fileInfo
+        downloadUrl
       });
     } catch (error) {
-      console.error('Get file info error:', error);
+      console.error('File download error:', error);
       res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get file info'
-      });
-    }
-  }
-
-  async getUserFiles(req, res) {
-    try {
-      const { category } = req.query;
-      const files = await uploadService.getUserFiles(req.user.id, category);
-
-      res.json({
-        success: true,
-        files
-      });
-    } catch (error) {
-      console.error('Get user files error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to get user files'
-      });
-    }
-  }
-
-  async checkStorageHealth(req, res) {
-    try {
-      const s3Status = await uploadService.checkS3Connection();
-      
-      res.json({
-        success: true,
-        storage: {
-          s3: s3Status,
-          local: { status: 'available', message: 'Local storage available' }
-        }
-      });
-    } catch (error) {
-      console.error('Storage health check error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Storage health check failed'
+        error: error.message || 'Failed to generate download URL'
       });
     }
   }
