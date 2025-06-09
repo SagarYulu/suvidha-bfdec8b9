@@ -18,6 +18,8 @@ interface Issue {
   updated_at: string;
   assigned_to?: string;
   employee_uuid: string;
+  escalation_level?: number; // Add escalation fields
+  escalated_at?: string;
 }
 
 interface Comment {
