@@ -1,38 +1,46 @@
 
 import { useState, useCallback } from 'react';
-import { ApiService } from '@/services/apiService';
+import { toast } from '@/hooks/use-toast';
 
-interface UploadProgress {
-  fileName: string;
-  progress: number;
-  status: 'uploading' | 'success' | 'error';
-  error?: string;
+interface UploadedFile {
+  id?: string;
+  name: string;
+  size: number;
+  url: string;
+  key?: string;
+  mimetype?: string;
 }
 
 interface UseFileUploadOptions {
-  maxFiles?: number;
   maxFileSize?: number; // in MB
-  acceptedFileTypes?: string[];
+  acceptedTypes?: string[];
+  maxFiles?: number;
   category?: string;
-  onProgress?: (progress: UploadProgress[]) => void;
-  onComplete?: (files: any[]) => void;
-  onError?: (error: string) => void;
 }
 
-export const useFileUpload = (options: UseFileUploadOptions = {}) => {
+interface UseFileUploadReturn {
+  uploadedFiles: UploadedFile[];
+  isUploading: boolean;
+  uploadProgress: Record<string, number>;
+  uploadSingle: (file: File) => Promise<UploadedFile | null>;
+  uploadMultiple: (files: File[]) => Promise<UploadedFile[]>;
+  deleteFile: (fileKey: string) => Promise<boolean>;
+  getSignedUrl: (fileKey: string, expires?: number) => Promise<string | null>;
+  clearFiles: () => void;
+  removeUploadedFile: (index: number) => void;
+}
+
+export const useFileUpload = (options: UseFileUploadOptions = {}): UseFileUploadReturn => {
   const {
+    maxFileSize = 10, // 10MB
+    acceptedTypes = ['image/*', 'application/pdf', '.doc', '.docx'],
     maxFiles = 5,
-    maxFileSize = 10,
-    acceptedFileTypes = ['image/*', 'application/pdf', '.doc', '.docx', '.txt'],
-    category = 'attachments',
-    onProgress,
-    onComplete,
-    onError
+    category = 'attachments'
   } = options;
 
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
-  const [uploadedFiles, setUploadedFiles] = useState<any[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
 
   const validateFile = useCallback((file: File): string | null => {
     // Check file size
@@ -41,144 +49,250 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     }
 
     // Check file type
-    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-    const mimeType = file.type;
-    
-    const isValidType = acceptedFileTypes.some(type => {
-      if (type.includes('*')) {
-        return mimeType.startsWith(type.replace('*', ''));
+    const isValidType = acceptedTypes.some(type => {
+      if (type.startsWith('.')) {
+        return file.name.toLowerCase().endsWith(type.toLowerCase());
       }
-      return type === fileExtension || type === mimeType;
+      return file.type.match(type.replace('*', '.*'));
     });
 
     if (!isValidType) {
-      return `File type not supported. Allowed types: ${acceptedFileTypes.join(', ')}`;
+      return `File type not supported. Accepted types: ${acceptedTypes.join(', ')}`;
     }
 
     return null;
-  }, [maxFileSize, acceptedFileTypes]);
+  }, [maxFileSize, acceptedTypes]);
 
-  const uploadFiles = useCallback(async (files: File[]) => {
-    if (files.length === 0) return;
-
-    // Validate all files first
-    const validationErrors: string[] = [];
-    const validFiles: File[] = [];
-
-    for (const file of files) {
-      const error = validateFile(file);
-      if (error) {
-        validationErrors.push(`${file.name}: ${error}`);
-      } else {
-        validFiles.push(file);
-      }
+  const uploadSingle = useCallback(async (file: File): Promise<UploadedFile | null> => {
+    // Validate file
+    const validationError = validateFile(file);
+    if (validationError) {
+      toast({
+        title: 'Invalid file',
+        description: validationError,
+        variant: 'destructive'
+      });
+      return null;
     }
 
-    if (validationErrors.length > 0) {
-      const errorMessage = validationErrors.join(', ');
-      onError?.(errorMessage);
-      return;
+    // Check max files limit
+    if (uploadedFiles.length >= maxFiles) {
+      toast({
+        title: 'Too many files',
+        description: `Maximum ${maxFiles} files allowed`,
+        variant: 'destructive'
+      });
+      return null;
     }
 
-    if (validFiles.length > maxFiles) {
-      onError?.(`Maximum ${maxFiles} files allowed`);
-      return;
-    }
-
-    setUploading(true);
-    
-    // Initialize progress tracking
-    const initialProgress: UploadProgress[] = validFiles.map(file => ({
-      fileName: file.name,
-      progress: 0,
-      status: 'uploading'
-    }));
-    
-    setUploadProgress(initialProgress);
-    onProgress?.(initialProgress);
+    setIsUploading(true);
+    const fileId = Math.random().toString(36).substr(2, 9);
 
     try {
-      const uploadPromises = validFiles.map(async (file, index) => {
-        try {
-          // Simulate progress updates
-          const progressInterval = setInterval(() => {
-            setUploadProgress(prev => {
-              const updated = prev.map(p => 
-                p.fileName === file.name 
-                  ? { ...p, progress: Math.min(p.progress + 10, 90) }
-                  : p
-              );
-              onProgress?.(updated);
-              return updated;
-            });
-          }, 200);
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', category);
 
-          const result = await ApiService.uploadFile(file, category);
-          
-          clearInterval(progressInterval);
-          
-          // Update final progress
-          setUploadProgress(prev => {
-            const updated = prev.map(p => 
-              p.fileName === file.name 
-                ? { ...p, progress: 100, status: 'success' as const }
-                : p
-            );
-            onProgress?.(updated);
-            return updated;
-          });
+      // Simulate upload progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => ({
+          ...prev,
+          [fileId]: Math.min((prev[fileId] || 0) + 10, 90)
+        }));
+      }, 200);
 
-          return result;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-          
-          setUploadProgress(prev => {
-            const updated = prev.map(p => 
-              p.fileName === file.name 
-                ? { ...p, status: 'error' as const, error: errorMessage }
-                : p
-            );
-            onProgress?.(updated);
-            return updated;
-          });
-          
-          return null;
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+
+      clearInterval(progressInterval);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+
+      const data = await response.json();
+      
+      const uploadedFile: UploadedFile = {
+        id: fileId,
+        name: file.name,
+        size: file.size,
+        url: data.data.url,
+        key: data.data.key || data.data.path,
+        mimetype: file.type
+      };
+
+      setUploadedFiles(prev => [...prev, uploadedFile]);
+      setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+
+      toast({
+        title: 'Upload successful',
+        description: `${file.name} uploaded successfully`
+      });
+
+      return uploadedFile;
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || `Failed to upload ${file.name}`,
+        variant: 'destructive'
+      });
+      
+      setUploadProgress(prev => {
+        const newProgress = { ...prev };
+        delete newProgress[fileId];
+        return newProgress;
+      });
+      
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  }, [validateFile, uploadedFiles.length, maxFiles, category]);
+
+  const uploadMultiple = useCallback(async (files: File[]): Promise<UploadedFile[]> => {
+    const uploadPromises = files.map(file => uploadSingle(file));
+    const results = await Promise.all(uploadPromises);
+    return results.filter(Boolean) as UploadedFile[];
+  }, [uploadSingle]);
+
+  const deleteFile = useCallback(async (fileKey: string): Promise<boolean> => {
+    try {
+      const response = await fetch(`/api/files/${fileKey}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
-      const results = await Promise.all(uploadPromises);
-      const successfulUploads = results.filter(result => result !== null);
-      
-      setUploadedFiles(prev => [...prev, ...successfulUploads]);
-      onComplete?.(successfulUploads);
-      
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
-      onError?.(errorMessage);
-    } finally {
-      setUploading(false);
+      if (response.ok) {
+        setUploadedFiles(prev => prev.filter(file => file.key !== fileKey));
+        
+        toast({
+          title: 'File deleted',
+          description: 'File has been deleted successfully'
+        });
+        
+        return true;
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete file');
+      }
+    } catch (error: any) {
+      console.error('Delete file error:', error);
+      toast({
+        title: 'Delete failed',
+        description: error.message || 'Failed to delete file',
+        variant: 'destructive'
+      });
+      return false;
     }
-  }, [validateFile, maxFiles, category, onProgress, onComplete, onError]);
-
-  const clearFiles = useCallback(() => {
-    setUploadProgress([]);
-    setUploadedFiles([]);
   }, []);
 
-  const removeFile = useCallback((fileName: string) => {
-    setUploadProgress(prev => prev.filter(p => p.fileName !== fileName));
-    setUploadedFiles(prev => prev.filter(f => f.name !== fileName));
+  const getSignedUrl = useCallback(async (fileKey: string, expires = 3600): Promise<string | null> => {
+    try {
+      const response = await fetch(`/api/files/signed-url/${fileKey}?expires=${expires}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.data.url;
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to get signed URL');
+      }
+    } catch (error: any) {
+      console.error('Get signed URL error:', error);
+      toast({
+        title: 'Access failed',
+        description: error.message || 'Failed to access file',
+        variant: 'destructive'
+      });
+      return null;
+    }
+  }, []);
+
+  const clearFiles = useCallback(() => {
+    setUploadedFiles([]);
+    setUploadProgress({});
+  }, []);
+
+  const removeUploadedFile = useCallback((index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   }, []);
 
   return {
-    uploading,
-    uploadProgress,
     uploadedFiles,
-    uploadFiles,
+    isUploading,
+    uploadProgress,
+    uploadSingle,
+    uploadMultiple,
+    deleteFile,
+    getSignedUrl,
     clearFiles,
-    removeFile,
-    validateFile
+    removeUploadedFile
   };
 };
 
-export default useFileUpload;
+// Specialized hook for issue attachments
+export const useIssueAttachments = (issueId?: string) => {
+  const fileUpload = useFileUpload({
+    category: 'issue_attachments',
+    maxFiles: 5,
+    maxFileSize: 10
+  });
+
+  const attachFilesToIssue = useCallback(async (files: UploadedFile[]): Promise<boolean> => {
+    if (!issueId) return false;
+
+    try {
+      const response = await fetch(`/api/issues/${issueId}/attachments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          attachments: files.map(file => ({
+            url: file.url,
+            name: file.name,
+            size: file.size,
+            key: file.key
+          }))
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Attachments added',
+          description: `${files.length} file(s) attached to issue`
+        });
+        return true;
+      } else {
+        throw new Error('Failed to attach files to issue');
+      }
+    } catch (error: any) {
+      console.error('Attach files error:', error);
+      toast({
+        title: 'Attachment failed',
+        description: 'Failed to attach files to issue',
+        variant: 'destructive'
+      });
+      return false;
+    }
+  }, [issueId]);
+
+  return {
+    ...fileUpload,
+    attachFilesToIssue
+  };
+};

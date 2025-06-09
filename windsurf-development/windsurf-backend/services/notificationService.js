@@ -1,172 +1,281 @@
 
-const { pool } = require('../config/database');
+const NotificationModel = require('../models/Notification');
+const EmailService = require('./emailService');
+const { v4: uuidv4 } = require('uuid');
 
 class NotificationService {
-  async createNotification(notificationData) {
+  static async createNotification(notificationData) {
     try {
-      const [result] = await pool.execute(`
-        INSERT INTO notifications (
-          user_id, type, title, message, data, created_at
-        ) VALUES (?, ?, ?, ?, ?, NOW())
-      `, [
-        notificationData.userId,
-        notificationData.type,
-        notificationData.title,
-        notificationData.message,
-        JSON.stringify(notificationData.data || {})
-      ]);
+      const notificationId = uuidv4();
+      
+      const notification = await NotificationModel.create({
+        id: notificationId,
+        user_id: notificationData.user_id,
+        issue_id: notificationData.issue_id,
+        type: notificationData.type,
+        title: notificationData.title,
+        message: notificationData.message,
+        is_read: false,
+        sent_via: notificationData.sent_via || 'in-app'
+      });
 
-      return result.insertId;
+      // Emit real-time notification if WebSocket is available
+      if (global.wss) {
+        this.broadcastNotification(notificationData.user_id, notification);
+      }
+
+      return notification;
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
     }
   }
 
-  async getUserNotifications(userId, options = {}) {
+  static async createBulkNotifications(notifications) {
     try {
-      const { page = 1, limit = 20, unreadOnly = false } = options;
-      const offset = (page - 1) * limit;
+      const notificationsWithIds = notifications.map(n => ({
+        ...n,
+        id: uuidv4(),
+        is_read: false,
+        sent_via: n.sent_via || 'in-app'
+      }));
 
-      let whereClause = 'WHERE user_id = ?';
-      const params = [userId];
+      await NotificationModel.bulkCreate(notificationsWithIds);
 
-      if (unreadOnly) {
-        whereClause += ' AND is_read = FALSE';
+      // Broadcast to all users if WebSocket is available
+      if (global.wss) {
+        notificationsWithIds.forEach(notification => {
+          this.broadcastNotification(notification.user_id, notification);
+        });
       }
 
-      const [notifications] = await pool.execute(`
-        SELECT * FROM notifications
-        ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT ? OFFSET ?
-      `, [...params, parseInt(limit), offset]);
-
-      const [countResult] = await pool.execute(`
-        SELECT COUNT(*) as total FROM notifications ${whereClause}
-      `, params);
-
-      return {
-        notifications,
-        total: countResult[0].total,
-        page: parseInt(page),
-        limit: parseInt(limit)
-      };
+      return notificationsWithIds;
     } catch (error) {
-      console.error('Error fetching user notifications:', error);
+      console.error('Error creating bulk notifications:', error);
       throw error;
     }
   }
 
-  async markAsRead(notificationId, userId) {
+  static async getUserNotifications(userId, filters = {}) {
     try {
-      const [result] = await pool.execute(`
-        UPDATE notifications 
-        SET is_read = TRUE, read_at = NOW() 
-        WHERE id = ? AND user_id = ?
-      `, [notificationId, userId]);
+      return await NotificationModel.findByUserId(userId, filters);
+    } catch (error) {
+      console.error('Error getting user notifications:', error);
+      return [];
+    }
+  }
 
-      return result.affectedRows > 0;
+  static async markAsRead(notificationId) {
+    try {
+      return await NotificationModel.markAsRead(notificationId);
     } catch (error) {
       console.error('Error marking notification as read:', error);
       throw error;
     }
   }
 
-  async markAllAsRead(userId) {
+  static async markAllAsRead(userId) {
     try {
-      const [result] = await pool.execute(`
-        UPDATE notifications 
-        SET is_read = TRUE, read_at = NOW() 
-        WHERE user_id = ? AND is_read = FALSE
-      `, [userId]);
-
-      return result.affectedRows;
+      return await NotificationModel.markAllAsRead(userId);
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       throw error;
     }
   }
 
-  async deleteNotification(notificationId, userId) {
+  static async getUnreadCount(userId) {
     try {
-      const [result] = await pool.execute(`
-        DELETE FROM notifications 
-        WHERE id = ? AND user_id = ?
-      `, [notificationId, userId]);
-
-      return result.affectedRows > 0;
+      return await NotificationModel.getUnreadCount(userId);
     } catch (error) {
-      console.error('Error deleting notification:', error);
-      throw error;
+      console.error('Error getting unread count:', error);
+      return 0;
     }
   }
 
-  // Notification types for issues
-  async notifyIssueAssigned(issueId, assignedToId, assignedById) {
-    try {
-      const [issue] = await pool.execute(`
-        SELECT i.*, e.name as employee_name
-        FROM issues i
-        JOIN employees e ON i.employee_id = e.id
-        WHERE i.id = ?
-      `, [issueId]);
+  static broadcastNotification(userId, notification) {
+    if (!global.wss) return;
 
-      if (issue.length > 0) {
-        await this.createNotification({
-          userId: assignedToId,
-          type: 'issue_assigned',
-          title: 'New Issue Assigned',
-          message: `Issue "${issue[0].title || issue[0].description.substring(0, 50)}..." has been assigned to you`,
-          data: { issueId, assignedById }
-        });
+    global.wss.clients.forEach(client => {
+      if (client.readyState === 1 && client.userId === userId) { // WebSocket.OPEN
+        client.send(JSON.stringify({
+          type: 'notification',
+          data: notification
+        }));
       }
+    });
+  }
+
+  static async notifyIssueCreated(issue, assignedUser) {
+    try {
+      if (!assignedUser) return;
+
+      await this.createNotification({
+        user_id: assignedUser.id,
+        issue_id: issue.id,
+        type: 'issue_assigned',
+        title: 'New Issue Assigned',
+        message: `A new issue has been assigned to you: ${issue.description.substring(0, 100)}...`
+      });
+
+      // Send email notification
+      await EmailService.sendIssueCreatedEmail(issue, assignedUser);
     } catch (error) {
-      console.error('Error creating issue assignment notification:', error);
+      console.error('Error notifying issue created:', error);
     }
   }
 
-  async notifyIssueStatusChanged(issueId, employeeId, newStatus) {
+  static async notifyStatusUpdate(issue, oldStatus, newStatus, updatedBy) {
     try {
-      const [issue] = await pool.execute(`
-        SELECT * FROM issues WHERE id = ?
-      `, [issueId]);
+      // Notify issue creator
+      await this.createNotification({
+        user_id: issue.employee_uuid,
+        issue_id: issue.id,
+        type: 'status_update',
+        title: 'Issue Status Updated',
+        message: `Your issue status has been updated from ${oldStatus} to ${newStatus}`
+      });
 
-      if (issue.length > 0) {
+      // Send email notification
+      await EmailService.sendIssueStatusUpdateEmail(issue, oldStatus, newStatus, updatedBy);
+
+      // Notify assigned user if different from updater
+      if (issue.assigned_to && issue.assigned_to !== updatedBy.id) {
         await this.createNotification({
-          userId: employeeId,
-          type: 'issue_status_changed',
-          title: 'Issue Status Updated',
-          message: `Your issue status has been changed to "${newStatus}"`,
-          data: { issueId, newStatus }
+          user_id: issue.assigned_to,
+          issue_id: issue.id,
+          type: 'status_update',
+          title: 'Assigned Issue Status Updated',
+          message: `Status of assigned issue has been updated to ${newStatus}`
         });
       }
     } catch (error) {
-      console.error('Error creating issue status notification:', error);
+      console.error('Error notifying status update:', error);
     }
   }
 
-  async notifyNewComment(issueId, commentById, targetUserId) {
+  static async notifyCommentAdded(comment, issue) {
     try {
-      const [issue] = await pool.execute(`
-        SELECT i.*, e.name as commenter_name
-        FROM issues i, employees e
-        WHERE i.id = ? AND e.id = ?
-      `, [issueId, commentById]);
+      // Get all stakeholders (creator, assignee, commenters)
+      const stakeholders = new Set();
+      
+      // Add issue creator
+      stakeholders.add(issue.employee_uuid);
+      
+      // Add assigned user
+      if (issue.assigned_to) {
+        stakeholders.add(issue.assigned_to);
+      }
 
-      if (issue.length > 0) {
+      // Add previous commenters
+      const comments = await this.getIssueComments(issue.id);
+      comments.forEach(c => stakeholders.add(c.user_id));
+
+      // Remove the comment author
+      stakeholders.delete(comment.user_id);
+
+      // Create notifications for all stakeholders
+      const notifications = Array.from(stakeholders).map(userId => ({
+        user_id: userId,
+        issue_id: issue.id,
+        type: 'comment_added',
+        title: 'New Comment Added',
+        message: `A new comment has been added to issue: ${comment.content.substring(0, 100)}...`
+      }));
+
+      await this.createBulkNotifications(notifications);
+
+      // Send email notification
+      await EmailService.sendCommentNotificationEmail(comment, issue);
+    } catch (error) {
+      console.error('Error notifying comment added:', error);
+    }
+  }
+
+  static async notifyEscalation(escalation, issue) {
+    try {
+      // Notify escalated user
+      await this.createNotification({
+        user_id: escalation.escalated_to,
+        issue_id: issue.id,
+        type: 'escalation',
+        title: 'Issue Escalated to You',
+        message: `An issue has been escalated to you: ${escalation.reason}`
+      });
+
+      // Notify original assignee if different
+      if (escalation.escalated_from && escalation.escalated_from !== escalation.escalated_to) {
         await this.createNotification({
-          userId: targetUserId,
-          type: 'new_comment',
-          title: 'New Comment Added',
-          message: `${issue[0].commenter_name} added a comment to your issue`,
-          data: { issueId, commentById }
+          user_id: escalation.escalated_from,
+          issue_id: issue.id,
+          type: 'escalation',
+          title: 'Issue Escalated',
+          message: `Your assigned issue has been escalated: ${escalation.reason}`
         });
       }
+
+      // Send email notification
+      await EmailService.sendEscalationEmail(escalation, issue);
     } catch (error) {
-      console.error('Error creating new comment notification:', error);
+      console.error('Error notifying escalation:', error);
     }
+  }
+
+  static async notifyTATWarning(issue, tatInfo) {
+    try {
+      const notifications = [];
+
+      // Notify assigned user
+      if (issue.assigned_to) {
+        notifications.push({
+          user_id: issue.assigned_to,
+          issue_id: issue.id,
+          type: 'tat_warning',
+          title: 'TAT Warning',
+          message: `Issue is approaching TAT deadline (${tatInfo.days_elapsed} days elapsed)`
+        });
+      }
+
+      // Notify managers for critical TAT issues
+      if (tatInfo.status === 'critical' || tatInfo.status === 'breach') {
+        const UserModel = require('../models/User');
+        const managers = await UserModel.findByRole('manager');
+        
+        managers.forEach(manager => {
+          notifications.push({
+            user_id: manager.id,
+            issue_id: issue.id,
+            type: 'tat_warning',
+            title: 'Critical TAT Warning',
+            message: `Issue ${issue.id} has breached TAT (${tatInfo.days_elapsed} days)`
+          });
+        });
+      }
+
+      await this.createBulkNotifications(notifications);
+
+      // Send email warnings
+      await EmailService.sendTATWarningEmail(issue, tatInfo);
+    } catch (error) {
+      console.error('Error notifying TAT warning:', error);
+    }
+  }
+
+  static async cleanupOldNotifications() {
+    try {
+      const deletedCount = await NotificationModel.deleteOld(30); // Delete notifications older than 30 days
+      console.log(`Cleaned up ${deletedCount} old notifications`);
+      return deletedCount;
+    } catch (error) {
+      console.error('Error cleaning up old notifications:', error);
+      return 0;
+    }
+  }
+
+  static async getIssueComments(issueId) {
+    // Helper method to get issue comments
+    const CommentModel = require('../models/Comment');
+    return await CommentModel.findByIssueId(issueId);
   }
 }
 
-module.exports = new NotificationService();
+module.exports = NotificationService;

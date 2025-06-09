@@ -1,57 +1,122 @@
 
 const express = require('express');
-const realTimeService = require('../services/realTimeService');
-const { authenticateToken } = require('../middleware/auth');
-
 const router = express.Router();
+const realtimeController = require('../controllers/realtimeController');
+const { authenticateToken, requireRole } = require('../middleware/auth');
+const { body } = require('express-validator');
+const { handleValidationErrors } = require('../middleware/validation');
 
-// SSE endpoint for real-time updates
-router.get('/stream', authenticateToken, (req, res) => {
-  const userId = req.user.id;
-  
-  console.log(`Real-time connection established for user: ${userId}`);
-  
-  // Add client to real-time service
-  realTimeService.addClient(userId, res);
-  
-  // Log connection stats
-  console.log(`Active connections: ${realTimeService.getConnectionCount()}`);
-  console.log(`Connected users: ${realTimeService.getConnectedUsers().length}`);
-});
+// Validation middleware
+const validateNotification = [
+  body('userId').isUUID().withMessage('Valid user ID is required'),
+  body('type').notEmpty().withMessage('Notification type is required'),
+  body('title').notEmpty().withMessage('Title is required'),
+  body('message').notEmpty().withMessage('Message is required')
+];
 
-// Get connection statistics (admin only)
-router.get('/stats', authenticateToken, (req, res) => {
-  // Check if user has admin privileges
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
+const validateBroadcast = [
+  body('role').notEmpty().withMessage('Role is required'),
+  body('type').notEmpty().withMessage('Message type is required'),
+  body('message').notEmpty().withMessage('Message is required')
+];
 
-  res.json({
-    totalConnections: realTimeService.getConnectionCount(),
-    connectedUsers: realTimeService.getConnectedUsers().length,
-    connectedUserIds: realTimeService.getConnectedUsers()
-  });
-});
+const validateSystemMessage = [
+  body('type').notEmpty().withMessage('Message type is required'),
+  body('message').notEmpty().withMessage('Message is required'),
+  body('targetRole').optional().isString()
+];
 
-// Manual broadcast endpoint (admin only)
-router.post('/broadcast', authenticateToken, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
+const validateChannelMessage = [
+  body('channel').notEmpty().withMessage('Channel is required'),
+  body('type').notEmpty().withMessage('Message type is required'),
+  body('data').notEmpty().withMessage('Data is required')
+];
 
-  const { event, data } = req.body;
-  
-  if (!event || !data) {
-    return res.status(400).json({ error: 'Event and data are required' });
-  }
+const validateIssueUpdate = [
+  body('issueId').isUUID().withMessage('Valid issue ID is required'),
+  body('updateType').notEmpty().withMessage('Update type is required'),
+  body('data').notEmpty().withMessage('Update data is required')
+];
 
-  realTimeService.broadcast(event, data);
-  
-  res.json({
-    success: true,
-    message: 'Broadcast sent',
-    recipients: realTimeService.getConnectionCount()
-  });
-});
+// Routes
+
+// Get WebSocket connection statistics
+router.get('/stats',
+  authenticateToken,
+  requireRole(['admin', 'manager']),
+  realtimeController.getConnectionStats
+);
+
+// Send notification to specific user
+router.post('/notify/user',
+  authenticateToken,
+  requireRole(['admin', 'manager', 'agent']),
+  validateNotification,
+  handleValidationErrors,
+  realtimeController.sendNotificationToUser
+);
+
+// Broadcast message to users with specific role
+router.post('/broadcast/role',
+  authenticateToken,
+  requireRole(['admin', 'manager']),
+  validateBroadcast,
+  handleValidationErrors,
+  realtimeController.broadcastToRole
+);
+
+// Broadcast system message
+router.post('/broadcast/system',
+  authenticateToken,
+  requireRole(['admin']),
+  validateSystemMessage,
+  handleValidationErrors,
+  realtimeController.broadcastSystemMessage
+);
+
+// Send message to channel subscribers
+router.post('/send/channel',
+  authenticateToken,
+  requireRole(['admin', 'manager', 'agent']),
+  validateChannelMessage,
+  handleValidationErrors,
+  realtimeController.sendToChannel
+);
+
+// Notify issue update
+router.post('/notify/issue-update',
+  authenticateToken,
+  validateIssueUpdate,
+  handleValidationErrors,
+  realtimeController.notifyIssueUpdate
+);
+
+// Get active channels
+router.get('/channels',
+  authenticateToken,
+  requireRole(['admin', 'manager']),
+  realtimeController.getActiveChannels
+);
+
+// Get connected users info
+router.get('/users/connected',
+  authenticateToken,
+  requireRole(['admin', 'manager']),
+  realtimeController.getConnectedUsers
+);
+
+// Ping all connected clients
+router.post('/ping',
+  authenticateToken,
+  requireRole(['admin']),
+  realtimeController.pingClients
+);
+
+// Health check for real-time services
+router.get('/health',
+  authenticateToken,
+  requireRole(['admin']),
+  realtimeController.healthCheck
+);
 
 module.exports = router;

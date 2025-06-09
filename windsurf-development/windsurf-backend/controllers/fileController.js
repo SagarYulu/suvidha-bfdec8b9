@@ -1,117 +1,152 @@
 
-const fileUploadService = require('../services/fileUploadService');
-const { validationResult } = require('express-validator');
+const FileUploadService = require('../services/fileUploadService');
+const { successResponse, errorResponse } = require('../utils/responseHelper');
 
 class FileController {
-  async generatePresignedUrl(req, res) {
+  async uploadSingle(req, res) {
     try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          success: false,
-          error: 'Validation failed',
-          details: errors.array()
-        });
+      if (!req.file) {
+        return errorResponse(res, 'No file provided', 400);
       }
 
-      const { fileName, fileType, issueId } = req.body;
-      const userId = req.user.id;
+      const folder = req.body.category || 'attachments';
+      const result = await FileUploadService.uploadSingle(req.file, folder);
 
-      const result = await fileUploadService.generatePresignedUrl(
-        fileName, 
-        fileType, 
-        userId, 
-        issueId
-      );
-
-      res.json({
-        success: true,
-        data: result
-      });
+      successResponse(res, result, 'File uploaded successfully', 201);
     } catch (error) {
-      console.error('Presigned URL generation error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to generate upload URL'
-      });
+      console.error('Single file upload error:', error);
+      errorResponse(res, error.message);
     }
   }
 
-  async uploadComplete(req, res) {
+  async uploadMultiple(req, res) {
     try {
-      const { fileId, fileSize } = req.body;
-      
-      await fileUploadService.uploadComplete(fileId, fileSize);
+      if (!req.files || req.files.length === 0) {
+        return errorResponse(res, 'No files provided', 400);
+      }
 
-      res.json({
-        success: true,
-        message: 'Upload completed successfully'
-      });
+      const folder = req.body.category || 'attachments';
+      const result = await FileUploadService.uploadMultiple(req.files, folder);
+
+      successResponse(res, result, 'Files uploaded successfully', 201);
     } catch (error) {
-      console.error('Upload completion error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to complete upload'
-      });
-    }
-  }
-
-  async getFilesByIssue(req, res) {
-    try {
-      const { issueId } = req.params;
-      
-      const files = await fileUploadService.getFilesByIssue(issueId);
-
-      res.json({
-        success: true,
-        data: files
-      });
-    } catch (error) {
-      console.error('Get files error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to fetch files'
-      });
+      console.error('Multiple file upload error:', error);
+      errorResponse(res, error.message);
     }
   }
 
   async deleteFile(req, res) {
     try {
-      const { fileId } = req.params;
-      const userId = req.user.id;
+      const { fileKey } = req.params;
       
-      await fileUploadService.deleteFile(fileId, userId);
+      if (!fileKey) {
+        return errorResponse(res, 'File key is required', 400);
+      }
 
-      res.json({
-        success: true,
-        message: 'File deleted successfully'
-      });
+      await FileUploadService.deleteFile(fileKey);
+
+      successResponse(res, null, 'File deleted successfully');
     } catch (error) {
-      console.error('File deletion error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to delete file'
-      });
+      console.error('Delete file error:', error);
+      errorResponse(res, error.message);
     }
   }
 
-  async downloadFile(req, res) {
+  async getSignedUrl(req, res) {
     try {
-      const { fileId } = req.params;
-      const userId = req.user.id;
-      
-      const downloadUrl = await fileUploadService.generateDownloadUrl(fileId, userId);
+      const { fileKey } = req.params;
+      const expires = parseInt(req.query.expires) || 3600; // 1 hour default
 
-      res.json({
-        success: true,
-        downloadUrl
-      });
+      if (!fileKey) {
+        return errorResponse(res, 'File key is required', 400);
+      }
+
+      const url = await FileUploadService.getSignedUrl(fileKey, expires);
+
+      successResponse(res, { url, expires }, 'Signed URL generated successfully');
     } catch (error) {
-      console.error('File download error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message || 'Failed to generate download URL'
+      console.error('Get signed URL error:', error);
+      errorResponse(res, error.message);
+    }
+  }
+
+  async getFileInfo(req, res) {
+    try {
+      const { fileKey } = req.params;
+
+      if (!fileKey) {
+        return errorResponse(res, 'File key is required', 400);
+      }
+
+      const fileInfo = await FileUploadService.getFileInfo(fileKey);
+
+      successResponse(res, fileInfo, 'File information retrieved successfully');
+    } catch (error) {
+      console.error('Get file info error:', error);
+      errorResponse(res, error.message);
+    }
+  }
+
+  async cleanupOldFiles(req, res) {
+    try {
+      const daysOld = parseInt(req.query.days) || 30;
+      
+      // Only allow admins to run cleanup
+      if (req.user.role !== 'admin') {
+        return errorResponse(res, 'Permission denied', 403);
+      }
+
+      const result = await FileUploadService.cleanupOldFiles(daysOld);
+
+      successResponse(res, result, 'File cleanup completed');
+    } catch (error) {
+      console.error('Cleanup files error:', error);
+      errorResponse(res, error.message);
+    }
+  }
+
+  // Middleware wrapper for single file upload
+  handleSingleUpload(fieldName = 'file') {
+    return (req, res, next) => {
+      const uploadMiddleware = FileUploadService.uploadSingleMiddleware(fieldName);
+      uploadMiddleware(req, res, (err) => {
+        if (err) {
+          return errorResponse(res, `Upload error: ${err.message}`, 400);
+        }
+        next();
       });
+    };
+  }
+
+  // Middleware wrapper for multiple file upload
+  handleMultipleUpload(fieldName = 'files', maxCount = 5) {
+    return (req, res, next) => {
+      const uploadMiddleware = FileUploadService.uploadMultipleMiddleware(fieldName, maxCount);
+      uploadMiddleware(req, res, (err) => {
+        if (err) {
+          return errorResponse(res, `Upload error: ${err.message}`, 400);
+        }
+        next();
+      });
+    };
+  }
+
+  // Get upload statistics
+  async getUploadStats(req, res) {
+    try {
+      // This would require implementing tracking in the database
+      // For now, return basic info
+      const stats = {
+        total_uploads: 0, // Would be calculated from database
+        storage_used: 0,  // Would be calculated from S3 or local storage
+        avg_file_size: 0,
+        most_common_types: []
+      };
+
+      successResponse(res, stats, 'Upload statistics retrieved successfully');
+    } catch (error) {
+      console.error('Get upload stats error:', error);
+      errorResponse(res, error.message);
     }
   }
 }

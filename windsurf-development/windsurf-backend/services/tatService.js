@@ -1,149 +1,181 @@
 
-const { pool } = require('../config/database');
+const IssueModel = require('../models/Issue');
+const NotificationService = require('./notificationService');
+const EscalationService = require('./escalationService');
 
 class TATService {
-  async getTATMetrics(filters = {}) {
-    try {
-      const { startDate, endDate, city, cluster, priority } = filters;
-      
-      let whereClause = 'WHERE 1=1';
-      const params = [];
-      
-      if (startDate) {
-        whereClause += ' AND i.created_at >= ?';
-        params.push(startDate);
-      }
-      
-      if (endDate) {
-        whereClause += ' AND i.created_at <= ?';
-        params.push(endDate);
-      }
-      
-      if (city) {
-        whereClause += ' AND e.city = ?';
-        params.push(city);
-      }
-      
-      if (cluster) {
-        whereClause += ' AND e.cluster = ?';
-        params.push(cluster);
-      }
-      
-      if (priority) {
-        whereClause += ' AND i.priority = ?';
-        params.push(priority);
-      }
+  // TAT thresholds in hours
+  static TAT_THRESHOLDS = {
+    warning: 24 * 7,    // 7 days
+    critical: 24 * 14,  // 14 days
+    breach: 24 * 30     // 30 days
+  };
 
-      const query = `
-        SELECT 
-          COUNT(*) as total_issues,
-          AVG(DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at)) as avg_resolution_days,
-          SUM(CASE WHEN DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at) <= 14 THEN 1 ELSE 0 END) as within_14_days,
-          SUM(CASE WHEN DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at) BETWEEN 15 AND 30 THEN 1 ELSE 0 END) as between_15_30_days,
-          SUM(CASE WHEN DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at) > 30 THEN 1 ELSE 0 END) as over_30_days,
-          SUM(CASE WHEN i.status = 'closed' THEN 1 ELSE 0 END) as resolved_issues,
-          SUM(CASE WHEN i.status != 'closed' THEN 1 ELSE 0 END) as pending_issues
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.emp_id
-        ${whereClause}
-      `;
+  static async calculateTAT(issueId) {
+    const issue = await IssueModel.findById(issueId);
+    if (!issue) return null;
 
-      const [results] = await pool.execute(query, params);
-      return results[0];
-    } catch (error) {
-      console.error('Error getting TAT metrics:', error);
-      throw error;
-    }
+    const createdAt = new Date(issue.created_at);
+    const now = new Date();
+    const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+
+    return {
+      issue_id: issueId,
+      hours_elapsed: hoursElapsed,
+      days_elapsed: Math.floor(hoursElapsed / 24),
+      status: this.getTATStatus(hoursElapsed),
+      threshold_breached: hoursElapsed > this.TAT_THRESHOLDS.breach,
+      next_escalation: this.getNextEscalationTime(hoursElapsed)
+    };
   }
 
-  async getTATTrendData(days = 30) {
-    try {
-      const query = `
-        SELECT 
-          DATE(i.created_at) as date,
-          COUNT(*) as total_issues,
-          AVG(DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at)) as avg_tat,
-          SUM(CASE WHEN i.status = 'closed' THEN 1 ELSE 0 END) as resolved_count
-        FROM issues i
-        WHERE i.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-        GROUP BY DATE(i.created_at)
-        ORDER BY date DESC
-      `;
-
-      const [results] = await pool.execute(query, [days]);
-      return results;
-    } catch (error) {
-      console.error('Error getting TAT trend data:', error);
-      throw error;
-    }
+  static getTATStatus(hoursElapsed) {
+    if (hoursElapsed > this.TAT_THRESHOLDS.breach) return 'breach';
+    if (hoursElapsed > this.TAT_THRESHOLDS.critical) return 'critical';
+    if (hoursElapsed > this.TAT_THRESHOLDS.warning) return 'warning';
+    return 'normal';
   }
 
-  async getSLABreaches(filters = {}) {
-    try {
-      const { priority, assignedTo } = filters;
-      
-      let whereClause = 'WHERE DATEDIFF(NOW(), i.created_at) > 14';
-      const params = [];
-      
-      if (priority) {
-        whereClause += ' AND i.priority = ?';
-        params.push(priority);
-      }
-      
-      if (assignedTo) {
-        whereClause += ' AND i.assigned_to = ?';
-        params.push(assignedTo);
-      }
+  static getNextEscalationTime(hoursElapsed) {
+    if (hoursElapsed < this.TAT_THRESHOLDS.warning) {
+      return this.TAT_THRESHOLDS.warning - hoursElapsed;
+    }
+    if (hoursElapsed < this.TAT_THRESHOLDS.critical) {
+      return this.TAT_THRESHOLDS.critical - hoursElapsed;
+    }
+    if (hoursElapsed < this.TAT_THRESHOLDS.breach) {
+      return this.TAT_THRESHOLDS.breach - hoursElapsed;
+    }
+    return 0; // Already breached
+  }
 
-      const query = `
-        SELECT 
-          i.*,
-          e.name as employee_name,
-          e.email as employee_email,
-          DATEDIFF(NOW(), i.created_at) as days_open
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.emp_id
-        ${whereClause}
-        ORDER BY days_open DESC
-      `;
+  static async getTATBuckets(filters = {}) {
+    const issues = await IssueModel.getAll(filters);
+    const buckets = {
+      normal: [],      // ≤ 7 days
+      warning: [],     // 7-14 days
+      critical: [],    // 14-30 days
+      breach: []       // > 30 days
+    };
 
-      const [results] = await pool.execute(query, params);
+    for (const issue of issues) {
+      const tat = await this.calculateTAT(issue.id);
+      if (tat) {
+        buckets[tat.status].push({
+          ...issue,
+          tat_info: tat
+        });
+      }
+    }
+
+    return {
+      buckets,
+      summary: {
+        normal: buckets.normal.length,
+        warning: buckets.warning.length,
+        critical: buckets.critical.length,
+        breach: buckets.breach.length,
+        total: issues.length
+      }
+    };
+  }
+
+  static async checkForEscalations() {
+    const openIssues = await IssueModel.getAll({ 
+      status: ['open', 'in_progress'] 
+    });
+
+    const escalationsNeeded = [];
+
+    for (const issue of openIssues) {
+      const tat = await this.calculateTAT(issue.id);
       
-      return {
-        total: results.length,
-        breached: results.length,
-        issues: results
+      if (tat.status === 'critical' && !issue.escalated_at) {
+        escalationsNeeded.push({
+          issue,
+          tat,
+          escalation_type: 'auto_critical'
+        });
+      } else if (tat.status === 'breach') {
+        escalationsNeeded.push({
+          issue,
+          tat,
+          escalation_type: 'auto_breach'
+        });
+      }
+    }
+
+    // Process escalations
+    for (const escalation of escalationsNeeded) {
+      await EscalationService.autoEscalate(
+        escalation.issue.id,
+        escalation.escalation_type,
+        `Automatic escalation due to TAT ${escalation.tat.status}`
+      );
+    }
+
+    return escalationsNeeded;
+  }
+
+  static async getTATReport(filters = {}) {
+    const buckets = await this.getTATBuckets(filters);
+    
+    const report = {
+      summary: buckets.summary,
+      performance_metrics: {
+        on_time_resolution: (buckets.summary.normal / buckets.summary.total) * 100,
+        sla_breach_rate: (buckets.summary.breach / buckets.summary.total) * 100,
+        average_resolution_days: await this.getAverageResolutionTime(filters)
+      },
+      trending: await this.getTATTrends(filters),
+      top_delayed_issues: buckets.breach.slice(0, 10)
+    };
+
+    return report;
+  }
+
+  static async getAverageResolutionTime(filters = {}) {
+    const resolvedIssues = await IssueModel.getAll({ 
+      ...filters, 
+      status: ['resolved', 'closed'] 
+    });
+
+    if (resolvedIssues.length === 0) return 0;
+
+    let totalHours = 0;
+    for (const issue of resolvedIssues) {
+      const createdAt = new Date(issue.created_at);
+      const resolvedAt = new Date(issue.closed_at || issue.updated_at);
+      totalHours += (resolvedAt - createdAt) / (1000 * 60 * 60);
+    }
+
+    return totalHours / (resolvedIssues.length * 24); // Return in days
+  }
+
+  static async getTATTrends(filters = {}) {
+    // Implementation for trending analysis
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const trends = [];
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(thirtyDaysAgo);
+      date.setDate(date.getDate() + i);
+      
+      const dayFilters = {
+        ...filters,
+        created_date: date.toISOString().split('T')[0]
       };
-    } catch (error) {
-      console.error('Error getting SLA breaches:', error);
-      throw error;
+      
+      const dayBuckets = await this.getTATBuckets(dayFilters);
+      trends.push({
+        date: date.toISOString().split('T')[0],
+        ...dayBuckets.summary
+      });
     }
-  }
 
-  async getTeamPerformance() {
-    try {
-      const query = `
-        SELECT 
-          i.assigned_to,
-          du.name as agent_name,
-          COUNT(*) as total_assigned,
-          SUM(CASE WHEN i.status = 'closed' THEN 1 ELSE 0 END) as resolved_count,
-          AVG(DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at)) as avg_resolution_time,
-          SUM(CASE WHEN DATEDIFF(COALESCE(i.closed_at, NOW()), i.created_at) <= 14 THEN 1 ELSE 0 END) as within_sla
-        FROM issues i
-        LEFT JOIN dashboard_users du ON i.assigned_to = du.employee_id
-        WHERE i.assigned_to IS NOT NULL
-        GROUP BY i.assigned_to, du.name
-        ORDER BY resolved_count DESC
-      `;
-
-      const [results] = await pool.execute(query);
-      return results;
-    } catch (error) {
-      console.error('Error getting team performance:', error);
-      throw error;
-    }
+    return trends;
   }
 }
 
-module.exports = new TATService();
+module.exports = TATService;

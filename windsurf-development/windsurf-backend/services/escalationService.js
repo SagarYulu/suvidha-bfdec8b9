@@ -1,377 +1,244 @@
 
-const { pool } = require('../config/database');
-const emailService = require('./actualEmailService');
-const auditController = require('../controllers/auditController');
-const autoAssignService = require('./autoAssignService');
+const EscalationModel = require('../models/Escalation');
+const IssueModel = require('../models/Issue');
+const UserModel = require('../models/User');
+const EmailService = require('./emailService');
+const NotificationService = require('./notificationService');
+const AuditTrailModel = require('../models/AuditTrail');
+const { v4: uuidv4 } = require('uuid');
 
 class EscalationService {
-  constructor() {
-    this.escalationThresholds = {
-      'low': { hours: 48, escalateTo: 'agent' },
-      'medium': { hours: 24, escalateTo: 'manager' },
-      'high': { hours: 12, escalateTo: 'manager' },
-      'critical': { hours: 4, escalateTo: 'admin' }
-    };
-  }
-
-  async checkAndEscalateIssues() {
+  static async createEscalation(escalationData) {
     try {
-      console.log('Starting escalation check...');
+      const escalationId = uuidv4();
+      
+      const escalation = await EscalationModel.create({
+        id: escalationId,
+        issue_id: escalationData.issue_id,
+        escalated_from: escalationData.escalated_from,
+        escalated_to: escalationData.escalated_to,
+        escalation_type: escalationData.escalation_type || 'manual',
+        reason: escalationData.reason,
+        escalated_at: new Date().toISOString(),
+        status: 'pending',
+        created_by: escalationData.created_by
+      });
 
-      // Get all open issues that might need escalation
-      const [issues] = await pool.execute(`
-        SELECT 
-          i.*,
-          e.name as employee_name,
-          e.email as employee_email,
-          e.city,
-          e.cluster,
-          TIMESTAMPDIFF(HOUR, i.created_at, NOW()) as age_hours,
-          TIMESTAMPDIFF(HOUR, COALESCE(i.escalated_at, i.created_at), NOW()) as escalation_age_hours
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        WHERE i.status NOT IN ('closed', 'resolved')
-        ORDER BY i.priority DESC, i.created_at ASC
-      `);
+      // Update issue with escalation info
+      await IssueModel.update(escalationData.issue_id, {
+        escalated_at: new Date().toISOString(),
+        escalated_to: escalationData.escalated_to
+      });
 
-      let escalatedCount = 0;
+      // Create audit trail
+      await AuditTrailModel.create({
+        id: uuidv4(),
+        issue_id: escalationData.issue_id,
+        user_id: escalationData.created_by,
+        action: 'escalation_created',
+        old_value: { escalated: false },
+        new_value: { 
+          escalated: true, 
+          escalated_to: escalationData.escalated_to,
+          escalation_type: escalationData.escalation_type 
+        },
+        metadata: { escalation_id: escalationId, reason: escalationData.reason }
+      });
 
-      for (const issue of issues) {
-        const shouldEscalate = await this.shouldEscalateIssue(issue);
-        
-        if (shouldEscalate) {
-          const result = await this.escalateIssue(issue.id, {
-            reason: 'time_threshold_exceeded',
-            escalatedBy: 'system'
-          });
+      // Send notifications
+      const issue = await IssueModel.findById(escalationData.issue_id);
+      await EmailService.sendEscalationEmail(escalation, issue);
+      
+      await NotificationService.createNotification({
+        user_id: escalationData.escalated_to,
+        issue_id: escalationData.issue_id,
+        type: 'escalation',
+        title: 'Issue Escalated to You',
+        message: `Issue ${escalationData.issue_id} has been escalated to you. Reason: ${escalationData.reason}`
+      });
 
-          if (result.success) {
-            escalatedCount++;
-          }
-        }
-      }
-
-      console.log(`Escalation check completed. ${escalatedCount} issues escalated.`);
-      return escalatedCount;
-
+      return escalation;
     } catch (error) {
-      console.error('Error checking escalations:', error);
+      console.error('Error creating escalation:', error);
       throw error;
     }
   }
 
-  async shouldEscalateIssue(issue) {
+  static async autoEscalate(issueId, escalationType, reason) {
     try {
-      const threshold = this.escalationThresholds[issue.priority];
-      if (!threshold) return false;
-
-      const ageHours = parseFloat(issue.age_hours);
-      const escalationAgeHours = parseFloat(issue.escalation_age_hours);
-
-      // Don't escalate if already escalated recently (within 6 hours)
-      if (issue.escalated_at && escalationAgeHours < 6) {
-        return false;
+      const issue = await IssueModel.findById(issueId);
+      if (!issue) {
+        throw new Error('Issue not found');
       }
 
-      // Check if issue is old enough for initial escalation
-      if (!issue.escalated_at && ageHours >= threshold.hours) {
-        return true;
+      // Determine escalation target based on current assignment and type
+      const escalationTarget = await this.getEscalationTarget(issue, escalationType);
+      
+      if (!escalationTarget) {
+        console.log(`No escalation target found for issue ${issueId}`);
+        return null;
       }
 
-      // Check for further escalation (every 24 hours after first escalation)
-      if (issue.escalated_at && escalationAgeHours >= 24 && issue.escalation_level < 3) {
-        return true;
-      }
-
-      return false;
-
-    } catch (error) {
-      console.error('Error checking if issue should escalate:', error);
-      return false;
-    }
-  }
-
-  async escalateIssue(issueId, options = {}) {
-    try {
-      const { reason = 'manual', escalatedBy = 'system', priority, escalateTo } = options;
-
-      // Get current issue details
-      const [issues] = await pool.execute(`
-        SELECT i.*, e.name as employee_name, e.email as employee_email
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        WHERE i.id = ?
-      `, [issueId]);
-
-      if (issues.length === 0) {
-        return { success: false, error: 'Issue not found' };
-      }
-
-      const issue = issues[0];
-      const currentLevel = issue.escalation_level || 0;
-      const newLevel = Math.min(currentLevel + 1, 3); // Max escalation level is 3
-
-      // Update issue priority if specified
-      let newPriority = issue.priority;
-      if (priority) {
-        newPriority = priority;
-      } else if (reason === 'time_threshold_exceeded') {
-        // Auto-escalate priority
-        const priorityEscalation = {
-          'low': 'medium',
-          'medium': 'high',
-          'high': 'critical'
-        };
-        newPriority = priorityEscalation[issue.priority] || issue.priority;
-      }
-
-      // Update issue in database
-      await pool.execute(`
-        UPDATE issues 
-        SET 
-          escalated_at = NOW(),
-          escalation_level = ?,
-          escalation_count = escalation_count + 1,
-          priority = ?,
-          updated_at = NOW()
-        WHERE id = ?
-      `, [newLevel, newPriority, issueId]);
-
-      // Log escalation in audit trail
-      await auditController.logAction(
-        'escalated',
-        issueId,
-        escalatedBy,
-        {
-          reason,
-          previous_level: currentLevel,
-          new_level: newLevel,
-          previous_priority: issue.priority,
-          new_priority: newPriority,
-          escalate_to: escalateTo
-        },
-        issue.priority,
-        newPriority
-      );
-
-      // Find and notify escalation recipient
-      await this.notifyEscalation(issueId, issue, newLevel, reason);
-
-      // Try to reassign if specified or if currently unassigned
-      if (escalateTo || !issue.assigned_to) {
-        try {
-          const assignee = await this.findEscalationAssignee(issue, escalateTo, newLevel);
-          if (assignee) {
-            await pool.execute(`
-              UPDATE issues SET assigned_to = ? WHERE id = ?
-            `, [assignee.id, issueId]);
-
-            await auditController.logAction(
-              'escalation_reassigned',
-              issueId,
-              escalatedBy,
-              {
-                assigned_to: assignee.id,
-                assignee_name: assignee.name,
-                escalation_level: newLevel
-              }
-            );
-          }
-        } catch (assignError) {
-          console.error('Failed to reassign escalated issue:', assignError);
-        }
-      }
-
-      // Get updated issue
-      const [updatedIssues] = await pool.execute(`
-        SELECT i.*, e.name as employee_name
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        WHERE i.id = ?
-      `, [issueId]);
-
-      console.log(`Issue ${issueId} escalated to level ${newLevel} (${reason})`);
-
-      return { 
-        success: true, 
-        issue: updatedIssues[0],
-        escalation_level: newLevel,
-        previous_level: currentLevel
+      const escalationData = {
+        issue_id: issueId,
+        escalated_from: issue.assigned_to,
+        escalated_to: escalationTarget.id,
+        escalation_type: escalationType,
+        reason: reason,
+        created_by: 'system' // System-initiated escalation
       };
 
+      return await this.createEscalation(escalationData);
     } catch (error) {
-      console.error('Error escalating issue:', error);
-      return { success: false, error: error.message };
+      console.error('Error in auto escalation:', error);
+      throw error;
     }
   }
 
-  async findEscalationAssignee(issue, escalateTo, escalationLevel) {
+  static async getEscalationTarget(issue, escalationType) {
     try {
-      let targetRoles = [];
-
-      if (escalateTo) {
-        targetRoles = [escalateTo];
-      } else {
-        // Determine target roles based on escalation level
-        switch (escalationLevel) {
-          case 1:
-            targetRoles = ['agent', 'manager'];
-            break;
-          case 2:
-            targetRoles = ['manager', 'admin'];
-            break;
-          case 3:
-            targetRoles = ['admin'];
-            break;
-          default:
-            targetRoles = ['agent'];
-        }
+      // Get current assignee info
+      let currentAssignee = null;
+      if (issue.assigned_to) {
+        currentAssignee = await UserModel.findById(issue.assigned_to);
       }
 
-      const roleFilter = targetRoles.map(() => '?').join(',');
+      // Escalation hierarchy: agent -> manager -> admin
+      if (!currentAssignee || currentAssignee.role === 'agent') {
+        // Escalate to manager
+        const managers = await UserModel.findByRole('manager');
+        return managers.length > 0 ? managers[0] : null;
+      } else if (currentAssignee.role === 'manager') {
+        // Escalate to admin
+        const admins = await UserModel.findByRole('admin');
+        return admins.length > 0 ? admins[0] : null;
+      }
 
-      const [assignees] = await pool.execute(`
-        SELECT 
-          du.id,
-          du.name,
-          du.email,
-          du.role,
-          COUNT(i.id) as current_load
-        FROM dashboard_users du
-        LEFT JOIN issues i ON i.assigned_to = du.id 
-          AND i.status NOT IN ('closed', 'resolved')
-        WHERE du.role IN (${roleFilter})
-        GROUP BY du.id, du.name, du.email, du.role
-        ORDER BY 
-          CASE du.role 
-            WHEN 'admin' THEN 1 
-            WHEN 'manager' THEN 2 
-            ELSE 3 
-          END,
-          current_load ASC,
-          RAND()
-        LIMIT 1
-      `, targetRoles);
-
-      return assignees.length > 0 ? assignees[0] : null;
-
+      // Already at highest level
+      return null;
     } catch (error) {
-      console.error('Error finding escalation assignee:', error);
+      console.error('Error getting escalation target:', error);
       return null;
     }
   }
 
-  async notifyEscalation(issueId, issue, escalationLevel, reason) {
+  static async resolveEscalation(escalationId, resolvedBy, resolution) {
     try {
-      // Get escalation notification recipients
-      const [recipients] = await pool.execute(`
-        SELECT du.email, du.name, du.role
-        FROM dashboard_users du
-        WHERE du.role IN ('admin', 'manager')
-        ORDER BY 
-          CASE du.role 
-            WHEN 'admin' THEN 1 
-            WHEN 'manager' THEN 2 
-            ELSE 3 
-          END
-      `);
+      const escalation = await EscalationModel.resolveEscalation(escalationId, resolvedBy);
+      
+      if (escalation) {
+        // Create audit trail
+        await AuditTrailModel.create({
+          id: uuidv4(),
+          issue_id: escalation.issue_id,
+          user_id: resolvedBy,
+          action: 'escalation_resolved',
+          old_value: { escalation_status: 'pending' },
+          new_value: { escalation_status: 'resolved' },
+          metadata: { escalation_id: escalationId, resolution: resolution }
+        });
 
-      // Send email to escalation recipients
-      for (const recipient of recipients) {
-        try {
-          await emailService.sendEscalationEmail(
-            recipient.email,
-            recipient.name,
-            {
-              ...issue,
-              id: issueId,
-              escalation_level: escalationLevel,
-              escalation_reason: reason
+        // Notify relevant parties
+        await NotificationService.createNotification({
+          user_id: escalation.created_by,
+          issue_id: escalation.issue_id,
+          type: 'escalation_resolved',
+          title: 'Escalation Resolved',
+          message: `Escalation for issue ${escalation.issue_id} has been resolved.`
+        });
+      }
+
+      return escalation;
+    } catch (error) {
+      console.error('Error resolving escalation:', error);
+      throw error;
+    }
+  }
+
+  static async getEscalationsByIssue(issueId) {
+    try {
+      return await EscalationModel.findByIssueId(issueId);
+    } catch (error) {
+      console.error('Error getting escalations by issue:', error);
+      return [];
+    }
+  }
+
+  static async getPendingEscalations() {
+    try {
+      return await EscalationModel.getPendingEscalations();
+    } catch (error) {
+      console.error('Error getting pending escalations:', error);
+      return [];
+    }
+  }
+
+  static async getEscalationStats(filters = {}) {
+    try {
+      return await EscalationModel.getEscalationStats(filters);
+    } catch (error) {
+      console.error('Error getting escalation stats:', error);
+      return {
+        total_escalations: 0,
+        pending_escalations: 0,
+        resolved_escalations: 0,
+        avg_resolution_hours: 0
+      };
+    }
+  }
+
+  static async checkAndProcessAutoEscalations() {
+    try {
+      console.log('Checking for auto-escalations...');
+      
+      // Get all open/in-progress issues
+      const openIssues = await IssueModel.getAll({ 
+        status: ['open', 'in_progress'] 
+      });
+
+      const escalationsCreated = [];
+
+      for (const issue of openIssues) {
+        const createdAt = new Date(issue.created_at);
+        const now = new Date();
+        const hoursElapsed = (now - createdAt) / (1000 * 60 * 60);
+        const daysElapsed = hoursElapsed / 24;
+
+        // Check if issue needs escalation
+        let shouldEscalate = false;
+        let escalationType = '';
+        let reason = '';
+
+        if (daysElapsed > 14 && !issue.escalated_at) {
+          shouldEscalate = true;
+          escalationType = 'auto_critical';
+          reason = `Automatic escalation: Issue has been open for ${Math.floor(daysElapsed)} days without resolution`;
+        } else if (daysElapsed > 30) {
+          shouldEscalate = true;
+          escalationType = 'auto_breach';
+          reason = `SLA breach escalation: Issue has exceeded 30-day resolution target`;
+        }
+
+        if (shouldEscalate) {
+          try {
+            const escalation = await this.autoEscalate(issue.id, escalationType, reason);
+            if (escalation) {
+              escalationsCreated.push(escalation);
+              console.log(`Auto-escalated issue ${issue.id} after ${Math.floor(daysElapsed)} days`);
             }
-          );
-        } catch (emailError) {
-          console.error(`Failed to send escalation email to ${recipient.email}:`, emailError);
+          } catch (error) {
+            console.error(`Failed to auto-escalate issue ${issue.id}:`, error);
+          }
         }
       }
 
-      // Notify issue owner
-      if (issue.employee_email) {
-        try {
-          await emailService.sendIssueStatusUpdateEmail(
-            issue.employee_email,
-            issue.employee_name,
-            { ...issue, id: issueId },
-            issue.status,
-            `escalated_level_${escalationLevel}`
-          );
-        } catch (emailError) {
-          console.error(`Failed to send escalation notice to issue owner:`, emailError);
-        }
-      }
-
+      console.log(`Auto-escalation check complete. ${escalationsCreated.length} escalations created.`);
+      return escalationsCreated;
     } catch (error) {
-      console.error('Error sending escalation notifications:', error);
-    }
-  }
-
-  async getEscalationMetrics(filters = {}) {
-    try {
-      const { startDate, endDate, city, cluster } = filters;
-
-      let whereClause = 'WHERE i.escalated_at IS NOT NULL';
-      const params = [];
-
-      if (startDate) {
-        whereClause += ' AND i.escalated_at >= ?';
-        params.push(startDate);
-      }
-
-      if (endDate) {
-        whereClause += ' AND i.escalated_at <= ?';
-        params.push(endDate);
-      }
-
-      if (city) {
-        whereClause += ' AND e.city = ?';
-        params.push(city);
-      }
-
-      if (cluster) {
-        whereClause += ' AND e.cluster = ?';
-        params.push(cluster);
-      }
-
-      const [metrics] = await pool.execute(`
-        SELECT 
-          COUNT(*) as total_escalations,
-          COUNT(CASE WHEN i.status IN ('resolved', 'closed') THEN 1 END) as resolved_escalations,
-          AVG(i.escalation_level) as avg_escalation_level,
-          COUNT(CASE WHEN i.escalation_level = 1 THEN 1 END) as level_1_escalations,
-          COUNT(CASE WHEN i.escalation_level = 2 THEN 1 END) as level_2_escalations,
-          COUNT(CASE WHEN i.escalation_level = 3 THEN 1 END) as level_3_escalations,
-          AVG(TIMESTAMPDIFF(HOUR, i.escalated_at, COALESCE(i.closed_at, NOW()))) as avg_resolution_hours
-        FROM issues i
-        LEFT JOIN employees e ON i.employee_uuid = e.id
-        ${whereClause}
-      `, params);
-
-      return metrics[0];
-
-    } catch (error) {
-      console.error('Error getting escalation metrics:', error);
-      throw error;
-    }
-  }
-
-  async updateEscalationThresholds(priority, hours, escalateTo) {
-    try {
-      this.escalationThresholds[priority] = { hours, escalateTo };
-      console.log(`Escalation threshold updated for ${priority}: ${hours} hours -> ${escalateTo}`);
-    } catch (error) {
-      console.error('Error updating escalation thresholds:', error);
-      throw error;
+      console.error('Error in auto-escalation check:', error);
+      return [];
     }
   }
 }
 
-module.exports = new EscalationService();
+module.exports = EscalationService;
