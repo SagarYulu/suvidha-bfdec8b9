@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Download, Database, FileText, AlertCircle, CheckCircle, ArrowRight } from 'lucide-react';
+import { Download, Database, FileText, AlertCircle, CheckCircle, ArrowRight, RefreshCw, AlertTriangle } from 'lucide-react';
 import { DataMigrationGenerator } from '@/utils/dataMigrationGenerator';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -23,14 +23,14 @@ const DataMigrationTool = () => {
     
     try {
       toast({
-        title: "Starting Data Migration",
-        description: "Extracting data from Supabase and generating MySQL INSERT statements...",
+        title: "Starting Enhanced Data Migration",
+        description: "Extracting data with improved MySQL compatibility and error handling...",
       });
 
       // Simulate progress for better UX
       const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 300);
+        setProgress(prev => Math.min(prev + 8, 92));
+      }, 400);
 
       await migrationGenerator.generateCompleteMigration();
       
@@ -39,8 +39,8 @@ const DataMigrationTool = () => {
       setMigrationComplete(true);
       
       toast({
-        title: "Migration Script Generated!",
-        description: "MySQL migration script has been downloaded to your computer.",
+        title: "Enhanced Migration Script Generated!",
+        description: "Improved MySQL migration script with better compatibility has been downloaded.",
       });
 
     } catch (error) {
@@ -88,19 +88,27 @@ const DataMigrationTool = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="h-6 w-6" />
-            Data Migration Tool
+            Enhanced Data Migration Tool
           </CardTitle>
           <CardDescription>
-            Extract all data from your Supabase database and generate MySQL-compatible INSERT statements for seamless migration.
+            Extract all data from your Supabase database and generate MySQL-compatible INSERT statements with improved error handling and compatibility.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           
           {/* Migration Process */}
           <Alert>
-            <AlertCircle className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" />
             <AlertDescription>
-              <strong>Migration Process:</strong> This tool will extract data from all 17 tables in your Supabase database and generate a complete MySQL migration script with proper data formatting and type conversion.
+              <strong>Enhanced Migration Process:</strong> This updated tool provides better MySQL compatibility, improved error handling, smaller batch sizes, and enhanced data type conversion for a more reliable migration.
+            </AlertDescription>
+          </Alert>
+
+          {/* Pre-Migration Cleanup Notice */}
+          <Alert className="border-orange-200 bg-orange-50">
+            <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <AlertDescription className="text-orange-800">
+              <strong>Before Running New Migration:</strong> If you previously ran a migration script, please clean your MySQL database first to avoid data conflicts. Run the cleanup SQL commands in MySQL Workbench before proceeding.
             </AlertDescription>
           </Alert>
 
@@ -115,12 +123,12 @@ const DataMigrationTool = () => {
               {isGenerating ? (
                 <>
                   <Database className="h-4 w-4 mr-2 animate-spin" />
-                  Generating MySQL Migration Script...
+                  Generating Enhanced MySQL Migration Script...
                 </>
               ) : (
                 <>
                   <Download className="h-4 w-4 mr-2" />
-                  Generate Complete MySQL Migration
+                  Generate Enhanced MySQL Migration
                 </>
               )}
             </Button>
@@ -130,7 +138,7 @@ const DataMigrationTool = () => {
               <div className="space-y-2">
                 <Progress value={progress} className="w-full" />
                 <div className="text-sm text-gray-600 text-center">
-                  Extracting and converting data... ({progress}%)
+                  Processing tables with enhanced compatibility... ({progress}%)
                 </div>
               </div>
             )}
@@ -144,11 +152,11 @@ const DataMigrationTool = () => {
                 <div className="text-center">
                   <FileText className="h-6 w-6 mx-auto mb-2" />
                   <div className="font-medium">Generate Table Report</div>
-                  <div className="text-xs text-gray-500">View row counts per table</div>
+                  <div className="text-xs text-gray-500">View current row counts per table</div>
                 </div>
               </Button>
               
-              <Button variant="outline" onClick={() => window.open('/database-export', '_blank')} className="h-auto p-4">
+              <Button variant="outline" onClick={() => window.open('/export', '_blank')} className="h-auto p-4">
                 <div className="text-center">
                   <Database className="h-6 w-6 mx-auto mb-2" />
                   <div className="font-medium">Legacy Export Tool</div>
@@ -163,8 +171,8 @@ const DataMigrationTool = () => {
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-600" />
-                <h3 className="text-lg font-semibold">Migration Script Generated!</h3>
-                <Badge variant="secondary">Ready for MySQL</Badge>
+                <h3 className="text-lg font-semibold">Enhanced Migration Script Generated!</h3>
+                <Badge variant="secondary">MySQL Optimized</Badge>
               </div>
 
               {/* Next Steps */}
@@ -173,15 +181,15 @@ const DataMigrationTool = () => {
                 <ol className="text-sm text-green-800 space-y-1">
                   <li className="flex items-center gap-2">
                     <ArrowRight className="h-3 w-3" />
-                    <span>1. The MySQL migration script has been downloaded to your computer</span>
+                    <span>1. The enhanced MySQL migration script has been downloaded to your computer</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <ArrowRight className="h-3 w-3" />
-                    <span>2. Open your MySQL database management tool (phpMyAdmin, MySQL Workbench, etc.)</span>
+                    <span>2. If you ran a previous migration, clean your MySQL database first</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <ArrowRight className="h-3 w-3" />
-                    <span>3. Make sure your database schema is already created</span>
+                    <span>3. Open your MySQL database management tool (phpMyAdmin, MySQL Workbench, etc.)</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <ArrowRight className="h-3 w-3" />
@@ -189,21 +197,22 @@ const DataMigrationTool = () => {
                   </li>
                   <li className="flex items-center gap-2">
                     <ArrowRight className="h-3 w-3" />
-                    <span>5. Verify the data import was successful</span>
+                    <span>5. Verify the data import was successful and check for any error messages</span>
                   </li>
                 </ol>
               </div>
 
-              {/* Technical Details */}
+              {/* Technical Improvements */}
               <div className="p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">What's Included:</h4>
+                <h4 className="font-medium text-blue-900 mb-2">Enhanced Features:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>✅ Data from all 17 database tables</li>
-                  <li>✅ Proper MySQL data type conversion</li>
-                  <li>✅ Escaped special characters and SQL injection protection</li>
-                  <li>✅ Transaction wrapping for data integrity</li>
-                  <li>✅ Foreign key handling</li>
-                  <li>✅ Batch processing for large datasets</li>
+                  <li>✅ Improved MySQL data type conversion and compatibility</li>
+                  <li>✅ Enhanced character encoding handling (UTF-8)</li>
+                  <li>✅ Smaller batch sizes for better performance</li>
+                  <li>✅ Better error handling and reporting</li>
+                  <li>✅ Robust escape handling for special characters</li>
+                  <li>✅ MySQL-specific configuration settings</li>
+                  <li>✅ Detailed error logging in the SQL script</li>
                 </ul>
               </div>
             </div>
