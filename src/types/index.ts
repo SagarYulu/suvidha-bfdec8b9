@@ -41,6 +41,9 @@ export interface Issue {
   mappedSubTypeId?: string; // Field to store mapped subtype
   mappedAt?: string; // When the issue was mapped
   mappedBy?: string; // Who mapped the issue
+  // Add escalation fields
+  escalation_level?: number; // Escalation level (0 = not escalated, 1+ = escalated)
+  escalated_at?: string; // When the issue was escalated
 }
 
 export interface IssueComment {
