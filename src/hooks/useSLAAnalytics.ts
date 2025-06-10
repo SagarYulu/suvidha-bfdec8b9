@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react';
 import { IssueFilters } from '@/services/issues/issueFilters';
 import { getIssues } from '@/services/issues/issueFilters';
-import { subDays, format, startOfDay, endOfDay, differenceInHours } from 'date-fns';
+import { subDays, format, startOfDay, endOfDay } from 'date-fns';
 import { getIssueTypeLabel } from '@/services/issues/issueTypeHelpers';
+import { calculateWorkingHours } from '@/utils/workingTimeUtils';
 
 interface SLAOverviewData {
   name: string;
@@ -31,12 +32,12 @@ interface SLAMetrics {
   compliance: string;
 }
 
-// SLA thresholds in hours - ALIGNED WITH BACKEND
+// SLA thresholds in WORKING HOURS - ALIGNED WITH SUPABASE
 const SLA_THRESHOLDS = {
-  'critical': 4,   // 4 hours
-  'high': 24,      // 24 hours
-  'medium': 72,    // 72 hours
-  'low': 168       // 168 hours (1 week)
+  'low': 4,        // 4 working hours
+  'medium': 24,    // 24 working hours
+  'high': 72,      // 72 working hours
+  'critical': 72   // More than 72 working hours (we use 72 as threshold)
 };
 
 export const useSLAAnalytics = (filters: IssueFilters) => {
@@ -52,23 +53,38 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
 
   const calculateSLAStatus = (issue: any) => {
     const threshold = getSLAThreshold(issue.priority);
-    const now = new Date();
-    const createdAt = new Date(issue.createdAt);
+    const now = new Date().toISOString();
+    const createdAt = issue.createdAt;
     
     if (issue.closedAt) {
-      // Closed ticket - check if it was resolved within SLA
-      const closedAt = new Date(issue.closedAt);
-      const resolutionTime = differenceInHours(closedAt, createdAt);
-      return resolutionTime <= threshold ? 'onTime' : 'breached';
-    } else {
-      // Open ticket - check current age against SLA
-      const currentAge = differenceInHours(now, createdAt);
-      if (currentAge > threshold) {
-        return 'breached';
-      } else if (currentAge > threshold * 0.8) {
-        return 'atRisk';
+      // Closed ticket - check if it was resolved within SLA using working hours
+      const workingHoursToResolve = calculateWorkingHours(createdAt, issue.closedAt);
+      
+      if (issue.priority === 'critical') {
+        return workingHoursToResolve > 72 ? 'breached' : 'onTime';
       } else {
-        return 'pending';
+        return workingHoursToResolve <= threshold ? 'onTime' : 'breached';
+      }
+    } else {
+      // Open ticket - check current working hours age against SLA
+      const currentWorkingAge = calculateWorkingHours(createdAt, now);
+      
+      if (issue.priority === 'critical') {
+        if (currentWorkingAge > 72) {
+          return 'breached';
+        } else if (currentWorkingAge > 72 * 0.8) {
+          return 'atRisk';
+        } else {
+          return 'pending';
+        }
+      } else {
+        if (currentWorkingAge > threshold) {
+          return 'breached';
+        } else if (currentWorkingAge > threshold * 0.8) {
+          return 'atRisk';
+        } else {
+          return 'pending';
+        }
       }
     }
   };
@@ -100,7 +116,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           return;
         }
         
-        // Calculate SLA status for each issue using PRIORITY-based SLA
+        // Calculate SLA status for each issue using WORKING HOURS and correct priority-based SLA
         const issuesWithSLA = allIssues.map(issue => {
           const slaStatus = calculateSLAStatus(issue);
           console.log(`Issue ${issue.id}: Priority = ${issue.priority}, Status = ${slaStatus}`);
@@ -156,34 +172,58 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           });
 
           const counts = relevantIssues.reduce((acc, issue) => {
-            const createdAt = new Date(issue.createdAt);
+            const createdAt = issue.createdAt;
             const threshold = getSLAThreshold(issue.priority);
             
-            const ageOnDate = differenceInHours(end, createdAt);
+            const workingAgeOnDate = calculateWorkingHours(createdAt, end.toISOString());
             
             let statusOnDate: string;
             
             if (issue.closedAt) {
               const closedAt = new Date(issue.closedAt);
               if (closedAt <= end) {
-                const resolutionTime = differenceInHours(closedAt, createdAt);
-                statusOnDate = resolutionTime <= threshold ? 'onTime' : 'breached';
+                const workingResolutionTime = calculateWorkingHours(createdAt, issue.closedAt);
+                if (issue.priority === 'critical') {
+                  statusOnDate = workingResolutionTime > 72 ? 'breached' : 'onTime';
+                } else {
+                  statusOnDate = workingResolutionTime <= threshold ? 'onTime' : 'breached';
+                }
               } else {
-                if (ageOnDate > threshold) {
+                if (issue.priority === 'critical') {
+                  if (workingAgeOnDate > 72) {
+                    statusOnDate = 'breached';
+                  } else if (workingAgeOnDate > 72 * 0.8) {
+                    statusOnDate = 'atRisk';
+                  } else {
+                    statusOnDate = 'pending';
+                  }
+                } else {
+                  if (workingAgeOnDate > threshold) {
+                    statusOnDate = 'breached';
+                  } else if (workingAgeOnDate > threshold * 0.8) {
+                    statusOnDate = 'atRisk';
+                  } else {
+                    statusOnDate = 'pending';
+                  }
+                }
+              }
+            } else {
+              if (issue.priority === 'critical') {
+                if (workingAgeOnDate > 72) {
                   statusOnDate = 'breached';
-                } else if (ageOnDate > threshold * 0.8) {
+                } else if (workingAgeOnDate > 72 * 0.8) {
                   statusOnDate = 'atRisk';
                 } else {
                   statusOnDate = 'pending';
                 }
-              }
-            } else {
-              if (ageOnDate > threshold) {
-                statusOnDate = 'breached';
-              } else if (ageOnDate > threshold * 0.8) {
-                statusOnDate = 'atRisk';
               } else {
-                statusOnDate = 'pending';
+                if (workingAgeOnDate > threshold) {
+                  statusOnDate = 'breached';
+                } else if (workingAgeOnDate > threshold * 0.8) {
+                  statusOnDate = 'atRisk';
+                } else {
+                  statusOnDate = 'pending';
+                }
               }
             }
 
@@ -201,7 +241,7 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
 
         setSlaBreachTrendData(trendData);
 
-        // Generate performance by type data using PRIORITY for SLA calculation
+        // Generate performance by type data using WORKING HOURS for SLA calculation
         const typeGroups = issuesWithSLA.reduce((acc, issue) => {
           const typeLabel = getIssueTypeLabel(issue.typeId);
           if (!acc[typeLabel]) {
@@ -219,12 +259,12 @@ export const useSLAAnalytics = (filters: IssueFilters) => {
           const complianceRate = total > 0 ? (onTimeCount / total) * 100 : 0;
           const breachRate = total > 0 ? (breachedCount / total) * 100 : 0;
 
-          // Calculate average resolution time for closed issues
+          // Calculate average resolution time for closed issues using working hours
           const closedIssues = issues.filter(i => i.closedAt);
           const avgResolutionTime = closedIssues.length > 0 
             ? closedIssues.reduce((sum, issue) => {
-                const hours = differenceInHours(new Date(issue.closedAt), new Date(issue.createdAt));
-                return sum + hours;
+                const workingHours = calculateWorkingHours(issue.createdAt, issue.closedAt);
+                return sum + workingHours;
               }, 0) / closedIssues.length
             : 0;
 

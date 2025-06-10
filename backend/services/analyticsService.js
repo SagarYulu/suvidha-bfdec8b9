@@ -1,3 +1,4 @@
+
 const { getPool } = require('../config/database');
 
 class AnalyticsService {
@@ -65,12 +66,12 @@ class AnalyticsService {
     const pool = getPool();
     const { startDate, endDate, city, cluster } = filters;
 
-    // SLA targets ALIGNED WITH FRONTEND - using PRIORITY-based SLA
+    // SLA targets ALIGNED WITH SUPABASE - using working hours logic
     const SLA_TARGETS = {
-      'critical': 4,   // 4 hours
-      'high': 24,      // 24 hours
-      'medium': 72,    // 72 hours
-      'low': 168       // 168 hours (1 week)
+      'low': 4,        // 4 working hours
+      'medium': 24,    // 24 working hours  
+      'high': 72,      // 72 working hours
+      'critical': null // More than 72 working hours (no upper limit)
     };
 
     const results = {};
@@ -96,7 +97,7 @@ class AnalyticsService {
         WHERE priority = ?
       `;
 
-      const params = [slaHours, slaHours, priority];
+      const params = slaHours ? [slaHours, slaHours, priority] : [72, 72, priority]; // For critical, use 72 as threshold
 
       if (startDate) {
         query += ' AND created_at >= ?';
