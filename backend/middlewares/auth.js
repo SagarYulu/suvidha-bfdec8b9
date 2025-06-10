@@ -1,86 +1,68 @@
 
 const jwt = require('jsonwebtoken');
-const { getPool } = require('../config/database');
-const { HTTP_STATUS } = require('../config/constants');
+const User = require('../models/User');
+const cacheService = require('../services/cacheService');
 
-const authenticateToken = async (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
     if (!token) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Access denied',
-        message: 'No token provided'
-      });
+      return res.status(401).json({ error: 'Access denied. No token provided.' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Get user details from database
-    const pool = getPool();
-    const [rows] = await pool.execute(
-      'SELECT id, email, role, is_active FROM dashboard_users WHERE id = ?',
-      [decoded.userId]
-    );
-
-    if (rows.length === 0) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Invalid token',
-        message: 'User not found'
-      });
-    }
-
-    const user = rows[0];
+    // Try to get user from cache first
+    let user = cacheService.getUser(decoded.id);
     
-    if (!user.is_active) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Account deactivated',
-        message: 'Your account has been deactivated'
-      });
+    if (!user) {
+      user = await User.findById(decoded.id);
+      if (!user) {
+        return res.status(401).json({ error: 'Invalid token.' });
+      }
+      
+      // Cache the user data
+      cacheService.setUser(decoded.id, user);
     }
 
-    req.user = user;
+    // Get permissions from cache or database
+    let permissions = cacheService.getUserPermissions(decoded.id);
+    if (!permissions) {
+      permissions = await User.getUserPermissions(decoded.id);
+      cacheService.setUserPermissions(decoded.id, permissions);
+    }
+
+    req.user = {
+      ...user,
+      permissions: permissions,
+      isSpecialAdmin: decoded.isSpecialAdmin || false
+    };
+    
     next();
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Invalid token',
-        message: 'Token is malformed'
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Token expired',
-        message: 'Please login again'
-      });
-    }
-
-    console.error('Auth middleware error:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      error: 'Authentication error',
-      message: 'Internal server error'
-    });
+    console.error('Authentication error:', error);
+    res.status(401).json({ error: 'Invalid token.' });
   }
 };
 
-const requireRole = (roles) => {
+const authorize = (roles = []) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: 'Authentication required',
-        message: 'Please login first'
-      });
+      return res.status(401).json({ error: 'Access denied. User not authenticated.' });
     }
 
-    const userRole = req.user.role;
-    const allowedRoles = Array.isArray(roles) ? roles : [roles];
+    // Special admin accounts have access to everything
+    if (req.user.isSpecialAdmin) {
+      return next();
+    }
 
-    if (!allowedRoles.includes(userRole)) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
-        error: 'Insufficient permissions',
-        message: `Access denied. Required roles: ${allowedRoles.join(', ')}`
+    // Check if user has required role
+    if (roles.length > 0 && !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        error: 'Access denied. Insufficient privileges.',
+        required: roles,
+        current: req.user.role
       });
     }
 
@@ -88,45 +70,33 @@ const requireRole = (roles) => {
   };
 };
 
-const requirePermission = (permission) => {
-  return async (req, res, next) => {
-    try {
-      if (!req.user) {
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-          error: 'Authentication required',
-          message: 'Please login first'
-        });
-      }
+const checkPermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Access denied. User not authenticated.' });
+    }
 
-      const pool = getPool();
-      const [rows] = await pool.execute(`
-        SELECT p.permission_name 
-        FROM rbac_user_roles ur
-        JOIN rbac_role_permissions rp ON ur.role_id = rp.role_id
-        JOIN rbac_permissions p ON rp.permission_id = p.id
-        WHERE ur.user_id = ? AND p.permission_name = ?
-      `, [req.user.id, permission]);
+    // Special admin accounts have all permissions
+    if (req.user.isSpecialAdmin) {
+      return next();
+    }
 
-      if (rows.length === 0) {
-        return res.status(HTTP_STATUS.FORBIDDEN).json({
-          error: 'Insufficient permissions',
-          message: `Access denied. Required permission: ${permission}`
-        });
-      }
-
-      next();
-    } catch (error) {
-      console.error('Permission check error:', error);
-      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        error: 'Permission check failed',
-        message: 'Internal server error'
+    // Check if user has the specific permission
+    const hasPermission = req.user.permissions?.some(p => p.permission_name === permission);
+    
+    if (!hasPermission) {
+      return res.status(403).json({ 
+        error: 'Access denied. Missing required permission.',
+        required: permission
       });
     }
+
+    next();
   };
 };
 
 module.exports = {
-  authenticateToken,
-  requireRole,
-  requirePermission
+  authenticate,
+  authorize,
+  checkPermission
 };

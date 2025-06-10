@@ -9,6 +9,7 @@ require('dotenv').config();
 const { connectDB } = require('./config/database');
 const errorHandler = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
+const { cacheUserPermissions } = require('./middlewares/cacheMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -24,6 +25,8 @@ const auditRoutes = require('./routes/auditRoutes');
 const internalCommentRoutes = require('./routes/internalCommentRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const fileRoutes = require('./routes/fileRoutes');
+const bulkUploadRoutes = require('./routes/bulkUploadRoutes');
+const advancedAnalyticsRoutes = require('./routes/advancedAnalyticsRoutes');
 
 const app = express();
 
@@ -52,6 +55,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Logging middleware
 app.use(logger);
 
+// Cache middleware for authenticated routes
+app.use('/api', cacheUserPermissions);
+
 // Connect to database
 connectDB();
 
@@ -69,13 +75,25 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/internal-comments', internalCommentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/files', fileRoutes);
+app.use('/api/bulk-upload', bulkUploadRoutes);
+app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'OK',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Cache status endpoint (admin only)
+app.get('/api/cache/status', (req, res) => {
+  const cacheService = require('./services/cacheService');
+  res.status(200).json({
+    status: 'OK',
+    cache_stats: cacheService.getStats()
   });
 });
 
@@ -96,6 +114,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+  console.log(`💾 Cache enabled: ${process.env.ENABLE_CACHE !== 'false'}`);
 });
 
 module.exports = app;
