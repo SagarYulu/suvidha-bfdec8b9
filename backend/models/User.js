@@ -1,7 +1,8 @@
-
 const { getPool } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
+const PermissionService = require('../services/permissionService');
+const WorkingTimeUtils = require('../utils/workingTimeUtils');
 
 class User {
   static async create(userData) {
@@ -13,9 +14,9 @@ class User {
     
     const [result] = await pool.execute(
       `INSERT INTO dashboard_users 
-       (id, email, password_hash, full_name, role, cluster_id, is_active, created_at) 
+       (id, email, password, name, role, cluster, city, created_at) 
        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [userId, email, hashedPassword, full_name, role, cluster_id, true]
+      [userId, email, hashedPassword, full_name, role, cluster_id || null, userData.city || null]
     );
     
     return this.findById(userId);
@@ -26,7 +27,7 @@ class User {
     const [rows] = await pool.execute(
       `SELECT u.*, c.cluster_name, c.city_id 
        FROM dashboard_users u
-       LEFT JOIN master_clusters c ON u.cluster_id = c.id
+       LEFT JOIN master_clusters c ON u.cluster = c.name
        WHERE u.id = ?`,
       [id]
     );
@@ -39,7 +40,7 @@ class User {
     const [rows] = await pool.execute(
       `SELECT u.*, c.cluster_name, c.city_id 
        FROM dashboard_users u
-       LEFT JOIN master_clusters c ON u.cluster_id = c.id
+       LEFT JOIN master_clusters c ON u.cluster = c.name
        WHERE u.email = ?`,
       [email]
     );
@@ -52,7 +53,7 @@ class User {
     let query = `
       SELECT u.*, c.cluster_name, ct.city_name 
       FROM dashboard_users u
-      LEFT JOIN master_clusters c ON u.cluster_id = c.id
+      LEFT JOIN master_clusters c ON u.cluster = c.name
       LEFT JOIN master_cities ct ON c.city_id = ct.id
       WHERE 1=1
     `;
@@ -70,12 +71,12 @@ class User {
     }
     
     if (filters.cluster_id) {
-      query += ' AND u.cluster_id = ?';
+      query += ' AND u.cluster = ?';
       params.push(filters.cluster_id);
     }
     
     if (filters.search) {
-      query += ' AND (u.full_name LIKE ? OR u.email LIKE ?)';
+      query += ' AND (u.name LIKE ? OR u.email LIKE ?)';
       const searchTerm = `%${filters.search}%`;
       params.push(searchTerm, searchTerm);
     }
@@ -98,7 +99,7 @@ class User {
 
   static async update(id, updates) {
     const pool = getPool();
-    const allowedFields = ['full_name', 'role', 'cluster_id', 'is_active'];
+    const allowedFields = ['name', 'role', 'cluster', 'city', 'phone', 'manager'];
     const fields = [];
     const values = [];
     
@@ -128,7 +129,7 @@ class User {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     
     await pool.execute(
-      'UPDATE dashboard_users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+      'UPDATE dashboard_users SET password = ?, updated_at = NOW() WHERE id = ?',
       [hashedPassword, id]
     );
     
@@ -169,28 +170,19 @@ class User {
   }
 
   static async getUserPermissions(userId) {
-    const pool = getPool();
-    const [rows] = await pool.execute(`
-      SELECT DISTINCT p.permission_name, p.description
-      FROM rbac_user_roles ur
-      JOIN rbac_role_permissions rp ON ur.role_id = rp.role_id
-      JOIN rbac_permissions p ON rp.permission_id = p.id
-      WHERE ur.user_id = ?
-    `, [userId]);
-    
-    return rows;
+    return await PermissionService.getUserPermissions(userId);
   }
 
   static async getUserRoles(userId) {
-    const pool = getPool();
-    const [rows] = await pool.execute(`
-      SELECT r.role_name, r.description
-      FROM rbac_user_roles ur
-      JOIN rbac_roles r ON ur.role_id = r.id
-      WHERE ur.user_id = ?
-    `, [userId]);
-    
-    return rows;
+    return await PermissionService.getUserRoles(userId);
+  }
+
+  static async hasRole(userId, roleName) {
+    return await PermissionService.hasRole(userId, roleName);
+  }
+
+  static async hasPermission(userId, permissionName) {
+    return await PermissionService.hasPermission(userId, permissionName);
   }
 }
 
