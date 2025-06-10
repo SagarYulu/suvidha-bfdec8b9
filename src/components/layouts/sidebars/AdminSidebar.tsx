@@ -1,176 +1,301 @@
 
-import React from 'react';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Bell,
-  Menu,
-  BarChart4,
-  Settings,
-  HelpCircle,
-  LogOut,
-  ChevronDown,
-  Package,
-  AlertCircle,
-  Users
-} from "lucide-react"
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { useRBAC } from '@/contexts/RBACContext';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  LayoutDashboard,
+  TicketCheck,
+  Users,
+  BarChart3,
+  LogOut,
+  Settings,
+  Shield,
+  ChevronDown,
+  UserPlus,
+  Ticket,
+  BarChart2,
+  TestTube,
+} from 'lucide-react';
+
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-interface NavItemProps {
+interface SidebarLinkProps {
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ElementType;
   label: string;
-  description: string;
+  isActive?: boolean;
 }
 
-const AdminSidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const { logout, user } = useAuth();
+interface AdminSidebarProps {
+  onLogout: () => void;
+}
 
-  const isActive = (href: string) => {
-    return location.pathname === href;
+interface DropdownMenuProps {
+  label: string;
+  icon: React.ElementType;
+  children: React.ReactNode;
+  isOpen: boolean;
+  toggleOpen: () => void;
+}
+
+const SidebarLink: React.FC<SidebarLinkProps> = ({ href, icon: Icon, label, isActive: forcedActiveState }) => {
+  const location = useLocation();
+  const isActive = forcedActiveState !== undefined ? forcedActiveState : location.pathname === href;
+
+  return (
+    <Link
+      to={href}
+      className={cn(
+        "flex items-center py-3 px-6 text-sm font-medium border-l-2 transition-colors",
+        isActive
+          ? "bg-blue-50 border-blue-500 text-blue-700"
+          : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+      )}
+    >
+      <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
+      {label}
+    </Link>
+  );
+};
+
+const DropdownMenu: React.FC<DropdownMenuProps> = ({ 
+  label, 
+  icon: Icon, 
+  children, 
+  isOpen, 
+  toggleOpen 
+}) => {
+  const isActive = isOpen || React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child) && 
+        'props' in child && 
+        child.props && 
+        typeof child.props === 'object' && 
+        child.props !== null &&
+        'href' in child.props && 
+        typeof child.props.href === 'string') {
+      return window.location.pathname === child.props.href;
+    }
+    return false;
+  });
+
+  return (
+    <div className="flex flex-col">
+      <button 
+        onClick={toggleOpen}
+        className={cn(
+          "flex items-center justify-between py-3 px-6 text-sm font-medium border-l-2 transition-colors",
+          isActive
+            ? "bg-blue-50 border-blue-500 text-blue-700"
+            : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+        )}
+      >
+        <div className="flex items-center">
+          <Icon className={cn("h-5 w-5 mr-3", isActive ? "text-blue-500" : "text-gray-400")} />
+          {label}
+        </div>
+        <ChevronDown 
+          className={cn(
+            "h-4 w-4 transition-transform", 
+            isOpen ? "transform rotate-180" : ""
+          )} 
+        />
+      </button>
+      {isOpen && (
+        <div className="bg-gray-50 pl-4">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const AdminSidebar: React.FC<AdminSidebarProps> = ({ onLogout }) => {
+  const [openMenus, setOpenMenus] = useState<{ [key: string]: boolean }>({
+    dashboardUsers: false,
+    tickets: false,
+    analytics: false
+  });
+  const { hasPermission, userRole } = useRBAC();
+  const location = useLocation();
+  const { logout, authState } = useAuth();
+
+  const toggleMenu = (menuName: string) => {
+    setOpenMenus(prev => ({
+      ...prev,
+      [menuName]: !prev[menuName]
+    }));
   };
 
+  // Check if user is HR Admin
+  const isHrAdmin = authState.role === 'HR Admin';
+
+  // Check if user is Super Admin
+  const isSuperAdmin = authState.role === 'Super Admin' || authState.role === 'admin';
+
+  // Determine active link based on current location
+  useEffect(() => {
+    // Check if we're in a subpath and open the corresponding dropdown
+    if (location.pathname.includes('/admin/dashboard-users')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        dashboardUsers: true
+      }));
+    }
+    
+    // Check if we're in tickets pages
+    if (location.pathname.includes('/admin/issues') || location.pathname.includes('/admin/assigned-issues')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        tickets: true
+      }));
+    }
+    
+    // Check if we're in analytics pages
+    if (location.pathname.includes('/admin/analytics')) {
+      setOpenMenus(prev => ({
+        ...prev,
+        analytics: true
+      }));
+    }
+  }, [location]);
+
+  // Create a proper logout handler function
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/admin/login');
+      onLogout(); // Call the passed onLogout prop
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
 
-  const navigationItems: NavItemProps[] = [
-    {
-      href: "/admin/dashboard",
-      icon: BarChart4,
-      label: "Dashboard",
-      description: "Analytics and reports"
-    },
-    {
-      href: "/admin/issues",
-      icon: AlertCircle,
-      label: "Manage Issues",
-      description: "View and manage reported issues"
-    },
-    {
-      href: "/admin/settings",
-      icon: Settings,
-      label: "Settings", 
-      description: "System configuration"
-    },
-    {
-      href: "/admin/backup",
-      icon: Package,
-      label: "Project Backup",
-      description: "Create complete backup"
-    },
-  ];
+  console.log("Current user role:", userRole);
+  console.log("Has dashboard permission:", hasPermission("view:dashboard"));
+  console.log("Has issues permission:", hasPermission("manage:issues"));
+  console.log("Has users permission:", hasPermission("manage:users"));
+  console.log("Has analytics permission:", hasPermission("manage:analytics"));
+  console.log("Has security permission:", hasPermission("access:security"));
+
+  const showAllTickets = isHrAdmin || isSuperAdmin;
 
   return (
-    <>
-      {/* Mobile Menu */}
-      <Sheet>
-        <SheetTrigger asChild>
-          <Menu className="md:hidden" />
-        </SheetTrigger>
-        <SheetContent side="left" className="w-64">
-          <SheetHeader className="text-left">
-            <SheetTitle>Admin Menu</SheetTitle>
-            <SheetDescription>
-              Manage your account preferences and settings.
-            </SheetDescription>
-          </SheetHeader>
-          <Separator className="my-4" />
-          <nav className="grid gap-6">
-            {navigationItems.map((item) => (
-              <Link key={item.href} to={item.href} className="flex items-center space-x-2">
-                <item.icon className="h-4 w-4" />
-                <span>{item.label}</span>
-              </Link>
-            ))}
-            <button onClick={handleLogout} className="flex items-center space-x-2">
-              <LogOut className="h-4 w-4" />
-              <span>Logout</span>
-            </button>
-          </nav>
-        </SheetContent>
-      </Sheet>
+    <div className="w-64 bg-white border-r hidden md:block overflow-y-auto h-full flex flex-col">
+      <div className="py-6 px-6 border-b">
+        <Link to="/admin/dashboard" className="flex items-center">
+          <span className="text-xl font-bold text-blue-700">Yulu Suvidha Management</span>
+        </Link>
+      </div>
 
-      {/* Desktop Menu */}
-      <aside className="hidden md:flex flex-col w-64 border-r bg-gray-50 h-screen">
-        <div className="p-4">
-          <Link to="/admin/dashboard" className="flex items-center text-lg font-semibold">
-            <Avatar className="mr-2 h-8 w-8">
-              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
-              <AvatarFallback>CN</AvatarFallback>
-            </Avatar>
-            TicketFlow Admin
-          </Link>
-        </div>
-        <Separator />
-        <nav className="flex-1 p-4 space-y-1">
-          {navigationItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              className={cn(
-                "group flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-100 hover:text-gray-900",
-                isActive(item.href) ? "bg-gray-100 text-gray-900" : "text-gray-500"
-              )}
-            >
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <Separator />
-        <div className="p-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex h-8 w-full items-center justify-between rounded-md px-3 text-sm font-medium hover:bg-gray-100 hover:text-gray-900">
-                Profile
-                <ChevronDown className="ml-2 h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Link to="/admin/settings" className="flex items-center space-x-2">
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
+      <div className="py-3 flex-grow">
+        {/* Dashboard - All admin users have access */}
+        {hasPermission("view:dashboard") && (
+          <SidebarLink href="/admin/dashboard" icon={LayoutDashboard} label="Dashboard" />
+        )}
+
+        {/* Test Dashboard - Available to all users */}
+        <SidebarLink href="/admin/test-dashboard" icon={TestTube} label="Test Dashboard" />
+        
+        {/* Tickets dropdown - Available to users with manage:issues permission */}
+        {hasPermission("manage:issues") && (
+          <DropdownMenu 
+            label="Tickets" 
+            icon={TicketCheck} 
+            isOpen={openMenus.tickets} 
+            toggleOpen={() => toggleMenu('tickets')}
+          >
+            {/* All Tickets - Only visible to HR Admin and Super Admin */}
+            {showAllTickets && (
+              <SidebarLink 
+                href="/admin/issues" 
+                icon={TicketCheck} 
+                label="All Tickets" 
+                isActive={location.pathname === "/admin/issues"}
+              />
+            )}
+            
+            {/* Assigned To Me - Available to all users with manage:issues */}
+            <SidebarLink 
+              href="/admin/assigned-issues" 
+              icon={Ticket} 
+              label="Assigned To Me" 
+              isActive={location.pathname === "/admin/assigned-issues"}
+            />
           </DropdownMenu>
-        </div>
-      </aside>
-    </>
+        )}
+        
+        {/* Users - Available to users with manage:users permission */}
+        {hasPermission("manage:users") && (
+          <SidebarLink href="/admin/users" icon={Users} label="Users" />
+        )}
+        
+        {/* Analytics dropdown - Available to users with manage:analytics permission */}
+        {hasPermission("manage:analytics") && (
+          <DropdownMenu 
+            label="Analytics" 
+            icon={BarChart3} 
+            isOpen={openMenus.analytics} 
+            toggleOpen={() => toggleMenu('analytics')}
+          >
+            <SidebarLink 
+              href="/admin/analytics" 
+              icon={BarChart3} 
+              label="Issue Analytics" 
+              isActive={location.pathname === "/admin/analytics"}
+            />
+          </DropdownMenu>
+        )}
+        
+        {/* Dashboard Users dropdown - Available to users with create:dashboardUser permission */}
+        {hasPermission("create:dashboardUser") && (
+          <DropdownMenu 
+            label="Dashboard Users" 
+            icon={Users} 
+            isOpen={openMenus.dashboardUsers} 
+            toggleOpen={() => toggleMenu('dashboardUsers')}
+          >
+            <SidebarLink 
+              href="/admin/dashboard-users/add" 
+              icon={UserPlus} 
+              label="Add Dashboard User" 
+              isActive={location.pathname === "/admin/dashboard-users/add"}
+            />
+          </DropdownMenu>
+        )}
+        
+        {/* Access Control - Available to users with access:security permission */}
+        {hasPermission("access:security") && (
+          <SidebarLink href="/admin/access-control" icon={Shield} label="Access Control" />
+        )}
+        
+        {/* Settings - Available to users with manage:settings permission */}
+        {hasPermission("manage:settings") && (
+          <SidebarLink href="/admin/settings" icon={Settings} label="Settings" />
+        )}
+        
+        {/* Feedback Analytics - Available to users with view_analytics permission */}
+        {hasPermission("view_analytics") && (
+          <SidebarLink 
+            href="/admin/feedback-analytics" 
+            icon={BarChart2} 
+            label="Feedback Analytics" 
+            isActive={location.pathname === "/admin/feedback-analytics"}
+          />
+        )}
+      </div>
+
+      <div className="p-4 border-t">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-gray-500 hover:text-gray-700"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
+        </Button>
+      </div>
+    </div>
   );
 };
 

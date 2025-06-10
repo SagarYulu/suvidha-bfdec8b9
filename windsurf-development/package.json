@@ -1,0 +1,58 @@
+
+{
+  "name": "windsurf-development",
+  "version": "2.0.0",
+  "description": "Complete Grievance Portal with MVC architecture and MySQL - 100% parity with Supabase version",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd windsurf-backend && npm run dev",
+    "dev:frontend": "cd windsurf-frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd windsurf-frontend && npm run build",
+    "build:backend": "cd windsurf-backend && npm run build",
+    "start": "cd windsurf-backend && npm start",
+    "setup": "npm run setup:backend && npm run setup:frontend && npm run setup:database",
+    "setup:backend": "cd windsurf-backend && npm install",
+    "setup:frontend": "cd windsurf-frontend && npm install",
+    "setup:database": "cd windsurf-database && npm install",
+    "migrate": "cd windsurf-database && npm run migrate",
+    "verify": "cd windsurf-database && npm run verify",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd windsurf-backend && npm test",
+    "test:frontend": "cd windsurf-frontend && npm test",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd windsurf-backend && npm run lint",
+    "lint:frontend": "cd windsurf-frontend && npm run lint"
+  },
+  "keywords": [
+    "grievance-portal",
+    "mysql",
+    "mvc",
+    "express",
+    "react",
+    "typescript",
+    "windsurf",
+    "production-ready"
+  ],
+  "author": "Windsurf Development Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/windsurf/grievance-portal"
+  },
+  "bugs": {
+    "url": "https://github.com/windsurf/grievance-portal/issues"
+  },
+  "homepage": "https://github.com/windsurf/grievance-portal#readme"
+}

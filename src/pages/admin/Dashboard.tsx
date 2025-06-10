@@ -1,43 +1,93 @@
 
-import React from 'react';
-import DashboardMetrics from '@/components/dashboard/DashboardMetrics';
-import ChartSection from '@/components/dashboard/ChartSection';
-import RecentTicketsTable from '@/components/dashboard/RecentTicketsTable';
-import FilterBar from '@/components/dashboard/FilterBar';
-import DashboardLoader from '@/components/dashboard/DashboardLoader';
-import { useDashboardData } from '@/hooks/useDashboardData';
+import React from "react";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AdminLayout from "@/components/AdminLayout";
+import FilterBar from "@/components/dashboard/FilterBar";
+import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
+import ChartSection from "@/components/dashboard/ChartSection";
+import RecentTicketsTable from "@/components/dashboard/RecentTicketsTable";
+import DashboardLoader from "@/components/dashboard/DashboardLoader";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
 
-const Dashboard = () => {
-  const {
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+
+// Separate the inner component to use hooks
+const DashboardContent = () => {
+  const { 
     analytics,
     recentIssues,
     isLoading,
     userCount,
-    filters,
     handleFilterChange,
     typePieData,
-    cityBarData
+    cityBarData,
+    filters,
   } = useDashboardData();
 
-  if (isLoading) {
-    return <DashboardLoader />;
-  }
+  // Format issues consistently with the other pages
+  const formattedRecentIssues = React.useMemo(() => {
+    if (!recentIssues) return [];
+    return formatConsistentIssueData(recentIssues);
+  }, [recentIssues]);
+
+  // Debug logging for current filters
+  React.useEffect(() => {
+    console.log("Dashboard current filters:", filters);
+  }, [filters]);
 
   return (
-    <div className="space-y-6">
-      {/* Filter Bar */}
-      <FilterBar onFilterChange={handleFilterChange} initialFilters={filters} />
-      
-      {/* Metrics Cards */}
-      <DashboardMetrics analytics={analytics} userCount={userCount} isLoading={isLoading} />
-      
-      {/* Charts Section */}
-      <ChartSection typePieData={typePieData} cityBarData={cityBarData} isLoading={isLoading} />
-      
-      {/* Recent Tickets Table */}
-      <RecentTicketsTable recentIssues={recentIssues} isLoading={isLoading} />
-    </div>
+    <AdminLayout title="Dashboard">
+      {isLoading && !analytics ? (
+        <DashboardLoader />
+      ) : (
+        <div className="space-y-6">
+          {/* Pass current filters to FilterBar to ensure UI stays in sync */}
+          <FilterBar 
+            onFilterChange={handleFilterChange} 
+            initialFilters={filters}
+          />
+          
+          {/* Dashboard Metrics */}
+          <DashboardMetrics 
+            analytics={analytics} 
+            userCount={userCount}
+            isLoading={isLoading} 
+          />
+
+          {/* Charts Section */}
+          <ChartSection 
+            typePieData={typePieData}
+            cityBarData={cityBarData}
+            isLoading={isLoading}
+          />
+
+          {/* Recent Tickets Table - Pass formatted consistent issues */}
+          <RecentTicketsTable 
+            recentIssues={formattedRecentIssues}
+            isLoading={isLoading}
+          />
+        </div>
+      )}
+    </AdminLayout>
   );
 };
 
-export default Dashboard;
+// Main component that provides the query client
+const AdminDashboard = () => {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <DashboardContent />
+    </QueryClientProvider>
+  );
+};
+
+export default AdminDashboard;

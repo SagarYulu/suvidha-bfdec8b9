@@ -24,31 +24,15 @@ type RecentTicketsTableProps = {
 };
 
 // Using memo to prevent unnecessary re-renders
-const RecentTicketsTable = memo(({ recentIssues = [], isLoading }: RecentTicketsTableProps) => {
+const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTableProps) => {
   const [employeeNames, setEmployeeNames] = useState<Record<string, string>>({});
   const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, boolean>>({});
   const navigate = useNavigate(); // Add navigate hook
 
-  // Early return if loading or recentIssues is not properly initialized
-  if (isLoading || !recentIssues) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="py-8 text-center text-muted-foreground">
-            Loading recent tickets...
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   // Fetch employee names when issues change
   useEffect(() => {
     const fetchEmployeeNames = async () => {
-      if (!Array.isArray(recentIssues) || recentIssues.length === 0) return;
+      if (recentIssues.length === 0) return;
       
       // Get unique employee IDs
       const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid))];
@@ -92,7 +76,7 @@ const RecentTicketsTable = memo(({ recentIssues = [], isLoading }: RecentTickets
     };
     
     const fetchFeedbackStatuses = async () => {
-      if (!Array.isArray(recentIssues) || recentIssues.length === 0) return;
+      if (recentIssues.length === 0) return;
       
       // Get all issue IDs
       const issueIds = recentIssues.map(issue => issue.id);
@@ -221,13 +205,15 @@ const RecentTicketsTable = memo(({ recentIssues = [], isLoading }: RecentTickets
     });
   };
 
+  if (isLoading) return null;
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Recent Tickets</CardTitle>
       </CardHeader>
       <CardContent>
-        {Array.isArray(recentIssues) && recentIssues.length > 0 ? (
+        {recentIssues.length > 0 ? (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -338,6 +324,14 @@ const RecentTicketsTable = memo(({ recentIssues = [], isLoading }: RecentTickets
                     </TableRow>
                   );
                 })}
+                
+                {recentIssues.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center py-6">
+                      No tickets found
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
