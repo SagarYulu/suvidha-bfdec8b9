@@ -1,5 +1,4 @@
-
-const { body, param, query, validationResult } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const { HTTP_STATUS } = require('../config/constants');
 
 const handleValidationErrors = (req, res, next) => {
@@ -149,7 +148,27 @@ const validationRules = {
   ]
 };
 
+const validateInternalComment = [
+  body('content')
+    .notEmpty()
+    .withMessage('Comment content is required')
+    .isLength({ min: 1, max: 2000 })
+    .withMessage('Comment content must be between 1 and 2000 characters'),
+  
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Validation failed',
+        details: errors.array()
+      });
+    }
+    next();
+  }
+];
+
 module.exports = {
   handleValidationErrors,
-  validationRules
+  validationRules,
+  validateInternalComment
 };
