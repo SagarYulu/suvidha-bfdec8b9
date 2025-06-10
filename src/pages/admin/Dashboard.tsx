@@ -1,93 +1,60 @@
 
-import React from "react";
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AdminLayout from "@/components/AdminLayout";
-import FilterBar from "@/components/dashboard/FilterBar";
-import DashboardMetrics from "@/components/dashboard/DashboardMetrics";
-import ChartSection from "@/components/dashboard/ChartSection";
-import RecentTicketsTable from "@/components/dashboard/RecentTicketsTable";
-import DashboardLoader from "@/components/dashboard/DashboardLoader";
-import { useDashboardData } from "@/hooks/useDashboardData";
-import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import DashboardMetrics from '@/components/dashboard/DashboardMetrics';
+import ChartSection from '@/components/dashboard/ChartSection';
+import RecentTicketsTable from '@/components/dashboard/RecentTicketsTable';
+import FilterBar from '@/components/dashboard/FilterBar';
+import DashboardLoader from '@/components/dashboard/DashboardLoader';
+import CompleteProjectBackup from '@/components/admin/CompleteProjectBackup';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { Package } from 'lucide-react';
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
-
-// Separate the inner component to use hooks
-const DashboardContent = () => {
-  const { 
-    analytics,
-    recentIssues,
+const Dashboard = () => {
+  const {
+    metricsData,
+    chartData,
+    recentTickets,
     isLoading,
-    userCount,
-    handleFilterChange,
-    typePieData,
-    cityBarData,
     filters,
+    handleFilterChange
   } = useDashboardData();
 
-  // Format issues consistently with the other pages
-  const formattedRecentIssues = React.useMemo(() => {
-    if (!recentIssues) return [];
-    return formatConsistentIssueData(recentIssues);
-  }, [recentIssues]);
-
-  // Debug logging for current filters
-  React.useEffect(() => {
-    console.log("Dashboard current filters:", filters);
-  }, [filters]);
+  if (isLoading) {
+    return <DashboardLoader />;
+  }
 
   return (
-    <AdminLayout title="Dashboard">
-      {isLoading && !analytics ? (
-        <DashboardLoader />
-      ) : (
-        <div className="space-y-6">
-          {/* Pass current filters to FilterBar to ensure UI stays in sync */}
-          <FilterBar 
-            onFilterChange={handleFilterChange} 
-            initialFilters={filters}
-          />
-          
-          {/* Dashboard Metrics */}
-          <DashboardMetrics 
-            analytics={analytics} 
-            userCount={userCount}
-            isLoading={isLoading} 
-          />
+    <div className="space-y-6">
+      {/* Backup Alert Card */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-900">
+            <Package className="h-5 w-5" />
+            Project Backup Available
+          </CardTitle>
+          <CardDescription className="text-blue-700">
+            Before proceeding with migration, create a complete backup of your project
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CompleteProjectBackup />
+        </CardContent>
+      </Card>
 
-          {/* Charts Section */}
-          <ChartSection 
-            typePieData={typePieData}
-            cityBarData={cityBarData}
-            isLoading={isLoading}
-          />
-
-          {/* Recent Tickets Table - Pass formatted consistent issues */}
-          <RecentTicketsTable 
-            recentIssues={formattedRecentIssues}
-            isLoading={isLoading}
-          />
-        </div>
-      )}
-    </AdminLayout>
+      {/* Filter Bar */}
+      <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+      
+      {/* Metrics Cards */}
+      <DashboardMetrics data={metricsData} />
+      
+      {/* Charts Section */}
+      <ChartSection data={chartData} />
+      
+      {/* Recent Tickets Table */}
+      <RecentTicketsTable tickets={recentTickets} />
+    </div>
   );
 };
 
-// Main component that provides the query client
-const AdminDashboard = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <DashboardContent />
-    </QueryClientProvider>
-  );
-};
-
-export default AdminDashboard;
+export default Dashboard;
