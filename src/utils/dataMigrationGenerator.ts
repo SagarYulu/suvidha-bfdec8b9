@@ -50,26 +50,35 @@ export class DataMigrationGenerator {
   private async extractTableData(tableName: string): Promise<MigrationResult> {
     console.log(`Extracting data from table: ${tableName}`);
     
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('*');
-    
-    if (error) {
-      console.error(`Error extracting ${tableName}:`, error);
+    try {
+      const { data, error } = await (supabase as any)
+        .from(tableName)
+        .select('*');
+      
+      if (error) {
+        console.error(`Error extracting ${tableName}:`, error);
+        return {
+          tableName,
+          insertStatements: [`-- Error extracting data from ${tableName}: ${error.message}`],
+          rowCount: 0
+        };
+      }
+      
+      const insertStatements = this.generateInsertStatement(tableName, data || []);
+      
       return {
         tableName,
-        insertStatements: [`-- Error extracting data from ${tableName}: ${error.message}`],
+        insertStatements,
+        rowCount: data?.length || 0
+      };
+    } catch (error) {
+      console.error(`Failed to extract ${tableName}:`, error);
+      return {
+        tableName,
+        insertStatements: [`-- Error: Failed to extract data from ${tableName}`],
         rowCount: 0
       };
     }
-    
-    const insertStatements = this.generateInsertStatement(tableName, data || []);
-    
-    return {
-      tableName,
-      insertStatements,
-      rowCount: data?.length || 0
-    };
   }
 
   async generateCompleteMigration(): Promise<void> {
@@ -181,10 +190,14 @@ export class DataMigrationGenerator {
     let totalRows = 0;
 
     for (const tableName of tables) {
-      const { data } = await supabase.from(tableName).select('*', { count: 'exact', head: true });
-      const count = data?.length || 0;
-      totalRows += count;
-      report.push(`-- Table: ${tableName.padEnd(30)} Rows: ${count}`);
+      try {
+        const { data } = await (supabase as any).from(tableName).select('*', { count: 'exact', head: true });
+        const count = data?.length || 0;
+        totalRows += count;
+        report.push(`-- Table: ${tableName.padEnd(30)} Rows: ${count}`);
+      } catch (error) {
+        report.push(`-- Table: ${tableName.padEnd(30)} Rows: Error`);
+      }
     }
 
     report.push('', `-- Total rows across all tables: ${totalRows}`);
