@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Sheet,
@@ -9,6 +10,7 @@ import {
 } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,12 +20,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion"
-import {
   Bell,
   Menu,
   BarChart4,
@@ -31,15 +27,17 @@ import {
   HelpCircle,
   LogOut,
   ChevronDown,
-  Package
+  Package,
+  AlertCircle,
+  Users
 } from "lucide-react"
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 interface NavItemProps {
   href: string;
-  icon: React.LucideIcon;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   description: string;
 }
@@ -56,7 +54,7 @@ const AdminSidebar = () => {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/login');
+      navigate('/admin/login');
     } catch (error) {
       console.error("Logout failed:", error);
     }
@@ -70,22 +68,16 @@ const AdminSidebar = () => {
       description: "Analytics and reports"
     },
     {
-      href: "/admin/users",
-      icon: Settings,
-      label: "Manage Users",
-      description: "User settings and permissions"
-    },
-    {
       href: "/admin/issues",
-      icon: HelpCircle,
+      icon: AlertCircle,
       label: "Manage Issues",
       description: "View and manage reported issues"
     },
     {
-      href: "/admin/audit-logs",
-      icon: HelpCircle,
-      label: "Audit Logs",
-      description: "Track user activities"
+      href: "/admin/settings",
+      icon: Settings,
+      label: "Settings", 
+      description: "System configuration"
     },
     {
       href: "/admin/backup",

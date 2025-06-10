@@ -59,7 +59,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         />
       } 
       sidebar={
-        <AdminSidebar onLogout={handleLogout} />
+        <AdminSidebar />
       }
       className={className}
     >
