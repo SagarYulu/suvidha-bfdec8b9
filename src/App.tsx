@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RBACProvider } from "@/contexts/RBACContext";
 
 import Index from "./pages/Index";
+import DataMigration from "./pages/DataMigration";
 
 // Admin pages
 import AdminLogin from "./pages/admin/Login";
@@ -49,6 +50,9 @@ const App = () => (
           <RBACProvider>
             <Routes>
               <Route path="/" element={<Index />} />
+              
+              {/* Data Migration Route */}
+              <Route path="/data-migration" element={<DataMigration />} />
               
               {/* Database Export Route */}
               <Route path="/export" element={<DatabaseExport />} />
