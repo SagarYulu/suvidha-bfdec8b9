@@ -1,4 +1,3 @@
-
 const { getPool } = require('../config/database');
 
 class AnalyticsService {
@@ -66,7 +65,7 @@ class AnalyticsService {
     const pool = getPool();
     const { startDate, endDate, city, cluster } = filters;
 
-    // Define SLA targets (in hours)
+    // SLA targets ALIGNED WITH FRONTEND - using PRIORITY-based SLA
     const SLA_TARGETS = {
       'critical': 4,   // 4 hours
       'high': 24,      // 24 hours
@@ -74,58 +73,54 @@ class AnalyticsService {
       'low': 168       // 168 hours (1 week)
     };
 
-    let query = `
-      SELECT 
-        priority,
-        city,
-        cluster,
-        COUNT(*) as total_issues,
-        SUM(CASE 
-          WHEN status = 'closed' AND 
-               TIMESTAMPDIFF(HOUR, created_at, updated_at) <= ? 
-          THEN 1 ELSE 0 END) as within_sla,
-        SUM(CASE 
-          WHEN status = 'closed' AND 
-               TIMESTAMPDIFF(HOUR, created_at, updated_at) > ? 
-          THEN 1 ELSE 0 END) as breached_sla,
-        AVG(TIMESTAMPDIFF(HOUR, created_at, 
-          CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as avg_resolution_time
-      FROM issues 
-      WHERE priority IN ('critical', 'high', 'medium', 'low')
-    `;
-
-    const params = [];
-
-    if (startDate) {
-      query += ' AND created_at >= ?';
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      query += ' AND created_at <= ?';
-      params.push(endDate);
-    }
-
-    if (city) {
-      query += ' AND city = ?';
-      params.push(city);
-    }
-
-    if (cluster) {
-      query += ' AND cluster = ?';
-      params.push(cluster);
-    }
-
-    query += ' GROUP BY priority, city, cluster';
-
-    // Execute queries for each priority level
     const results = {};
     
     for (const [priority, slaHours] of Object.entries(SLA_TARGETS)) {
-      const priorityQuery = query.replace('priority IN (\'critical\', \'high\', \'medium\', \'low\')', 'priority = ?');
-      const priorityParams = [slaHours, slaHours, priority, ...params];
+      let query = `
+        SELECT 
+          priority,
+          city,
+          cluster,
+          COUNT(*) as total_issues,
+          SUM(CASE 
+            WHEN status = 'closed' AND 
+                 TIMESTAMPDIFF(HOUR, created_at, updated_at) <= ? 
+            THEN 1 ELSE 0 END) as within_sla,
+          SUM(CASE 
+            WHEN status = 'closed' AND 
+                 TIMESTAMPDIFF(HOUR, created_at, updated_at) > ? 
+            THEN 1 ELSE 0 END) as breached_sla,
+          AVG(TIMESTAMPDIFF(HOUR, created_at, 
+            CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as avg_resolution_time
+        FROM issues 
+        WHERE priority = ?
+      `;
+
+      const params = [slaHours, slaHours, priority];
+
+      if (startDate) {
+        query += ' AND created_at >= ?';
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        query += ' AND created_at <= ?';
+        params.push(endDate);
+      }
+
+      if (city) {
+        query += ' AND city = ?';
+        params.push(city);
+      }
+
+      if (cluster) {
+        query += ' AND cluster = ?';
+        params.push(cluster);
+      }
+
+      query += ' GROUP BY priority, city, cluster';
       
-      const [rows] = await pool.execute(priorityQuery, priorityParams);
+      const [rows] = await pool.execute(query, params);
       results[priority] = rows;
     }
 
