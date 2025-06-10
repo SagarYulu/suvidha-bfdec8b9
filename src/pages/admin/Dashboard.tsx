@@ -12,12 +12,14 @@ import { Package } from 'lucide-react';
 
 const Dashboard = () => {
   const {
-    metricsData,
-    chartData,
-    recentTickets,
+    analytics,
+    recentIssues,
     isLoading,
+    userCount,
     filters,
-    handleFilterChange
+    handleFilterChange,
+    typePieData,
+    cityBarData
   } = useDashboardData();
 
   if (isLoading) {
@@ -43,16 +45,16 @@ const Dashboard = () => {
       </Card>
 
       {/* Filter Bar */}
-      <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+      <FilterBar onFilterChange={handleFilterChange} initialFilters={filters} />
       
       {/* Metrics Cards */}
-      <DashboardMetrics data={metricsData} />
+      <DashboardMetrics analytics={analytics} userCount={userCount} isLoading={isLoading} />
       
       {/* Charts Section */}
-      <ChartSection data={chartData} />
+      <ChartSection typePieData={typePieData} cityBarData={cityBarData} isLoading={isLoading} />
       
       {/* Recent Tickets Table */}
-      <RecentTicketsTable tickets={recentTickets} />
+      <RecentTicketsTable recentIssues={recentIssues} isLoading={isLoading} />
     </div>
   );
 };
