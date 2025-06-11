@@ -27,6 +27,24 @@ export interface SentimentEntry {
   feedback?: string; // Alternative property name
 }
 
+// Export SentimentAlert interface
+export interface SentimentAlert {
+  id: string;
+  type: 'low_rating' | 'negative_sentiment' | 'high_volume';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  createdAt: string;
+  created_at?: string;
+  resolved: boolean;
+  is_resolved?: boolean;
+  trigger_reason?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  average_score?: number;
+  change_percentage?: number;
+}
+
 // Mock data
 const mockSentimentData: SentimentEntry[] = [
   {
@@ -146,4 +164,11 @@ export const markAlertAsResolved = async (alertId: string): Promise<void> => {
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   console.log(`Alert ${alertId} marked as resolved`);
+};
+
+// Add missing export
+export const generateTestSentimentData = async (): Promise<void> => {
+  // Simulate generating test data
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  console.log('Test sentiment data generated');
 };

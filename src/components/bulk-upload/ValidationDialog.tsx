@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ValidationResult, EditedRowsRecord, RowData } from "@/types";
+import { ValidationResult, EditedRowsRecord, RowData, CSVEmployeeData } from "@/types";
 import ValidationAlerts from './ValidationAlerts';
 import InvalidRowEditor from './InvalidRowEditor';
 import ValidEmployeesList from './ValidEmployeesList';
@@ -89,7 +89,7 @@ const ValidationDialog = ({
               </div>
             )}
 
-            <ValidEmployeesList validEmployees={validationResults.validEmployees as RowData[]} />
+            <ValidEmployeesList validEmployees={validationResults.validEmployees} />
           </div>
         </ScrollArea>
 

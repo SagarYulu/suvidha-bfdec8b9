@@ -4,15 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { getAnalytics } from '@/services/issues/issueAnalyticsService';
 import { getIssues } from '@/services/issues/issueFilters';
 import { apiCall } from '@/config/api';
+import { DashboardFilters } from '@/types';
 
-interface DashboardFilters {
-  city?: string;
-  type?: string;
-  status?: string;
-  dateRange?: {
-    from: Date;
-    to: Date;
-  };
+interface IssueFilters extends DashboardFilters {
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 export const useDashboardData = () => {
@@ -21,14 +18,22 @@ export const useDashboardData = () => {
   // Analytics data
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ['dashboard-analytics', filters],
-    queryFn: () => getAnalytics(filters),
+    queryFn: () => getAnalytics(filters as any),
     staleTime: 5 * 60 * 1000,
   });
 
   // Recent issues
-  const { data: recentIssues, isLoading: issuesLoading } = useQuery({
+  const { data: recentIssuesData, isLoading: issuesLoading } = useQuery({
     queryKey: ['dashboard-recent-issues', filters],
-    queryFn: () => getIssues({ ...filters, limit: 10, sortBy: 'created_at', sortOrder: 'desc' }),
+    queryFn: () => {
+      const issueFilters: IssueFilters = { 
+        ...filters, 
+        limit: 10, 
+        sortBy: 'created_at', 
+        sortOrder: 'desc' 
+      };
+      return getIssues(issueFilters as any);
+    },
     staleTime: 5 * 60 * 1000,
   });
 
@@ -65,9 +70,12 @@ export const useDashboardData = () => {
 
   const isLoading = analyticsLoading || issuesLoading || userCountLoading;
 
+  // Extract issues from the response data
+  const recentIssues = Array.isArray(recentIssuesData) ? recentIssuesData : [];
+
   return {
     analytics,
-    recentIssues: recentIssues?.issues || [],
+    recentIssues,
     userCount,
     filters,
     isLoading,
