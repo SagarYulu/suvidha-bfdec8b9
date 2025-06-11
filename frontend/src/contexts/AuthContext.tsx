@@ -18,6 +18,7 @@ interface AuthContextType {
     name: string;
   } | null;
   login: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -69,6 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Alias for login to support both naming conventions
+  const signIn = login;
+
   const logout = async () => {
     setIsLoading(true);
     try {
@@ -90,6 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     user: authState.user,
     login,
+    signIn,
     logout,
     refreshAuth,
   };
