@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { parseEmployeeCSV } from "@/utils/csvParserUtils";
+import { parseCSVEmployees } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData, ValidationError } from "@/types";
@@ -31,15 +31,30 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
     setIsUploading(true);
     try {
-      const result = await parseEmployeeCSV(file);
+      const result = await parseCSVEmployees(await file.text());
       
       setValidationResults(result);
       // Initialize edited rows with original data
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
         const rowData: RowData = {
-          ...item.rowData,
-          employeeId: item.rowData.emp_id // Map emp_id to employeeId
+          id: item.rowData.id || `temp-${index}`,
+          userId: item.rowData.userId || '',
+          emp_id: item.rowData.emp_id || '',
+          name: item.rowData.name || '',
+          email: item.rowData.email || '',
+          phone: item.rowData.phone || '',
+          city: item.rowData.city || '',
+          cluster: item.rowData.cluster || '',
+          role: item.rowData.role || '',
+          manager: item.rowData.manager || '',
+          date_of_joining: item.rowData.date_of_joining || '',
+          date_of_birth: item.rowData.date_of_birth || '',
+          blood_group: item.rowData.blood_group || '',
+          account_number: item.rowData.account_number || '',
+          ifsc_code: item.rowData.ifsc_code || '',
+          password: item.rowData.password || 'changeme123',
+          employeeId: item.rowData.employeeId || item.row.emp_id
         };
         initialEditedRows[`row-${index}`] = rowData;
       });

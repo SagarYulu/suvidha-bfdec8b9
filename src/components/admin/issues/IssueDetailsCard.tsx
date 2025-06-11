@@ -7,10 +7,24 @@ import { Clock, User, MapPin, AlertCircle } from 'lucide-react';
 
 interface IssueDetailsCardProps {
   issue: Issue;
+  status?: Issue["status"];
+  handleStatusChange?: (newStatus: Issue["status"]) => Promise<void>;
+  isUpdatingStatus?: boolean;
+  formatDate?: (dateString: string) => string;
+  getIssueTypeLabel?: (typeId: string) => string;
+  getIssueSubTypeLabel?: (typeId: string, subTypeId: string) => string;
 }
 
-const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ issue }) => {
-  const formatDate = (dateString: string) => {
+const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ 
+  issue,
+  status,
+  handleStatusChange,
+  isUpdatingStatus = false,
+  formatDate,
+  getIssueTypeLabel,
+  getIssueSubTypeLabel
+}) => {
+  const formatDateDefault = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -52,15 +66,17 @@ const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ issue }) => {
     }
   };
 
-  const getIssueTypeLabel = (typeId?: string) => {
+  const getIssueTypeLabelDefault = (typeId?: string) => {
     // Placeholder implementation
     return typeId || 'General Issue';
   };
 
-  const getIssueSubTypeLabel = (typeId?: string, subTypeId?: string) => {
+  const getIssueSubTypeLabelDefault = (typeId?: string, subTypeId?: string) => {
     // Placeholder implementation
     return subTypeId || 'General';
   };
+
+  const currentStatus = status || issue.status;
 
   return (
     <Card>
@@ -68,15 +84,15 @@ const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ issue }) => {
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-xl">
-              {getIssueTypeLabel(issue.typeId)}
+              {getIssueTypeLabel ? getIssueTypeLabel(issue.typeId || '') : getIssueTypeLabelDefault(issue.typeId)}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
+              {getIssueSubTypeLabel ? getIssueSubTypeLabel(issue.typeId || '', issue.subTypeId || '') : getIssueSubTypeLabelDefault(issue.typeId, issue.subTypeId)}
             </p>
           </div>
           <div className="flex flex-col gap-2">
-            <Badge className={`text-white ${getStatusColor(issue.status)}`}>
-              {issue.status.replace('_', ' ').toUpperCase()}
+            <Badge className={`text-white ${getStatusColor(currentStatus)}`}>
+              {currentStatus.replace('_', ' ').toUpperCase()}
             </Badge>
             <Badge className={`text-white ${getPriorityColor(issue.priority)}`}>
               {issue.priority.toUpperCase()}
@@ -89,13 +105,13 @@ const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ issue }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm">Created: {formatDate(issue.createdAt)}</span>
+            <span className="text-sm">Created: {formatDate ? formatDate(issue.createdAt) : formatDateDefault(issue.createdAt)}</span>
           </div>
           
           {issue.closedAt && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Closed: {formatDate(issue.closedAt)}</span>
+              <span className="text-sm">Closed: {formatDate ? formatDate(issue.closedAt) : formatDateDefault(issue.closedAt)}</span>
             </div>
           )}
           

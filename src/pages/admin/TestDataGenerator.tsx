@@ -17,8 +17,12 @@ const TestDataGenerator = () => {
   const handleGenerateData = async () => {
     try {
       setIsGenerating(true);
-      const result = await generateTestSentimentData();
-      setResults(result);
+      
+      // generateTestSentimentData returns void, so we don't check its result
+      await generateTestSentimentData();
+      
+      // Since the function returns void, we just show a simple success message
+      setResults(null);
       toast({
         variant: "default",
         title: "Test Data Generator",
@@ -26,6 +30,7 @@ const TestDataGenerator = () => {
       });
     } catch (error) {
       console.error("Error:", error);
+      setResults(null);
       toast({
         variant: "destructive",
         title: "Error",

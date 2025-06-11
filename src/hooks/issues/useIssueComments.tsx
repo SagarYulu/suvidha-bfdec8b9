@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Issue } from "@/types";
-import { addComment } from "@/services/issueService";
+import { addComment } from "@/services/issues/issueCommentService";
 import { getIssueById } from "@/services/issues/issueFetchService";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,14 +31,8 @@ export const useIssueComments = (
       
       console.log(`Adding comment as user: ${userName} (${currentUserId})`);
       
-      // Create a comment object with the right structure
-      const commentData = {
-        employeeUuid: currentUserId,
-        content: newComment
-      };
-      
-      // Pass the correct arguments to addComment (issueId, commentData, currentUserId)
-      await addComment(issueId, commentData, currentUserId);
+      // Use addComment with the correct signature: issueId, employeeUuid, content
+      await addComment(issueId, currentUserId, newComment);
       
       // Fetch the updated issue with the new comment
       const updatedIssue = await getIssueById(issueId);

@@ -10,6 +10,7 @@ interface MobileLayoutProps {
   showHeader?: boolean;
   showBottomNav?: boolean;
   onMenuClick?: () => void;
+  bgColor?: string; // Add bgColor prop
 }
 
 const MobileLayout: React.FC<MobileLayoutProps> = ({
@@ -17,10 +18,11 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({
   title,
   showHeader = true,
   showBottomNav = true,
-  onMenuClick
+  onMenuClick,
+  bgColor = "bg-gray-50" // Default background color
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className={`min-h-screen ${bgColor} flex flex-col`}>
       {showHeader && (
         <MobileHeader 
           title={title} 
