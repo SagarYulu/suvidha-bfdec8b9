@@ -2,92 +2,74 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { DateRange } from 'react-day-picker';
+import { Calendar, CalendarDays } from 'lucide-react';
+
+interface DateRange {
+  start: string;
+  end: string;
+}
 
 interface AnalyticsDateRangeFilterProps {
-  dateRange: { from?: Date; to?: Date };
-  onDateRangeChange: (dateRange: { from?: Date; to?: Date }) => void;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
+  presets?: Array<{ label: string; value: DateRange }>;
 }
 
 const AnalyticsDateRangeFilter: React.FC<AnalyticsDateRangeFilterProps> = ({
   dateRange,
-  onDateRangeChange
+  onDateRangeChange,
+  presets = [
+    { label: 'Last 7 days', value: { start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] } },
+    { label: 'Last 30 days', value: { start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] } },
+    { label: 'Last 90 days', value: { start: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], end: new Date().toISOString().split('T')[0] } }
+  ]
 }) => {
-  const [isOpen, setIsOpen] = React.useState(false);
-
-  const handleDateRangeSelect = (range: DateRange | undefined) => {
-    onDateRangeChange({
-      from: range?.from,
-      to: range?.to
-    });
-  };
-
-  const clearDateRange = () => {
-    onDateRangeChange({});
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CalendarIcon className="h-5 w-5" />
+          <Calendar className="h-5 w-5" />
           Date Range Filter
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !dateRange.from && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dateRange.from ? (
-                dateRange.to ? (
-                  <>
-                    {format(dateRange.from, "LLL dd, y")} -{" "}
-                    {format(dateRange.to, "LLL dd, y")}
-                  </>
-                ) : (
-                  format(dateRange.from, "LLL dd, y")
-                )
-              ) : (
-                <span>Select date range</span>
-              )}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{
-                from: dateRange.from,
-                to: dateRange.to
-              }}
-              onSelect={handleDateRangeSelect}
-              initialFocus
-              className="pointer-events-auto"
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Start Date</label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => onDateRangeChange({ ...dateRange, start: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-md"
             />
-          </PopoverContent>
-        </Popover>
-        
-        {(dateRange.from || dateRange.to) && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={clearDateRange}
-            className="w-full"
-          >
-            Clear Date Range
-          </Button>
-        )}
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-2 block">End Date</label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => onDateRangeChange({ ...dateRange, end: e.target.value })}
+              className="w-full p-2 border border-gray-300 rounded-md"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium mb-2 block">Quick Presets</label>
+          <div className="grid grid-cols-1 gap-2">
+            {presets.map((preset, index) => (
+              <Button
+                key={index}
+                variant="outline"
+                onClick={() => onDateRangeChange(preset.value)}
+                className="justify-start"
+              >
+                <CalendarDays className="h-4 w-4 mr-2" />
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

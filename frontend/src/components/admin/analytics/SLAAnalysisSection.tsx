@@ -1,72 +1,51 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Clock, AlertTriangle, CheckCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
 
-interface SLAMetric {
-  name: string;
+interface SLAData {
+  category: string;
   target: number;
   actual: number;
-  status: 'met' | 'warning' | 'breach';
+  breaches: number;
 }
 
 interface SLAAnalysisSectionProps {
-  metrics?: SLAMetric[];
+  data: SLAData[];
   isLoading?: boolean;
 }
 
 const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({
-  metrics = [],
+  data,
   isLoading = false
 }) => {
-  const defaultMetrics: SLAMetric[] = [
-    { name: 'First Response Time', target: 2, actual: 1.8, status: 'met' },
-    { name: 'Resolution Time', target: 24, actual: 18.5, status: 'met' },
-    { name: 'Customer Satisfaction', target: 85, actual: 78, status: 'warning' },
-    { name: 'Escalation Rate', target: 10, actual: 15, status: 'breach' }
-  ];
-
-  const displayMetrics = metrics.length > 0 ? metrics : defaultMetrics;
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'met': return 'text-green-600 bg-green-100';
-      case 'warning': return 'text-yellow-600 bg-yellow-100';
-      case 'breach': return 'text-red-600 bg-red-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'met': return <CheckCircle className="h-4 w-4" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4" />;
-      case 'breach': return <AlertTriangle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  };
-
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            SLA Analysis
-          </CardTitle>
+          <CardTitle>SLA Analysis</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
-            ))}
-          </div>
+          <div className="h-64 animate-pulse bg-gray-200 rounded"></div>
         </CardContent>
       </Card>
     );
   }
+
+  const mockData: SLAData[] = [
+    { category: 'Response Time', target: 2, actual: 1.8, breaches: 5 },
+    { category: 'Resolution Time', target: 24, actual: 22, breaches: 3 },
+    { category: 'First Contact Resolution', target: 80, actual: 75, breaches: 12 }
+  ];
+
+  const displayData = data.length > 0 ? data : mockData;
+
+  const getSLAStatus = (actual: number, target: number) => {
+    const percentage = (actual / target) * 100;
+    if (percentage <= 100) return { icon: TrendingUp, color: 'text-green-600', status: 'Met' };
+    return { icon: TrendingDown, color: 'text-red-600', status: 'Breached' };
+  };
 
   return (
     <Card>
@@ -76,29 +55,54 @@ const SLAAnalysisSection: React.FC<SLAAnalysisSectionProps> = ({
           SLA Analysis
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {displayMetrics.map((metric, index) => (
-          <div key={index} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium">{metric.name}</h4>
-              <Badge className={getStatusColor(metric.status)}>
-                {getStatusIcon(metric.status)}
-                <span className="ml-1 capitalize">{metric.status}</span>
-              </Badge>
-            </div>
-            
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Actual: {metric.actual}{metric.name.includes('Time') ? 'h' : '%'}</span>
-                <span>Target: {metric.target}{metric.name.includes('Time') ? 'h' : '%'}</span>
-              </div>
-              <Progress 
-                value={(metric.actual / metric.target) * 100} 
-                className="h-2"
-              />
-            </div>
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={displayData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="category" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="target" fill="#94a3b8" name="Target" />
+                <Bar dataKey="actual" fill="#2563eb" name="Actual" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        ))}
+
+          <div className="space-y-4">
+            {displayData.map((item, index) => {
+              const status = getSLAStatus(item.actual, item.target);
+              const StatusIcon = status.icon;
+              
+              return (
+                <div key={index} className="p-4 border rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium">{item.category}</h4>
+                    <div className={`flex items-center ${status.color}`}>
+                      <StatusIcon className="h-4 w-4 mr-1" />
+                      <span className="text-sm">{status.status}</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-sm">
+                    <div>
+                      <p className="text-gray-600">Target</p>
+                      <p className="font-medium">{item.target}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Actual</p>
+                      <p className="font-medium">{item.actual}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Breaches</p>
+                      <p className="font-medium text-red-600">{item.breaches}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

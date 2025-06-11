@@ -4,142 +4,180 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Save, AlertTriangle } from 'lucide-react';
-import { Issue } from '@/types';
+import { MapPin, Save, RotateCcw } from 'lucide-react';
+import { ISSUE_TYPES } from '@/config/issueTypes';
 
 interface IssueMappingSectionProps {
-  issue: Issue;
-  onMappingUpdate: (typeId: string, subTypeId: string) => void;
+  issueId: string;
+  currentTypeId: string;
+  currentSubTypeId: string;
+  mappedTypeId?: string;
+  mappedSubTypeId?: string;
+  onSaveMapping: (typeId: string, subTypeId: string) => void;
+  canEdit?: boolean;
   isLoading?: boolean;
 }
 
 const IssueMappingSection: React.FC<IssueMappingSectionProps> = ({
-  issue,
-  onMappingUpdate,
+  issueId,
+  currentTypeId,
+  currentSubTypeId,
+  mappedTypeId,
+  mappedSubTypeId,
+  onSaveMapping,
+  canEdit = false,
   isLoading = false
 }) => {
-  const [selectedType, setSelectedType] = useState(issue.mappedTypeId || '');
-  const [selectedSubType, setSelectedSubType] = useState(issue.mappedSubTypeId || '');
+  const [selectedTypeId, setSelectedTypeId] = useState(mappedTypeId || currentTypeId);
+  const [selectedSubTypeId, setSelectedSubTypeId] = useState(mappedSubTypeId || currentSubTypeId);
   const [isSaving, setIsSaving] = useState(false);
 
-  const issueTypes = [
-    { id: '1', label: 'Technical Issue' },
-    { id: '2', label: 'Account Issue' },
-    { id: '3', label: 'Service Request' },
-    { id: '4', label: 'Billing Issue' }
-  ];
+  const getCurrentTypeLabel = () => {
+    const type = ISSUE_TYPES.find(t => t.id === currentTypeId);
+    return type ? type.label : currentTypeId;
+  };
 
-  const subTypes = {
-    '1': [
-      { id: '1-1', label: 'App Crash' },
-      { id: '1-2', label: 'Login Problem' },
-      { id: '1-3', label: 'Feature Not Working' }
-    ],
-    '2': [
-      { id: '2-1', label: 'Profile Update' },
-      { id: '2-2', label: 'Password Reset' },
-      { id: '2-3', label: 'Account Verification' }
-    ],
-    '3': [
-      { id: '3-1', label: 'Information Request' },
-      { id: '3-2', label: 'Document Request' },
-      { id: '3-3', label: 'General Inquiry' }
-    ],
-    '4': [
-      { id: '4-1', label: 'Payment Issue' },
-      { id: '4-2', label: 'Refund Request' },
-      { id: '4-3', label: 'Invoice Problem' }
-    ]
+  const getCurrentSubTypeLabel = () => {
+    const type = ISSUE_TYPES.find(t => t.id === currentTypeId);
+    if (!type) return currentSubTypeId;
+    const subType = type.subTypes.find(st => st.id === currentSubTypeId);
+    return subType ? subType.label : currentSubTypeId;
+  };
+
+  const getSelectedTypeLabel = () => {
+    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
+    return type ? type.label : selectedTypeId;
+  };
+
+  const getSelectedSubTypeLabel = () => {
+    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
+    if (!type) return selectedSubTypeId;
+    const subType = type.subTypes.find(st => st.id === selectedSubTypeId);
+    return subType ? subType.label : selectedSubTypeId;
+  };
+
+  const getSubTypesForSelectedType = () => {
+    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
+    return type ? type.subTypes : [];
   };
 
   const handleSave = async () => {
-    if (!selectedType || !selectedSubType) return;
+    if (!canEdit || isSaving) return;
 
     setIsSaving(true);
     try {
-      await onMappingUpdate(selectedType, selectedSubType);
+      await onSaveMapping(selectedTypeId, selectedSubTypeId);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const needsMapping = !issue.mappedTypeId || !issue.mappedSubTypeId;
+  const handleReset = () => {
+    setSelectedTypeId(currentTypeId);
+    setSelectedSubTypeId(currentSubTypeId);
+  };
+
+  const hasChanges = selectedTypeId !== (mappedTypeId || currentTypeId) || 
+                    selectedSubTypeId !== (mappedSubTypeId || currentSubTypeId);
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MapPin className="h-5 w-5" />
-          Issue Mapping
-          {needsMapping && (
-            <Badge variant="destructive" className="ml-2">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              Needs Mapping
-            </Badge>
-          )}
+          Issue Type Mapping
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {needsMapping && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-sm text-yellow-800">
-              This issue needs to be mapped to appropriate categories for better tracking and analytics.
-            </p>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-sm font-medium mb-2 block">Issue Type</label>
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select issue type" />
-              </SelectTrigger>
-              <SelectContent>
-                {issueTypes.map(type => (
-                  <SelectItem key={type.id} value={type.id}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium mb-2 block">Sub Type</label>
-            <Select 
-              value={selectedSubType} 
-              onValueChange={setSelectedSubType}
-              disabled={!selectedType}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select sub type" />
-              </SelectTrigger>
-              <SelectContent>
-                {selectedType && subTypes[selectedType as keyof typeof subTypes]?.map(subType => (
-                  <SelectItem key={subType.id} value={subType.id}>
-                    {subType.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+        {/* Original Classification */}
+        <div>
+          <h4 className="font-medium mb-2">Original Classification</h4>
+          <div className="flex gap-2">
+            <Badge variant="outline">{getCurrentTypeLabel()}</Badge>
+            <Badge variant="outline">{getCurrentSubTypeLabel()}</Badge>
           </div>
         </div>
 
-        {issue.mappedAt && (
-          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-            Last mapped by {issue.mappedBy} on {new Date(issue.mappedAt).toLocaleString()}
+        {/* Current/Mapped Classification */}
+        {(mappedTypeId || mappedSubTypeId) && (
+          <div>
+            <h4 className="font-medium mb-2">Current Classification</h4>
+            <div className="flex gap-2">
+              <Badge className="bg-blue-100 text-blue-800">
+                {getSelectedTypeLabel()}
+              </Badge>
+              <Badge className="bg-blue-100 text-blue-800">
+                {getSelectedSubTypeLabel()}
+              </Badge>
+            </div>
           </div>
         )}
 
-        <Button 
-          onClick={handleSave}
-          disabled={!selectedType || !selectedSubType || isSaving || isLoading}
-          className="w-full"
-        >
-          <Save className="h-4 w-4 mr-2" />
-          {isSaving ? 'Saving...' : 'Save Mapping'}
-        </Button>
+        {canEdit && (
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="font-medium">Update Classification</h4>
+            
+            {/* Type Selection */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Issue Type</label>
+              <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ISSUE_TYPES.map(type => (
+                    <SelectItem key={type.id} value={type.id}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sub Type Selection */}
+            <div>
+              <label className="text-sm font-medium mb-2 block">Issue Sub Type</label>
+              <Select 
+                value={selectedSubTypeId} 
+                onValueChange={setSelectedSubTypeId}
+                disabled={!selectedTypeId}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getSubTypesForSelectedType().map(subType => (
+                    <SelectItem key={subType.id} value={subType.id}>
+                      {subType.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-2">
+              <Button 
+                onClick={handleSave}
+                disabled={!hasChanges || isSaving || isLoading}
+                size="sm"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Mapping'}
+              </Button>
+              
+              <Button 
+                variant="outline"
+                onClick={handleReset}
+                disabled={!hasChanges || isSaving}
+                size="sm"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

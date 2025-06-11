@@ -1,82 +1,80 @@
 
-import React, { useState, useEffect } from 'react';
-import { Loader2, AlertTriangle, FileText } from 'lucide-react';
-import FeedbackFiltersPanel from './FeedbackFiltersPanel';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
-import FeedbackInsightsSummary from './FeedbackInsightsSummary';
-import SentimentDistributionChart from './SentimentDistributionChart';
 import FeedbackSubmissionRate from './FeedbackSubmissionRate';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
+import FeedbackTrendAnalysis from './FeedbackTrendAnalysis';
+import SentimentDistributionChart from './SentimentDistributionChart';
+import FeedbackOptionBreakdown from './FeedbackOptionBreakdown';
+import FeedbackInsightsSummary from './FeedbackInsightsSummary';
 
 const FeedbackAnalyticsPage: React.FC = () => {
-  const [isComparisonEnabled, setIsComparisonEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState('7d');
 
-  useEffect(() => {
-    // Simulate loading
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
+  const mockInsights = [
+    { label: 'Avg Rating', value: '4.2', change: 0.3 },
+    { label: 'Response Rate', value: '85%', change: 5 },
+    { label: 'Positive Sentiment', value: '76%', change: -2 },
+    { label: 'Resolution Score', value: '3.8', change: 0.1 }
+  ];
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 bg-white rounded-lg shadow p-6">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-        <span className="text-lg">Loading feedback data...</span>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          Error loading feedback data: {error}
-        </AlertDescription>
-      </Alert>
-    );
-  }
+  const mockSentimentData = [
+    { sentiment: 'happy', count: 150, percentage: 65 },
+    { sentiment: 'neutral', count: 50, percentage: 22 },
+    { sentiment: 'sad', count: 30, percentage: 13 }
+  ];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Feedback Analytics</h1>
-        <Button variant="outline">
-          <FileText className="mr-2 h-4 w-4" />
-          Export Data
-        </Button>
+        <h1 className="text-2xl font-bold">Feedback Analytics</h1>
+        <select 
+          value={selectedPeriod} 
+          onChange={(e) => setSelectedPeriod(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+          <option value="90d">Last 90 days</option>
+        </select>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1">
-          <FeedbackFiltersPanel 
-            onFiltersChange={() => {}}
-            onComparisonToggle={setIsComparisonEnabled}
-          />
-        </div>
-        
-        <div className="lg:col-span-3 space-y-6">
-          <FeedbackMetricsOverview />
-          
-          {isComparisonEnabled && (
-            <FeedbackInsightsSummary 
-              insights={[]}
-              showComparison={isComparisonEnabled}
-            />
-          )}
-          
+      <FeedbackMetricsOverview />
+
+      <FeedbackInsightsSummary insights={mockInsights} showComparison={true} />
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="sentiment">Sentiment</TabsTrigger>
+          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <SentimentDistributionChart data={[]} />
             <FeedbackSubmissionRate 
-              totalFeedback={0}
-              totalClosedTickets={0}
-              submissionRate={0}
+              totalFeedback={230}
+              totalClosedTickets={280}
+              submissionRate={82.1}
             />
+            <SentimentDistributionChart data={mockSentimentData} />
           </div>
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="sentiment" className="space-y-4">
+          <SentimentDistributionChart data={mockSentimentData} />
+        </TabsContent>
+
+        <TabsContent value="trends" className="space-y-4">
+          <FeedbackTrendAnalysis data={[]} />
+        </TabsContent>
+
+        <TabsContent value="breakdown" className="space-y-4">
+          <FeedbackOptionBreakdown options={[]} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

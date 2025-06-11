@@ -1,134 +1,128 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Calendar, Filter, RotateCcw } from 'lucide-react';
-import { formOptions } from '@/data/formOptions';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Filter, RefreshCw } from 'lucide-react';
 
 interface FeedbackFilters {
-  city?: string;
-  cluster?: string;
   sentiment?: string;
   dateRange?: string;
+  city?: string;
+  cluster?: string;
   agent?: string;
 }
 
 interface FeedbackFiltersPanelProps {
+  filters: FeedbackFilters;
   onFiltersChange: (filters: FeedbackFilters) => void;
-  onComparisonToggle: (enabled: boolean) => void;
+  onReset: () => void;
+  isLoading?: boolean;
 }
 
 const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
+  filters,
   onFiltersChange,
-  onComparisonToggle
+  onReset,
+  isLoading = false
 }) => {
-  const [filters, setFilters] = useState<FeedbackFilters>({});
-  const [comparisonEnabled, setComparisonEnabled] = useState(false);
-
-  const updateFilter = (key: keyof FeedbackFilters, value: string) => {
-    const newFilters = { ...filters, [key]: value === 'all' ? undefined : value };
-    setFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
-
-  const clearFilters = () => {
-    setFilters({});
-    onFiltersChange({});
-  };
-
-  const handleComparisonToggle = (enabled: boolean) => {
-    setComparisonEnabled(enabled);
-    onComparisonToggle(enabled);
-  };
+  const cities = ['Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai'];
+  const clusters = ['North', 'South', 'East', 'West', 'Central'];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Filter className="h-5 w-5" />
-          Filters
+          Feedback Filters
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label className="text-sm font-medium">City</Label>
-          <Select value={filters.city || 'all'} onValueChange={(value) => updateFilter('city', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Cities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {formOptions.cities.map(city => (
-                <SelectItem key={city} value={city}>{city}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium mb-2 block">Sentiment</label>
+            <Select 
+              value={filters.sentiment || ''} 
+              onValueChange={(value) => onFiltersChange({...filters, sentiment: value || undefined})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All sentiments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All sentiments</SelectItem>
+                <SelectItem value="happy">Happy</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
+                <SelectItem value="sad">Sad</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Date Range</label>
+            <Select 
+              value={filters.dateRange || ''} 
+              onValueChange={(value) => onFiltersChange({...filters, dateRange: value || undefined})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All time" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All time</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="90d">Last 90 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">City</label>
+            <Select 
+              value={filters.city || ''} 
+              onValueChange={(value) => onFiltersChange({...filters, city: value || undefined})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All cities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All cities</SelectItem>
+                {cities.map(city => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Cluster</label>
+            <Select 
+              value={filters.cluster || ''} 
+              onValueChange={(value) => onFiltersChange({...filters, cluster: value || undefined})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All clusters" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All clusters</SelectItem>
+                {clusters.map(cluster => (
+                  <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div>
-          <Label className="text-sm font-medium">Cluster</Label>
-          <Select value={filters.cluster || 'all'} onValueChange={(value) => updateFilter('cluster', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Clusters" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Clusters</SelectItem>
-              {formOptions.clusters.map(cluster => (
-                <SelectItem key={cluster} value={cluster}>{cluster}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 pt-4">
+          <Button 
+            variant="outline" 
+            onClick={onReset}
+            disabled={isLoading}
+            className="flex-1"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Reset Filters
+          </Button>
         </div>
-
-        <div>
-          <Label className="text-sm font-medium">Sentiment</Label>
-          <Select value={filters.sentiment || 'all'} onValueChange={(value) => updateFilter('sentiment', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Sentiments" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Sentiments</SelectItem>
-              <SelectItem value="happy">Positive</SelectItem>
-              <SelectItem value="neutral">Neutral</SelectItem>
-              <SelectItem value="sad">Negative</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <Label className="text-sm font-medium">Date Range</Label>
-          <Select value={filters.dateRange || 'last30'} onValueChange={(value) => updateFilter('dateRange', value)}>
-            <SelectTrigger>
-              <Calendar className="h-4 w-4 mr-2" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last7">Last 7 days</SelectItem>
-              <SelectItem value="last30">Last 30 days</SelectItem>
-              <SelectItem value="last90">Last 90 days</SelectItem>
-              <SelectItem value="thisYear">This Year</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="comparison-mode"
-            checked={comparisonEnabled}
-            onCheckedChange={handleComparisonToggle}
-          />
-          <Label htmlFor="comparison-mode" className="text-sm">
-            Enable Comparison Mode
-          </Label>
-        </div>
-
-        <Button variant="outline" onClick={clearFilters} className="w-full">
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Clear Filters
-        </Button>
       </CardContent>
     </Card>
   );
