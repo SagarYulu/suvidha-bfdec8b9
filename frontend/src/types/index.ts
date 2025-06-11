@@ -72,39 +72,3 @@ export interface Analytics {
     monthly: Array<{ month: string; count: number; resolved: number }>;
   };
 }
-
-export interface Feedback {
-  id: string;
-  issueId: string;
-  rating: number;
-  comment?: string;
-  createdAt: string;
-}
-
-export interface Permission {
-  id: string;
-  name: string;
-  description: string;
-  module: string;
-}
-
-export interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: Permission[];
-}
-
-export interface AuditLog {
-  id: string;
-  userId: string;
-  action: string;
-  resource: string;
-  resourceId: string;
-  details: any;
-  createdAt: string;
-  user?: {
-    name: string;
-    email: string;
-  };
-}

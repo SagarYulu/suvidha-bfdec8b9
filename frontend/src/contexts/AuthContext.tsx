@@ -1,6 +1,5 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authService } from '@/services/authService';
 
 interface AuthContextType {
   authState: {
@@ -35,11 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const refreshAuth = useCallback(async () => {
     try {
-      const user = await authService.getCurrentUser();
+      // TODO: Implement auth check with local backend
       setAuthState({
-        isAuthenticated: true,
-        user,
-        role: user.role || null,
+        isAuthenticated: false,
+        user: null,
+        role: null,
       });
     } catch (error) {
       setAuthState({
@@ -59,15 +58,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await authService.login(email, password);
-      if (response.user) {
-        setAuthState({
-          isAuthenticated: true,
-          user: response.user,
-          role: response.user.role || null,
-        });
-        return true;
-      }
+      // TODO: Implement login with local backend
+      console.log('Login attempt:', { email, password });
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -80,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     setIsLoading(true);
     try {
-      await authService.logout();
+      // TODO: Implement logout with local backend
       setAuthState({
         isAuthenticated: false,
         user: null,
