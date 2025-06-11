@@ -1,5 +1,6 @@
+
 import { Issue } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { issueService } from "@/services/api/issueService";
 import { mapDbIssueToAppIssue } from "./issueUtils";
 
 // Initialize service
@@ -18,36 +19,36 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
     return [];
   }
   
-  // Get all comments for these issues
+  // Get all comments for these issues from backend API
   const issueIds = dbIssues.map(issue => issue.id);
   let commentsByIssueId: Record<string, any[]> = {};
   
   if (issueIds.length > 0) {
-    const { data: dbComments, error: commentsError } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .in('issue_id', issueIds)
-      .order('created_at', { ascending: true });
-    
-    if (commentsError) {
-      console.error('Error fetching comments:', commentsError);
-    }
-    
-    // Group comments by issue_id
-    if (dbComments) {
-      dbComments.forEach(comment => {
-        const issueId = comment.issue_id;
-        if (!commentsByIssueId[issueId]) {
-          commentsByIssueId[issueId] = [];
+    try {
+      // Fetch comments for all issues
+      const commentPromises = issueIds.map(async (issueId) => {
+        try {
+          const comments = await issueService.getIssueComments(issueId);
+          return { issueId, comments: comments || [] };
+        } catch (error) {
+          console.error(`Error fetching comments for issue ${issueId}:`, error);
+          return { issueId, comments: [] };
         }
-        
-        commentsByIssueId[issueId].push({
-          id: comment.id,
-          employeeUuid: comment.employee_uuid,
-          content: comment.content,
-          createdAt: comment.created_at
-        });
       });
+      
+      const commentResults = await Promise.all(commentPromises);
+      
+      // Group comments by issue_id
+      commentResults.forEach(({ issueId, comments }) => {
+        commentsByIssueId[issueId] = comments.map(comment => ({
+          id: comment.id,
+          employeeUuid: comment.employeeUuid,
+          content: comment.content,
+          createdAt: comment.createdAt
+        }));
+      });
+    } catch (error) {
+      console.error('Error fetching comments:', error);
     }
   }
   
