@@ -1,5 +1,4 @@
-import { Issue } from '@/services/api/issueService';
-import { getIssueTypeLabel, getIssueSubTypeLabel } from '@/services/issueService';
+import { Issue } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue } from "./issueUtils";
 
@@ -69,36 +68,9 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
 export const formatConsistentIssueData = (issues: Issue[]): Issue[] => {
   return issues.map(issue => ({
     ...issue,
-    // Ensure all required fields are present
-    id: issue.id,
-    employeeUuid: issue.employeeUuid,
-    typeId: issue.typeId,
-    subTypeId: issue.subTypeId || '',
-    description: issue.description,
+    // Ensure status is consistently formatted (remove underscores for display)
     status: issue.status,
+    // Ensure priority is consistently formatted
     priority: issue.priority,
-    createdAt: issue.createdAt,
-    updatedAt: issue.updatedAt,
-    closedAt: issue.closedAt || null,
-    assignedTo: issue.assignedTo || null,
-    escalation_level: issue.escalation_level || 0,
-    escalated_at: issue.escalated_at || null,
-    cluster: issue.cluster || '',
-    city: issue.city || '',
-    comments: issue.comments || [],
   }));
-};
-
-export const addComputedFields = (issues: Issue[]) => {
-  return issues.map(issue => ({
-    ...issue,
-    typeLabel: getIssueTypeLabel(issue.typeId),
-    subTypeLabel: getIssueSubTypeLabel(issue.typeId, issue.subTypeId),
-    daysOld: Math.floor((Date.now() - new Date(issue.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
-  }));
-};
-
-export const processIssuesForDisplay = (issues: Issue[]) => {
-  const formatted = formatConsistentIssueData(issues);
-  return addComputedFields(formatted);
 };
