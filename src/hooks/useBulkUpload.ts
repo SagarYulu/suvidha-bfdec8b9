@@ -38,23 +38,23 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
         const rowData: RowData = {
-          id: item.rowData.id || `temp-${index}`,
+          id: item.rowData.id || '',
           userId: item.rowData.userId || '',
           emp_id: item.rowData.emp_id || '',
           name: item.rowData.name || '',
           email: item.rowData.email || '',
-          phone: item.rowData.phone || '',
-          city: item.rowData.city || '',
-          cluster: item.rowData.cluster || '',
+          phone: item.rowData.phone || null,
+          city: item.rowData.city || null,
+          cluster: item.rowData.cluster || null,
           role: item.rowData.role || '',
-          manager: item.rowData.manager || '',
-          date_of_joining: item.rowData.date_of_joining || '',
-          date_of_birth: item.rowData.date_of_birth || '',
-          blood_group: item.rowData.blood_group || '',
-          account_number: item.rowData.account_number || '',
-          ifsc_code: item.rowData.ifsc_code || '',
+          manager: item.rowData.manager || null,
+          date_of_joining: item.rowData.date_of_joining || null,
+          date_of_birth: item.rowData.date_of_birth || null,
+          blood_group: item.rowData.blood_group || null,
+          account_number: item.rowData.account_number || null,
+          ifsc_code: item.rowData.ifsc_code || null,
           password: item.rowData.password || 'changeme123',
-          employeeId: item.rowData.employeeId || item.row.emp_id
+          employeeId: item.rowData.emp_id || item.rowData.employeeId || ''
         };
         initialEditedRows[`row-${index}`] = rowData;
       });

@@ -18,8 +18,6 @@ const TestDataGenerator = () => {
     try {
       setIsGenerating(true);
       const result = await generateTestSentimentData();
-      
-      // Check if result exists and has the expected properties
       if (result && typeof result === 'object' && 'employeesProcessed' in result) {
         setResults(result);
         toast({
@@ -28,7 +26,6 @@ const TestDataGenerator = () => {
           description: `Processed ${result.employeesProcessed} employees with ${result.totalEntriesCreated} entries created.`
         });
       } else {
-        // Handle case where function returns void or null
         setResults(null);
         toast({
           variant: "default",
@@ -38,7 +35,6 @@ const TestDataGenerator = () => {
       }
     } catch (error) {
       console.error("Error:", error);
-      setResults(null);
       toast({
         variant: "destructive",
         title: "Error",

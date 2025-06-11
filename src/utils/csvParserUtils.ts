@@ -1,6 +1,65 @@
 
 import Papa from 'papaparse';
-import { CSVEmployeeData, RowData, ValidationError, ValidationResult } from '@/types';
+
+export interface CSVEmployeeData {
+  id?: string;
+  userId: string;
+  emp_id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  city?: string | null;
+  cluster?: string | null;
+  role: string;
+  manager?: string | null;
+  date_of_joining?: string | null;
+  date_of_birth?: string | null;
+  blood_group?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  password: string;
+  employeeId?: string;
+}
+
+export interface RowData {
+  id?: string;
+  userId: string;
+  emp_id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  city?: string | null;
+  cluster?: string | null;
+  role: string;
+  manager?: string | null;
+  date_of_joining?: string | null;
+  date_of_birth?: string | null;
+  blood_group?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  password: string;
+  employeeId?: string;
+  [key: string]: any;
+}
+
+export interface ValidationError {
+  row: CSVEmployeeData;
+  errors: string[];
+  rowData: RowData;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  validRows: CSVEmployeeData[];
+  validEmployees: CSVEmployeeData[];
+  invalidRows: ValidationError[];
+  errors: string[];
+  summary: {
+    total: number;
+    valid: number;
+    invalid: number;
+  };
+}
 
 const validateEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -57,7 +116,6 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           const validation = validateEmployeeData(row);
           
           const employeeData: CSVEmployeeData = {
-            id: row.id || `temp-${index}`,
             userId: row.userId || row['User ID'] || row.user_id || '',
             emp_id: row.emp_id || row['Employee ID'] || row['Emp ID'] || '',
             name: row.name || row.Name || '',
@@ -77,23 +135,8 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           };
 
           const rowData: RowData = {
-            id: employeeData.id || `temp-${index}`,
-            userId: employeeData.userId || '',
-            emp_id: employeeData.emp_id,
-            name: employeeData.name,
-            email: employeeData.email,
-            phone: employeeData.phone || '',
-            city: employeeData.city || '',
-            cluster: employeeData.cluster || '',
-            role: employeeData.role,
-            manager: employeeData.manager || '',
-            date_of_joining: employeeData.date_of_joining || '',
-            date_of_birth: employeeData.date_of_birth || '',
-            blood_group: employeeData.blood_group || '',
-            account_number: employeeData.account_number || '',
-            ifsc_code: employeeData.ifsc_code || '',
-            password: employeeData.password || 'changeme123',
-            employeeId: employeeData.employeeId
+            ...employeeData,
+            ...row
           };
 
           if (validation.isValid) {
