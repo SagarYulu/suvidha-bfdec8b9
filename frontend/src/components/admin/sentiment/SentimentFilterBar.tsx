@@ -5,7 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
 import { Filter, RefreshCw } from 'lucide-react';
-import ComparisonModeDropdown from './ComparisonModeDropdown';
+
+interface ComparisonMode {
+  value: 'none' | 'previous_period' | 'previous_month' | 'previous_quarter';
+  label: string;
+}
 
 interface SentimentFilters {
   startDate?: Date;
@@ -13,7 +17,7 @@ interface SentimentFilters {
   city?: string;
   cluster?: string;
   role?: string;
-  comparisonMode?: any;
+  comparisonMode?: ComparisonMode;
 }
 
 interface SentimentFilterBarProps {
@@ -31,6 +35,13 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({
   clusters = ['North', 'South', 'East', 'West'],
   roles = ['DE', 'FM', 'AM', 'City Head']
 }) => {
+  const comparisonModes: ComparisonMode[] = [
+    { value: 'none', label: 'No Comparison' },
+    { value: 'previous_period', label: 'Previous Period' },
+    { value: 'previous_month', label: 'Previous Month' },
+    { value: 'previous_quarter', label: 'Previous Quarter' }
+  ];
+
   const handleFilterChange = (key: keyof SentimentFilters, value: any) => {
     onFiltersChange({
       ...filters,
@@ -121,10 +132,24 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({
           
           {/* Comparison Mode and Clear Button */}
           <div className="flex gap-2">
-            <ComparisonModeDropdown
-              value={filters.comparisonMode}
-              onChange={(mode) => handleFilterChange('comparisonMode', mode)}
-            />
+            <Select 
+              value={filters.comparisonMode?.value || 'none'} 
+              onValueChange={(value) => {
+                const mode = comparisonModes.find(m => m.value === value);
+                handleFilterChange('comparisonMode', mode);
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="No Comparison" />
+              </SelectTrigger>
+              <SelectContent>
+                {comparisonModes.map(mode => (
+                  <SelectItem key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             
             <Button variant="outline" size="icon" onClick={clearFilters}>
               <RefreshCw className="h-4 w-4" />

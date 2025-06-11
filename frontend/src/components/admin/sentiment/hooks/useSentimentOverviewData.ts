@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { sentimentService } from '@/services/sentimentService';
 
 export interface ComparisonMode {
   value: 'none' | 'previous_period' | 'previous_month' | 'previous_quarter';
@@ -36,27 +35,48 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
   const loadSentimentData = async () => {
     setIsLoading(true);
     try {
-      // Load current period data
-      const [sentiment, timeSeries, pie, tags, radar] = await Promise.all([
-        sentimentService.getSentimentData(filters),
-        sentimentService.getTimeSeriesData(filters),
-        sentimentService.getSentimentDistribution(filters),
-        sentimentService.getTopicData(filters),
-        sentimentService.getRadarData(filters)
+      // Simulate API calls with mock data
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setSentimentData([
+        { name: 'Positive', value: 65, color: '#22c55e' },
+        { name: 'Neutral', value: 25, color: '#64748b' },
+        { name: 'Negative', value: 10, color: '#ef4444' }
       ]);
-
-      setSentimentData(sentiment);
-      setTimeSeriesData(timeSeries);
-      setSentimentPieData(pie);
-      setTagData(tags);
-      setRadarData(radar);
+      
+      setTimeSeriesData([
+        { date: '2024-01-01', rating: 4.2, previousRating: 4.0 },
+        { date: '2024-01-02', rating: 4.3, previousRating: 4.1 },
+        { date: '2024-01-03', rating: 4.1, previousRating: 3.9 }
+      ]);
+      
+      setSentimentPieData([
+        { name: 'Positive', value: 650 },
+        { name: 'Neutral', value: 250 },
+        { name: 'Negative', value: 100 }
+      ]);
+      
+      setTagData([
+        { tag: 'service', count: 120, sentiment: 'positive' },
+        { tag: 'delivery', count: 95, sentiment: 'neutral' },
+        { tag: 'issue', count: 45, sentiment: 'negative' }
+      ]);
+      
+      setRadarData([
+        { metric: 'Quality', current: 85, previous: 80 },
+        { metric: 'Speed', current: 78, previous: 75 },
+        { metric: 'Support', current: 92, previous: 88 }
+      ]);
 
       // Load comparison data if needed
       if (showComparison) {
         setIsLoadingComparison(true);
         try {
-          const comparisonData = await sentimentService.getComparisonInsights(filters);
-          setComparisonInsights(comparisonData);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setComparisonInsights([
+            { metric: 'Overall Sentiment', change: 5.2, direction: 'up' },
+            { metric: 'Response Rate', change: -2.1, direction: 'down' }
+          ]);
         } catch (error) {
           console.error('Failed to load comparison data:', error);
         } finally {

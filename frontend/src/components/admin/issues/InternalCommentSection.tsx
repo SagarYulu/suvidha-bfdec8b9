@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Lock, Send, User, Clock, Eye } from 'lucide-react';
-import { useInternalComments } from '@/hooks/issues/useInternalComments';
 import { formatDistanceToNow } from 'date-fns';
 
 interface InternalComment {
@@ -28,22 +27,30 @@ const InternalCommentSection: React.FC<InternalCommentSectionProps> = ({
 }) => {
   const [newComment, setNewComment] = useState('');
   const [visibility, setVisibility] = useState<'internal' | 'admin_only'>('internal');
-  
-  const { 
-    internalComments, 
-    isLoading, 
-    addInternalComment, 
-    isAddingComment 
-  } = useInternalComments(issueId);
+  const [internalComments, setInternalComments] = useState<InternalComment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
     
+    setIsAddingComment(true);
     try {
-      await addInternalComment(newComment, visibility);
+      const newCommentObj: InternalComment = {
+        id: Date.now().toString(),
+        content: newComment,
+        authorName: 'Current User',
+        authorRole: 'Admin',
+        createdAt: new Date().toISOString(),
+        visibility
+      };
+      
+      setInternalComments(prev => [...prev, newCommentObj]);
       setNewComment('');
     } catch (error) {
       console.error('Failed to add internal comment:', error);
+    } finally {
+      setIsAddingComment(false);
     }
   };
 

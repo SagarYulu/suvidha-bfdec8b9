@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { MessageSquare, Send, User, Clock } from 'lucide-react';
-import { useIssueComments } from '@/hooks/issues/useIssueComments';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Comment {
@@ -27,21 +26,31 @@ const CommentSection: React.FC<CommentSectionProps> = ({
   allowComments = true
 }) => {
   const [newComment, setNewComment] = useState('');
-  const { 
-    comments, 
-    isLoading, 
-    addComment, 
-    isAddingComment 
-  } = useIssueComments(issueId);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false);
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) return;
     
+    setIsAddingComment(true);
     try {
-      await addComment(newComment);
+      // Simulate API call
+      const newCommentObj: Comment = {
+        id: Date.now().toString(),
+        content: newComment,
+        authorName: 'Current User',
+        authorRole: 'Admin',
+        createdAt: new Date().toISOString(),
+        isInternal: false
+      };
+      
+      setComments(prev => [...prev, newCommentObj]);
       setNewComment('');
     } catch (error) {
       console.error('Failed to add comment:', error);
+    } finally {
+      setIsAddingComment(false);
     }
   };
 
