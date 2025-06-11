@@ -1,43 +1,53 @@
 
+import { supabase } from '@/integrations/supabase/client';
 import { Issue } from '@/types';
+import { createAuditLog } from './issueAuditService';
 
-export const mapIssueType = (originalType: string, originalSubType: string) => {
-  // Map original issue types to standardized ones
-  const typeMapping: Record<string, { type: string; subType: string; priority: Issue['priority'] }> = {
-    'IT_SUPPORT': {
-      type: 'IT Support',
-      subType: 'General IT Issue',
-      priority: 'medium'
-    },
-    'PAYROLL': {
-      type: 'Payroll',
-      subType: 'Salary Issue',
-      priority: 'high'
-    },
-    'LEAVE': {
-      type: 'Leave Management',
-      subType: 'Leave Request',
-      priority: 'low'
-    },
-    'BENEFITS': {
-      type: 'Benefits',
-      subType: 'Benefits Inquiry',
-      priority: 'medium'
-    },
-    'GENERAL': {
-      type: 'General',
-      subType: 'General Inquiry',
-      priority: 'low'
+export const mapIssueType = async (
+  issueId: string,
+  newTypeId: string,
+  newSubTypeId: string,
+  currentUserId: string
+): Promise<Issue | null> => {
+  try {
+    // Update the issue with the new type and subtype
+    const { data, error } = await supabase
+      .from('issues')
+      .update({
+        mapped_type_id: newTypeId,
+        mapped_sub_type_id: newSubTypeId,
+        mapped_at: new Date().toISOString(),
+        mapped_by: currentUserId
+      })
+      .eq('id', issueId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error mapping issue type:', error);
+      return null;
     }
-  };
 
-  const mapping = typeMapping[originalType] || typeMapping['GENERAL'];
-  
-  return {
-    mappedTypeId: mapping.type,
-    mappedSubTypeId: mapping.subType,
-    priority: mapping.priority
-  };
+    // Create audit log for the mapping
+    if (data) {
+      await createAuditLog(
+        issueId,
+        currentUserId,
+        'issue_mapped',
+        { 
+          newTypeId, 
+          newSubTypeId,
+          mappedAt: new Date().toISOString()
+        },
+        `Issue mapped to ${newTypeId}/${newSubTypeId}`
+      );
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in mapIssueType:', error);
+    return null;
+  }
 };
 
 export const isIssueMappable = (issue: Issue): boolean => {
