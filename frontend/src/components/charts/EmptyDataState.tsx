@@ -1,20 +1,25 @@
 
 import React from 'react';
-import { BarChart3 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 interface EmptyDataStateProps {
   message?: string;
+  subMessage?: string;
   icon?: React.ReactNode;
 }
 
-const EmptyDataState: React.FC<EmptyDataStateProps> = ({ 
+const EmptyDataState: React.FC<EmptyDataStateProps> = ({
   message = "No data available",
-  icon 
+  subMessage,
+  icon
 }) => {
   return (
     <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-      {icon || <BarChart3 className="h-12 w-12 mb-4 text-gray-400" />}
-      <p className="text-lg font-medium">{message}</p>
+      {icon || <AlertCircle className="h-12 w-12 mb-4 text-gray-400" />}
+      <h3 className="text-lg font-medium mb-2">{message}</h3>
+      {subMessage && (
+        <p className="text-sm text-center max-w-sm">{subMessage}</p>
+      )}
     </div>
   );
 };

@@ -1,42 +1,48 @@
 
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: string | Date) {
-  const d = new Date(date);
-  return d.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-
-export function formatCurrency(amount: number) {
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: 'INR'
+    currency: 'INR',
   }).format(amount);
 }
 
-export function formatRelativeTime(date: string | Date) {
-  const d = new Date(date);
-  const now = new Date();
-  const diffInMs = now.getTime() - d.getTime();
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-  
-  if (diffInDays === 0) {
-    return 'Today';
-  } else if (diffInDays === 1) {
-    return 'Yesterday';
-  } else if (diffInDays < 7) {
-    return `${diffInDays} days ago`;
-  } else {
-    return formatDate(date);
-  }
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-IN').format(num);
+}
+
+export function truncateText(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+}
+
+export function debounce<T extends (...args: any[]) => void>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+}
+
+export function throttle<T extends (...args: any[]) => void>(
+  func: T,
+  limit: number
+): (...args: Parameters<T>) => void {
+  let inThrottle: boolean;
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => (inThrottle = false), limit);
+    }
+  };
 }
