@@ -1,3 +1,4 @@
+
 import { Issue } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -131,7 +132,6 @@ const initializeMockIssues = () => {
         title: 'System Down',
         issueType: 'IT Support',
         employeeId: 'EMP001',
-        attachmentUrl: '',
         attachments: []
       }
     ];
@@ -140,5 +140,3 @@ const initializeMockIssues = () => {
 
 // Initialize mock data
 initializeMockIssues();
-
-</edits_to_apply>
