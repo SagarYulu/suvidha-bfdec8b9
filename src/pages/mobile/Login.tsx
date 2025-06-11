@@ -87,9 +87,9 @@ const MobileLogin = () => {
     try {
       console.log("Attempting mobile verification with:", { email, employeeId });
       // Use employeeId as password for authentication
-      const success = await login(email, employeeId);
+      const loginResult = await login(email, employeeId);
       
-      if (success) {
+      if (loginResult) {
         console.log("Verification successful, checking access rights");
         
         // Get user data from localStorage - could be from mockUser or auth state
@@ -106,7 +106,7 @@ const MobileLogin = () => {
               description: "You don't have access to the mobile app. Please use the admin dashboard.",
               variant: "destructive",
             });
-            await logout();
+            logout();
             setIsLoading(false);
             return;
           }
@@ -120,7 +120,7 @@ const MobileLogin = () => {
               description: "You don't have access to the mobile app. Please use the admin dashboard.",
               variant: "destructive",
             });
-            await logout();
+            logout();
             setIsLoading(false);
             return;
           }

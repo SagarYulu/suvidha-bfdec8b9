@@ -49,7 +49,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const validRows: CSVEmployeeData[] = [];
+        const validEmployees: CSVEmployeeData[] = [];
         const invalidRows: ValidationError[] = [];
         const allErrors: string[] = [];
 
@@ -97,7 +97,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           };
 
           if (validation.isValid) {
-            validRows.push(employeeData);
+            validEmployees.push(employeeData);
           } else {
             const validationError: ValidationError = {
               row: employeeData,
@@ -111,13 +111,13 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
 
         const result: ValidationResult = {
           isValid: invalidRows.length === 0,
-          validRows,
-          validEmployees: validRows,
+          validRows: validEmployees,
+          validEmployees: validEmployees,
           invalidRows,
           errors: allErrors,
           summary: {
             total: results.data.length,
-            valid: validRows.length,
+            valid: validEmployees.length,
             invalid: invalidRows.length
           }
         };

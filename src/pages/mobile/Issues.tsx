@@ -58,7 +58,12 @@ const MobileIssues = () => {
         }
         
         if (employees && employees.length > 0) {
-          // Map the employee data to User type
+          // Map the employee data to User type with proper role casting
+          const employeeRole = employees[0].role;
+          const validRole: 'admin' | 'manager' | 'agent' | 'employee' = 
+            ['admin', 'manager', 'agent', 'employee'].includes(employeeRole) ? 
+            employeeRole as 'admin' | 'manager' | 'agent' | 'employee' : 'employee';
+
           const userData: User = {
             id: String(employees[0].id),
             name: employees[0].name,
@@ -68,7 +73,7 @@ const MobileIssues = () => {
             city: employees[0].city || "",
             cluster: employees[0].cluster || "",
             manager: employees[0].manager || "",
-            role: employees[0].role || "employee", // Default to 'employee' if role is missing
+            role: validRole,
             password: employees[0].password,
             dateOfJoining: employees[0].date_of_joining || "",
             bloodGroup: employees[0].blood_group || "",
@@ -76,6 +81,8 @@ const MobileIssues = () => {
             accountNumber: employees[0].account_number || "",
             ifscCode: employees[0].ifsc_code || "",
             userId: employees[0].user_id || "",
+            createdAt: employees[0].created_at || "",
+            updatedAt: employees[0].updated_at || ""
           };
           
           setEmployeeDetails(userData);
