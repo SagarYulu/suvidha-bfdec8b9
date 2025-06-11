@@ -49,7 +49,7 @@ const TopicDistributionSection: React.FC<TopicDistributionSectionProps> = ({
         {data.length === 0 ? (
           <EmptyDataState 
             message="No feedback topics available for the selected filters."
-            subMessage="Try clearing some filters or submitting more detailed feedback."
+            description="Try clearing some filters or submitting more detailed feedback."
           />
         ) : (
           <TopicBarChart data={data} showComparison={showComparisonData} />

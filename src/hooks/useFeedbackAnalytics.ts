@@ -19,6 +19,8 @@ const mockFeedbackMetrics: FeedbackMetrics = {
     neutral: 38,
     sad: 15,
   },
+  topOptions: [], // Add missing property
+  trendData: [], // Add missing property
 };
 
 export const useFeedbackAnalytics = () => {

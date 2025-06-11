@@ -46,6 +46,9 @@ export interface Issue {
   resolutionNotes?: string;
   additionalDetails?: any;
   comments: IssueComment[];
+  escalation_level?: number;
+  escalated_at?: string;
+  reopenableUntil?: string;
 }
 
 export interface Comment {
@@ -202,6 +205,16 @@ export interface SentimentAlert {
   change_percentage?: number;
 }
 
+// Add SentimentEntry interface
+export interface SentimentEntry {
+  id: string;
+  rating: number;
+  feedback_text?: string;
+  tags?: string[];
+  createdAt: string;
+  employee_uuid: string;
+}
+
 // Feedback types
 export interface FeedbackMetrics {
   totalCount: number;
@@ -218,6 +231,8 @@ export interface FeedbackMetrics {
     neutral: number;
     sad: number;
   };
+  topOptions: any[];
+  trendData: any[];
 }
 
 export interface FeedbackFilters {
@@ -245,3 +260,29 @@ export interface TrendData {
 }
 
 export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
+
+// Interface for filter types used across the dashboard
+export interface DashboardFilters {
+  city?: string;
+  status?: string;
+  priority?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  cluster?: string;
+  issueType?: string;
+}
+
+export interface IssueFilters {
+  city?: string;
+  status?: string;
+  priority?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  cluster: string;
+  issueType: string;
+  limit?: number;
+}

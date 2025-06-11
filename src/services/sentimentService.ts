@@ -1,37 +1,5 @@
 
-import { apiCall } from '@/config/api';
-
-export interface SentimentEntry {
-  id: string;
-  rating: number;
-  feedback_text?: string;
-  sentiment_label?: string;
-  sentiment_score?: number;
-  tags?: string[];
-  created_at: string;
-  employee_uuid?: string;
-  employee_name?: string;
-  city?: string;
-  cluster?: string;
-  role?: string;
-}
-
-export interface SentimentAlert {
-  id: string;
-  type: 'low_rating' | 'negative_trend' | 'urgent_feedback';
-  message: string;
-  severity: 'low' | 'medium' | 'high';
-  createdAt: string;
-  resolved: boolean;
-  is_resolved?: boolean;
-  created_at?: string;
-  trigger_reason?: string;
-  city?: string;
-  cluster?: string;
-  role?: string;
-  average_score?: number;
-  change_percentage?: number;
-}
+import { SentimentAlert, SentimentEntry } from '@/types';
 
 export interface SentimentFilters {
   startDate?: string;
@@ -39,23 +7,32 @@ export interface SentimentFilters {
   city?: string;
   cluster?: string;
   role?: string;
-  rating?: number;
-  sentiment?: string;
 }
 
-export const fetchAllSentiment = async (filters?: SentimentFilters): Promise<SentimentEntry[]> => {
-  const queryParams = new URLSearchParams();
-  
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        queryParams.append(key, String(value));
-      }
-    });
+// Mock data
+const mockSentimentData: SentimentEntry[] = [
+  {
+    id: '1',
+    rating: 4,
+    feedback_text: 'Great work environment',
+    tags: ['work-environment'],
+    createdAt: '2024-01-15T10:00:00Z',
+    employee_uuid: 'emp1'
+  },
+  {
+    id: '2',
+    rating: 3,
+    feedback_text: 'Could be better',
+    tags: ['management'],
+    createdAt: '2024-01-14T14:00:00Z',
+    employee_uuid: 'emp2'
   }
-  
-  const url = `/sentiment${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  return await apiCall(url);
+];
+
+export const fetchAllSentiment = async (filters: SentimentFilters = {}): Promise<SentimentEntry[]> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return mockSentimentData;
 };
 
 export const submitSentiment = async (data: {
@@ -64,60 +41,65 @@ export const submitSentiment = async (data: {
   employee_uuid: string;
   tags?: string[];
 }): Promise<SentimentEntry> => {
-  return await apiCall('/sentiment', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  const newEntry: SentimentEntry = {
+    id: Date.now().toString(),
+    rating: data.rating,
+    feedback_text: data.feedback_text,
+    tags: data.tags,
+    createdAt: new Date().toISOString(),
+    employee_uuid: data.employee_uuid
+  };
+  
+  return newEntry;
 };
 
-export const getSentimentAnalytics = async (filters?: SentimentFilters) => {
-  const queryParams = new URLSearchParams();
+export const getSentimentAnalytics = async (filters: SentimentFilters = {}) => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        queryParams.append(key, String(value));
-      }
-    });
-  }
-  
-  const url = `/sentiment/analytics${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  return await apiCall(url);
+  return {
+    averageRating: 3.8,
+    totalResponses: 150,
+    sentimentDistribution: {
+      happy: 65,
+      neutral: 25,
+      sad: 10
+    }
+  };
 };
 
-export const getSentimentTrends = async (
-  period: 'daily' | 'weekly' | 'monthly' = 'weekly',
-  filters?: SentimentFilters
-) => {
-  const queryParams = new URLSearchParams();
-  queryParams.append('period', period);
+export const getSentimentTrends = async (period: 'daily' | 'weekly' | 'monthly', filters: SentimentFilters = {}) => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '') {
-        queryParams.append(key, String(value));
-      }
-    });
-  }
-  
-  const url = `/sentiment/trends?${queryParams.toString()}`;
-  return await apiCall(url);
+  return [
+    { date: '2024-01-01', happy: 65, neutral: 25, sad: 10 },
+    { date: '2024-01-02', happy: 70, neutral: 20, sad: 10 },
+    { date: '2024-01-03', happy: 60, neutral: 30, sad: 10 }
+  ];
 };
 
-export const fetchSentimentAlerts = async (showResolved: boolean = false): Promise<SentimentAlert[]> => {
-  const queryParams = new URLSearchParams();
-  if (showResolved) {
-    queryParams.append('resolved', 'true');
-  }
-  const url = `/sentiment/alerts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  return await apiCall(url);
+export const fetchSentimentAlerts = async (): Promise<SentimentAlert[]> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  return [
+    {
+      id: '1',
+      type: 'low_rating',
+      message: 'Low average rating detected',
+      severity: 'high',
+      createdAt: '2024-01-15T10:00:00Z',
+      resolved: false
+    }
+  ];
 };
 
-export const resolveSentimentAlert = async (alertId: string): Promise<void> => {
-  await apiCall(`/sentiment/alerts/${alertId}/resolve`, {
-    method: 'POST',
-  });
+export const markAlertAsResolved = async (alertId: string): Promise<void> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log(`Alert ${alertId} marked as resolved`);
 };

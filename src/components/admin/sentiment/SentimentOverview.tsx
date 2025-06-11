@@ -60,7 +60,7 @@ const SentimentOverview: React.FC<SentimentOverviewProps> = ({ filters }) => {
     return (
       <EmptyDataState 
         message="No sentiment data available for the selected filters."
-        subMessage="Try clearing some filters or submitting feedback."
+        description="Try clearing some filters or submitting feedback."
       />
     );
   }
