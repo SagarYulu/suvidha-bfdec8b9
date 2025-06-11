@@ -2,7 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Issue } from '@/types';
 import { createAuditLog } from './issueAuditService';
-import { mapDbIssueToAppIssue } from './issueUtils';
 
 export const mapIssueType = async (
   issueId: string,
@@ -44,8 +43,7 @@ export const mapIssueType = async (
       );
     }
 
-    // Convert database format to app format using the utility function
-    return data ? mapDbIssueToAppIssue(data) : null;
+    return data;
   } catch (error) {
     console.error('Error in mapIssueType:', error);
     return null;

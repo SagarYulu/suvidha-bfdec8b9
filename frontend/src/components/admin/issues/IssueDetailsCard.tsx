@@ -6,23 +6,9 @@ import { Issue } from '@/types';
 
 interface IssueDetailsCardProps {
   issue: Issue;
-  status?: Issue["status"];
-  handleStatusChange?: (newStatus: Issue["status"]) => Promise<void>;
-  isUpdatingStatus?: boolean;
-  formatDate?: (dateString: string) => string;
-  getIssueTypeLabel?: (typeId: string) => string;
-  getIssueSubTypeLabel?: (typeId: string, subTypeId: string) => string;
 }
 
-const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ 
-  issue,
-  status,
-  handleStatusChange,
-  isUpdatingStatus = false,
-  formatDate,
-  getIssueTypeLabel,
-  getIssueSubTypeLabel
-}) => {
+const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({ issue }) => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-red-500';
@@ -43,16 +29,14 @@ const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({
     }
   };
 
-  const currentStatus = status || issue.status;
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           <span>Issue Details</span>
           <div className="flex space-x-2">
-            <Badge className={`text-white ${getStatusColor(currentStatus)}`}>
-              {currentStatus.replace('_', ' ')}
+            <Badge className={`text-white ${getStatusColor(issue.status)}`}>
+              {issue.status.replace('_', ' ')}
             </Badge>
             <Badge className={`text-white ${getPriorityColor(issue.priority)}`}>
               {issue.priority}
@@ -69,19 +53,23 @@ const IssueDetailsCard: React.FC<IssueDetailsCardProps> = ({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm font-medium text-gray-500">Issue Type</label>
-            <p className="text-sm">
-              {getIssueTypeLabel ? getIssueTypeLabel(issue.typeId || '') : issue.issueType}
-            </p>
+            <p className="text-sm">{issue.issueType}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Employee ID</label>
             <p className="text-sm">{issue.employeeId}</p>
           </div>
           <div>
+            <label className="text-sm font-medium text-gray-500">City</label>
+            <p className="text-sm">{issue.city || 'N/A'}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-500">Cluster</label>
+            <p className="text-sm">{issue.cluster || 'N/A'}</p>
+          </div>
+          <div>
             <label className="text-sm font-medium text-gray-500">Created At</label>
-            <p className="text-sm">
-              {formatDate ? formatDate(issue.createdAt) : new Date(issue.createdAt).toLocaleDateString()}
-            </p>
+            <p className="text-sm">{new Date(issue.createdAt).toLocaleDateString()}</p>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Assigned To</label>

@@ -54,7 +54,7 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Updated addComment function to accept the object format
+// Unified addComment function that accepts the commentData object
 export const addComment = async (
   issueId: string, 
   commentData: { employeeUuid: string; content: string },
