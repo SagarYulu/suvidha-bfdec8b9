@@ -20,6 +20,7 @@ export interface User {
   bloodGroup?: string;
   accountNumber?: string;
   ifscCode?: string;
+  manager?: string;
 }
 
 export interface Issue {
@@ -29,7 +30,7 @@ export interface Issue {
   issueType: string;
   issueSubtype?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
   employeeId: string;
   employeeUuid?: string;
   assignedTo?: string;
@@ -42,9 +43,12 @@ export interface Issue {
   resolutionNotes?: string;
   additionalDetails?: any;
   typeId?: string;
+  subTypeId?: string;
   escalation_level?: number;
   escalated_at?: string;
   reopenableUntil?: string;
+  closedAt?: string;
+  comments?: IssueComment[];
 }
 
 export interface IssueComment {
@@ -168,6 +172,9 @@ export interface ValidationError {
   row: CSVEmployeeData;
   errors: string[];
   rowData: RowData;
+  field?: string;
+  message?: string;
+  value?: any;
 }
 
 export interface ValidationResult {
@@ -220,10 +227,21 @@ export interface FeedbackMetrics {
   averageRating: number;
   totalResponses: number;
   responseRate: number;
+  totalCount: number;
   sentimentDistribution: {
     positive: number;
     neutral: number;
     negative: number;
+  };
+  sentimentCounts: {
+    happy: number;
+    neutral: number;
+    sad: number;
+  };
+  sentimentPercentages: {
+    happy: number;
+    neutral: number;
+    sad: number;
   };
   topOptions: Array<{
     option: string;
@@ -236,3 +254,15 @@ export interface FeedbackMetrics {
     responses: number;
   }>;
 }
+
+export interface FeedbackFilters {
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  category?: string;
+  rating?: number;
+  issueType?: string;
+}
+
+export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';

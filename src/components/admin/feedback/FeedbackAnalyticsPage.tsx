@@ -12,14 +12,13 @@ const FeedbackAnalyticsPage: React.FC = () => {
     metrics,
     isLoading,
     filters,
-    updateFilters,
+    handleFilterChange,
     handleExport
   } = useFeedbackAnalytics();
 
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
-    updateFilters({
-      startDate: range.from.toISOString(),
-      endDate: range.to.toISOString()
+    handleFilterChange({
+      dateRange: range
     });
   };
 
@@ -29,6 +28,33 @@ const FeedbackAnalyticsPage: React.FC = () => {
       await handleExport(format);
     }
   };
+
+  // Provide default metrics if not loaded
+  const defaultMetrics = {
+    averageRating: 0,
+    totalResponses: 0,
+    responseRate: 0,
+    totalCount: 0,
+    sentimentDistribution: {
+      positive: 0,
+      neutral: 0,
+      negative: 0
+    },
+    sentimentCounts: {
+      happy: 0,
+      neutral: 0,
+      sad: 0
+    },
+    sentimentPercentages: {
+      happy: 0,
+      neutral: 0,
+      sad: 0
+    },
+    topOptions: [],
+    trendData: []
+  };
+
+  const metricsToUse = metrics || defaultMetrics;
 
   return (
     <div className="space-y-6">
@@ -46,7 +72,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <FeedbackMetricsOverview 
-            metrics={metrics}
+            metrics={metricsToUse}
             comparisonMetrics={null}
             comparisonMode="none"
           />

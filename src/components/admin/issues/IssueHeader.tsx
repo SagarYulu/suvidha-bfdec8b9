@@ -24,6 +24,8 @@ const IssueHeader: React.FC<IssueHeaderProps> = ({ issue, onReopen }) => {
 
   const getStatusColor = (status: Issue['status']) => {
     switch (status) {
+      case 'open':
+        return 'bg-blue-500';
       case 'pending':
         return 'bg-yellow-500';
       case 'in_progress':
