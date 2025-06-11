@@ -54,7 +54,7 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Fix the addComment function to accept the object parameter format
+// Fix the addComment function to match the expected signature
 export const addComment = async (
   issueId: string, 
   commentData: { employeeUuid: string; content: string },
