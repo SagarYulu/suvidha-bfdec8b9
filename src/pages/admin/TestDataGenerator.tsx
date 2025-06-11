@@ -19,7 +19,7 @@ const TestDataGenerator = () => {
       setIsGenerating(true);
       const result = await generateTestSentimentData();
       
-      // Check if result exists and has the expected properties
+      // Handle both void and object return types
       if (result && typeof result === 'object' && 'employeesProcessed' in result) {
         setResults(result);
         toast({

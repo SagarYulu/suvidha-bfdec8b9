@@ -77,7 +77,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           };
 
           const rowData: RowData = {
-            id: employeeData.id || `temp-${index}`,
+            id: employeeData.id,
             userId: employeeData.userId || '',
             emp_id: employeeData.emp_id,
             name: employeeData.name,
