@@ -2,278 +2,193 @@
 const { getPool } = require('../config/database');
 
 class AnalyticsService {
-  static async getAdvancedIssueAnalytics(filters = {}) {
+  static async getAdvancedAnalytics(filters = {}) {
     const pool = getPool();
-    const { startDate, endDate, city, cluster, status, priority } = filters;
-
-    let query = `
-      SELECT 
-        DATE(created_at) as date,
-        status,
-        priority,
-        city,
-        cluster,
-        COUNT(*) as count,
-        AVG(TIMESTAMPDIFF(HOUR, created_at, 
-          CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as avg_resolution_hours,
-        MIN(TIMESTAMPDIFF(HOUR, created_at, 
-          CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as min_resolution_hours,
-        MAX(TIMESTAMPDIFF(HOUR, created_at, 
-          CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as max_resolution_hours
-      FROM issues 
-      WHERE 1=1
-    `;
-
-    const params = [];
-
-    if (startDate) {
-      query += ' AND created_at >= ?';
-      params.push(startDate);
+    
+    try {
+      // Get basic issue statistics
+      const stats = await this.getIssueStatistics(filters);
+      
+      // Get sentiment analysis from feedback
+      const sentimentData = await this.getSentimentAnalysis(filters);
+      
+      // Get resolution time analytics
+      const resolutionTimes = await this.getResolutionTimeAnalytics(filters);
+      
+      // Get performance metrics
+      const performanceMetrics = await this.getPerformanceMetrics(filters);
+      
+      // Get trend analysis
+      const trendData = await this.getTrendAnalysis(filters);
+      
+      return {
+        ...stats,
+        sentiment: sentimentData,
+        resolutionTimes,
+        performance: performanceMetrics,
+        trends: trendData
+      };
+    } catch (error) {
+      console.error('Error getting advanced analytics:', error);
+      throw error;
     }
-
-    if (endDate) {
-      query += ' AND created_at <= ?';
-      params.push(endDate);
-    }
-
-    if (city) {
-      query += ' AND city = ?';
-      params.push(city);
-    }
-
-    if (cluster) {
-      query += ' AND cluster = ?';
-      params.push(cluster);
-    }
-
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
-    }
-
-    if (priority) {
-      query += ' AND priority = ?';
-      params.push(priority);
-    }
-
-    query += ' GROUP BY DATE(created_at), status, priority, city, cluster ORDER BY date DESC';
-
-    const [rows] = await pool.execute(query, params);
-    return rows;
   }
 
-  static async getSLAMetrics(filters = {}) {
+  static async getIssueStatistics(filters = {}) {
     const pool = getPool();
-    const { startDate, endDate, city, cluster } = filters;
-
-    // SLA targets ALIGNED WITH SUPABASE - using working hours logic
-    const SLA_TARGETS = {
-      'low': 4,        // 4 working hours
-      'medium': 24,    // 24 working hours  
-      'high': 72,      // 72 working hours
-      'critical': null // More than 72 working hours (no upper limit)
-    };
-
-    const results = {};
+    let query = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN status = 'open' THEN 1 END) as open,
+        COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as inProgress,
+        COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved,
+        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed,
+        COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent,
+        COUNT(CASE WHEN priority = 'high' THEN 1 END) as high,
+        AVG(CASE 
+          WHEN resolved_at IS NOT NULL 
+          THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+          ELSE NULL 
+        END) as avgResolutionTime
+      FROM issues i
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      WHERE 1=1
+    `;
     
-    for (const [priority, slaHours] of Object.entries(SLA_TARGETS)) {
-      let query = `
-        SELECT 
-          priority,
-          city,
-          cluster,
-          COUNT(*) as total_issues,
-          SUM(CASE 
-            WHEN status = 'closed' AND 
-                 TIMESTAMPDIFF(HOUR, created_at, updated_at) <= ? 
-            THEN 1 ELSE 0 END) as within_sla,
-          SUM(CASE 
-            WHEN status = 'closed' AND 
-                 TIMESTAMPDIFF(HOUR, created_at, updated_at) > ? 
-            THEN 1 ELSE 0 END) as breached_sla,
-          AVG(TIMESTAMPDIFF(HOUR, created_at, 
-            CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as avg_resolution_time
-        FROM issues 
-        WHERE priority = ?
-      `;
+    const params = [];
+    query = this.applyFilters(query, filters, params);
+    
+    const [result] = await pool.execute(query, params);
+    return result[0];
+  }
 
-      const params = slaHours ? [slaHours, slaHours, priority] : [72, 72, priority]; // For critical, use 72 as threshold
-
-      if (startDate) {
-        query += ' AND created_at >= ?';
-        params.push(startDate);
-      }
-
-      if (endDate) {
-        query += ' AND created_at <= ?';
-        params.push(endDate);
-      }
-
-      if (city) {
-        query += ' AND city = ?';
-        params.push(city);
-      }
-
-      if (cluster) {
-        query += ' AND cluster = ?';
-        params.push(cluster);
-      }
-
-      query += ' GROUP BY priority, city, cluster';
-      
-      const [rows] = await pool.execute(query, params);
-      results[priority] = rows;
-    }
-
+  static async getSentimentAnalysis(filters = {}) {
+    const pool = getPool();
+    let query = `
+      SELECT 
+        sentiment,
+        COUNT(*) as count,
+        COUNT(*) * 100.0 / SUM(COUNT(*)) OVER() as percentage
+      FROM ticket_feedback tf
+      LEFT JOIN issues i ON tf.issue_id = i.id
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      WHERE 1=1
+    `;
+    
+    const params = [];
+    query = this.applyFilters(query, filters, params);
+    query += ' GROUP BY sentiment';
+    
+    const [results] = await pool.execute(query, params);
     return results;
   }
 
-  static async getTrendAnalysis(period = '30d', filters = {}) {
+  static async getResolutionTimeAnalytics(filters = {}) {
     const pool = getPool();
-    const { city, cluster, issueType } = filters;
-
-    let dateFilter = '';
-    if (period === '7d') {
-      dateFilter = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
-    } else if (period === '30d') {
-      dateFilter = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
-    } else if (period === '90d') {
-      dateFilter = 'AND created_at >= DATE_SUB(NOW(), INTERVAL 90 DAY)';
-    }
-
     let query = `
       SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as total_issues,
-        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as resolved_issues,
-        SUM(CASE WHEN priority = 'critical' THEN 1 ELSE 0 END) as critical_issues,
-        SUM(CASE WHEN priority = 'high' THEN 1 ELSE 0 END) as high_priority_issues,
-        AVG(CASE WHEN status = 'closed' 
-            THEN TIMESTAMPDIFF(HOUR, created_at, updated_at) 
-            ELSE NULL END) as avg_resolution_time
-      FROM issues 
-      WHERE 1=1 ${dateFilter}
+        issue_type,
+        AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avgResolutionTime,
+        MIN(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as minResolutionTime,
+        MAX(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as maxResolutionTime,
+        COUNT(*) as resolvedCount
+      FROM issues i
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      WHERE resolved_at IS NOT NULL
     `;
-
+    
     const params = [];
-
-    if (city) {
-      query += ' AND city = ?';
-      params.push(city);
-    }
-
-    if (cluster) {
-      query += ' AND cluster = ?';
-      params.push(cluster);
-    }
-
-    if (issueType) {
-      query += ' AND issue_type = ?';
-      params.push(issueType);
-    }
-
-    query += ' GROUP BY DATE(created_at) ORDER BY date DESC';
-
-    const [rows] = await pool.execute(query, params);
-    return rows;
+    query = this.applyFilters(query, filters, params);
+    query += ' GROUP BY issue_type';
+    
+    const [results] = await pool.execute(query, params);
+    return results;
   }
 
   static async getPerformanceMetrics(filters = {}) {
     const pool = getPool();
-    const { startDate, endDate, assignedTo } = filters;
-
     let query = `
       SELECT 
-        assigned_to,
-        e.emp_name as agent_name,
-        COUNT(*) as total_assigned,
-        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as resolved_count,
-        AVG(CASE WHEN status = 'closed' 
-            THEN TIMESTAMPDIFF(HOUR, created_at, updated_at) 
-            ELSE NULL END) as avg_resolution_time,
-        (SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) / COUNT(*)) * 100 as resolution_rate
-      FROM issues i
-      LEFT JOIN employees e ON i.assigned_to = e.id
-      WHERE assigned_to IS NOT NULL
+        u.full_name as agent_name,
+        COUNT(i.id) as total_assigned,
+        COUNT(CASE WHEN i.status = 'resolved' THEN 1 END) as resolved_count,
+        COUNT(CASE WHEN i.status = 'resolved' THEN 1 END) * 100.0 / COUNT(i.id) as resolution_rate,
+        AVG(CASE 
+          WHEN i.resolved_at IS NOT NULL 
+          THEN TIMESTAMPDIFF(HOUR, i.created_at, i.resolved_at) 
+          ELSE NULL 
+        END) as avg_resolution_time
+      FROM dashboard_users u
+      LEFT JOIN issues i ON u.id = i.assigned_to
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      WHERE u.role IN ('agent', 'manager') AND i.id IS NOT NULL
     `;
-
+    
     const params = [];
-
-    if (startDate) {
-      query += ' AND i.created_at >= ?';
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      query += ' AND i.created_at <= ?';
-      params.push(endDate);
-    }
-
-    if (assignedTo) {
-      query += ' AND assigned_to = ?';
-      params.push(assignedTo);
-    }
-
-    query += ' GROUP BY assigned_to, e.emp_name ORDER BY resolution_rate DESC';
-
-    const [rows] = await pool.execute(query, params);
-    return rows;
+    query = this.applyFilters(query, filters, params);
+    query += ' GROUP BY u.id, u.full_name HAVING total_assigned > 0';
+    
+    const [results] = await pool.execute(query, params);
+    return results;
   }
 
-  static async getFeedbackAnalytics(filters = {}) {
+  static async getTrendAnalysis(filters = {}) {
     const pool = getPool();
-    const { startDate, endDate, city, cluster, sentiment } = filters;
-
     let query = `
       SELECT 
-        sentiment,
-        feedback_option,
-        city,
-        cluster,
-        agent_name,
-        COUNT(*) as count,
-        DATE(created_at) as feedback_date,
+        DATE(created_at) as date,
+        COUNT(*) as issues_created,
+        COUNT(CASE WHEN resolved_at IS NOT NULL THEN 1 END) as issues_resolved,
         AVG(CASE 
-          WHEN sentiment = 'positive' THEN 1 
-          WHEN sentiment = 'neutral' THEN 0 
-          ELSE -1 
-        END) as sentiment_score
-      FROM ticket_feedback 
-      WHERE 1=1
+          WHEN resolved_at IS NOT NULL 
+          THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+          ELSE NULL 
+        END) as avg_resolution_time
+      FROM issues i
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
     `;
-
+    
     const params = [];
+    query = this.applyFilters(query, filters, params);
+    query += ' GROUP BY DATE(created_at) ORDER BY date';
+    
+    const [results] = await pool.execute(query, params);
+    return results;
+  }
 
-    if (startDate) {
-      query += ' AND created_at >= ?';
-      params.push(startDate);
+  static applyFilters(query, filters, params) {
+    if (filters.city) {
+      query += ' AND c.city_id = ?';
+      params.push(filters.city);
     }
-
-    if (endDate) {
-      query += ' AND created_at <= ?';
-      params.push(endDate);
+    
+    if (filters.cluster) {
+      query += ' AND e.cluster_id = ?';
+      params.push(filters.cluster);
     }
-
-    if (city) {
-      query += ' AND city = ?';
-      params.push(city);
+    
+    if (filters.issue_type) {
+      query += ' AND i.issue_type = ?';
+      params.push(filters.issue_type);
     }
-
-    if (cluster) {
-      query += ' AND cluster = ?';
-      params.push(cluster);
+    
+    if (filters.date_from) {
+      query += ' AND i.created_at >= ?';
+      params.push(filters.date_from);
     }
-
-    if (sentiment) {
-      query += ' AND sentiment = ?';
-      params.push(sentiment);
+    
+    if (filters.date_to) {
+      query += ' AND i.created_at <= ?';
+      params.push(filters.date_to);
     }
-
-    query += ' GROUP BY sentiment, feedback_option, city, cluster, agent_name, DATE(created_at)';
-    query += ' ORDER BY feedback_date DESC';
-
-    const [rows] = await pool.execute(query, params);
-    return rows;
+    
+    return query;
   }
 }
 
