@@ -1,49 +1,91 @@
 
-export const ISSUE_TYPES = [
+export interface IssueType {
+  id: string;
+  label: string;
+  subTypes: IssueSubType[];
+}
+
+export interface IssueSubType {
+  id: string;
+  label: string;
+  requiresAccountDetails?: boolean;
+}
+
+export const issueTypes: IssueType[] = [
   {
-    id: "salary_benefits",
-    label: "Salary & Benefits",
+    id: 'technical',
+    label: 'Technical Issues',
     subTypes: [
-      { id: "salary_delay", label: "Salary Delay" },
-      { id: "incorrect_salary", label: "Incorrect Salary" },
-      { id: "benefits_query", label: "Benefits Query" },
-      { id: "pf_query", label: "PF Query" }
+      { id: 'app_bug', label: 'App Bug/Error' },
+      { id: 'login_issue', label: 'Login Problems' },
+      { id: 'performance', label: 'App Performance' },
+      { id: 'feature_request', label: 'Feature Request' }
     ]
   },
   {
-    id: "leave_attendance",
-    label: "Leave & Attendance",
+    id: 'account',
+    label: 'Account Issues',
     subTypes: [
-      { id: "leave_approval", label: "Leave Approval" },
-      { id: "attendance_issue", label: "Attendance Issue" },
-      { id: "overtime_query", label: "Overtime Query" }
+      { id: 'password_reset', label: 'Password Reset' },
+      { id: 'profile_update', label: 'Profile Update' },
+      { id: 'account_access', label: 'Account Access' },
+      { id: 'data_correction', label: 'Data Correction' }
     ]
   },
   {
-    id: "technical_support",
-    label: "Technical Support",
+    id: 'financial',
+    label: 'Financial Issues',
     subTypes: [
-      { id: "app_issue", label: "App Issue" },
-      { id: "login_problem", label: "Login Problem" },
-      { id: "device_issue", label: "Device Issue" }
+      { id: 'salary_query', label: 'Salary Query' },
+      { id: 'bank_account_change', label: 'Bank Account Change', requiresAccountDetails: true },
+      { id: 'payment_issue', label: 'Payment Issue' },
+      { id: 'reimbursement', label: 'Reimbursement' }
     ]
   },
   {
-    id: "policy_compliance",
-    label: "Policy & Compliance",
+    id: 'operational',
+    label: 'Operational Issues',
     subTypes: [
-      { id: "policy_query", label: "Policy Query" },
-      { id: "compliance_issue", label: "Compliance Issue" },
-      { id: "document_request", label: "Document Request" }
+      { id: 'schedule_change', label: 'Schedule Change' },
+      { id: 'location_issue', label: 'Location Issue' },
+      { id: 'equipment_problem', label: 'Equipment Problem' },
+      { id: 'safety_concern', label: 'Safety Concern' }
     ]
   },
   {
-    id: "other",
-    label: "Other",
+    id: 'hr',
+    label: 'HR Issues',
     subTypes: [
-      { id: "general_query", label: "General Query" },
-      { id: "feedback", label: "Feedback" },
-      { id: "suggestion", label: "Suggestion" }
+      { id: 'leave_request', label: 'Leave Request' },
+      { id: 'grievance', label: 'Grievance' },
+      { id: 'policy_query', label: 'Policy Query' },
+      { id: 'training_request', label: 'Training Request' }
+    ]
+  },
+  {
+    id: 'other',
+    label: 'Other',
+    subTypes: [
+      { id: 'general_inquiry', label: 'General Inquiry' },
+      { id: 'feedback', label: 'Feedback' },
+      { id: 'suggestion', label: 'Suggestion' }
     ]
   }
 ];
+
+export const getIssueTypeLabel = (typeId: string): string => {
+  const type = issueTypes.find(t => t.id === typeId);
+  return type?.label || 'Unknown Type';
+};
+
+export const getIssueSubTypeLabel = (typeId: string, subTypeId: string): string => {
+  const type = issueTypes.find(t => t.id === typeId);
+  const subType = type?.subTypes.find(st => st.id === subTypeId);
+  return subType?.label || 'Unknown Sub Type';
+};
+
+export const requiresAccountDetails = (typeId: string, subTypeId: string): boolean => {
+  const type = issueTypes.find(t => t.id === typeId);
+  const subType = type?.subTypes.find(st => st.id === subTypeId);
+  return subType?.requiresAccountDetails || false;
+};

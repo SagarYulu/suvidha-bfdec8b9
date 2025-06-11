@@ -1,48 +1,39 @@
 
-export const CITY_OPTIONS = [
-  "Delhi",
-  "Mumbai", 
-  "Bangalore",
-  "Chennai",
-  "Hyderabad",
-  "Pune",
-  "Kolkata",
-  "Ahmedabad",
-  "Jaipur",
-  "Lucknow"
-];
-
-export const CLUSTER_OPTIONS: Record<string, string[]> = {
-  "Delhi": ["Central Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
-  "Mumbai": ["Central Mumbai", "South Mumbai", "North Mumbai", "East Mumbai", "West Mumbai"],
-  "Bangalore": ["Central Bangalore", "North Bangalore", "South Bangalore", "East Bangalore", "West Bangalore"],
-  "Chennai": ["Central Chennai", "North Chennai", "South Chennai", "East Chennai", "West Chennai"],
-  "Hyderabad": ["Central Hyderabad", "North Hyderabad", "South Hyderabad", "East Hyderabad", "West Hyderabad"],
-  "Pune": ["Central Pune", "North Pune", "South Pune", "East Pune", "West Pune"],
-  "Kolkata": ["Central Kolkata", "North Kolkata", "South Kolkata", "East Kolkata", "West Kolkata"],
-  "Ahmedabad": ["Central Ahmedabad", "North Ahmedabad", "South Ahmedabad", "East Ahmedabad", "West Ahmedabad"],
-  "Jaipur": ["Central Jaipur", "North Jaipur", "South Jaipur", "East Jaipur", "West Jaipur"],
-  "Lucknow": ["Central Lucknow", "North Lucknow", "South Lucknow", "East Lucknow", "West Lucknow"]
+export const formOptions = {
+  cities: [
+    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Chennai', 'Kolkata', 
+    'Pune', 'Ahmedabad', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur',
+    'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad',
+    'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik'
+  ],
+  
+  clusters: [
+    'North', 'South', 'East', 'West', 'Central', 'Northeast',
+    'Northwest', 'Southeast', 'Southwest', 'Metro-1', 'Metro-2', 'Metro-3'
+  ],
+  
+  departments: [
+    'Operations', 'Maintenance', 'Customer Service', 'Sales',
+    'Marketing', 'Finance', 'HR', 'IT', 'Legal', 'Procurement'
+  ],
+  
+  roles: [
+    { value: 'user', label: 'User' },
+    { value: 'agent', label: 'Agent' },
+    { value: 'admin', label: 'Administrator' }
+  ],
+  
+  priorities: [
+    { value: 'low', label: 'Low', color: 'green' },
+    { value: 'medium', label: 'Medium', color: 'yellow' },
+    { value: 'high', label: 'High', color: 'orange' },
+    { value: 'critical', label: 'Critical', color: 'red' }
+  ],
+  
+  statuses: [
+    { value: 'open', label: 'Open', color: 'red' },
+    { value: 'in_progress', label: 'In Progress', color: 'yellow' },
+    { value: 'resolved', label: 'Resolved', color: 'green' },
+    { value: 'closed', label: 'Closed', color: 'gray' }
+  ]
 };
-
-export const ROLE_OPTIONS = [
-  "employee",
-  "cluster_admin", 
-  "zone_admin",
-  "hr_admin",
-  "super_admin"
-];
-
-export const PRIORITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "medium", label: "Medium" },
-  { value: "high", label: "High" },
-  { value: "urgent", label: "Urgent" }
-];
-
-export const STATUS_OPTIONS = [
-  { value: "open", label: "Open" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "resolved", label: "Resolved" },
-  { value: "closed", label: "Closed" }
-];
