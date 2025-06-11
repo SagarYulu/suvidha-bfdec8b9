@@ -54,13 +54,13 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Main addComment function with the correct signature
+// Fix the addComment function to match the expected signature
 export const addComment = async (
   issueId: string, 
-  employeeUuid: string, 
-  content: string
+  commentData: { employeeUuid: string; content: string },
+  userId?: string
 ): Promise<IssueComment> => {
-  return addIssueComment(issueId, employeeUuid, content);
+  return addIssueComment(issueId, commentData.employeeUuid, commentData.content);
 };
 
 // Export alias for backward compatibility

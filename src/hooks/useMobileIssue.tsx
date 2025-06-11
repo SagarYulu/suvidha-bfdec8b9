@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Issue } from "@/types";
-import { getIssueById } from "@/services/issues/issueFetchService";
-import { addComment } from "@/services/issues/issueCommentService";
+import { getIssueById, addComment } from "@/services/issueService";
 import { getUserById } from "@/services/userService";
 import { toast } from "@/hooks/use-toast";
 import { formatDate, getStatusBadgeColor } from "@/utils/formatUtils";
@@ -163,8 +161,10 @@ export function useMobileIssue(issueId: string | undefined) {
     try {
       console.log("Adding comment as user:", authState.user.id);
       
-      // Use addComment with the correct signature: issueId, employeeUuid, content
-      const comment = await addComment(issueId, authState.user.id, newComment.trim());
+      const comment = await addComment(issueId, {
+        employeeUuid: authState.user.id,
+        content: newComment.trim(),
+      }, authState.user.id);
       
       if (comment) {
         // Fetch the updated issue to get all comments
