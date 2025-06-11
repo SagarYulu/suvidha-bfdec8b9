@@ -1,67 +1,49 @@
 module.exports = {
-  // Issue Types - aligned with frontend src structure
+  // Issue Types - synced with frontend
   ISSUE_TYPES: {
     SALARY: 'salary',
-    PF: 'pf',
-    ESI: 'esi',
-    LEAVE: 'leave',
-    MANAGER: 'manager',
-    FACILITY: 'facility',
-    COWORKER: 'coworker',
-    PERSONAL: 'personal',
-    OTHERS: 'others'
+    VEHICLE: 'vehicle',
+    APP: 'app',
+    DOCUMENTATION: 'documentation',
+    BANK_ACCOUNT: 'bank_account',
+    TRAINING: 'training',
+    OTHER: 'other'
   },
 
-  // Issue Sub Types
+  // Issue Sub Types - synced with frontend
   ISSUE_SUB_TYPES: {
     // Salary subtypes
-    SALARY_NOT_RECEIVED: 'salary-not-received',
-    LESS_SALARY: 'less-salary',
-    LOP_INCORRECT: 'lop-incorrect',
-    NO_INCENTIVES: 'no-incentives',
-    NO_OT: 'no-ot',
-    NO_PAYSLIP: 'no-payslip',
-    SALARY_ADVANCE: 'salary-advance',
-    INCREMENT_NOT_HAPPENED: 'increment-not-happened',
-    INCREMENT_WHEN: 'increment-when',
+    SALARY_DELAY: 'salary_delay',
+    SALARY_DEDUCTION: 'salary_deduction',
+    INCENTIVE_ISSUE: 'incentive_issue',
     
-    // PF subtypes
-    BANK_KYC: 'bank-kyc',
-    PF_NAME_CHANGE: 'name-change',
-    ADVANCE_REQUEST: 'advance-request',
-    PF_TRANSFER: 'pf-transfer',
-    NOMINEE_DETAILS: 'nominee-details',
-    UAN_ACTIVATION: 'uan-activation',
-    NEED_UAN_NUMBER: 'need-uan-number',
+    // Vehicle subtypes
+    VEHICLE_BREAKDOWN: 'vehicle_breakdown',
+    BATTERY_ISSUE: 'battery_issue',
+    MAINTENANCE: 'maintenance',
     
-    // ESI subtypes
-    FAMILY_ADDITION: 'family-addition',
-    ESI_NOMINEE_CHANGE: 'nominee-change',
-    ESI_NAME_CHANGE: 'name-change',
-    CHANGE_PERSONAL_DETAILS: 'change-personal-details',
+    // App subtypes
+    LOGIN_ISSUE: 'login_issue',
+    BOOKING_ISSUE: 'booking_issue',
+    PAYMENT_ISSUE: 'payment_issue',
     
-    // Leave subtypes
-    MANAGER_REJECTED: 'manager-rejected',
-    NOT_ADDED: 'not-added',
+    // Documentation subtypes
+    LICENSE_ISSUE: 'license_issue',
+    KYC_ISSUE: 'kyc_issue',
+    PROFILE_UPDATE: 'profile_update',
     
-    // Facility subtypes
-    NO_WATER: 'no-water',
-    WASHROOM_HYGIENE: 'washroom-hygiene',
+    // Bank account subtypes
+    ACCOUNT_CHANGE: 'account_change',
+    PAYMENT_FAILURE: 'payment_failure',
     
-    // Coworker subtypes
-    ABUSING: 'abusing',
-    THREATENING: 'threatening',
-    MANHANDLED: 'manhandled',
+    // Training subtypes
+    TRAINING_REQUEST: 'training_request',
+    CERTIFICATION: 'certification',
     
-    // Personal subtypes
-    BANK_ACCOUNT: 'bank-account',
-    EMAIL_ID: 'email-id',
-    PHONE_NUMBER: 'phone-number',
-    
-    // Others subtypes
-    GENERAL_QUERY: 'general-query',
-    IT_ISSUE: 'it-issue',
-    OTHER_ISSUE: 'other-issue'
+    // Other subtypes
+    GENERAL_QUERY: 'general_query',
+    FEEDBACK: 'feedback',
+    COMPLAINT: 'complaint'
   },
 
   // Issue Statuses

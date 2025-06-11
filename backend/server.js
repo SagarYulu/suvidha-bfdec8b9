@@ -1,120 +1,65 @@
 
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-require('dotenv').config();
-
 const { connectDB } = require('./config/database');
 const errorHandler = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
-const { cacheUserPermissions } = require('./middlewares/cacheMiddleware');
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const issueRoutes = require('./routes/issueRoutes');
-const userRoutes = require('./routes/userRoutes');
-const employeeRoutes = require('./routes/employeeRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes');
-const feedbackRoutes = require('./routes/feedbackRoutes');
-const masterDataRoutes = require('./routes/masterDataRoutes');
-const rbacRoutes = require('./routes/rbacRoutes');
-const auditRoutes = require('./routes/auditRoutes');
-const internalCommentRoutes = require('./routes/internalCommentRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const fileRoutes = require('./routes/fileRoutes');
-const bulkUploadRoutes = require('./routes/bulkUploadRoutes');
-const advancedAnalyticsRoutes = require('./routes/advancedAnalyticsRoutes');
 
 const app = express();
+const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet());
+// CORS configuration
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use(limiter);
-
-// Body parsing middleware
+// Middlewares
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-
-// Static file serving for uploads
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Logging middleware
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(logger);
-
-// Cache middleware for authenticated routes
-app.use('/api', cacheUserPermissions);
-
-// Connect to database
-connectDB();
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/issues', issueRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/employees', employeeRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/analytics', analyticsRoutes);
-app.use('/api/feedback', feedbackRoutes);
-app.use('/api/master-data', masterDataRoutes);
-app.use('/api/rbac', rbacRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/internal-comments', internalCommentRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/files', fileRoutes);
-app.use('/api/bulk-upload', bulkUploadRoutes);
-app.use('/api/advanced-analytics', advancedAnalyticsRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    success: true,
+    message: 'Server is running',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Cache status endpoint (admin only)
-app.get('/api/cache/status', (req, res) => {
-  const cacheService = require('./services/cacheService');
-  res.status(200).json({
-    status: 'OK',
-    cache_stats: cacheService.getStats()
-  });
-});
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/issues', issueRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
-// Error handling middleware (must be last)
+// Error handling middleware
 app.use(errorHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `Cannot ${req.method} ${req.originalUrl}`
-  });
-});
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
+      console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
-  console.log(`💾 Cache enabled: ${process.env.ENABLE_CACHE !== 'false'}`);
-});
+startServer();
 
 module.exports = app;

@@ -1,160 +1,97 @@
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  city?: string;
-  cluster?: string;
-  phone?: string;
-  employee_id?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface Issue {
   id: string;
   title: string;
   description: string;
-  status: 'open' | 'in_progress' | 'pending' | 'resolved' | 'closed' | 'escalated';
+  issue_type: string;
+  issue_subtype: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  type: string;
-  subType: string;
-  userId: string;
-  userName?: string;
-  userRole?: string;
-  userCity?: string;
-  userCluster?: string;
-  assignedTo?: string;
-  assignedToName?: string;
-  createdAt: string;
-  updatedAt: string;
-  resolvedAt?: string;
-  tags?: string[];
-  metadata?: Record<string, any>;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'pending' | 'escalated';
+  employee_id: string;
+  created_by: string;
+  assigned_to?: string;
+  resolved_at?: string;
+  additional_details?: any;
+  attachment_urls?: string[];
+  created_at: string;
+  updated_at: string;
+  
+  // Joined fields
+  emp_name?: string;
+  emp_email?: string;
+  emp_code?: string;
+  cluster_name?: string;
+  city_name?: string;
+  created_by_name?: string;
+  assigned_to_name?: string;
 }
 
-export interface Comment {
-  id: string;
-  issueId: string;
-  content: string;
-  authorId: string;
-  authorName: string;
-  authorRole: string;
-  isInternal: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Feedback {
-  id: string;
-  userId: string;
-  userName?: string;
-  userRole?: string;
-  userCity?: string;
-  userCluster?: string;
-  rating: number;
-  comment?: string;
-  sentiment: 'positive' | 'neutral' | 'negative';
-  tags: string[];
-  createdAt: string;
-  issueId?: string;
-}
-
-export interface Analytics {
-  totalIssues: number;
-  resolvedIssues: number;
-  avgResolutionTime: number;
-  avgFirstResponseTime: number;
-  resolutionRate: number;
-  issuesByType: Array<{ name: string; value: number }>;
-  issuesByCity: Array<{ name: string; value: number }>;
-  issuesByStatus: Array<{ name: string; value: number }>;
-  monthlyTrends: Array<{ month: string; issues: number; resolved: number }>;
-}
-
-export interface SentimentData {
-  overallSentiment: {
-    positive: number;
-    neutral: number;
-    negative: number;
-  };
-  averageRating: number;
-  totalFeedback: number;
-  trendData: Array<{
-    date: string;
-    rating: number;
-    sentiment: string;
-  }>;
-  topicAnalysis: Array<{
-    topic: string;
-    count: number;
-    sentiment: string;
-  }>;
-}
-
-export interface ApiResponse<T = any> {
-  data: T;
-  message?: string;
-  success: boolean;
-  meta?: {
-    total?: number;
-    page?: number;
-    limit?: number;
-    hasNext?: boolean;
-    hasPrev?: boolean;
-  };
-}
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-
-export interface FilterParams {
-  search?: string;
-  status?: string[];
-  priority?: string[];
-  type?: string[];
-  city?: string[];
-  cluster?: string[];
-  role?: string[];
-  assignedTo?: string[];
-  dateFrom?: string;
-  dateTo?: string;
-}
-
-export type Permission = 
-  | 'view:dashboard'
-  | 'manage:users'
-  | 'manage:issues'
-  | 'manage:analytics'
-  | 'manage:settings'
-  | 'access:security'
-  | 'create:dashboardUser'
-  | 'view_analytics';
-
-export interface Role {
-  id: string;
-  name: string;
+export interface CreateIssueData {
+  title?: string;
   description: string;
-  permissions: Permission[];
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  issue_type: string;
+  issue_subtype: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  employee_id: string;
+  created_by: string;
+  additional_details?: any;
 }
 
-export interface AuditLog {
+export interface UpdateIssueData {
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  assigned_to?: string;
+  resolution_notes?: string;
+}
+
+export interface IssueComment {
   id: string;
-  action: 'create' | 'update' | 'delete' | 'login' | 'logout';
-  entityType: string;
-  entityId?: string;
-  userId: string;
-  userName: string;
-  changes?: Record<string, any>;
-  ipAddress?: string;
-  userAgent?: string;
-  createdAt: string;
+  issue_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
+  author_role?: string;
+}
+
+export interface TicketFeedback {
+  id: string;
+  issue_id: string;
+  employee_uuid: string;
+  sentiment: 'happy' | 'neutral' | 'sad';
+  feedback_option: string;
+  agent_id?: string;
+  agent_name?: string;
+  city?: string;
+  cluster?: string;
+  created_at: string;
+}
+
+export interface Employee {
+  id: string;
+  emp_name: string;
+  emp_email: string;
+  emp_mobile?: string;
+  emp_code: string;
+  cluster_id?: string;
+  role?: string;
+  manager?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DashboardUser {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  cluster_id?: string;
+  is_active: boolean;
+  phone?: string;
+  employee_id?: string;
+  created_at: string;
+  updated_at: string;
 }

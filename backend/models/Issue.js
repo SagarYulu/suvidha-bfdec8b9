@@ -1,4 +1,3 @@
-
 const { getPool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 
@@ -274,16 +273,16 @@ class Issue {
         COUNT(CASE WHEN status = 'open' THEN 1 END) as open,
         COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
         COUNT(CASE WHEN status = 'resolved' THEN 1 END) as resolved,
-        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed
+        COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed,
+        AVG(CASE 
+          WHEN resolved_at IS NOT NULL 
+          THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) 
+          ELSE NULL 
+        END) as avgResolutionTime
       FROM issues
     `);
     
-    return {
-      statusStats,
-      priorityStats,
-      typeStats,
-      totalCount: totalCount[0]
-    };
+    return totalCount[0];
   }
 
   static async logAuditTrail(issueId, userId, action, oldValue, newValue) {

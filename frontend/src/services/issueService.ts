@@ -66,4 +66,24 @@ export class IssueService {
     const response = await ApiClient.get('/api/issues/stats');
     return response.data;
   }
+
+  static async updateIssueStatus(id: string, status: string): Promise<Issue> {
+    const response = await ApiClient.patch(`/api/issues/${id}/status`, { status });
+    return response.data;
+  }
+
+  static async assignIssue(id: string, assignedTo: string): Promise<Issue> {
+    const response = await ApiClient.patch(`/api/issues/${id}/assign`, { assigned_to: assignedTo });
+    return response.data;
+  }
+
+  static async reopenIssue(id: string): Promise<Issue> {
+    const response = await ApiClient.post(`/api/issues/${id}/reopen`);
+    return response.data;
+  }
+
+  static async escalateIssue(id: string, reason?: string): Promise<Issue> {
+    const response = await ApiClient.post(`/api/issues/${id}/escalate`, { reason });
+    return response.data;
+  }
 }

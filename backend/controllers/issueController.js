@@ -1,4 +1,3 @@
-
 const Issue = require('../models/Issue');
 const Employee = require('../models/Employee');
 const auditService = require('../services/auditService');
@@ -29,24 +28,24 @@ class IssueController {
         endDate
       };
 
-      const issues = await Issue.findAll(filters, parseInt(page), parseInt(limit));
-      const total = await Issue.count(filters);
+      const issues = await Issue.findAll(filters);
+      const total = await Issue.getCount(filters);
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issues retrieved successfully',
-        data: {
-          issues,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / limit)
-          }
+        data: issues,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
         }
       });
     } catch (error) {
       console.error('Get all issues error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to retrieve issues',
         message: error.message
       });
@@ -60,18 +59,21 @@ class IssueController {
       
       if (!issue) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
           error: 'Issue not found',
           message: 'Issue with the provided ID does not exist'
         });
       }
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue retrieved successfully',
         data: issue
       });
     } catch (error) {
       console.error('Get issue by ID error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to retrieve issue',
         message: error.message
       });
@@ -81,24 +83,23 @@ class IssueController {
   async createIssue(req, res) {
     try {
       const issueData = req.body;
+      
+      // Generate title if not provided
+      if (!issueData.title) {
+        issueData.title = `${issueData.issue_type} - ${issueData.issue_subtype}`;
+      }
+      
       const issue = await Issue.create(issueData);
 
-      // Log audit trail
-      await auditService.logIssueAudit(
-        issue.id,
-        'created',
-        { issue: issueData },
-        req.user.id,
-        req
-      );
-
       res.status(HTTP_STATUS.CREATED).json({
+        success: true,
         message: 'Issue created successfully',
         data: issue
       });
     } catch (error) {
       console.error('Create issue error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to create issue',
         message: error.message
       });
@@ -109,70 +110,20 @@ class IssueController {
     try {
       const { id } = req.params;
       const updates = req.body;
+      const updatedBy = req.user?.id;
 
-      const originalIssue = await Issue.findById(id);
-      if (!originalIssue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      const updatedIssue = await Issue.update(id, updates);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'updated',
-        { 
-          original: originalIssue,
-          updates: updates
-        },
-        req.user.id,
-        req
-      );
+      const updatedIssue = await Issue.update(id, updates, updatedBy);
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue updated successfully',
         data: updatedIssue
       });
     } catch (error) {
       console.error('Update issue error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to update issue',
-        message: error.message
-      });
-    }
-  }
-
-  async deleteIssue(req, res) {
-    try {
-      const { id } = req.params;
-      
-      const issue = await Issue.findById(id);
-      if (!issue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      await Issue.delete(id);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'deleted',
-        { deleted_issue: issue },
-        req.user.id,
-        req
-      );
-
-      res.status(HTTP_STATUS.OK).json({
-        message: 'Issue deleted successfully'
-      });
-    } catch (error) {
-      console.error('Delete issue error:', error);
-      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        error: 'Failed to delete issue',
         message: error.message
       });
     }
@@ -182,35 +133,19 @@ class IssueController {
     try {
       const { id } = req.params;
       const { status } = req.body;
+      const updatedBy = req.user?.id;
 
-      const issue = await Issue.findById(id);
-      if (!issue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      const updatedIssue = await Issue.updateStatus(id, status);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'status_changed',
-        { 
-          previous_status: issue.status,
-          new_status: status
-        },
-        req.user.id,
-        req
-      );
+      const updatedIssue = await Issue.update(id, { status }, updatedBy);
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue status updated successfully',
         data: updatedIssue
       });
     } catch (error) {
       console.error('Update issue status error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to update issue status',
         message: error.message
       });
@@ -221,75 +156,20 @@ class IssueController {
     try {
       const { id } = req.params;
       const { assigned_to } = req.body;
+      const updatedBy = req.user?.id;
 
-      const issue = await Issue.findById(id);
-      if (!issue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      const updatedIssue = await Issue.updateAssignment(id, assigned_to);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'assigned',
-        { 
-          previous_assignee: issue.assigned_to,
-          new_assignee: assigned_to
-        },
-        req.user.id,
-        req
-      );
+      const updatedIssue = await Issue.update(id, { assigned_to }, updatedBy);
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue assigned successfully',
         data: updatedIssue
       });
     } catch (error) {
       console.error('Assign issue error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to assign issue',
-        message: error.message
-      });
-    }
-  }
-
-  async updateIssuePriority(req, res) {
-    try {
-      const { id } = req.params;
-      const { priority } = req.body;
-
-      const issue = await Issue.findById(id);
-      if (!issue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      const updatedIssue = await Issue.updatePriority(id, priority);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'priority_changed',
-        { 
-          previous_priority: issue.priority,
-          new_priority: priority
-        },
-        req.user.id,
-        req
-      );
-
-      res.status(HTTP_STATUS.OK).json({
-        message: 'Issue priority updated successfully',
-        data: updatedIssue
-      });
-    } catch (error) {
-      console.error('Update issue priority error:', error);
-      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        error: 'Failed to update issue priority',
         message: error.message
       });
     }
@@ -298,84 +178,35 @@ class IssueController {
   async reopenIssue(req, res) {
     try {
       const { id } = req.params;
+      const updatedBy = req.user?.id;
 
       const issue = await Issue.findById(id);
       if (!issue) {
         return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
           error: 'Issue not found'
         });
       }
 
-      if (issue.status !== 'closed') {
+      if (!['resolved', 'closed'].includes(issue.status)) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
-          error: 'Issue is not closed',
-          message: 'Only closed issues can be reopened'
+          success: false,
+          error: 'Only resolved or closed issues can be reopened'
         });
       }
 
-      const updatedIssue = await Issue.updateStatus(id, 'open');
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'reopened',
-        { 
-          previous_status: issue.status,
-          new_status: 'open'
-        },
-        req.user.id,
-        req
-      );
+      const updatedIssue = await Issue.update(id, { status: 'open' }, updatedBy);
 
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue reopened successfully',
         data: updatedIssue
       });
     } catch (error) {
       console.error('Reopen issue error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to reopen issue',
-        message: error.message
-      });
-    }
-  }
-
-  async escalateIssue(req, res) {
-    try {
-      const { id } = req.params;
-
-      const issue = await Issue.findById(id);
-      if (!issue) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          error: 'Issue not found'
-        });
-      }
-
-      // Logic to escalate - could involve changing priority or assignment
-      const updates = {
-        priority: 'high',
-        status: 'escalated'
-      };
-
-      const updatedIssue = await Issue.update(id, updates);
-
-      // Log audit trail
-      await auditService.logIssueAudit(
-        id,
-        'escalated',
-        { escalation_reason: req.body.reason || 'Manual escalation' },
-        req.user.id,
-        req
-      );
-
-      res.status(HTTP_STATUS.OK).json({
-        message: 'Issue escalated successfully',
-        data: updatedIssue
-      });
-    } catch (error) {
-      console.error('Escalate issue error:', error);
-      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-        error: 'Failed to escalate issue',
         message: error.message
       });
     }
@@ -386,12 +217,14 @@ class IssueController {
       const stats = await Issue.getStatistics();
       
       res.status(HTTP_STATUS.OK).json({
+        success: true,
         message: 'Issue statistics retrieved successfully',
         data: stats
       });
     } catch (error) {
       console.error('Get issue statistics error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
         error: 'Failed to retrieve issue statistics',
         message: error.message
       });
