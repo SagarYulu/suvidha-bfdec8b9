@@ -3,38 +3,17 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { RBACProvider } from '@/contexts/RBACContext';
-import { Toaster } from '@/components/ui/toaster';
-
-// Admin Pages
+import AdminLayout from '@/components/admin/AdminLayout';
+import Login from '@/pages/admin/Login';
 import Dashboard from '@/pages/admin/Dashboard';
 import Issues from '@/pages/admin/Issues';
-import Analytics from '@/pages/admin/Analytics';
-import Feedback from '@/pages/admin/Feedback';
-import Users from '@/pages/admin/Users';
-import Settings from '@/pages/admin/Settings';
-import Sentiment from '@/pages/admin/Sentiment';
-import Login from '@/pages/admin/Login';
+import { Toaster } from '@/components/ui/toaster';
 
-// Mobile Pages
-import MobileLogin from '@/pages/mobile/Login';
-import MobileIssues from '@/pages/mobile/Issues';
-import NewIssue from '@/pages/mobile/NewIssue';
-import IssueDetails from '@/pages/mobile/IssueDetails';
-import MobileFeedback from '@/pages/mobile/Feedback';
-import MobileProfile from '@/pages/mobile/Profile';
-
-// Layout Components
-import AdminLayout from '@/components/AdminLayout';
-import MobileLayout from '@/components/MobileLayout';
-
-// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
     },
   },
 });
@@ -43,86 +22,35 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <RBACProvider>
-          <Router>
-            <div className="App">
-              <Routes>
-                {/* Root route - redirect to admin dashboard */}
-                <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-                
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<Login />} />
-                <Route path="/admin/dashboard" element={
-                  <AdminLayout>
-                    <Dashboard />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/issues" element={
-                  <AdminLayout>
-                    <Issues />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/analytics" element={
-                  <AdminLayout>
-                    <Analytics />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/feedback" element={
-                  <AdminLayout>
-                    <Feedback />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/sentiment" element={
-                  <AdminLayout>
-                    <Sentiment />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/users" element={
-                  <AdminLayout>
-                    <Users />
-                  </AdminLayout>
-                } />
-                <Route path="/admin/settings" element={
-                  <AdminLayout>
-                    <Settings />
-                  </AdminLayout>
-                } />
-                
-                {/* Mobile Routes */}
-                <Route path="/mobile/login" element={<MobileLogin />} />
-                <Route path="/mobile/issues" element={
-                  <MobileLayout>
-                    <MobileIssues />
-                  </MobileLayout>
-                } />
-                <Route path="/mobile/new-issue" element={
-                  <MobileLayout>
-                    <NewIssue />
-                  </MobileLayout>
-                } />
-                <Route path="/mobile/issue/:id" element={
-                  <MobileLayout>
-                    <IssueDetails />
-                  </MobileLayout>
-                } />
-                <Route path="/mobile/feedback" element={
-                  <MobileLayout>
-                    <MobileFeedback />
-                  </MobileLayout>
-                } />
-                <Route path="/mobile/profile" element={
-                  <MobileLayout>
-                    <MobileProfile />
-                  </MobileLayout>
-                } />
-
-                {/* Catch all route */}
-                <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-              </Routes>
-              <Toaster />
-            </div>
-          </Router>
-        </RBACProvider>
+        <Router>
+          <div className="min-h-screen bg-background">
+            <Routes>
+              {/* Redirect root to admin */}
+              <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
+              
+              {/* Admin Login */}
+              <Route path="/admin/login" element={<Login />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="issues" element={<Issues />} />
+                <Route path="employees" element={<div>Employees Page (Coming Soon)</div>} />
+                <Route path="analytics" element={<div>Analytics Page (Coming Soon)</div>} />
+                <Route path="bulk-upload" element={<div>Bulk Upload Page (Coming Soon)</div>} />
+                <Route path="feedback" element={<div>Feedback Page (Coming Soon)</div>} />
+                <Route path="reports" element={<div>Reports Page (Coming Soon)</div>} />
+                <Route path="users" element={<div>User Management Page (Coming Soon)</div>} />
+                <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
+              </Route>
+              
+              {/* Catch all */}
+              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+            </Routes>
+            
+            <Toaster />
+          </div>
+        </Router>
       </AuthProvider>
     </QueryClientProvider>
   );

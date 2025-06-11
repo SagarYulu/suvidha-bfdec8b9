@@ -1,4 +1,5 @@
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -9,13 +10,8 @@ const errorHandler = require('./middlewares/errorHandler');
 const logger = require('./middlewares/logger');
 const WebSocketService = require('./services/websocketService');
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const issueRoutes = require('./routes/issueRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-const uploadRoutes = require('./routes/uploadRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const mobileRoutes = require('./routes/mobileRoutes');
+// Import consolidated routes
+const apiRoutes = require('./routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,29 +39,8 @@ if (!fs.existsSync(uploadsDir)) {
 // Serve static files from uploads directory
 app.use('/uploads', express.static(uploadsDir));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    features: {
-      websocket: true,
-      fileUpload: true,
-      bulkUpload: true,
-      realTimeNotifications: true,
-      advancedAnalytics: true
-    }
-  });
-});
-
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/issues', issueRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/upload', uploadRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/mobile', mobileRoutes);
+// Mount API routes
+app.use('/api', apiRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
@@ -92,6 +67,7 @@ const startServer = async () => {
       console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`📁 File uploads: ${uploadsDir}`);
       console.log(`✨ Features enabled: WebSocket, File Upload, Bulk Upload, Analytics`);
+      console.log(`📅 Database: ${process.env.DB_NAME || 'yulu_suvidha'}`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

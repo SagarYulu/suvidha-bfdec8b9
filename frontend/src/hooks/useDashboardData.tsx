@@ -1,73 +1,73 @@
 
 import { useState, useEffect } from 'react';
-import { ApiClient } from '@/services/apiClient';
+import { useQuery } from '@tanstack/react-query';
+import { DashboardService } from '@/services/dashboardService';
+import { DashboardAnalytics, Issue } from '@/types';
 
-interface DashboardData {
-  analytics: {
-    total: number;
-    open: number;
-    inProgress: number;
-    resolved: number;
-    closed: number;
-    avgResolutionTime: number;
-  };
-  userCount: number;
-  recentIssues: Array<{
-    id: string;
-    title: string;
-    status: string;
-    priority: string;
-    assigned_to_name: string;
-    created_at: string;
-    emp_name: string;
-    emp_code: string;
-  }>;
-  typePieData: Array<{ issue_type: string; count: number }>;
-  cityBarData: Array<{ name: string; value: number }>;
+interface DashboardFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  city?: string;
+  cluster?: string;
 }
 
-export const useDashboardData = (initialFilters: any = {}) => {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState(initialFilters);
+export const useDashboardData = () => {
+  const [filters, setFilters] = useState<DashboardFilters>({});
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [filters]);
+  const { 
+    data: analytics, 
+    isLoading: analyticsLoading,
+    refetch: refetchAnalytics 
+  } = useQuery({
+    queryKey: ['dashboard-analytics', filters],
+    queryFn: () => DashboardService.getAnalytics(filters),
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      const response = await ApiClient.get('/api/dashboard/overview', {
-        params: filters
-      });
-      
-      setData(response.data);
-    } catch (err) {
-      console.error('Dashboard data fetch error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
-    } finally {
-      setIsLoading(false);
-    }
+  const { 
+    data: recentIssues = [], 
+    isLoading: issuesLoading 
+  } = useQuery({
+    queryKey: ['recent-issues'],
+    queryFn: () => DashboardService.getRecentIssues(10),
+    refetchInterval: 30000,
+  });
+
+  const { 
+    data: userCount = 0, 
+    isLoading: userCountLoading 
+  } = useQuery({
+    queryKey: ['user-count'],
+    queryFn: () => DashboardService.getUserCount(),
+    refetchInterval: 60000, // Refetch every minute
+  });
+
+  const isLoading = analyticsLoading || issuesLoading || userCountLoading;
+
+  const handleFilterChange = (newFilters: DashboardFilters) => {
+    setFilters(newFilters);
   };
 
-  const handleFilterChange = (newFilters: any) => {
-    setFilters(prev => ({ ...prev, ...newFilters }));
-  };
+  // Process data for charts
+  const typePieData = analytics?.issuesByType?.map(item => ({
+    name: item.type,
+    value: item.count
+  })) || [];
+
+  const cityBarData = analytics?.issuesByStatus?.map(item => ({
+    name: item.status,
+    value: item.count
+  })) || [];
 
   return {
-    analytics: data?.analytics,
-    userCount: data?.userCount,
-    recentIssues: data?.recentIssues,
-    typePieData: data?.typePieData,
-    cityBarData: data?.cityBarData,
+    analytics,
+    recentIssues,
     isLoading,
-    error,
-    filters,
+    userCount,
     handleFilterChange,
-    refresh: fetchDashboardData
+    typePieData,
+    cityBarData,
+    filters,
+    refetchAnalytics
   };
 };
