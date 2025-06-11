@@ -89,7 +89,7 @@ const MobileLogin = () => {
       // Use employeeId as password for authentication
       const loginResult = await login(email, employeeId);
       
-      if (loginResult) {
+      if (loginResult === true) {
         console.log("Verification successful, checking access rights");
         
         // Get user data from localStorage - could be from mockUser or auth state
