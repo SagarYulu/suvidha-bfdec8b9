@@ -1,16 +1,9 @@
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
-
-// Import pages
-import AdminLogin from '@/pages/admin/Login';
-import AdminDashboard from '@/pages/admin/Dashboard';
-import IssueManagement from '@/pages/admin/Issues';
-import UserManagement from '@/pages/admin/Users';
-import Analytics from '@/pages/admin/Analytics';
-import FeedbackAnalytics from '@/pages/admin/FeedbackAnalytics';
+import AppRoutes from '@/routes';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -28,21 +21,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="min-h-screen bg-background">
-            <Routes>
-              {/* Root redirect */}
-              <Route path="/" element={<Navigate to="/admin/login" replace />} />
-              
-              {/* Admin routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/issues" element={<IssueManagement />} />
-              <Route path="/admin/users" element={<UserManagement />} />
-              <Route path="/admin/analytics" element={<Analytics />} />
-              <Route path="/admin/feedback" element={<FeedbackAnalytics />} />
-              
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/admin/login" replace />} />
-            </Routes>
+            <AppRoutes />
             <Toaster />
           </div>
         </Router>

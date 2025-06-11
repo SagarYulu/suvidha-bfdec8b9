@@ -1,37 +1,44 @@
 
 import { apiCall } from '@/config/api';
-import { User, DashboardUser } from '@/types';
+import { User } from '@/types';
+
+export interface UserCreateData {
+  name: string;
+  email: string;
+  password?: string;
+  phone?: string;
+  employee_id?: string;
+  city?: string;
+  cluster?: string;
+  role: 'admin' | 'manager' | 'agent' | 'employee';
+  permissions?: string[];
+}
+
+export interface UserUpdateData {
+  name?: string;
+  email?: string;
+  phone?: string;
+  employee_id?: string;
+  city?: string;
+  cluster?: string;
+  role?: 'admin' | 'manager' | 'agent' | 'employee';
+  permissions?: string[];
+  is_active?: boolean;
+}
 
 export interface UserFilters {
   role?: string;
-  is_active?: boolean;
-  cluster_id?: string;
+  city?: string;
+  cluster?: string;
   search?: string;
+  is_active?: boolean;
   limit?: number;
   offset?: number;
 }
 
-export interface DashboardUserCreateData {
-  email: string;
-  password: string;
-  name: string;
-  role: string;
-  cluster?: string;
-  city?: string;
-}
-
-export interface DashboardUserUpdateData {
-  name?: string;
-  role?: string;
-  cluster?: string;
-  city?: string;
-  phone?: string;
-  manager?: string;
-}
-
 export const userService = {
-  // Get all dashboard users
-  getDashboardUsers: async (filters?: UserFilters): Promise<DashboardUser[]> => {
+  // Get all users with filters
+  getUsers: async (filters?: UserFilters): Promise<User[]> => {
     const queryParams = new URLSearchParams();
     
     if (filters) {
@@ -42,44 +49,81 @@ export const userService = {
       });
     }
     
-    const endpoint = `/dashboard-users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const endpoint = `/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await apiCall(endpoint);
     return response.data || [];
   },
 
-  // Get dashboard user by ID
-  getDashboardUserById: async (id: string): Promise<DashboardUser> => {
-    const response = await apiCall(`/dashboard-users/${id}`);
+  // Get employees only
+  getEmployees: async (): Promise<User[]> => {
+    const response = await apiCall('/users?role=employee');
+    return response.data || [];
+  },
+
+  // Get user by ID
+  getUserById: async (id: string): Promise<User> => {
+    const response = await apiCall(`/users/${id}`);
     return response.data;
   },
 
-  // Create dashboard user
-  createDashboardUser: async (userData: DashboardUserCreateData): Promise<DashboardUser> => {
-    const response = await apiCall('/dashboard-users', {
+  // Create new user
+  createUser: async (userData: UserCreateData): Promise<User> => {
+    const response = await apiCall('/users', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
     return response.data;
   },
 
-  // Update dashboard user
-  updateDashboardUser: async (id: string, updateData: DashboardUserUpdateData): Promise<DashboardUser> => {
-    const response = await apiCall(`/dashboard-users/${id}`, {
+  // Update user
+  updateUser: async (id: string, updateData: UserUpdateData): Promise<User> => {
+    const response = await apiCall(`/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(updateData),
     });
     return response.data;
   },
 
-  // Delete dashboard user
-  deleteDashboardUser: async (id: string): Promise<void> => {
-    await apiCall(`/dashboard-users/${id}`, {
+  // Delete user
+  deleteUser: async (id: string): Promise<void> => {
+    await apiCall(`/users/${id}`, {
       method: 'DELETE',
     });
   },
 
-  // Get employees
-  getEmployees: async (filters?: any): Promise<User[]> => {
+  // Change user password
+  changePassword: async (id: string, currentPassword: string, newPassword: string): Promise<void> => {
+    await apiCall(`/users/${id}/password`, {
+      method: 'PUT',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  },
+
+  // Get user permissions
+  getUserPermissions: async (id: string): Promise<string[]> => {
+    const response = await apiCall(`/users/${id}/permissions`);
+    return response.data || [];
+  },
+
+  // Update user permissions
+  updateUserPermissions: async (id: string, permissions: string[]): Promise<void> => {
+    await apiCall(`/users/${id}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permissions }),
+    });
+  },
+
+  // Bulk create users
+  bulkCreateUsers: async (users: UserCreateData[]): Promise<{ success: User[]; errors: any[] }> => {
+    const response = await apiCall('/users/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ users }),
+    });
+    return response.data;
+  },
+
+  // Export users
+  exportUsers: async (filters?: UserFilters): Promise<Blob> => {
     const queryParams = new URLSearchParams();
     
     if (filters) {
@@ -90,29 +134,20 @@ export const userService = {
       });
     }
     
-    const endpoint = `/employees${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await apiCall(endpoint);
-    return response.data || [];
-  },
-
-  // Get employee by ID
-  getEmployeeById: async (id: string): Promise<User> => {
-    const response = await apiCall(`/employees/${id}`);
-    return response.data;
-  },
-
-  // Update employee
-  updateEmployee: async (id: string, updateData: any): Promise<User> => {
-    const response = await apiCall(`/employees/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(updateData),
+    const response = await fetch(`http://localhost:3000/api/users/export?${queryParams.toString()}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+      },
     });
-    return response.data;
-  },
-
-  // Get user count
-  getUserCount: async (filters?: UserFilters): Promise<number> => {
-    const response = await apiCall('/dashboard-users/count');
-    return response.data?.total || 0;
+    
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+    
+    return response.blob();
   },
 };
+
+// Alias for backward compatibility
+export const getUsers = userService.getUsers;
+export const getEmployees = userService.getEmployees;

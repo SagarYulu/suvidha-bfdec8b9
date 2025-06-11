@@ -1,5 +1,4 @@
 
-// Core types for the application
 export interface User {
   id: string;
   name: string;
@@ -8,80 +7,99 @@ export interface User {
   employeeId?: string;
   city?: string;
   cluster?: string;
-  manager?: string;
-  role?: string;
-  password?: string;
-  dateOfJoining?: string;
-  bloodGroup?: string;
-  dateOfBirth?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  userId?: string;
+  role: 'admin' | 'manager' | 'agent' | 'employee';
+  permissions?: string[];
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Issue {
   id: string;
-  employeeUuid: string;
-  typeId: string;
-  subTypeId: string;
+  title: string;
   description: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  issueType: string;
+  issueSubtype?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  createdAt: string;
-  updatedAt?: string;
-  resolvedAt?: string;
-  comments: Comment[];
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  employeeId: string;
+  employeeUuid?: string;
   assignedTo?: string;
+  city?: string;
+  cluster?: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  firstResponseAt?: string;
   resolutionNotes?: string;
+  additionalDetails?: any;
+  typeId?: string;
 }
 
 export interface Comment {
   id: string;
-  employeeUuid: string;
+  issueId: string;
+  userId: string;
   content: string;
+  isInternal: boolean;
   createdAt: string;
-}
-
-export interface DashboardUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-  cluster?: string;
-  city?: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
+  user?: {
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 export interface Analytics {
   totalIssues: number;
-  openIssues: number;
   resolvedIssues: number;
-  closedIssues: number;
+  resolutionRate: number;
   avgResolutionTime: number;
-  issuesByType: { [key: string]: number };
-  issuesByCity: { [key: string]: number };
-  issuesByPriority: { [key: string]: number };
-  issuesByStatus: { [key: string]: number };
+  avgFirstResponseTime: number;
+  typeCounts: Record<string, number>;
+  cityCounts: Record<string, number>;
+  statusCounts: Record<string, number>;
+  priorityCounts: Record<string, number>;
   trends: {
-    daily: Array<{ date: string; count: number }>;
-    weekly: Array<{ week: string; count: number }>;
-    monthly: Array<{ month: string; count: number }>;
+    daily: Array<{ date: string; count: number; resolved: number }>;
+    weekly: Array<{ week: string; count: number; resolved: number }>;
+    monthly: Array<{ month: string; count: number; resolved: number }>;
   };
 }
 
 export interface Feedback {
   id: string;
   issueId: string;
-  employeeUuid: string;
   rating: number;
-  comments?: string;
+  comment?: string;
   createdAt: string;
 }
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  role: string | null;
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  module: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions: Permission[];
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: string;
+  resource: string;
+  resourceId: string;
+  details: any;
+  createdAt: string;
+  user?: {
+    name: string;
+    email: string;
+  };
 }
