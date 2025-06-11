@@ -15,7 +15,7 @@ export const useMobile = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  return { isMobile };
+  return isMobile; // Return boolean directly, not object
 };
 
 // Export both for compatibility

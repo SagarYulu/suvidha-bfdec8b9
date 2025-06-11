@@ -11,7 +11,12 @@ export interface AuthState {
   error: string | null;
 }
 
-export interface AuthContextType extends AuthState {
+export interface AuthContextType {
+  authState: AuthState;
+  isAuthenticated: boolean;
+  user: User | null;
+  role: string | null;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUser: (user: User) => void;
@@ -146,7 +151,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const value: AuthContextType = {
-    ...state,
+    authState: state,
+    isAuthenticated: state.isAuthenticated,
+    user: state.user,
+    role: state.role,
+    isLoading: state.isLoading,
     login,
     logout,
     updateUser,
