@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { createAuditLog } from "./issueAuditService";
@@ -109,4 +108,32 @@ export const mapIssueType = async (
 export const isIssueMappable = (issue: Issue | null): boolean => {
   if (!issue) return false;
   return issue.typeId === "others";
+};
+
+export const mapIssuePriority = (typeId: string, subTypeId: string): 'low' | 'medium' | 'high' | 'urgent' => {
+  // Emergency cases
+  if (typeId === 'IT_SUPPORT' && subTypeId === 'SYSTEM_DOWN') {
+    return 'urgent';
+  }
+  
+  if (typeId === 'PAYROLL' && subTypeId === 'SALARY_NOT_CREDITED') {
+    return 'urgent';
+  }
+
+  // High priority cases
+  if (typeId === 'LEAVE' && subTypeId === 'URGENT_LEAVE') {
+    return 'high';
+  }
+  
+  if (typeId === 'IT_SUPPORT' && (subTypeId === 'EMAIL_ISSUE' || subTypeId === 'VPN_ISSUE')) {
+    return 'high';
+  }
+
+  // Medium priority cases
+  if (typeId === 'PAYROLL' || typeId === 'BENEFITS') {
+    return 'medium';
+  }
+
+  // Default to low priority
+  return 'low';
 };
