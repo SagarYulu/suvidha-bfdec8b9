@@ -1,131 +1,130 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-interface User {
+export interface User {
   id: string;
   email: string;
-  name?: string;
+  name: string;
   role?: string;
 }
 
-interface AuthState {
-  isAuthenticated: boolean;
+export interface AuthState {
   user: User | null;
-  token: string | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  role?: string;
 }
 
 interface AuthContextType {
   authState: AuthState;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  updateUser: (user: User) => void;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
     user: null,
-    token: null,
+    isAuthenticated: false,
+    isLoading: true,
   });
 
   useEffect(() => {
-    // Check for existing auth token on app load
-    const token = localStorage.getItem('authToken');
-    const user = localStorage.getItem('authUser');
-    
-    if (token && user) {
+    // Check for existing session
+    const checkAuth = async () => {
       try {
-        const parsedUser = JSON.parse(user);
-        setAuthState({
-          isAuthenticated: true,
-          user: parsedUser,
-          token,
-        });
+        const token = localStorage.getItem('authToken');
+        const userData = localStorage.getItem('userData');
+        
+        if (token && userData) {
+          const user = JSON.parse(userData);
+          console.info('User is authenticated:', {
+            id: user.id,
+            email: user.email,
+            name: user.name
+          });
+          
+          setAuthState({
+            user,
+            isAuthenticated: true,
+            isLoading: false,
+            role: user.role || 'admin'
+          });
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
-        // Clear invalid data
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('authUser');
+        console.error('Auth check failed:', error);
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
-    }
+    };
+
+    checkAuth();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string) => {
     try {
-      // Mock login - replace with actual API call
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Mock login for demo
+      const user = {
+        id: 'admin-uuid-1',
+        email,
+        name: 'Admin User',
+        role: 'admin'
+      };
+      
+      const token = 'mock-jwt-token';
+      
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userData', JSON.stringify(user));
+      
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        role: user.role
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        const { user, token } = data;
-
-        // Store auth data
-        localStorage.setItem('authToken', token);
-        localStorage.setItem('authUser', JSON.stringify(user));
-
-        setAuthState({
-          isAuthenticated: true,
-          user,
-          token,
-        });
-
-        return true;
-      } else {
-        return false;
-      }
     } catch (error) {
-      console.error('Login error:', error);
-      return false;
+      console.error('Login failed:', error);
+      throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('authUser');
-    
-    setAuthState({
-      isAuthenticated: false,
-      user: null,
-      token: null,
-    });
-  };
-
-  const updateUser = (user: User) => {
-    localStorage.setItem('authUser', JSON.stringify(user));
-    setAuthState(prev => ({
-      ...prev,
-      user,
-    }));
+  const logout = async () => {
+    try {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
+      
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      throw error;
+    }
   };
 
   return (
-    <AuthContext.Provider value={{
-      authState,
-      login,
-      logout,
-      updateUser,
-    }}>
+    <AuthContext.Provider value={{ authState, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

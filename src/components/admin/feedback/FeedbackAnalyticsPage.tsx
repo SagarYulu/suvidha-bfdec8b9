@@ -5,46 +5,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackTrendChart from './FeedbackTrendChart';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import AnalyticsDateRangeFilter from '../analytics/AnalyticsDateRangeFilter';
-import AnalyticsExportSection from '../analytics/AnalyticsExportSection';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const {
     metrics,
-    trends,
-    categories,
-    sentiment,
-    filters,
-    selectedPeriod,
     isLoading,
-    handleFilterChange,
-    handlePeriodChange,
-    handleExport
+    filters,
+    updateFilters
   } = useFeedbackAnalytics();
 
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
-    handleFilterChange({
-      dateRange: range
+    updateFilters({
+      startDate: range.from.toISOString(),
+      endDate: range.to.toISOString()
     });
+  };
+
+  const handleExport = async (format: 'pdf' | 'csv' | 'excel') => {
+    console.log('Exporting feedback analytics as:', format);
+    // TODO: Implement export functionality
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Feedback Analytics</h1>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1">
-          <AnalyticsDateRangeFilter
-            dateRange={filters.dateRange || { from: undefined, to: undefined }}
-            onDateRangeChange={handleDateRangeChange}
-          />
-        </div>
-
-        <div className="lg:col-span-3">
-          <AnalyticsExportSection onExport={handleExport} />
-        </div>
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
@@ -58,7 +43,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
         <TabsContent value="overview" className="space-y-6">
           <FeedbackMetricsOverview 
             metrics={metrics}
-            isLoading={isLoading}
           />
         </TabsContent>
 
@@ -69,8 +53,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <FeedbackTrendChart 
-                data={trends || []}
-                isLoading={isLoading}
+                data={[]}
               />
             </CardContent>
           </Card>
@@ -82,7 +65,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
               <CardTitle>Feedback by Category</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Category breakdown charts would go here */}
               <div className="h-64 flex items-center justify-center text-muted-foreground">
                 Category analysis coming soon
               </div>
@@ -96,7 +78,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
               <CardTitle>Sentiment Analysis</CardTitle>
             </CardHeader>
             <CardContent>
-              {/* Sentiment analysis charts would go here */}
               <div className="h-64 flex items-center justify-center text-muted-foreground">
                 Sentiment analysis coming soon
               </div>

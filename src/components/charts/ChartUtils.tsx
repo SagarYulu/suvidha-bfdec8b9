@@ -37,3 +37,13 @@ export const truncateText = (text: string, maxLength: number = 20) => {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + '...';
 };
+
+// Additional exports for sentiment charts
+export const SENTIMENT_COLORS = {
+  positive: '#22C55E',
+  negative: '#EF4444',
+  neutral: '#6B7280',
+  mixed: '#F59E0B'
+};
+
+export const CURVED_LINE_TYPE = 'monotone';

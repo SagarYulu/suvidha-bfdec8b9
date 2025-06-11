@@ -1,83 +1,155 @@
 
 export interface User {
   id: string;
+  name: string;
   email: string;
-  name?: string;
-  role?: string;
-  created_at?: string;
-  updated_at?: string;
+  phone?: string;
+  employeeId?: string;
+  city?: string;
+  cluster?: string;
+  manager?: string;
+  role: 'admin' | 'manager' | 'agent' | 'employee';
+  permissions?: string[];
+  isActive?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IssueComment {
+  id: string;
+  content: string;
+  employeeUuid: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Issue {
   id: string;
-  title?: string;
+  title: string;
   description: string;
-  type: string;
-  subtype?: string;
-  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  employee_uuid: string;
-  employee_name?: string;
-  assigned_to?: string;
-  assigned_to_name?: string;
+  issueType: string;
+  issueSubtype?: string;
+  typeId?: string;
+  subTypeId?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
+  employeeId: string;
+  employeeUuid?: string;
+  assignedTo?: string;
   city?: string;
   cluster?: string;
-  role?: string;
-  created_at: string;
-  updated_at?: string;
-  resolved_at?: string;
-  first_response_at?: string;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt?: string;
+  closedAt?: string;
+  firstResponseAt?: string;
+  resolutionNotes?: string;
+  additionalDetails?: any;
+  comments: IssueComment[];
 }
 
 export interface Comment {
   id: string;
-  issue_id: string;
-  user_id: string;
-  user_name?: string;
+  issueId: string;
+  userId: string;
   content: string;
-  is_internal?: boolean;
-  created_at: string;
+  isInternal: boolean;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    name: string;
+    email: string;
+    role: string;
+  };
 }
 
 export interface Analytics {
   totalIssues: number;
   resolvedIssues: number;
-  pendingIssues: number;
   resolutionRate: number;
   avgResolutionTime: number;
   avgFirstResponseTime: number;
   typeCounts: Record<string, number>;
   cityCounts: Record<string, number>;
-  priorityCounts: Record<string, number>;
   statusCounts: Record<string, number>;
+  priorityCounts: Record<string, number>;
+  trends: {
+    daily: Array<{ date: string; count: number; resolved: number }>;
+    weekly: Array<{ week: string; count: number; resolved: number }>;
+    monthly: Array<{ month: string; count: number; resolved: number }>;
+  };
 }
 
-export interface SentimentEntry {
+export interface Feedback {
   id: string;
+  issueId: string;
   rating: number;
-  feedback_text?: string;
-  sentiment_label?: string;
-  sentiment_score?: number;
-  tags?: string[];
-  created_at: string;
-  employee_uuid?: string;
-  employee_name?: string;
-  city?: string;
-  cluster?: string;
-  role?: string;
+  comment?: string;
+  createdAt: string;
 }
 
-export interface FeedbackMetrics {
-  totalFeedback: number;
-  averageRating: number;
-  responseRate: number;
-  satisfactionRate: number;
-  tagDistribution: Record<string, number>;
-  sentimentDistribution: Record<string, number>;
-  trendData: Array<{
-    period: string;
-    feedback: number;
-    satisfaction: number;
-    responseRate: number;
-  }>;
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+  module: string;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  description: string;
+  permissions: Permission[];
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: string;
+  resource: string;
+  resourceId: string;
+  details: any;
+  createdAt: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+}
+
+// Bulk upload types
+export interface RowData {
+  [key: string]: any;
+}
+
+export interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
+  value: any;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  validRows: RowData[];
+  invalidRows: RowData[];
+  errors: ValidationError[];
+  summary: {
+    total: number;
+    valid: number;
+    invalid: number;
+  };
+}
+
+export interface EditedRowsRecord {
+  [key: number]: RowData;
+}
+
+export interface CSVEmployeeData {
+  name: string;
+  email: string;
+  phone?: string;
+  employeeId: string;
+  city: string;
+  cluster: string;
+  manager?: string;
 }

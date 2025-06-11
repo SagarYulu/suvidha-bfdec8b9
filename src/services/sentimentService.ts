@@ -16,6 +16,15 @@ export interface SentimentEntry {
   role?: string;
 }
 
+export interface SentimentAlert {
+  id: string;
+  type: 'low_rating' | 'negative_trend' | 'urgent_feedback';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  createdAt: string;
+  resolved: boolean;
+}
+
 export interface SentimentFilters {
   startDate?: string;
   endDate?: string;
@@ -88,4 +97,14 @@ export const getSentimentTrends = async (
   
   const url = `/sentiment/trends?${queryParams.toString()}`;
   return await apiCall(url);
+};
+
+export const fetchSentimentAlerts = async (): Promise<SentimentAlert[]> => {
+  return await apiCall('/sentiment/alerts');
+};
+
+export const resolveSentimentAlert = async (alertId: string): Promise<void> => {
+  await apiCall(`/sentiment/alerts/${alertId}/resolve`, {
+    method: 'POST',
+  });
 };
