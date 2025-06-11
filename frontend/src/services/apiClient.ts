@@ -1,37 +1,56 @@
 
-import axios from 'axios';
+// API Client for MySQL backend
+class ApiClientClass {
+  private baseURL: string;
 
-const API_BASE_URL = 'http://localhost:3001';
-
-export const ApiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor to add auth token
-ApiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('auth_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+  constructor() {
+    this.baseURL = 'http://localhost:3001';
   }
-);
 
-// Response interceptor to handle errors
-ApiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
-      window.location.href = '/admin/login';
+  private async request(endpoint: string, options: RequestInit = {}) {
+    const url = `${this.baseURL}${endpoint}`;
+    
+    const config: RequestInit = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    const response = await fetch(url, config);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return Promise.reject(error);
+    
+    return {
+      data: await response.json(),
+      status: response.status,
+    };
   }
-);
+
+  async get(endpoint: string) {
+    return this.request(endpoint, { method: 'GET' });
+  }
+
+  async post(endpoint: string, data?: any) {
+    return this.request(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put(endpoint: string, data?: any) {
+    return this.request(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete(endpoint: string) {
+    return this.request(endpoint, { method: 'DELETE' });
+  }
+}
+
+export const ApiClient = new ApiClientClass();

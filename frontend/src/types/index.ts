@@ -5,10 +5,10 @@ export interface User {
   email: string;
   phone: string;
   employeeId: string;
-  role: string;
-  manager?: string;
-  cluster: string;
   city: string;
+  cluster: string;
+  manager?: string;
+  role?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,69 +19,52 @@ export interface Issue {
   typeId: string;
   subTypeId: string;
   description: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: "open" | "in_progress" | "resolved" | "closed";
+  priority: "low" | "medium" | "high" | "critical";
   createdAt: string;
   updatedAt: string;
   closedAt?: string;
   assignedTo?: string;
+  attachmentUrl?: string;
+  attachments?: any;
+  comments: IssueComment[];
+  lastStatusChangeAt?: string;
+  reopenableUntil?: string;
+  previouslyClosedAt?: string;
   mappedTypeId?: string;
   mappedSubTypeId?: string;
   mappedAt?: string;
   mappedBy?: string;
-  attachments?: string[];
-  attachmentUrl?: string;
-  comments: IssueComment[];
-  employee?: User;
+  typeLabel?: string;
+  subTypeLabel?: string;
 }
 
 export interface IssueComment {
   id: string;
-  issueId: string;
   employeeUuid: string;
   content: string;
   createdAt: string;
 }
 
-export interface IssueType {
-  id: string;
-  name: string;
-  description?: string;
-  subTypes: IssueSubType[];
-}
-
-export interface IssueSubType {
-  id: string;
-  typeId: string;
-  name: string;
-  description?: string;
-}
-
-export interface TicketFeedback {
+export interface Feedback {
   id: string;
   issueId: string;
   employeeUuid: string;
   sentiment: 'happy' | 'neutral' | 'sad';
   feedbackOption: string;
-  agentId?: string;
-  agentName?: string;
+  createdAt: string;
   cluster?: string;
   city?: string;
+  agentId?: string;
+  agentName?: string;
+}
+
+export interface DashboardUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  permissions: string[];
   createdAt: string;
-}
-
-export interface CreateIssueData {
-  typeId: string;
-  subTypeId: string;
-  description: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  attachmentUrl?: string;
-}
-
-export interface UpdateIssueData {
-  status?: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority?: 'low' | 'medium' | 'high' | 'urgent';
-  assignedTo?: string;
-  mappedTypeId?: string;
-  mappedSubTypeId?: string;
+  updatedAt: string;
 }
