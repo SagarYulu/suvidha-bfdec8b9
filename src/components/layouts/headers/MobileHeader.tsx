@@ -1,54 +1,45 @@
 
-import React from "react";
-import { cn } from "@/lib/utils";
+import React from 'react';
+import { Menu, Bell, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-interface BaseHeaderProps {
+interface MobileHeaderProps {
   title: string;
-  userName?: string;
-  className?: string;
-  bgColor?: string;
-  textColor?: string;
-  priority?: "low" | "medium" | "high" | "critical";
-  children?: React.ReactNode;
+  onMenuClick?: () => void;
+  showNotifications?: boolean;
+  showProfile?: boolean;
 }
 
-const MobileHeader: React.FC<BaseHeaderProps> = ({ 
-  title, 
-  userName, 
-  className,
-  bgColor,
-  textColor = "text-white",
-  priority,
-  children
+const MobileHeader: React.FC<MobileHeaderProps> = ({
+  title,
+  onMenuClick,
+  showNotifications = true,
+  showProfile = true
 }) => {
-  // Determine background color based on priority if provided
-  let headerBgColor = bgColor || "bg-yulu-dashboard-blue"; // Use dashboard blue color
-  
-  if (priority) {
-    switch (priority) {
-      case "low":
-        headerBgColor = "bg-green-500";
-        break;
-      case "medium":
-        headerBgColor = "bg-yellow-500";
-        break;
-      case "high":
-        headerBgColor = "bg-orange-500";
-        break;
-      case "critical":
-        headerBgColor = "bg-red-600";
-        break;
-      default:
-        headerBgColor = "bg-yulu-dashboard-blue"; // Use dashboard blue color
-    }
-  }
-
   return (
-    <div className={cn(`${headerBgColor} ${textColor} p-4`, className)}>
-      <h1 className="text-xl font-medium">{title}</h1>
-      {userName && <p className="text-sm">Hello, {userName}</p>}
-      {children}
-    </div>
+    <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        {onMenuClick && (
+          <Button variant="ghost" size="icon" onClick={onMenuClick}>
+            <Menu className="h-5 w-5" />
+          </Button>
+        )}
+        <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        {showNotifications && (
+          <Button variant="ghost" size="icon">
+            <Bell className="h-5 w-5" />
+          </Button>
+        )}
+        {showProfile && (
+          <Button variant="ghost" size="icon">
+            <User className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+    </header>
   );
 };
 

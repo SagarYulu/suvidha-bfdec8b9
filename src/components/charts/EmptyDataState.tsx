@@ -1,16 +1,29 @@
 
 import React from 'react';
+import { FileX, TrendingDown } from 'lucide-react';
 
 interface EmptyDataStateProps {
-  message: string;
+  message?: string;
   subMessage?: string;
+  icon?: React.ReactNode;
+  className?: string;
 }
 
-export const EmptyDataState: React.FC<EmptyDataStateProps> = ({ message, subMessage }) => {
+const EmptyDataState: React.FC<EmptyDataStateProps> = ({
+  message = "No data available",
+  subMessage,
+  icon,
+  className = ""
+}) => {
+  const defaultIcon = <FileX className="h-12 w-12 text-gray-400" />;
+
   return (
-    <div className="text-center text-gray-500 py-8">
-      <p>{message}</p>
-      {subMessage && <p className="mt-2">{subMessage}</p>}
+    <div className={`flex flex-col items-center justify-center p-8 text-center ${className}`}>
+      {icon || defaultIcon}
+      <h3 className="mt-4 text-lg font-medium text-gray-900">{message}</h3>
+      {subMessage && (
+        <p className="mt-2 text-sm text-gray-500">{subMessage}</p>
+      )}
     </div>
   );
 };
