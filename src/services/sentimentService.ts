@@ -29,6 +29,23 @@ const mockSentimentData: SentimentEntry[] = [
   }
 ];
 
+const mockAlerts: SentimentAlert[] = [
+  {
+    id: '1',
+    type: 'low_rating',
+    message: 'Low average rating detected',
+    severity: 'high',
+    createdAt: '2024-01-15T10:00:00Z',
+    resolved: false,
+    trigger_reason: 'Average rating below 2.5',
+    city: 'Mumbai',
+    cluster: 'West',
+    role: 'agent',
+    average_score: 2.1,
+    change_percentage: -15.5
+  }
+];
+
 export const fetchAllSentiment = async (filters: SentimentFilters = {}): Promise<SentimentEntry[]> => {
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
@@ -82,20 +99,17 @@ export const getSentimentTrends = async (period: 'daily' | 'weekly' | 'monthly',
   ];
 };
 
-export const fetchSentimentAlerts = async (): Promise<SentimentAlert[]> => {
+export const fetchSentimentAlerts = async (showResolved?: boolean): Promise<SentimentAlert[]> => {
   // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  return [
-    {
-      id: '1',
-      type: 'low_rating',
-      message: 'Low average rating detected',
-      severity: 'high',
-      createdAt: '2024-01-15T10:00:00Z',
-      resolved: false
-    }
-  ];
+  return showResolved ? mockAlerts.filter(alert => alert.resolved) : mockAlerts.filter(alert => !alert.resolved);
+};
+
+export const resolveSentimentAlert = async (alertId: string): Promise<void> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log(`Alert ${alertId} marked as resolved`);
 };
 
 export const markAlertAsResolved = async (alertId: string): Promise<void> => {

@@ -33,6 +33,11 @@ interface SLAMetrics {
     high: number;
     urgent: number;
   };
+  // Add summary metrics for the cards
+  onTime?: number;
+  breached?: number;
+  atRisk?: number;
+  compliance?: string;
 }
 
 interface SLAAnalyticsFilters {
@@ -44,7 +49,7 @@ interface SLAAnalyticsFilters {
 
 const getSLATarget = (priority: string): number => {
   switch (priority) {
-    case 'urgent': return 4; // 4 hours (changed from 'critical')
+    case 'urgent': return 4; // 4 hours
     case 'high': return 24; // 24 hours
     case 'medium': return 48; // 48 hours
     case 'low': return 72; // 72 hours
@@ -132,6 +137,7 @@ export const useSLAAnalytics = (filters?: SLAAnalyticsFilters) => {
     const breachedIssues = issues.filter(isSLABreached);
     const breachedCount = breachedIssues.length;
     const breachRate = totalCount > 0 ? (breachedCount / totalCount) * 100 : 0;
+    const onTimeCount = totalCount - breachedCount;
 
     // Priority breakdown
     const priorityMap = new Map<string, { breached: number; total: number }>();
@@ -209,10 +215,37 @@ export const useSLAAnalytics = (filters?: SLAAnalyticsFilters) => {
       cityBreakdown,
       monthlyTrend,
       avgResolutionTime: resolutionTimes,
+      onTime: onTimeCount,
+      breached: breachedCount,
+      atRisk: Math.floor(Math.random() * 5), // Mock data
+      compliance: `${(100 - breachRate).toFixed(1)}%`
     };
   }, []);
 
   const metrics = calculateSLAMetrics(issues);
+
+  // Mock data for charts
+  const slaOverviewData = [
+    { name: 'On Time', value: metrics.onTime || 0 },
+    { name: 'Breached', value: metrics.breached || 0 },
+    { name: 'At Risk', value: metrics.atRisk || 0 },
+    { name: 'Pending', value: Math.floor(Math.random() * 3) }
+  ];
+
+  const slaBreachTrendData = [
+    { date: '2024-01-01', breached: 2, onTime: 8, atRisk: 1 },
+    { date: '2024-01-02', breached: 3, onTime: 7, atRisk: 2 },
+    { date: '2024-01-03', breached: 1, onTime: 9, atRisk: 1 },
+    { date: '2024-01-04', breached: 4, onTime: 6, atRisk: 3 },
+    { date: '2024-01-05', breached: 2, onTime: 8, atRisk: 2 }
+  ];
+
+  const slaPerformanceData = [
+    { type: 'Technical', complianceRate: 85, breachRate: 15 },
+    { type: 'HR', complianceRate: 92, breachRate: 8 },
+    { type: 'Finance', complianceRate: 78, breachRate: 22 },
+    { type: 'Admin', complianceRate: 88, breachRate: 12 }
+  ];
 
   const updateFilters = useCallback((newFilters: Partial<SLAAnalyticsFilters>) => {
     // Filter logic would be implemented here
@@ -224,6 +257,15 @@ export const useSLAAnalytics = (filters?: SLAAnalyticsFilters) => {
 
   return {
     metrics,
+    slaOverviewData,
+    slaBreachTrendData,
+    slaPerformanceData,
+    slaMetrics: {
+      onTime: metrics.onTime,
+      breached: metrics.breached,
+      atRisk: metrics.atRisk,
+      compliance: metrics.compliance
+    },
     isLoading,
     filters: filters || {},
     selectedPeriod,
