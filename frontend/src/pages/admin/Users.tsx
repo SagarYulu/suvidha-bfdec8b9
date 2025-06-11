@@ -1,93 +1,121 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AdminLayout from '@/components/AdminLayout';
-import { userService } from '@/services/api/userService';
-import { User } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Plus, Edit, Trash2 } from 'lucide-react';
+import { getUsers } from '@/services/api/userService';
+import { User } from '@/types';
 
-const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+const Users: React.FC = () => {
+  const { data: users = [], isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await userService.getEmployees();
-      setUsers(data);
-    } catch (error) {
-      console.error('Error loading users:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load users',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'admin': return 'destructive';
+      case 'manager': return 'secondary';
+      case 'agent': return 'default';
+      case 'employee': return 'outline';
+      default: return 'outline';
     }
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout title="Users">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Users">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600">Error loading users. Please try again.</p>
+          </CardContent>
+        </Card>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="User Management">
       <div className="space-y-6">
+        {/* Header Actions */}
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">All Users</h2>
-          <Button onClick={loadUsers} variant="outline">
-            Refresh
+          <div>
+            <h2 className="text-2xl font-bold">Users ({users.length})</h2>
+            <p className="text-gray-600">Manage system users and their permissions</p>
+          </div>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
           </Button>
         </div>
 
+        {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Users List</CardTitle>
+            <CardTitle>All Users</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : users.length > 0 ? (
+            {users.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead>Role</TableHead>
                     <TableHead>Employee ID</TableHead>
                     <TableHead>City</TableHead>
-                    <TableHead>Cluster</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {users.map((user: User) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.phone || '-'}</TableCell>
-                      <TableCell>{user.employeeId || '-'}</TableCell>
-                      <TableCell>{user.city || '-'}</TableCell>
-                      <TableCell>{user.cluster || '-'}</TableCell>
-                      <TableCell>{user.role || '-'}</TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline">
-                          Edit
-                        </Button>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{user.employeeId || 'N/A'}</TableCell>
+                      <TableCell>{user.city || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.isActive ? 'default' : 'secondary'}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-12 text-gray-500">
-                No users found
+              <div className="text-center py-12">
+                <p className="text-gray-500">No users found.</p>
               </div>
             )}
           </CardContent>
@@ -97,4 +125,4 @@ const UserManagement = () => {
   );
 };
 
-export default UserManagement;
+export default Users;

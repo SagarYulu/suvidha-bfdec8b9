@@ -1,140 +1,147 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import AdminLayout from '@/components/AdminLayout';
-import { issueService } from '@/services/api/issueService';
-import { Issue } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Eye, Filter } from 'lucide-react';
+import { getIssues } from '@/services/api/issueService';
+import { Issue } from '@/types';
 
-const IssueManagement = () => {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [loading, setLoading] = useState(true);
+const Issues: React.FC = () => {
+  const [filters, setFilters] = useState({});
 
-  useEffect(() => {
-    loadIssues();
-  }, []);
+  const { data: issues = [], isLoading, error } = useQuery({
+    queryKey: ['issues', filters],
+    queryFn: () => getIssues(filters),
+  });
 
-  const loadIssues = async () => {
-    try {
-      setLoading(true);
-      const data = await issueService.getIssues();
-      setIssues(data);
-    } catch (error) {
-      console.error('Error loading issues:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load issues',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const getStatusBadgeColor = (status: Issue['status']) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'open':
-        return 'bg-red-500';
-      case 'in_progress':
-        return 'bg-yellow-500';
-      case 'resolved':
-        return 'bg-green-500';
-      case 'closed':
-        return 'bg-green-700';
-      default:
-        return 'bg-gray-500';
+      case 'open': return 'destructive';
+      case 'in_progress': return 'secondary';
+      case 'resolved': return 'default';
+      case 'closed': return 'outline';
+      default: return 'outline';
     }
   };
 
-  const getPriorityBadgeColor = (priority: Issue['priority']) => {
+  const getPriorityBadgeVariant = (priority: string) => {
     switch (priority) {
-      case 'urgent':
-        return 'bg-red-600';
-      case 'high':
-        return 'bg-orange-500';
-      case 'medium':
-        return 'bg-yellow-500';
-      case 'low':
-        return 'bg-blue-500';
-      default:
-        return 'bg-gray-500';
+      case 'urgent': return 'destructive';
+      case 'high': return 'destructive';
+      case 'medium': return 'secondary';
+      case 'low': return 'outline';
+      default: return 'outline';
     }
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout title="Issues">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AdminLayout title="Issues">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-red-600">Error loading issues. Please try again.</p>
+          </CardContent>
+        </Card>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout title="Issue Management">
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">All Issues</h2>
-          <Button onClick={loadIssues} variant="outline">
-            Refresh
-          </Button>
-        </div>
-
+        {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle>Issues List</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filters
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : issues.length > 0 ? (
+            <div className="flex gap-4">
+              <Button variant="outline" size="sm">All Issues</Button>
+              <Button variant="outline" size="sm">Open</Button>
+              <Button variant="outline" size="sm">In Progress</Button>
+              <Button variant="outline" size="sm">Resolved</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Issues Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Issues ({issues.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {issues.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
-                    <TableHead>Employee</TableHead>
+                    <TableHead>Title</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Priority</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Employee</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {issues.map((issue) => (
+                  {issues.map((issue: Issue) => (
                     <TableRow key={issue.id}>
-                      <TableCell className="font-medium">{issue.id.slice(0, 8)}</TableCell>
-                      <TableCell>{issue.employeeUuid}</TableCell>
-                      <TableCell>{issue.typeId}</TableCell>
-                      <TableCell className="max-w-xs truncate">{issue.description}</TableCell>
-                      <TableCell>
-                        <Badge className={getPriorityBadgeColor(issue.priority)}>
-                          {issue.priority}
-                        </Badge>
+                      <TableCell className="font-mono text-sm">
+                        {issue.id.slice(0, 8)}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {issue.title}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadgeColor(issue.status)}>
+                        <Badge variant="outline">{issue.issueType}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusBadgeVariant(issue.status)}>
                           {issue.status.replace('_', ' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatDate(issue.createdAt)}</TableCell>
                       <TableCell>
-                        <Button size="sm" variant="outline">
-                          View
-                        </Button>
+                        <Badge variant={getPriorityBadgeVariant(issue.priority)}>
+                          {issue.priority}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{issue.employeeId}</TableCell>
+                      <TableCell>
+                        {new Date(issue.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <Link to={`/admin/issues/${issue.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-12 text-gray-500">
-                No issues found
+              <div className="text-center py-12">
+                <p className="text-gray-500">No issues found.</p>
               </div>
             )}
           </CardContent>
@@ -144,4 +151,4 @@ const IssueManagement = () => {
   );
 };
 
-export default IssueManagement;
+export default Issues;
