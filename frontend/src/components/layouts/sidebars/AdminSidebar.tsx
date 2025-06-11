@@ -1,78 +1,51 @@
 
+import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useRBAC } from '@/contexts/RBACContext';
 import { 
   LayoutDashboard, 
-  AlertCircle, 
   Users, 
-  BarChart3,
-  UserCheck,
-  MessageSquare
+  MessageSquare, 
+  BarChart3, 
+  Heart,
+  Settings 
 } from 'lucide-react';
 
-const AdminSidebar = () => {
-  const { hasPermission } = useRBAC();
-
-  const navigationItems = [
-    {
-      name: 'Dashboard',
-      href: '/admin/dashboard',
-      icon: LayoutDashboard,
-      permission: 'view_dashboard'
-    },
-    {
-      name: 'Issues',
-      href: '/admin/issues',
-      icon: AlertCircle,
-      permission: 'view_issues'
-    },
-    {
-      name: 'Users',
-      href: '/admin/users',
-      icon: Users,
-      permission: 'view_users'
-    },
-    {
-      name: 'Analytics',
-      href: '/admin/analytics',
-      icon: BarChart3,
-      permission: 'view_analytics'
-    }
+const AdminSidebar: React.FC = () => {
+  const navItems = [
+    { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+    { to: '/admin/issues', icon: MessageSquare, label: 'Issues' },
+    { to: '/admin/users', icon: Users, label: 'Users' },
+    { to: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/admin/feedback', icon: Heart, label: 'Feedback' },
+    { to: '/admin/sentiment', icon: Heart, label: 'Sentiment' },
+    { to: '/admin/settings', icon: Settings, label: 'Settings' }
   ];
 
   return (
-    <div className="w-64 bg-white shadow-sm border-r border-gray-200 h-full">
-      <div className="p-6">
-        <h1 className="text-xl font-bold text-gray-900">Yulu Admin</h1>
-      </div>
-      
-      <nav className="mt-6">
-        <div className="px-3">
-          {navigationItems.map((item) => {
-            if (!hasPermission(item.permission)) {
-              return null;
-            }
-            
-            return (
+    <aside className="w-64 bg-white shadow-sm border-r min-h-screen">
+      <nav className="p-4">
+        <ul className="space-y-2">
+          {navItems.map(({ to, icon: Icon, label, exact }) => (
+            <li key={to}>
               <NavLink
-                key={item.name}
-                to={item.href}
+                to={to}
+                end={exact}
                 className={({ isActive }) =>
-                  `flex items-center px-3 py-2 mb-1 text-sm font-medium rounded-md transition-colors ${
+                  `flex items-center px-3 py-2 rounded-lg transition-colors ${
                     isActive
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                      : 'text-gray-700 hover:bg-gray-100'
                   }`
                 }
               >
-                <item.icon className="mr-3 h-5 w-5" />
-                {item.name}
+                <Icon className="h-5 w-5 mr-3" />
+                {label}
               </NavLink>
-            );
-          })}
-        </div>
+            </li>
+          ))}
+        </ul>
       </nav>
-    </div>
+    </aside>
   );
 };
 
