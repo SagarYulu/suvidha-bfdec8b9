@@ -2,90 +2,190 @@
 export interface IssueType {
   id: string;
   label: string;
+  labelHindi?: string;
   subTypes: IssueSubType[];
+  description?: string;
+  category: 'operational' | 'technical' | 'administrative' | 'financial';
 }
 
 export interface IssueSubType {
   id: string;
   label: string;
-  requiresAccountDetails?: boolean;
+  labelHindi?: string;
+  description?: string;
+  requiresApproval?: boolean;
+  escalationRequired?: boolean;
 }
 
-export const issueTypes: IssueType[] = [
+export const ISSUE_TYPES: IssueType[] = [
   {
-    id: 'technical',
-    label: 'Technical Issues',
+    id: 'salary',
+    label: 'Salary',
+    labelHindi: 'वेतन',
+    category: 'financial',
     subTypes: [
-      { id: 'app_bug', label: 'App Bug/Error' },
-      { id: 'login_issue', label: 'Login Problems' },
-      { id: 'performance', label: 'App Performance' },
-      { id: 'feature_request', label: 'Feature Request' }
+      {
+        id: 'salary_delay',
+        label: 'Salary Delay',
+        labelHindi: 'वेतन में देरी'
+      },
+      {
+        id: 'salary_deduction',
+        label: 'Salary Deduction',
+        labelHindi: 'वेतन कटौती'
+      },
+      {
+        id: 'incentive_issue',
+        label: 'Incentive Issue',
+        labelHindi: 'प्रोत्साहन समस्या'
+      }
     ]
   },
   {
-    id: 'account',
-    label: 'Account Issues',
+    id: 'vehicle',
+    label: 'Vehicle',
+    labelHindi: 'वाहन',
+    category: 'operational',
     subTypes: [
-      { id: 'password_reset', label: 'Password Reset' },
-      { id: 'profile_update', label: 'Profile Update' },
-      { id: 'account_access', label: 'Account Access' },
-      { id: 'data_correction', label: 'Data Correction' }
+      {
+        id: 'vehicle_breakdown',
+        label: 'Vehicle Breakdown',
+        labelHindi: 'वाहन खराब'
+      },
+      {
+        id: 'battery_issue',
+        label: 'Battery Issue',
+        labelHindi: 'बैटरी समस्या'
+      },
+      {
+        id: 'maintenance',
+        label: 'Maintenance',
+        labelHindi: 'रखरखाव'
+      }
     ]
   },
   {
-    id: 'financial',
-    label: 'Financial Issues',
+    id: 'app',
+    label: 'App Issues',
+    labelHindi: 'ऐप समस्या',
+    category: 'technical',
     subTypes: [
-      { id: 'salary_query', label: 'Salary Query' },
-      { id: 'bank_account_change', label: 'Bank Account Change', requiresAccountDetails: true },
-      { id: 'payment_issue', label: 'Payment Issue' },
-      { id: 'reimbursement', label: 'Reimbursement' }
+      {
+        id: 'login_issue',
+        label: 'Login Issue',
+        labelHindi: 'लॉगिन समस्या'
+      },
+      {
+        id: 'booking_issue',
+        label: 'Booking Issue',
+        labelHindi: 'बुकिंग समस्या'
+      },
+      {
+        id: 'payment_issue',
+        label: 'Payment Issue',
+        labelHindi: 'भुगतान समस्या'
+      }
     ]
   },
   {
-    id: 'operational',
-    label: 'Operational Issues',
+    id: 'documentation',
+    label: 'Documentation',
+    labelHindi: 'दस्तावेज़',
+    category: 'administrative',
     subTypes: [
-      { id: 'schedule_change', label: 'Schedule Change' },
-      { id: 'location_issue', label: 'Location Issue' },
-      { id: 'equipment_problem', label: 'Equipment Problem' },
-      { id: 'safety_concern', label: 'Safety Concern' }
+      {
+        id: 'license_issue',
+        label: 'License Issue',
+        labelHindi: 'लाइसेंस समस्या'
+      },
+      {
+        id: 'kyc_issue',
+        label: 'KYC Issue',
+        labelHindi: 'केवाईसी समस्या'
+      },
+      {
+        id: 'profile_update',
+        label: 'Profile Update',
+        labelHindi: 'प्रोफाइल अपडेट'
+      }
     ]
   },
   {
-    id: 'hr',
-    label: 'HR Issues',
+    id: 'bank_account',
+    label: 'Bank Account',
+    labelHindi: 'बैंक खाता',
+    category: 'financial',
     subTypes: [
-      { id: 'leave_request', label: 'Leave Request' },
-      { id: 'grievance', label: 'Grievance' },
-      { id: 'policy_query', label: 'Policy Query' },
-      { id: 'training_request', label: 'Training Request' }
+      {
+        id: 'account_change',
+        label: 'Account Change',
+        labelHindi: 'खाता परिवर्तन',
+        requiresApproval: true
+      },
+      {
+        id: 'payment_failure',
+        label: 'Payment Failure',
+        labelHindi: 'भुगतान विफलता'
+      }
+    ]
+  },
+  {
+    id: 'training',
+    label: 'Training',
+    labelHindi: 'प्रशिक्षण',
+    category: 'administrative',
+    subTypes: [
+      {
+        id: 'training_request',
+        label: 'Training Request',
+        labelHindi: 'प्रशिक्षण अनुरोध'
+      },
+      {
+        id: 'certification',
+        label: 'Certification',
+        labelHindi: 'प्रमाणीकरण'
+      }
     ]
   },
   {
     id: 'other',
     label: 'Other',
+    labelHindi: 'अन्य',
+    category: 'operational',
     subTypes: [
-      { id: 'general_inquiry', label: 'General Inquiry' },
-      { id: 'feedback', label: 'Feedback' },
-      { id: 'suggestion', label: 'Suggestion' }
+      {
+        id: 'general_query',
+        label: 'General Query',
+        labelHindi: 'सामान्य प्रश्न'
+      },
+      {
+        id: 'feedback',
+        label: 'Feedback',
+        labelHindi: 'फीडबैक'
+      },
+      {
+        id: 'complaint',
+        label: 'Complaint',
+        labelHindi: 'शिकायत',
+        escalationRequired: true
+      }
     ]
   }
 ];
 
-export const getIssueTypeLabel = (typeId: string): string => {
-  const type = issueTypes.find(t => t.id === typeId);
-  return type?.label || 'Unknown Type';
+export const getIssueTypeById = (id: string): IssueType | undefined => {
+  return ISSUE_TYPES.find(type => type.id === id);
 };
 
-export const getIssueSubTypeLabel = (typeId: string, subTypeId: string): string => {
-  const type = issueTypes.find(t => t.id === typeId);
-  const subType = type?.subTypes.find(st => st.id === subTypeId);
-  return subType?.label || 'Unknown Sub Type';
+export const getSubTypeById = (typeId: string, subTypeId: string): IssueSubType | undefined => {
+  const type = getIssueTypeById(typeId);
+  return type?.subTypes.find(subType => subType.id === subTypeId);
 };
 
-export const requiresAccountDetails = (typeId: string, subTypeId: string): boolean => {
-  const type = issueTypes.find(t => t.id === typeId);
-  const subType = type?.subTypes.find(st => st.id === subTypeId);
-  return subType?.requiresAccountDetails || false;
+export const getAllSubTypes = (): IssueSubType[] => {
+  return ISSUE_TYPES.flatMap(type => type.subTypes);
+};
+
+export const getIssueTypesByCategory = (category: IssueType['category']): IssueType[] => {
+  return ISSUE_TYPES.filter(type => type.category === category);
 };

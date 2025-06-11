@@ -1,20 +1,29 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ApiClient } from '@/services/apiClient';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authService } from '@/services/authService';
 
 interface User {
   id: string;
   name: string;
   email: string;
   role: string;
-  employeeId?: string;
+  city?: string;
+  cluster?: string;
+  phone?: string;
+  employee_id?: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isAuthenticated: boolean;
+  role: string | null;
 }
 
 interface AuthContextType {
-  user: User | null;
+  authState: AuthState;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
+  logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -22,32 +31,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [authState, setAuthState] = useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    role: null
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth token
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      // Verify token and get user data
-      checkAuthStatus();
-    } else {
-      setIsLoading(false);
-    }
+    checkAuthStatus();
   }, []);
 
   const checkAuthStatus = async () => {
     try {
-      const response = await ApiClient.get('/api/auth/me');
-      setUser(response.data.user);
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        const user = await authService.getCurrentUser();
+        setAuthState({
+          user,
+          isAuthenticated: true,
+          role: user.role
+        });
+      }
     } catch (error) {
+      console.error('Auth check failed:', error);
       localStorage.removeItem('authToken');
     } finally {
       setIsLoading(false);
@@ -56,30 +74,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await ApiClient.post('/api/auth/login', { email, password });
-      const { user, token } = response.data;
-      
+      const { user, token } = await authService.login(email, password);
       localStorage.setItem('authToken', token);
-      setUser(user);
+      setAuthState({
+        user,
+        isAuthenticated: true,
+        role: user.role
+      });
     } catch (error) {
-      throw new Error('Login failed');
+      console.error('Login failed:', error);
+      throw error;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('authToken');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('authToken');
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        role: null
+      });
+    }
   };
 
-  return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      logout,
-      isAuthenticated: !!user,
-      isLoading
-    }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  const refreshUser = async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      setAuthState(prev => ({
+        ...prev,
+        user,
+        role: user.role
+      }));
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+      await logout();
+    }
+  };
+
+  const value: AuthContextType = {
+    authState,
+    login,
+    logout,
+    refreshUser,
+    isLoading
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthContext;

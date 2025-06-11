@@ -1,55 +1,92 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
 interface TrendData {
   period: string;
-  issues: number;
-  resolved: number;
-  responseTime: number;
+  current: number;
+  previous: number;
+  target?: number;
 }
 
 interface TrendAnalysisSectionProps {
+  title: string;
   data: TrendData[];
+  metric: string;
   isLoading?: boolean;
 }
 
 const TrendAnalysisSection: React.FC<TrendAnalysisSectionProps> = ({
+  title,
   data,
+  metric,
   isLoading = false
 }) => {
+  const calculateTrend = () => {
+    if (data.length < 2) return { direction: 'stable', percentage: 0 };
+    
+    const latest = data[data.length - 1].current;
+    const previous = data[data.length - 2].current;
+    
+    if (previous === 0) return { direction: 'stable', percentage: 0 };
+    
+    const percentage = ((latest - previous) / previous) * 100;
+    
+    return {
+      direction: percentage > 5 ? 'up' : percentage < -5 ? 'down' : 'stable',
+      percentage: Math.abs(percentage)
+    };
+  };
+
+  const trend = calculateTrend();
+
+  const getTrendIcon = () => {
+    switch (trend.direction) {
+      case 'up':
+        return <TrendingUp className="h-4 w-4 text-green-600" />;
+      case 'down':
+        return <TrendingDown className="h-4 w-4 text-red-600" />;
+      default:
+        return <Minus className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getTrendColor = () => {
+    switch (trend.direction) {
+      case 'up':
+        return 'text-green-600';
+      case 'down':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Trend Analysis</CardTitle>
+          <CardTitle>{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 animate-pulse bg-gray-200 rounded"></div>
+          <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
         </CardContent>
       </Card>
     );
   }
 
-  const calculateTrend = (data: TrendData[]) => {
-    if (data.length < 2) return 0;
-    const latest = data[data.length - 1].issues;
-    const previous = data[data.length - 2].issues;
-    return ((latest - previous) / previous) * 100;
-  };
-
-  const trend = calculateTrend(data);
-
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Trend Analysis
-          <div className={`flex items-center ${trend >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-            {trend >= 0 ? <TrendingUp className="h-4 w-4 mr-1" /> : <TrendingDown className="h-4 w-4 mr-1" />}
-            <span className="text-sm">{Math.abs(trend).toFixed(1)}%</span>
+          <span>{title}</span>
+          <div className={`flex items-center gap-1 ${getTrendColor()}`}>
+            {getTrendIcon()}
+            <span className="text-sm font-medium">
+              {trend.percentage.toFixed(1)}%
+            </span>
           </div>
         </CardTitle>
       </CardHeader>
@@ -60,9 +97,36 @@ const TrendAnalysisSection: React.FC<TrendAnalysisSectionProps> = ({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="issues" stroke="#ef4444" strokeWidth={2} name="Total Issues" />
-              <Line type="monotone" dataKey="resolved" stroke="#10b981" strokeWidth={2} name="Resolved Issues" />
+              <Tooltip 
+                labelFormatter={(label) => `Period: ${label}`}
+                formatter={(value, name) => [value, name === 'current' ? `Current ${metric}` : name === 'previous' ? `Previous ${metric}` : `Target ${metric}`]}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="current" 
+                stroke="#2563eb" 
+                strokeWidth={2}
+                name={`Current ${metric}`}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="previous" 
+                stroke="#64748b" 
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                name={`Previous ${metric}`}
+              />
+              {data.some(d => d.target !== undefined) && (
+                <Line 
+                  type="monotone" 
+                  dataKey="target" 
+                  stroke="#dc2626" 
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  name={`Target ${metric}`}
+                />
+              )}
             </LineChart>
           </ResponsiveContainer>
         </div>

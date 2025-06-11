@@ -1,44 +1,38 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Download, FileSpreadsheet, FileText } from 'lucide-react';
-import { ApiClient } from '@/services/apiClient';
+import { Download, FileText, FileSpreadsheet } from 'lucide-react';
+import { exportService } from '@/services/exportService';
+import { toast } from '@/hooks/use-toast';
 
 interface AnalyticsExportSectionProps {
-  dateRange: { start: string; end: string };
-  filters?: any;
+  filters: Record<string, any>;
 }
 
-const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
-  dateRange,
-  filters = {}
-}) => {
+const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({ filters }) => {
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf'>('csv');
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
     try {
-      const response = await ApiClient.post('/api/analytics/export', {
-        format: exportFormat,
-        dateRange,
-        filters
+      if (exportFormat === 'csv') {
+        await exportService.exportAnalyticsToCSV(filters);
+      } else {
+        await exportService.exportAnalyticsToPDF(filters);
+      }
+      toast({
+        title: "Export Successful",
+        description: `Analytics data exported as ${exportFormat.toUpperCase()}`
       });
-      
-      // Create download link
-      const blob = new Blob([response.data], { 
-        type: exportFormat === 'csv' ? 'text/csv' : 'application/pdf' 
-      });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `analytics-report-${new Date().toISOString().split('T')[0]}.${exportFormat}`;
-      link.click();
-      window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export failed:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export analytics data",
+        variant: "destructive"
+      });
     } finally {
       setIsExporting(false);
     }
@@ -54,7 +48,6 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="text-sm font-medium mb-2 block">Export Format</label>
           <Select value={exportFormat} onValueChange={(value: 'csv' | 'pdf') => setExportFormat(value)}>
             <SelectTrigger>
               <SelectValue />
@@ -63,7 +56,7 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
               <SelectItem value="csv">
                 <div className="flex items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4" />
-                  CSV File
+                  CSV Format
                 </div>
               </SelectItem>
               <SelectItem value="pdf">
@@ -75,23 +68,12 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
             </SelectContent>
           </Select>
         </div>
-
         <Button 
-          onClick={handleExport}
+          onClick={handleExport} 
           disabled={isExporting}
           className="w-full"
         >
-          {isExporting ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              Exporting...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4 mr-2" />
-              Export Report
-            </>
-          )}
+          {isExporting ? 'Exporting...' : `Export as ${exportFormat.toUpperCase()}`}
         </Button>
       </CardContent>
     </Card>
