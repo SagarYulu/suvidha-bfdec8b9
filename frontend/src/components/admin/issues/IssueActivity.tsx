@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Activity, User, Clock, MessageSquare, Edit } from 'lucide-react';
-import { formatDate } from '@/utils/dateUtils';
+import { ApiClient } from '@/services/apiClient';
 
 interface ActivityItem {
   id: string;
@@ -18,14 +18,37 @@ interface ActivityItem {
 }
 
 interface IssueActivityProps {
-  activities: ActivityItem[];
+  issueId: string;
+  activities?: ActivityItem[];
   isLoading?: boolean;
 }
 
 const IssueActivity: React.FC<IssueActivityProps> = ({
-  activities,
+  issueId,
+  activities: propActivities,
   isLoading = false
 }) => {
+  const [activities, setActivities] = useState<ActivityItem[]>(propActivities || []);
+  const [loading, setLoading] = useState(isLoading);
+
+  useEffect(() => {
+    if (!propActivities && issueId) {
+      fetchActivities();
+    }
+  }, [issueId, propActivities]);
+
+  const fetchActivities = async () => {
+    setLoading(true);
+    try {
+      const response = await ApiClient.get(`/api/issues/${issueId}/activities`);
+      setActivities(response.data);
+    } catch (error) {
+      console.error('Failed to fetch activities:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'status_change':
@@ -56,7 +79,11 @@ const IssueActivity: React.FC<IssueActivityProps> = ({
     }
   };
 
-  if (isLoading) {
+  const formatDate = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
+  if (loading) {
     return (
       <Card>
         <CardHeader>
@@ -96,7 +123,6 @@ const IssueActivity: React.FC<IssueActivityProps> = ({
           ) : (
             activities.map((activity, index) => (
               <div key={activity.id} className="relative">
-                {/* Timeline line */}
                 {index < activities.length - 1 && (
                   <div className="absolute left-6 top-12 w-0.5 h-8 bg-gray-200"></div>
                 )}

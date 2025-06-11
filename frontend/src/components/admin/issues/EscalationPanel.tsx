@@ -5,7 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, Users } from 'lucide-react';
-import { Issue } from '@/types';
+import { ApiClient } from '@/services/apiClient';
+
+interface Issue {
+  id: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+}
 
 interface EscalationPanelProps {
   issue: Issue;
@@ -35,15 +40,22 @@ const EscalationPanel: React.FC<EscalationPanelProps> = ({
     { value: 'manager3', label: 'Mike Brown - Technical Lead' }
   ];
 
-  const handleEscalate = () => {
+  const handleEscalate = async () => {
     if (!escalationType || !escalationReason || !assignTo) return;
 
-    onEscalate({
+    const escalationData = {
       type: escalationType,
       reason: escalationReason,
       assignedTo: assignTo,
       issueId: issue.id
-    });
+    };
+
+    try {
+      await ApiClient.post('/api/issues/escalate', escalationData);
+      onEscalate(escalationData);
+    } catch (error) {
+      console.error('Failed to escalate issue:', error);
+    }
   };
 
   const canEscalate = issue.priority === 'critical' || issue.priority === 'high';
