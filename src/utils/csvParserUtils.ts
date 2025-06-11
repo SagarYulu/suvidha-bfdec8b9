@@ -2,42 +2,63 @@
 import Papa from 'papaparse';
 
 export interface CSVEmployeeData {
-  empId: string;
+  id?: string;
+  userId: string;
+  emp_id: string;
   name: string;
   email: string;
-  phone?: string;
-  userId?: string;
-  dateOfJoining?: string;
-  ifscCode?: string;
-  accountNumber?: string;
-  bloodGroup?: string;
+  phone?: string | null;
+  city?: string | null;
+  cluster?: string | null;
+  role: string;
+  manager?: string | null;
+  date_of_joining?: string | null;
+  date_of_birth?: string | null;
+  blood_group?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
   password: string;
-  manager?: string;
-  role?: string;
-  cluster?: string;
-  city?: string;
-  dateOfBirth?: string;
+  employeeId?: string;
 }
 
 export interface RowData {
+  id?: string;
+  userId: string;
+  emp_id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  city?: string | null;
+  cluster?: string | null;
+  role: string;
+  manager?: string | null;
+  date_of_joining?: string | null;
+  date_of_birth?: string | null;
+  blood_group?: string | null;
+  account_number?: string | null;
+  ifsc_code?: string | null;
+  password: string;
+  employeeId?: string;
   [key: string]: any;
+}
+
+export interface ValidationError {
+  row: CSVEmployeeData;
+  errors: string[];
+  rowData: RowData;
 }
 
 export interface ValidationResult {
   isValid: boolean;
   validRows: CSVEmployeeData[];
-  invalidRows: {
-    row: CSVEmployeeData;
-    errors: string[];
-    rowData: RowData;
-  }[];
+  validEmployees: CSVEmployeeData[];
+  invalidRows: ValidationError[];
   errors: string[];
   summary: {
     total: number;
     valid: number;
     invalid: number;
   };
-  validEmployees?: CSVEmployeeData[];
 }
 
 const validateEmail = (email: string): boolean => {
@@ -53,7 +74,7 @@ const validatePhoneNumber = (phone: string): boolean => {
 const validateEmployeeData = (data: any): { isValid: boolean; errors: string[] } => {
   const errors: string[] = [];
 
-  if (!data.empId || data.empId.trim() === '') {
+  if (!data.emp_id || data.emp_id.trim() === '') {
     errors.push('Employee ID is required');
   }
 
@@ -88,28 +109,34 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
       skipEmptyLines: true,
       complete: (results) => {
         const validRows: CSVEmployeeData[] = [];
-        const invalidRows: { row: CSVEmployeeData; errors: string[]; rowData: RowData }[] = [];
+        const invalidRows: ValidationError[] = [];
         const allErrors: string[] = [];
 
         results.data.forEach((row: any, index: number) => {
           const validation = validateEmployeeData(row);
           
           const employeeData: CSVEmployeeData = {
-            empId: row.empId || row['Employee ID'] || row['Emp ID'] || '',
+            userId: row.userId || row['User ID'] || row.user_id || '',
+            emp_id: row.emp_id || row['Employee ID'] || row['Emp ID'] || '',
             name: row.name || row.Name || '',
             email: row.email || row.Email || '',
-            phone: row.phone || row.Phone || '',
-            userId: row.userId || row['User ID'] || '',
-            dateOfJoining: row.dateOfJoining || row['Date of Joining'] || '',
-            ifscCode: row.ifscCode || row['IFSC Code'] || '',
-            accountNumber: row.accountNumber || row['Account Number'] || '',
-            bloodGroup: row.bloodGroup || row['Blood Group'] || '',
-            password: row.password || row.Password || '',
-            manager: row.manager || row.Manager || '',
+            phone: row.phone || row.Phone || null,
+            city: row.city || row.City || null,
+            cluster: row.cluster || row.Cluster || null,
             role: row.role || row.Role || '',
-            cluster: row.cluster || row.Cluster || '',
-            city: row.city || row.City || '',
-            dateOfBirth: row.dateOfBirth || row['Date of Birth'] || ''
+            manager: row.manager || row.Manager || null,
+            date_of_joining: row.date_of_joining || row['Date of Joining'] || null,
+            date_of_birth: row.date_of_birth || row['Date of Birth'] || null,
+            blood_group: row.blood_group || row['Blood Group'] || null,
+            account_number: row.account_number || row['Account Number'] || null,
+            ifsc_code: row.ifsc_code || row['IFSC Code'] || null,
+            password: row.password || row.Password || 'changeme123',
+            employeeId: row.emp_id || row['Employee ID'] || row['Emp ID'] || ''
+          };
+
+          const rowData: RowData = {
+            ...employeeData,
+            ...row
           };
 
           if (validation.isValid) {
@@ -118,7 +145,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
             invalidRows.push({
               row: employeeData,
               errors: validation.errors,
-              rowData: row
+              rowData: rowData
             });
             allErrors.push(...validation.errors.map(error => `Row ${index + 1}: ${error}`));
           }
@@ -127,14 +154,14 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
         const result: ValidationResult = {
           isValid: invalidRows.length === 0,
           validRows,
+          validEmployees: validRows,
           invalidRows,
           errors: allErrors,
           summary: {
             total: results.data.length,
             valid: validRows.length,
             invalid: invalidRows.length
-          },
-          validEmployees: validRows // Include this for backward compatibility
+          }
         };
 
         resolve(result);
@@ -143,6 +170,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
         resolve({
           isValid: false,
           validRows: [],
+          validEmployees: [],
           invalidRows: [],
           errors: [`CSV parsing error: ${error.message}`],
           summary: {
@@ -158,39 +186,39 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
 
 export const generateEmployeeCSVTemplate = (): string => {
   const headers = [
-    'empId',
+    'userId',
+    'emp_id',
     'name', 
     'email',
     'phone',
-    'userId',
-    'dateOfJoining',
-    'ifscCode',
-    'accountNumber',
-    'bloodGroup',
-    'password',
-    'manager',
-    'role',
-    'cluster',
     'city',
-    'dateOfBirth'
+    'cluster',
+    'role',
+    'manager',
+    'date_of_joining',
+    'date_of_birth',
+    'blood_group',
+    'account_number',
+    'ifsc_code',
+    'password'
   ];
 
   const sampleData = [
+    'john.doe',
     'EMP001',
     'John Doe',
     'john.doe@company.com',
     '9876543210',
-    'john.doe',
-    '2024-01-15',
-    'HDFC0001234',
-    '12345678901234',
-    'O+',
-    'password123',
-    'Jane Smith',
-    'Software Engineer',
-    'North Cluster',
     'Mumbai',
-    '1990-05-15'
+    'North Cluster',
+    'Software Engineer',
+    'Jane Smith',
+    '15-01-2024',
+    '15-05-1990',
+    'O+',
+    '12345678901234',
+    'HDFC0001234',
+    'password123'
   ];
 
   return Papa.unparse([headers, sampleData]);

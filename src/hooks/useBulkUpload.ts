@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,8 +38,23 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
         const rowData: RowData = {
-          ...item.rowData,
-          employeeId: item.rowData.emp_id // Map emp_id to employeeId
+          id: item.rowData.id || '',
+          userId: item.rowData.userId || '',
+          emp_id: item.rowData.emp_id || '',
+          name: item.rowData.name || '',
+          email: item.rowData.email || '',
+          phone: item.rowData.phone || null,
+          city: item.rowData.city || null,
+          cluster: item.rowData.cluster || null,
+          role: item.rowData.role || '',
+          manager: item.rowData.manager || null,
+          date_of_joining: item.rowData.date_of_joining || null,
+          date_of_birth: item.rowData.date_of_birth || null,
+          blood_group: item.rowData.blood_group || null,
+          account_number: item.rowData.account_number || null,
+          ifsc_code: item.rowData.ifsc_code || null,
+          password: item.rowData.password || 'changeme123',
+          employeeId: item.rowData.emp_id || item.rowData.employeeId || ''
         };
         initialEditedRows[`row-${index}`] = rowData;
       });

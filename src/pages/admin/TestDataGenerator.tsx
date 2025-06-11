@@ -18,7 +18,7 @@ const TestDataGenerator = () => {
     try {
       setIsGenerating(true);
       const result = await generateTestSentimentData();
-      if (result) {
+      if (result && typeof result === 'object' && 'employeesProcessed' in result) {
         setResults(result);
         toast({
           variant: "default",
@@ -26,6 +26,7 @@ const TestDataGenerator = () => {
           description: `Processed ${result.employeesProcessed} employees with ${result.totalEntriesCreated} entries created.`
         });
       } else {
+        setResults(null);
         toast({
           variant: "default",
           title: "Test Data Generator",
