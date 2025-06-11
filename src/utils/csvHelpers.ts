@@ -16,7 +16,7 @@ export {
 } from './csvTemplateUtils';
 
 export { 
-  parseEmployeeCSV 
+  parseCSVEmployees as parseEmployeeCSV 
 } from './csvParserUtils';
 
 export {

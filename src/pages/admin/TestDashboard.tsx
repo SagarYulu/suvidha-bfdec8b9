@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TestDashboard: React.FC = () => {
   return (
-    <AdminLayout title="Testing Dashboard" showBackButton={false}>
+    <AdminLayout title="Testing Dashboard">
       <div className="space-y-6">
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h2 className="text-lg font-semibold text-blue-800 mb-2">
