@@ -1,143 +1,154 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Download, FileText, Calendar } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Download, FileSpreadsheet, FileText, Database } from 'lucide-react';
+import { ApiClient } from '@/services/apiClient';
 
 interface ExportDialogProps {
-  trigger: React.ReactNode;
-  onExport: (options: ExportOptions) => void;
-  isLoading?: boolean;
-}
-
-interface ExportOptions {
-  format: 'csv' | 'excel' | 'pdf';
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  includeComments: boolean;
-  includeAttachments: boolean;
-  filters: Record<string, any>;
+  isOpen: boolean;
+  onClose: () => void;
+  dataType: 'issues' | 'users' | 'analytics' | 'feedback';
+  filters?: any;
 }
 
 const ExportDialog: React.FC<ExportDialogProps> = ({
-  trigger,
-  onExport,
-  isLoading = false
+  isOpen,
+  onClose,
+  dataType,
+  filters = {}
 }) => {
-  const [open, setOpen] = useState(false);
-  const [options, setOptions] = useState<ExportOptions>({
-    format: 'csv',
-    dateRange: {
-      start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      end: new Date().toISOString().split('T')[0]
-    },
-    includeComments: false,
-    includeAttachments: false,
-    filters: {}
-  });
-  
-  const { toast } = useToast();
+  const [format, setFormat] = useState<'csv' | 'excel' | 'pdf'>('csv');
+  const [includeHeaders, setIncludeHeaders] = useState(true);
+  const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = () => {
-    if (isLoading) return;
-    
-    onExport(options);
-    setOpen(false);
-    toast({
-      title: "Export Started",
-      description: `Your ${options.format.toUpperCase()} export is being prepared.`,
-    });
+  const fieldOptions = {
+    issues: ['id', 'title', 'status', 'priority', 'created_at', 'assigned_to'],
+    users: ['id', 'name', 'email', 'role', 'created_at'],
+    analytics: ['date', 'issue_count', 'resolution_time', 'satisfaction_score'],
+    feedback: ['id', 'content', 'sentiment', 'created_at', 'issue_id']
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await ApiClient.post('/api/export', {
+        dataType,
+        format,
+        includeHeaders,
+        fields: selectedFields.length > 0 ? selectedFields : fieldOptions[dataType],
+        filters
+      });
+
+      // Create download
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${dataType}_export_${new Date().toISOString().split('T')[0]}.${format}`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      onClose();
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Export Data
+            <Database className="h-5 w-5" />
+            Export {dataType.charAt(0).toUpperCase() + dataType.slice(1)}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium mb-2 block">Export Format</label>
-            <Select value={options.format} onValueChange={(value: any) => setOptions({...options, format: value})}>
+            <Select value={format} onValueChange={(value: 'csv' | 'excel' | 'pdf') => setFormat(value)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="csv">CSV</SelectItem>
-                <SelectItem value="excel">Excel</SelectItem>
-                <SelectItem value="pdf">PDF Report</SelectItem>
+                <SelectItem value="csv">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    CSV File
+                  </div>
+                </SelectItem>
+                <SelectItem value="excel">
+                  <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Excel File
+                  </div>
+                </SelectItem>
+                <SelectItem value="pdf">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    PDF Report
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Start Date</label>
-              <input
-                type="date"
-                value={options.dateRange.start}
-                onChange={(e) => setOptions({
-                  ...options,
-                  dateRange: { ...options.dateRange, start: e.target.value }
-                })}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">End Date</label>
-              <input
-                type="date"
-                value={options.dateRange.end}
-                onChange={(e) => setOptions({
-                  ...options,
-                  dateRange: { ...options.dateRange, end: e.target.value }
-                })}
-                className="w-full p-2 border border-gray-300 rounded-md"
-              />
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="headers" 
+              checked={includeHeaders}
+              onCheckedChange={setIncludeHeaders}
+            />
+            <label htmlFor="headers" className="text-sm font-medium">Include Headers</label>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium mb-2 block">Fields to Export</label>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {fieldOptions[dataType].map((field) => (
+                <div key={field} className="flex items-center space-x-2">
+                  <Checkbox 
+                    id={field}
+                    checked={selectedFields.includes(field)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedFields([...selectedFields, field]);
+                      } else {
+                        setSelectedFields(selectedFields.filter(f => f !== field));
+                      }
+                    }}
+                  />
+                  <label htmlFor={field} className="text-sm capitalize">
+                    {field.replace('_', ' ')}
+                  </label>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Include Additional Data</label>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="comments"
-                checked={options.includeComments}
-                onCheckedChange={(checked) => setOptions({...options, includeComments: !!checked})}
-              />
-              <label htmlFor="comments" className="text-sm">Include Comments</label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="attachments"
-                checked={options.includeAttachments}
-                onCheckedChange={(checked) => setOptions({...options, includeAttachments: !!checked})}
-              />
-              <label htmlFor="attachments" className="text-sm">Include Attachment URLs</label>
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <Button variant="outline" onClick={() => setOpen(false)} className="flex-1">
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button onClick={handleExport} disabled={isLoading} className="flex-1">
-              <FileText className="mr-2 h-4 w-4" />
-              {isLoading ? 'Exporting...' : 'Export'}
+            <Button onClick={handleExport} disabled={isExporting}>
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </>
+              )}
             </Button>
           </div>
         </div>

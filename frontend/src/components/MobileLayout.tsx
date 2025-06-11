@@ -1,37 +1,21 @@
 
-import { ReactNode } from "react";
-import MobileHeader from "./layouts/headers/MobileHeader";
-import MobileBottomNav from "./layouts/navigation/MobileBottomNav";
+import React from 'react';
+import MobileHeader from '@/components/layouts/headers/MobileHeader';
+import MobileBottomNav from '@/components/layouts/navigation/MobileBottomNav';
 
 interface MobileLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
   title?: string;
-  bgColor?: string;
-  showBottomNav?: boolean;
-  showBackButton?: boolean;
-  onBackClick?: () => void;
 }
 
-const MobileLayout = ({ 
-  children, 
-  title = "Yulu Suvidha", 
-  bgColor = "bg-green-600",
-  showBottomNav = true,
-  showBackButton = false,
-  onBackClick
-}: MobileLayoutProps) => {
+const MobileLayout: React.FC<MobileLayoutProps> = ({ children, title }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <MobileHeader 
-        title={title} 
-        bgColor={bgColor}
-        showBackButton={showBackButton}
-        onBackClick={onBackClick}
-      />
-      <main className={showBottomNav ? "pb-16" : ""}>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <MobileHeader title={title} />
+      <main className="flex-1 pb-16">
         {children}
       </main>
-      {showBottomNav && <MobileBottomNav />}
+      <MobileBottomNav />
     </div>
   );
 };

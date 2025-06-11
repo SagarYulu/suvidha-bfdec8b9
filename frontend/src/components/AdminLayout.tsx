@@ -1,21 +1,40 @@
 
 import React from 'react';
-import AdminHeader from './layouts/headers/AdminHeader';
-import AdminSidebar from './layouts/sidebars/AdminSidebar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useEffect } from 'react';
+import { useNavigate, Outlet } from 'react-router-dom';
+import AdminSidebar from '@/components/layouts/sidebars/AdminSidebar';
+import AdminHeader from '@/components/layouts/headers/AdminHeader';
 
-interface AdminLayoutProps {
-  children: React.ReactNode;
-  title?: string;
-}
+const AdminLayout: React.FC = () => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate('/admin/login');
+    }
+  }, [user, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <AdminHeader title={title} />
-      <div className="flex">
-        <AdminSidebar />
+    <div className="min-h-screen bg-gray-50 flex">
+      <AdminSidebar onLogout={() => navigate('/admin/login')} />
+      <div className="flex-1 flex flex-col">
+        <AdminHeader />
         <main className="flex-1 p-6">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>
