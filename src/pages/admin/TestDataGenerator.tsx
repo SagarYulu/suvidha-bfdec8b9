@@ -17,25 +17,17 @@ const TestDataGenerator = () => {
   const handleGenerateData = async () => {
     try {
       setIsGenerating(true);
-      const result = await generateTestSentimentData();
       
-      // Handle both void and object return types
-      if (result && typeof result === 'object' && 'employeesProcessed' in result) {
-        setResults(result);
-        toast({
-          variant: "default",
-          title: "Test Data Generated",
-          description: `Processed ${result.employeesProcessed} employees with ${result.totalEntriesCreated} entries created.`
-        });
-      } else {
-        // Handle case where function returns void or null
-        setResults(null);
-        toast({
-          variant: "default",
-          title: "Test Data Generator",
-          description: "Sentiment functionality has been removed from this application."
-        });
-      }
+      // generateTestSentimentData returns void, so we don't check its result
+      await generateTestSentimentData();
+      
+      // Since the function returns void, we just show a simple success message
+      setResults(null);
+      toast({
+        variant: "default",
+        title: "Test Data Generator",
+        description: "Sentiment functionality has been removed from this application."
+      });
     } catch (error) {
       console.error("Error:", error);
       setResults(null);

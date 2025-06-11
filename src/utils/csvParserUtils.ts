@@ -57,7 +57,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           const validation = validateEmployeeData(row);
           
           const employeeData: CSVEmployeeData = {
-            id: row.id || `temp-${index}`,
+            id: `temp-${index}`, // Ensure id is always present
             userId: row.userId || row['User ID'] || row.user_id || '',
             emp_id: row.emp_id || row['Employee ID'] || row['Emp ID'] || '',
             name: row.name || row.Name || '',
