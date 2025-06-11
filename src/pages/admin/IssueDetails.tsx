@@ -94,6 +94,7 @@ const AdminIssueDetails = () => {
 
             <IssueDetailsCard
               issue={issue}
+              status={status}
               handleStatusChange={handleStatusChange}
               isUpdatingStatus={isUpdatingStatus}
               formatDate={formatDate}

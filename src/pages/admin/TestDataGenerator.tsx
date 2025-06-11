@@ -18,20 +18,12 @@ const TestDataGenerator = () => {
     try {
       setIsGenerating(true);
       const result = await generateTestSentimentData();
-      if (result) {
-        setResults(result);
-        toast({
-          variant: "default",
-          title: "Test Data Generated",
-          description: `Processed ${result.employeesProcessed} employees with ${result.totalEntriesCreated} entries created.`
-        });
-      } else {
-        toast({
-          variant: "default",
-          title: "Test Data Generator",
-          description: "Sentiment functionality has been removed from this application."
-        });
-      }
+      setResults(result);
+      toast({
+        variant: "default",
+        title: "Test Data Generator",
+        description: "Sentiment functionality has been removed from this application."
+      });
     } catch (error) {
       console.error("Error:", error);
       toast({

@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { parseCSVEmployees } from "@/utils/csvParserUtils";
+import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
 import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData, ValidationError } from "@/types";
@@ -30,7 +31,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
     setIsUploading(true);
     try {
-      const result = await parseCSVEmployees(await file.text());
+      const result = await parseEmployeeCSV(file);
       
       setValidationResults(result);
       // Initialize edited rows with original data
