@@ -23,6 +23,14 @@ export interface SentimentAlert {
   severity: 'low' | 'medium' | 'high';
   createdAt: string;
   resolved: boolean;
+  is_resolved?: boolean;
+  created_at?: string;
+  trigger_reason?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  average_score?: number;
+  change_percentage?: number;
 }
 
 export interface SentimentFilters {
@@ -99,8 +107,13 @@ export const getSentimentTrends = async (
   return await apiCall(url);
 };
 
-export const fetchSentimentAlerts = async (): Promise<SentimentAlert[]> => {
-  return await apiCall('/sentiment/alerts');
+export const fetchSentimentAlerts = async (showResolved: boolean = false): Promise<SentimentAlert[]> => {
+  const queryParams = new URLSearchParams();
+  if (showResolved) {
+    queryParams.append('resolved', 'true');
+  }
+  const url = `/sentiment/alerts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  return await apiCall(url);
 };
 
 export const resolveSentimentAlert = async (alertId: string): Promise<void> => {

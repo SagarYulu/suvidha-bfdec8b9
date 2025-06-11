@@ -126,6 +126,8 @@ export interface ValidationError {
   field: string;
   message: string;
   value: any;
+  rowData?: RowData;
+  errors?: string[];
 }
 
 export interface ValidationResult {
@@ -152,4 +154,72 @@ export interface CSVEmployeeData {
   city: string;
   cluster: string;
   manager?: string;
+  id?: string;
+  userId?: string;
+  emp_id?: string;
+  role?: string;
+  password?: string;
+  isActive?: boolean;
 }
+
+// Sentiment types
+export interface SentimentAlert {
+  id: string;
+  type: 'low_rating' | 'negative_trend' | 'urgent_feedback';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  createdAt: string;
+  resolved: boolean;
+  is_resolved?: boolean;
+  created_at?: string;
+  trigger_reason?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  average_score?: number;
+  change_percentage?: number;
+}
+
+// Feedback types
+export interface FeedbackMetrics {
+  totalCount: number;
+  averageRating: number;
+  responseRate: number;
+  satisfactionScore: number;
+  sentimentPercentages: {
+    happy: number;
+    neutral: number;
+    sad: number;
+  };
+  sentimentCounts: {
+    happy: number;
+    neutral: number;
+    sad: number;
+  };
+}
+
+export interface FeedbackFilters {
+  startDate?: string;
+  endDate?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  category?: string;
+  rating?: number;
+  issueType?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  sentiment?: string;
+}
+
+export interface TrendData {
+  date: string;
+  happy: number;
+  neutral: number;
+  sad: number;
+  total?: number;
+}
+
+export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';

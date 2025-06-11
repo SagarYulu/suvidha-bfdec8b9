@@ -38,12 +38,14 @@ export const truncateText = (text: string, maxLength: number = 20) => {
   return text.substring(0, maxLength) + '...';
 };
 
-// Additional exports for sentiment charts
+// Sentiment colors - mapped to happy/neutral/sad instead of positive/negative
 export const SENTIMENT_COLORS = {
   positive: '#22C55E',
   negative: '#EF4444',
   neutral: '#6B7280',
-  mixed: '#F59E0B'
+  mixed: '#F59E0B',
+  happy: '#22C55E',
+  sad: '#EF4444'
 };
 
 export const CURVED_LINE_TYPE = 'monotone';

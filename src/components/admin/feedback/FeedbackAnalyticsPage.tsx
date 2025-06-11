@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackTrendChart from './FeedbackTrendChart';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
+import { AnalyticsExportSection } from '@/components/admin/analytics/AnalyticsExportSection';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const {
@@ -43,7 +44,11 @@ const FeedbackAnalyticsPage: React.FC = () => {
         <TabsContent value="overview" className="space-y-6">
           <FeedbackMetricsOverview 
             metrics={metrics}
+            comparisonMetrics={null}
+            comparisonMode="none"
           />
+          
+          <AnalyticsExportSection />
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-6">
