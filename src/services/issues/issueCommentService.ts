@@ -1,3 +1,4 @@
+
 import { IssueComment } from '@/types';
 
 // Mock comments data
@@ -52,3 +53,7 @@ export const addIssueComment = async (
   mockComments.push(newComment);
   return newComment;
 };
+
+// Export alias for backward compatibility
+export const addNewComment = addIssueComment;
+export const addComment = addIssueComment;

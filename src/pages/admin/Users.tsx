@@ -1,8 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -47,7 +49,7 @@ const Users: React.FC = () => {
     city: '',
     cluster: '',
     manager: '',
-    role: 'employee' as 'employee',
+    role: 'employee' as const,
     password: '',
     dateOfJoining: '',
     bloodGroup: '',
@@ -153,7 +155,7 @@ const Users: React.FC = () => {
         city: '',
         cluster: '',
         manager: '',
-        role: 'employee' as 'employee',
+        role: 'employee' as const,
         password: '',
         dateOfJoining: '',
         bloodGroup: '',

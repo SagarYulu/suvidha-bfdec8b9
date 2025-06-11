@@ -26,6 +26,11 @@ const Analytics: React.FC = () => {
     isLoading 
   });
 
+  const handleExport = async (format: 'pdf' | 'csv' | 'excel') => {
+    console.log(`Exporting analytics in ${format} format`);
+    // Implementation would go here
+  };
+
   return (
     <AdminLayout title="Analytics">
       <div className="space-y-6">
@@ -45,17 +50,12 @@ const Analytics: React.FC = () => {
         />
 
         <AnalyticsExportSection 
-          analytics={analytics}
-          filters={filters}
-          dateRange={{
-            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-            to: new Date()
-          }}
+          onExport={handleExport}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TrendAnalysisSection />
-          <SLAAnalysisSection />
+          <TrendAnalysisSection filters={filters} />
+          <SLAAnalysisSection filters={filters} />
         </div>
       </div>
     </AdminLayout>

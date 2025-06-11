@@ -1,120 +1,60 @@
+import { Issue } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
 
-import { Issue } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-
-/**
- * Issue utility functions - helpers for processing issue data
- */
-
-// Function to generate a UUID
-export const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
-// Function to map database issue to app Issue type
-export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
-  return {
-    id: dbIssue.id,
-    employeeUuid: dbIssue.employee_uuid,
-    typeId: dbIssue.type_id,
-    subTypeId: dbIssue.sub_type_id,
-    description: dbIssue.description,
-    status: dbIssue.status as Issue["status"],
-    priority: dbIssue.priority as Issue["priority"],
-    createdAt: dbIssue.created_at,
-    updatedAt: dbIssue.updated_at,
-    closedAt: dbIssue.closed_at,
-    assignedTo: dbIssue.assigned_to,
-    comments: comments,
-    lastStatusChangeAt: dbIssue.last_status_change_at,
-    reopenableUntil: dbIssue.reopenable_until,
-    previouslyClosedAt: dbIssue.previously_closed_at
-  };
-};
-
-import { getUserById } from "@/services/userService";
-
-// Cache for user names to reduce duplicate API calls
-const userNameCache: Record<string, string> = {};
-
-/**
- * Gets the employee name from their UUID
- * Provides caching to reduce API calls
- */
 export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<string> => {
-  // Return from cache if available
-  if (userNameCache[employeeUuid]) {
-    return userNameCache[employeeUuid];
-  }
-  
-  // Special case for known system IDs
-  if (employeeUuid === "1") {
-    userNameCache[employeeUuid] = "Admin";
-    return "Admin";
-  }
-  
-  // Handle security-user IDs - including when they have numbers after
-  if (employeeUuid.startsWith("security-user")) {
-    userNameCache[employeeUuid] = "Security Team";
-    return "Security Team";
-  }
-  
   try {
-    const user = await getUserById(employeeUuid);
-    if (user) {
-      // Store in cache for future use
-      userNameCache[employeeUuid] = user.name;
-      return user.name;
-    }
-  } catch (error) {
-    console.error(`Error fetching user name for UUID ${employeeUuid}:`, error);
-  }
-  
-  // Fallback if user not found
-  return "Unknown Employee";
-};
-
-/**
- * Maps employee UUIDs to names in a batch for better performance
- */
-export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = [...new Set(employeeUuids)];
-  const result: Record<string, string> = {};
-  
-  await Promise.all(uniqueIds.map(async (uuid) => {
-    result[uuid] = await getEmployeeNameByUuid(uuid);
-  }));
-  
-  return result;
-};
-
-/**
- * Get available assignees for ticket assignment
- * Returns a formatted list for dropdown selection
- */
-export const getAvailableAssignees = async (): Promise<{ value: string; label: string }[]> => {
-  try {
-    // Get users with admin or support roles from the database
     const { data, error } = await supabase
-      .from('dashboard_users')
-      .select('id, name, role')
-      .in('role', ['Admin', 'Support Agent', 'HR Admin', 'Super Admin']);
-    
+      .from('employees')
+      .select('name')
+      .eq('id', employeeUuid)
+      .single();
+      
     if (error) {
-      console.error('Error fetching available assignees:', error);
-      return [];
+      console.error(`Error fetching employee name for UUID ${employeeUuid}:`, error.message);
+      return 'Unknown Employee';
     }
     
-    // Map to the format needed for the dropdown
-    return (data || []).map(user => ({
-      value: user.id,
-      label: `${user.name} (${user.role})`
-    }));
+    return data.name || 'Unknown Employee';
   } catch (error) {
-    console.error('Error in getAvailableAssignees:', error);
-    return [];
+    console.error(`Unexpected error fetching employee name for UUID ${employeeUuid}:`, error);
+    return 'Unknown Employee';
   }
+};
+
+export const mapEmployeeUuidsToNames = async (issues: Issue[]): Promise<Record<string, string>> => {
+  const uniqueUuids = [...new Set(issues.map(issue => issue.employeeUuid))];
+  const names: Record<string, string> = {};
+  
+  for (const uuid of uniqueUuids) {
+    names[uuid] = await getEmployeeNameByUuid(uuid);
+  }
+  
+  return names;
+};
+
+export const formatIssueForDisplay = (issue: any): Issue => {
+  return {
+    id: issue.id,
+    employeeUuid: issue.employee_uuid,
+    typeId: issue.type_id,
+    subTypeId: issue.sub_type_id,
+    description: issue.description,
+    status: issue.status as "open" | "in_progress" | "resolved" | "closed",
+    priority: issue.priority as "low" | "medium" | "high" | "urgent",
+    createdAt: issue.created_at,
+    updatedAt: issue.updated_at,
+    closedAt: issue.closed_at,
+    assignedTo: issue.assigned_to,
+    attachmentUrl: issue.attachment_url,
+    attachments: issue.attachments,
+    comments: [], // Comments will be populated separately
+    title: issue.title || 'Untitled Issue',
+    issueType: issue.issue_type || 'General',
+    employeeId: issue.employee_id || issue.employeeUuid,
+    // Add mapped fields
+    mappedTypeId: issue.mapped_type_id,
+    mappedSubTypeId: issue.mapped_sub_type_id,
+    mappedAt: issue.mapped_at,
+    mappedBy: issue.mapped_by
+  };
 };

@@ -31,7 +31,9 @@ export {
 } from "./issues/issueTypeHelpers";
 
 export { 
-  addNewComment as addComment 
+  addIssueComment as addComment,
+  addNewComment,
+  fetchIssueComments
 } from "./issues/issueCommentService";
 
 export { 
