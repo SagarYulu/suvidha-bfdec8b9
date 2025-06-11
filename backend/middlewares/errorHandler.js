@@ -2,82 +2,86 @@
 const { HTTP_STATUS } = require('../config/constants');
 
 const errorHandler = (err, req, res, next) => {
-  console.error('Error Stack:', err.stack);
-  
+  console.error('Error:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    body: req.body,
+    params: req.params,
+    query: req.query
+  });
+
+  // Default error
+  let error = {
+    success: false,
+    error: 'Internal server error',
+    message: 'Something went wrong'
+  };
+
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    error.error = 'Resource not found';
+    error.message = 'Invalid ID format';
+    return res.status(HTTP_STATUS.NOT_FOUND).json(error);
+  }
+
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyValue)[0];
+    error.error = 'Duplicate field value';
+    error.message = `${field} already exists`;
+    return res.status(HTTP_STATUS.CONFLICT).json(error);
+  }
+
   // Mongoose validation error
   if (err.name === 'ValidationError') {
-    const errors = Object.values(err.errors).map(error => error.message);
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      error: 'Validation Error',
-      message: 'Invalid input data',
-      details: errors
-    });
-  }
-
-  // MySQL duplicate entry error
-  if (err.code === 'ER_DUP_ENTRY') {
-    return res.status(HTTP_STATUS.CONFLICT).json({
-      error: 'Duplicate Entry',
-      message: 'Resource already exists',
-      details: err.sqlMessage
-    });
-  }
-
-  // MySQL foreign key constraint error
-  if (err.code === 'ER_NO_REFERENCED_ROW_2') {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      error: 'Reference Error',
-      message: 'Referenced resource does not exist',
-      details: err.sqlMessage
-    });
+    const messages = Object.values(err.errors).map(val => val.message);
+    error.error = 'Validation error';
+    error.message = messages.join(', ');
+    return res.status(HTTP_STATUS.BAD_REQUEST).json(error);
   }
 
   // JWT errors
   if (err.name === 'JsonWebTokenError') {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-      error: 'Invalid Token',
-      message: 'Authentication failed'
-    });
+    error.error = 'Invalid token';
+    error.message = 'Please login again';
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json(error);
   }
 
   if (err.name === 'TokenExpiredError') {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-      error: 'Token Expired',
-      message: 'Please login again'
-    });
+    error.error = 'Token expired';
+    error.message = 'Please login again';
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json(error);
   }
 
-  // File upload errors
-  if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      error: 'File Too Large',
-      message: 'File size exceeds the allowed limit'
-    });
+  // MySQL errors
+  if (err.code === 'ER_DUP_ENTRY') {
+    error.error = 'Duplicate entry';
+    error.message = 'Record already exists';
+    return res.status(HTTP_STATUS.CONFLICT).json(error);
   }
 
-  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      error: 'Invalid File',
-      message: 'Unexpected file field'
-    });
+  if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+    error.error = 'Invalid reference';
+    error.message = 'Referenced record does not exist';
+    return res.status(HTTP_STATUS.BAD_REQUEST).json(error);
   }
 
   // Custom application errors
   if (err.statusCode) {
-    return res.status(err.statusCode).json({
-      error: err.name || 'Application Error',
-      message: err.message
-    });
+    error.error = err.message;
+    error.message = err.message;
+    return res.status(err.statusCode).json(error);
   }
 
-  // Default server error
-  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-    error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Something went wrong' 
-      : err.message,
-    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-  });
+  // Development vs Production
+  if (process.env.NODE_ENV === 'development') {
+    error.stack = err.stack;
+    error.details = err;
+  }
+
+  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json(error);
 };
 
 module.exports = errorHandler;

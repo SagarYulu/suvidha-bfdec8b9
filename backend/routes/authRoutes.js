@@ -2,49 +2,44 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { validationRules, handleValidationErrors } = require('../middlewares/validation');
 const { authenticateToken } = require('../middlewares/auth');
+const { validationRules, handleValidationErrors } = require('../middlewares/validation');
 
 // Public routes
 router.post('/login', 
-  validationRules.userLogin, 
-  handleValidationErrors, 
+  validationRules.login,
+  handleValidationErrors,
   authController.login
 );
 
-router.post('/register', 
-  validationRules.userRegistration, 
-  handleValidationErrors, 
+router.post('/register',
+  validationRules.register,
+  handleValidationErrors,
   authController.register
 );
 
-router.post('/forgot-password', 
+router.post('/forgot-password',
+  validationRules.forgotPassword,
+  handleValidationErrors,
   authController.forgotPassword
 );
 
-router.post('/reset-password', 
+router.post('/reset-password',
+  validationRules.resetPassword,
+  handleValidationErrors,
   authController.resetPassword
 );
 
 // Protected routes
-router.post('/logout', 
-  authenticateToken, 
-  authController.logout
-);
+router.use(authenticateToken);
 
-router.get('/me', 
-  authenticateToken, 
-  authController.getCurrentUser
-);
-
-router.post('/change-password', 
-  authenticateToken, 
+router.get('/me', authController.getCurrentUser);
+router.post('/logout', authController.logout);
+router.post('/refresh', authController.refreshToken);
+router.post('/change-password',
+  validationRules.changePassword,
+  handleValidationErrors,
   authController.changePassword
-);
-
-router.post('/refresh-token', 
-  authenticateToken, 
-  authController.refreshToken
 );
 
 module.exports = router;

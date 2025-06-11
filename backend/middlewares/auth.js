@@ -1,79 +1,63 @@
 
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const cacheService = require('../services/cacheService');
+const { JWT, HTTP_STATUS } = require('../config/constants');
 
 const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
+    const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
-    
+
     if (!token) {
-      return res.status(401).json({ 
-        error: 'Access denied',
-        message: 'No token provided' 
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Access token required'
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Try to get user from cache first
-    let user = cacheService.getUser(decoded.userId);
-    
+    const decoded = jwt.verify(token, JWT.SECRET);
+    const user = await User.findById(decoded.id);
+
     if (!user) {
-      user = await User.findById(decoded.userId);
-      if (!user) {
-        return res.status(401).json({ 
-          error: 'Invalid token',
-          message: 'User not found' 
-        });
-      }
-      
-      // Cache the user data
-      cacheService.setUser(decoded.userId, user);
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Invalid token'
+      });
     }
 
-    req.user = user;
+    if (!user.is_active) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Account is deactivated'
+      });
+    }
+
+    // Remove password from user object
+    const { password_hash, ...userWithoutPassword } = user;
+    req.user = userWithoutPassword;
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
-    
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        error: 'Invalid token',
-        message: 'Token is malformed' 
-      });
-    }
-    
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
-        error: 'Token expired',
-        message: 'Please login again' 
-      });
-    }
-    
-    res.status(500).json({ 
-      error: 'Authentication failed',
-      message: 'Internal server error' 
+    console.error('Auth middleware error:', error);
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      success: false,
+      error: 'Invalid token'
     });
   }
 };
 
-const requireRole = (allowedRoles) => {
+const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        error: 'Access denied',
-        message: 'User not authenticated'
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Authentication required'
       });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'Insufficient privileges',
-        required: allowedRoles,
-        current: req.user.role
+    if (!roles.includes(req.user.role)) {
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: 'Insufficient permissions'
       });
     }
 
@@ -84,30 +68,28 @@ const requireRole = (allowedRoles) => {
 const requirePermission = (permission) => {
   return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        error: 'Access denied',
-        message: 'User not authenticated'
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Authentication required'
       });
     }
 
     try {
       const userPermissions = await User.getUserPermissions(req.user.id);
-      const hasPermission = userPermissions.some(p => p.permission_name === permission);
       
-      if (!hasPermission) {
-        return res.status(403).json({
-          error: 'Access denied',
-          message: 'Missing required permission',
-          required: permission
+      if (!userPermissions.includes(permission)) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          error: 'Insufficient permissions'
         });
       }
 
       next();
     } catch (error) {
       console.error('Permission check error:', error);
-      res.status(500).json({
-        error: 'Permission check failed',
-        message: 'Internal server error'
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Permission check failed'
       });
     }
   };
