@@ -124,41 +124,6 @@ class DashboardService {
     return rows[0].count;
   }
 
-  static async getIssuesTrend(period = '30d') {
-    const pool = getPool();
-    const days = parseInt(period.replace('d', ''));
-    
-    const [rows] = await pool.execute(`
-      SELECT 
-        DATE(created_at) as date,
-        COUNT(*) as count
-      FROM issues 
-      WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-      GROUP BY DATE(created_at)
-      ORDER BY date ASC
-    `, [days]);
-    
-    return rows;
-  }
-
-  static async getResolutionTimeTrend(period = '30d') {
-    const pool = getPool();
-    const days = parseInt(period.replace('d', ''));
-    
-    const [rows] = await pool.execute(`
-      SELECT 
-        DATE(resolved_at) as date,
-        AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avgTime
-      FROM issues 
-      WHERE resolved_at IS NOT NULL 
-      AND resolved_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-      GROUP BY DATE(resolved_at)
-      ORDER BY date ASC
-    `, [days]);
-    
-    return rows;
-  }
-
   static buildFilterParams(filters) {
     const params = [];
     if (filters.city) params.push(filters.city);

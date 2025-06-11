@@ -39,11 +39,11 @@ function App() {
                 <Route path="issues" element={<Issues />} />
                 <Route path="employees" element={<Employees />} />
                 <Route path="analytics" element={<Analytics />} />
-                <Route path="bulk-upload" element={<div>Bulk Upload Page (Coming Soon)</div>} />
-                <Route path="feedback" element={<div>Feedback Page (Coming Soon)</div>} />
-                <Route path="reports" element={<div>Reports Page (Coming Soon)</div>} />
-                <Route path="users" element={<div>User Management Page (Coming Soon)</div>} />
-                <Route path="settings" element={<div>Settings Page (Coming Soon)</div>} />
+                <Route path="bulk-upload" element={<div className="p-6"><h1 className="text-2xl font-bold">Bulk Upload</h1><p>Coming Soon</p></div>} />
+                <Route path="feedback" element={<div className="p-6"><h1 className="text-2xl font-bold">Feedback</h1><p>Coming Soon</p></div>} />
+                <Route path="reports" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports</h1><p>Coming Soon</p></div>} />
+                <Route path="users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1><p>Coming Soon</p></div>} />
+                <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p>Coming Soon</p></div>} />
               </Route>
               
               {/* Catch all */}

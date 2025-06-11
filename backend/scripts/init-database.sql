@@ -1,9 +1,9 @@
 
--- Initialize yulu_suvidha database with all required tables
+-- Initialize yulu_suvidha database with all required tables for complete feature parity
 CREATE DATABASE IF NOT EXISTS yulu_suvidha;
 USE yulu_suvidha;
 
--- Dashboard Users table
+-- Dashboard Users table (Admin/Manager users)
 CREATE TABLE IF NOT EXISTS dashboard_users (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   full_name VARCHAR(255) NOT NULL,
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS dashboard_users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Employees table
+-- Employees table (Enhanced with all fields from root src)
 CREATE TABLE IF NOT EXISTS employees (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   emp_name VARCHAR(255) NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS employees (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- Issues table
+-- Issues table (Complete feature set)
 CREATE TABLE IF NOT EXISTS issues (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   title VARCHAR(255),
@@ -63,12 +63,13 @@ CREATE TABLE IF NOT EXISTS issues (
   FOREIGN KEY (assigned_to) REFERENCES dashboard_users(id)
 );
 
--- Comments table
+-- Comments table (Enhanced)
 CREATE TABLE IF NOT EXISTS comments (
   id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
   issue_id VARCHAR(36) NOT NULL,
   user_id VARCHAR(36) NOT NULL,
   content TEXT NOT NULL,
+  is_internal BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
@@ -101,23 +102,38 @@ CREATE TABLE IF NOT EXISTS file_uploads (
   FOREIGN KEY (uploaded_by) REFERENCES dashboard_users(id)
 );
 
--- Insert default admin user
+-- Issue audit trail
+CREATE TABLE IF NOT EXISTS issue_audit_trail (
+  id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
+  issue_id VARCHAR(36) NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  old_value TEXT,
+  new_value TEXT,
+  changed_by VARCHAR(36) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
+  FOREIGN KEY (changed_by) REFERENCES dashboard_users(id)
+);
+
+-- Insert default admin user (password: admin123)
 INSERT IGNORE INTO dashboard_users (id, full_name, email, password_hash, role) 
 VALUES (
   'admin-001', 
   'Admin User', 
   'admin@yulu.com', 
-  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5QJ5J5J5J5', -- password: admin123
+  '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5QJ5J5J5J5', 
   'admin'
 );
 
--- Insert sample employee
+-- Insert sample employees for testing
 INSERT IGNORE INTO employees (id, emp_name, emp_email, emp_code, city, cluster) 
-VALUES (
-  'emp-001',
-  'John Doe',
-  'john.doe@yulu.com',
-  'YUL001',
-  'Bangalore',
-  'South'
-);
+VALUES 
+  ('emp-001', 'John Doe', 'john.doe@yulu.com', 'YUL001', 'Bangalore', 'South'),
+  ('emp-002', 'Jane Smith', 'jane.smith@yulu.com', 'YUL002', 'Mumbai', 'West'),
+  ('emp-003', 'Bob Wilson', 'bob.wilson@yulu.com', 'YUL003', 'Delhi', 'North');
+
+-- Insert sample issues for testing
+INSERT IGNORE INTO issues (id, title, description, issue_type, issue_subtype, priority, employee_id, created_by) 
+VALUES 
+  ('issue-001', 'Login Issue', 'Cannot access account', 'Technical', 'Authentication', 'medium', 'emp-001', 'admin-001'),
+  ('issue-002', 'Salary Query', 'Salary not credited', 'HR', 'Payroll', 'high', 'emp-002', 'admin-001');

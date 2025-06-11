@@ -1,8 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DashboardService } from '@/services/dashboardService';
-import { DashboardAnalytics, Issue } from '@/types';
 
 interface DashboardFilters {
   dateFrom?: string;
@@ -21,7 +20,7 @@ export const useDashboardData = () => {
   } = useQuery({
     queryKey: ['dashboard-analytics', filters],
     queryFn: () => DashboardService.getAnalytics(filters),
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 30000,
   });
 
   const { 
@@ -39,7 +38,7 @@ export const useDashboardData = () => {
   } = useQuery({
     queryKey: ['user-count'],
     queryFn: () => DashboardService.getUserCount(),
-    refetchInterval: 60000, // Refetch every minute
+    refetchInterval: 60000,
   });
 
   const isLoading = analyticsLoading || issuesLoading || userCountLoading;
@@ -48,13 +47,12 @@ export const useDashboardData = () => {
     setFilters(newFilters);
   };
 
-  // Process data for charts
-  const typePieData = analytics?.issuesByType?.map(item => ({
+  const typePieData = analytics?.issuesByType?.map((item: any) => ({
     name: item.type,
     value: item.count
   })) || [];
 
-  const cityBarData = analytics?.issuesByStatus?.map(item => ({
+  const cityBarData = analytics?.issuesByStatus?.map((item: any) => ({
     name: item.status,
     value: item.count
   })) || [];

@@ -19,13 +19,13 @@ class User {
     } = userData;
     
     const userId = uuidv4();
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const password_hash = await bcrypt.hash(password, 12);
     
     const [result] = await pool.execute(
       `INSERT INTO dashboard_users 
        (id, full_name, email, password_hash, role, city, cluster, phone, employee_id, cluster_id, created_at) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [userId, full_name, email, hashedPassword, role, city, cluster, phone, employee_id, cluster_id]
+      [userId, full_name, email, password_hash, role, city, cluster, phone, employee_id, cluster_id]
     );
     
     return this.findById(userId);
@@ -34,7 +34,7 @@ class User {
   static async findById(id) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      'SELECT id, full_name, email, role, city, cluster, phone, employee_id, cluster_id, is_active, created_at, updated_at FROM dashboard_users WHERE id = ?',
+      'SELECT * FROM dashboard_users WHERE id = ? AND is_active = true',
       [id]
     );
     
@@ -44,37 +44,37 @@ class User {
   static async findByEmail(email) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      'SELECT * FROM dashboard_users WHERE email = ?',
+      'SELECT * FROM dashboard_users WHERE email = ? AND is_active = true',
       [email]
     );
     
     return rows[0] || null;
   }
 
-  static async verifyPassword(password, hashedPassword) {
-    return await bcrypt.compare(password, hashedPassword);
+  static async validatePassword(plainPassword, hashedPassword) {
+    return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  static async updatePassword(userId, newPassword) {
+  static async updatePassword(id, newPassword) {
     const pool = getPool();
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const password_hash = await bcrypt.hash(newPassword, 12);
     
     await pool.execute(
       'UPDATE dashboard_users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
-      [hashedPassword, userId]
+      [password_hash, id]
     );
   }
 
   static async getUserPermissions(userId) {
-    // For now, return basic permissions based on role
     const user = await this.findById(userId);
     if (!user) return [];
     
+    // Define role-based permissions
     const rolePermissions = {
-      admin: ['create_issues', 'view_all_issues', 'assign_issues', 'escalate_issues', 'manage_users'],
-      manager: ['create_issues', 'view_team_issues', 'assign_issues', 'escalate_issues'],
-      agent: ['create_issues', 'view_assigned_issues', 'update_issues'],
-      employee: ['create_issues', 'view_own_issues']
+      admin: ['*'], // All permissions
+      manager: ['read_issues', 'write_issues', 'manage_employees', 'view_analytics', 'escalate_issues'],
+      agent: ['read_issues', 'write_issues', 'update_issues'],
+      employee: ['read_own_issues', 'create_issues']
     };
     
     return rolePermissions[user.role] || [];
@@ -82,12 +82,17 @@ class User {
 
   static async findAll(filters = {}) {
     const pool = getPool();
-    let query = 'SELECT id, full_name, email, role, city, cluster, phone, employee_id, cluster_id, is_active, created_at FROM dashboard_users WHERE 1=1';
+    let query = 'SELECT id, full_name, email, role, city, cluster, phone, employee_id, is_active, created_at FROM dashboard_users WHERE 1=1';
     const params = [];
     
     if (filters.role) {
       query += ' AND role = ?';
       params.push(filters.role);
+    }
+    
+    if (filters.city) {
+      query += ' AND city = ?';
+      params.push(filters.city);
     }
     
     if (filters.is_active !== undefined) {
@@ -97,18 +102,13 @@ class User {
     
     query += ' ORDER BY created_at DESC';
     
-    if (filters.limit) {
-      query += ' LIMIT ?';
-      params.push(parseInt(filters.limit));
-    }
-    
     const [rows] = await pool.execute(query, params);
     return rows;
   }
 
   static async update(id, updates) {
     const pool = getPool();
-    const allowedFields = ['full_name', 'email', 'role', 'city', 'cluster', 'phone', 'is_active'];
+    const allowedFields = ['full_name', 'email', 'role', 'city', 'cluster', 'phone', 'employee_id', 'cluster_id', 'is_active'];
     const fields = [];
     const values = [];
     
@@ -131,6 +131,15 @@ class User {
     );
     
     return this.findById(id);
+  }
+
+  static async delete(id) {
+    const pool = getPool();
+    // Soft delete by setting is_active to false
+    await pool.execute(
+      'UPDATE dashboard_users SET is_active = false, updated_at = NOW() WHERE id = ?',
+      [id]
+    );
   }
 }
 
