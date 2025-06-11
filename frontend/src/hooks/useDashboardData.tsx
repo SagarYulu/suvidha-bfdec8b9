@@ -1,175 +1,108 @@
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getAnalytics } from "@/services/api/analyticsService";
-import { getIssues, IssueFilters } from "@/services/issues/issueFilters";
-import { getUsers } from "@/services/api/userService";
-import { toast } from "@/hooks/use-toast";
+import { getAnalytics } from '@/services/issues/issueAnalyticsService';
+import { getIssues } from '@/services/issues/issueFilters';
+import { apiCall } from '@/config/api';
 
-export interface DateRange {
-  from?: Date;
-  to?: Date;
+interface DashboardFilters {
+  city?: string;
+  cluster?: string;
+  type?: string;
+  issueType?: string;
+  status?: string;
+  priority?: string;
+  assignedTo?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 export const useDashboardData = () => {
-  const [filters, setFilters] = useState<IssueFilters>({
-    city: null,
-    cluster: null,
-    issueType: null
-  });
-  
-  const { 
-    data: issues = [], 
-    isLoading: isIssuesLoading,
-    refetch: refetchIssues,
-    error: issuesError
-  } = useQuery({
-    queryKey: ['issues', filters],
-    queryFn: async () => {
-      console.log("Fetching issues with filters:", filters);
-      const result = await getIssues(filters);
-      console.log(`Retrieved ${result.length} issues after filtering`);
-      return result;
-    },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-  
-  const { 
-    data: analytics, 
-    isLoading: isAnalyticsLoading,
-    refetch: refetchAnalytics,
-    error: analyticsError
-  } = useQuery({
-    queryKey: ['analytics', filters],
-    queryFn: async () => {
-      console.log("Fetching analytics with filters:", filters);
-      return getAnalytics(filters);
-    },
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-  
-  const { 
-    data: users = [], 
-    isLoading: isUsersLoading 
-  } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => getUsers(),
-    staleTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      console.log("Filter changed, refetching data");
-      try {
-        await Promise.all([
-          refetchIssues(), 
-          refetchAnalytics()
-        ]);
-      } catch (error) {
-        console.error("Error refetching data:", error);
-      }
-    };
-    
-    fetchData();
-  }, [filters, refetchIssues, refetchAnalytics]);
+  const [filters, setFilters] = useState<DashboardFilters>({});
 
-  useEffect(() => {
-    if (issuesError) {
-      console.error("Error fetching issues:", issuesError);
-      toast({
-        title: "Error",
-        description: "Failed to load issues data",
-        variant: "destructive",
-      });
-    }
-    
-    if (analyticsError) {
-      console.error("Error fetching analytics:", analyticsError);
-      toast({
-        title: "Error", 
-        description: "Failed to load analytics data",
-        variant: "destructive",
-      });
-    }
-  }, [issuesError, analyticsError]);
-  
-  const recentIssues = useMemo(() => {
-    const sortedIssues = [...issues].sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-    return sortedIssues.slice(0, 5);
-  }, [issues]);
-  
-  const userCount = useMemo(() => {
-    return users.filter(user => user.role === "employee").length;
-  }, [users]);
-  
-  const typePieData = useMemo(() => {
-    if (!analytics?.typeCounts) {
-      console.log("No type counts data available for pie chart");
-      return [];
-    }
-    const data = Object.entries(analytics.typeCounts).map(([name, value]) => ({
-      name,
-      value
-    }));
-    console.log("Generated type pie data:", data);
-    return data;
-  }, [analytics]);
-  
-  const cityBarData = useMemo(() => {
-    if (!analytics?.cityCounts) {
-      console.log("No city counts data available for bar chart");
-      return [];
-    }
-    const data = Object.entries(analytics.cityCounts).map(([name, value]) => ({
-      name,
-      value
-    }));
-    console.log("Generated city bar data:", data);
-    return data;
-  }, [analytics]);
-  
-  const handleFilterChange = useCallback((newFilters: IssueFilters) => {
-    console.log("Filter change requested:", newFilters);
-    
-    setFilters(prevFilters => {
-      const updatedFilters = { ...prevFilters };
-      
-      if ('city' in newFilters) {
-        updatedFilters.city = newFilters.city;
-        if (newFilters.city !== prevFilters.city) {
-          updatedFilters.cluster = null;
-        }
-      }
-      
-      if ('cluster' in newFilters) {
-        updatedFilters.cluster = newFilters.cluster;
-      }
-      
-      if ('issueType' in newFilters) {
-        updatedFilters.issueType = newFilters.issueType;
-      }
-      
-      console.log("Setting new filters:", updatedFilters);
-      return updatedFilters;
-    });
+  // Analytics data
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['dashboard-analytics', filters],
+    queryFn: () => getAnalytics(filters),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Recent issues - transform filters to match IssueFilters
+  const issueFilters = useMemo(() => ({
+    ...filters,
+    cluster: filters.cluster,
+    issueType: filters.type || filters.issueType,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    sortBy: 'created_at',
+    sortOrder: 'desc'
+  }), [filters]);
+
+  const { data: recentIssuesData, isLoading: issuesLoading } = useQuery({
+    queryKey: ['dashboard-recent-issues', issueFilters],
+    queryFn: () => getIssues(issueFilters),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // User count
+  const { data: userCount = 0, isLoading: userCountLoading } = useQuery({
+    queryKey: ['user-count'],
+    queryFn: async () => {
+      const response = await apiCall('/users/count');
+      return response.count || response.data?.count || 0;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const handleFilterChange = useCallback((newFilters: DashboardFilters) => {
+    setFilters(newFilters);
   }, []);
 
-  const isLoading = isAnalyticsLoading || isIssuesLoading || isUsersLoading;
+  // Extract issues from API response
+  const recentIssues = useMemo(() => {
+    if (Array.isArray(recentIssuesData)) {
+      return recentIssuesData.slice(0, 10);
+    }
+    if (recentIssuesData?.issues) {
+      return recentIssuesData.issues.slice(0, 10);
+    }
+    if (recentIssuesData?.data) {
+      return recentIssuesData.data.slice(0, 10);
+    }
+    return [];
+  }, [recentIssuesData]);
+
+  // Transform data for charts
+  const typePieData = useMemo(() => {
+    if (!analytics?.typeCounts) return [];
+    return Object.entries(analytics.typeCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+  }, [analytics?.typeCounts]);
+
+  const cityBarData = useMemo(() => {
+    if (!analytics?.cityCounts) return [];
+    return Object.entries(analytics.cityCounts).map(([name, value]) => ({
+      name,
+      value
+    }));
+  }, [analytics?.cityCounts]);
+
+  const isLoading = analyticsLoading || issuesLoading || userCountLoading;
 
   return {
     analytics,
     recentIssues,
-    isLoading,
     userCount,
     filters,
+    isLoading,
     handleFilterChange,
     typePieData,
-    cityBarData,
-    issues
+    cityBarData
   };
 };

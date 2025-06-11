@@ -7,6 +7,7 @@ export interface User {
   employeeId?: string;
   city?: string;
   cluster?: string;
+  manager?: string;
   role: 'admin' | 'manager' | 'agent' | 'employee';
   permissions?: string[];
   isActive?: boolean;
@@ -16,14 +17,16 @@ export interface User {
 
 export interface Issue {
   id: string;
-  title: string;
+  title?: string;
   description: string;
-  issueType: string;
+  issueType?: string;
   issueSubtype?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  employeeId: string;
+  status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
+  employeeId?: string;
   employeeUuid?: string;
+  typeId?: string;
+  subTypeId?: string;
   assignedTo?: string;
   city?: string;
   cluster?: string;
@@ -33,15 +36,17 @@ export interface Issue {
   firstResponseAt?: string;
   resolutionNotes?: string;
   additionalDetails?: any;
-  typeId?: string;
+  attachmentUrl?: string;
+  attachments?: any;
+  comments?: IssueComment[];
 }
 
-export interface Comment {
+export interface IssueComment {
   id: string;
-  issueId: string;
-  userId: string;
+  issueId?: string;
+  employeeUuid: string;
   content: string;
-  isInternal: boolean;
+  isInternal?: boolean;
   createdAt: string;
   updatedAt: string;
   user?: {
