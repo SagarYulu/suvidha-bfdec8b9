@@ -1,8 +1,8 @@
 
-import { Issue } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, RotateCcw } from "lucide-react";
+import { Issue } from "@/types";
+import { Clock, AlertTriangle } from "lucide-react";
 
 interface MobileIssueStatusProps {
   issue: Issue;
@@ -11,92 +11,78 @@ interface MobileIssueStatusProps {
   handleReopenTicket: () => void;
 }
 
-const MobileIssueStatus = ({
-  issue,
-  formatDate,
+const MobileIssueStatus = ({ 
+  issue, 
+  formatDate, 
   isReopenable,
   handleReopenTicket
 }: MobileIssueStatusProps) => {
+  const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
+  
   const getStatusBadgeColor = (status: Issue["status"]) => {
     switch (status) {
       case "open":
-        return "bg-blue-500";
-      case "pending":
-        return "bg-yellow-500";
+        return "bg-red-500 text-white";
       case "in_progress":
-        return "bg-orange-500";
+        return "bg-yellow-500 text-white";
       case "resolved":
-        return "bg-green-500";
+        return "bg-green-500 text-white";
       case "closed":
-        return "bg-gray-500";
+        return "bg-green-700 text-white";
       default:
-        return "bg-gray-500";
+        return "bg-gray-500 text-white";
     }
   };
 
-  const getStatusText = (status: Issue["status"]) => {
-    switch (status) {
-      case "open":
-        return "Open";
-      case "pending":
-        return "Pending";
-      case "in_progress":
-        return "In Progress";
-      case "resolved":
-        return "Resolved";
-      case "closed":
-        return "Closed";
+  const getPriorityBadge = (priority: string) => {
+    if (isClosedOrResolved) return null;
+    
+    switch (priority) {
+      case "low":
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Low Priority</Badge>;
+      case "medium":
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Medium Priority</Badge>;
+      case "high":
+        return <Badge className="bg-orange-100 text-orange-800 border-orange-200">High Priority</Badge>;
+      case "critical":
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Critical Priority
+          </Badge>
+        );
       default:
-        return status;
+        return null;
     }
   };
-
-  const getStatusIcon = (status: Issue["status"]) => {
-    switch (status) {
-      case "resolved":
-      case "closed":
-        return <CheckCircle className="h-4 w-4 mr-1" />;
-      default:
-        return <Clock className="h-4 w-4 mr-1" />;
-    }
-  };
-
-  const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center">
-          <Badge className={`text-white ${getStatusBadgeColor(issue.status)} flex items-center`}>
-            {getStatusIcon(issue.status)}
-            {getStatusText(issue.status)}
-          </Badge>
-        </div>
-        
-        {isReopenable && (
-          <Button
-            onClick={handleReopenTicket}
-            variant="outline"
-            size="sm"
-            className="text-blue-600 border-blue-600 hover:bg-blue-50"
-          >
-            <RotateCcw className="h-3 w-3 mr-1" />
-            Reopen
-          </Button>
-        )}
+    <div className="border-b pb-4 mb-4">
+      <div className="flex justify-between items-center mb-2">
+        <Badge className={`px-3 py-1 ${getStatusBadgeColor(issue.status)}`}>
+          {issue.status.replace("_", " ")}
+        </Badge>
+        {getPriorityBadge(issue.priority)}
       </div>
       
-      {isClosedOrResolved && issue.closedAt && (
-        <p className="text-xs text-gray-500 flex items-center">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Closed on {formatDate(issue.closedAt)}
-        </p>
-      )}
-      
-      {issue.resolvedAt && (
-        <p className="text-xs text-gray-500 mt-1">
-          Resolved on {formatDate(issue.resolvedAt)}
-        </p>
+      {isClosedOrResolved && (
+        <div className="mt-2 text-sm text-gray-600">
+          <div className="flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            <span>Closed on {formatDate(issue.closedAt || "")}</span>
+          </div>
+          
+          {isReopenable && (
+            <Button 
+              onClick={handleReopenTicket} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2 text-xs h-7"
+            >
+              Reopen Ticket / टिकट फिर से खोलें
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );

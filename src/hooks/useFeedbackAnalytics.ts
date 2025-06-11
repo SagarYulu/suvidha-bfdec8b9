@@ -7,13 +7,8 @@ import { FeedbackMetrics, FeedbackFilters, ComparisonMode } from '@/types';
 const mockFeedbackMetrics: FeedbackMetrics = {
   totalCount: 150,
   averageRating: 4.2,
-  totalResponses: 150,
   responseRate: 85.5,
-  sentimentDistribution: {
-    positive: 65,
-    neutral: 25,
-    negative: 10
-  },
+  satisfactionScore: 78.3,
   sentimentPercentages: {
     happy: 65,
     neutral: 25,
@@ -24,16 +19,14 @@ const mockFeedbackMetrics: FeedbackMetrics = {
     neutral: 38,
     sad: 15,
   },
-  topOptions: [],
-  trendData: [],
+  topOptions: [], // Add missing property
+  trendData: [], // Add missing property
 };
 
 export const useFeedbackAnalytics = () => {
   const [filters, setFilters] = useState<FeedbackFilters>({
-    dateRange: undefined,
-    category: undefined,
-    rating: undefined,
-    issueType: undefined,
+    startDate: undefined,
+    endDate: undefined,
   });
   
   const [showComparison, setShowComparison] = useState(false);
@@ -96,7 +89,7 @@ export const useFeedbackAnalytics = () => {
     comparisonMetrics,
     isLoading,
     error: error as Error,
-    rawData: [],
+    rawData: [], // Mock empty array for FeedbackItem[]
     filters,
     showComparison,
     updateFilters,

@@ -18,7 +18,8 @@ const FeedbackAnalyticsPage: React.FC = () => {
 
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
     updateFilters({
-      dateRange: range
+      startDate: range.from.toISOString(),
+      endDate: range.to.toISOString()
     });
   };
 
@@ -28,33 +29,6 @@ const FeedbackAnalyticsPage: React.FC = () => {
       await handleExport(format);
     }
   };
-
-  // Provide default metrics if not loaded
-  const defaultMetrics = {
-    averageRating: 0,
-    totalResponses: 0,
-    responseRate: 0,
-    totalCount: 0,
-    sentimentDistribution: {
-      positive: 0,
-      neutral: 0,
-      negative: 0
-    },
-    sentimentCounts: {
-      happy: 0,
-      neutral: 0,
-      sad: 0
-    },
-    sentimentPercentages: {
-      happy: 0,
-      neutral: 0,
-      sad: 0
-    },
-    topOptions: [],
-    trendData: []
-  };
-
-  const metricsToUse = metrics || defaultMetrics;
 
   return (
     <div className="space-y-6">
@@ -72,7 +46,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
 
         <TabsContent value="overview" className="space-y-6">
           <FeedbackMetricsOverview 
-            metrics={metricsToUse}
+            metrics={metrics}
             comparisonMetrics={null}
             comparisonMode="none"
           />

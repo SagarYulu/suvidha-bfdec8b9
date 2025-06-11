@@ -2,10 +2,10 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { parseCSVEmployees } from "@/utils/csvParserUtils";
+import { parseEmployeeCSV } from "@/utils/csvParserUtils";
 import { validateEmployeeData } from "@/utils/validationUtils";
 import { formatDateToYYYYMMDD } from "@/utils/dateUtils";
-import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData, ValidationError } from "@/types";
+import { ValidationResult, CSVEmployeeData, EditedRowsRecord, RowData } from "@/types";
 import { ROLE_OPTIONS } from "@/data/formOptions";
 
 export const useBulkUpload = (onUploadSuccess?: () => void) => {
@@ -13,11 +13,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   const [showValidationDialog, setShowValidationDialog] = useState(false);
   const [validationResults, setValidationResults] = useState<ValidationResult>({ 
     validEmployees: [], 
-    invalidRows: [],
-    isValid: false,
-    validRows: [],
-    errors: [],
-    summary: { total: 0, valid: 0, invalid: 0 }
+    invalidRows: [] 
   });
   const [editedRows, setEditedRows] = useState<EditedRowsRecord>({});
   const { toast } = useToast();
@@ -31,32 +27,13 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
 
     setIsUploading(true);
     try {
-      const result = await parseCSVEmployees(await file.text());
+      const result = await parseEmployeeCSV(file);
       
       setValidationResults(result);
       // Initialize edited rows with original data
       const initialEditedRows: EditedRowsRecord = {};
       result.invalidRows.forEach((item, index) => {
-        const rowData: RowData = {
-          id: item.rowData.id || `temp-${index}`,
-          userId: item.rowData.userId || '',
-          emp_id: item.rowData.emp_id || '',
-          name: item.rowData.name || '',
-          email: item.rowData.email || '',
-          phone: item.rowData.phone || '',
-          city: item.rowData.city || '',
-          cluster: item.rowData.cluster || '',
-          role: item.rowData.role || '',
-          manager: item.rowData.manager || '',
-          date_of_joining: item.rowData.date_of_joining || '',
-          date_of_birth: item.rowData.date_of_birth || '',
-          blood_group: item.rowData.blood_group || '',
-          account_number: item.rowData.account_number || '',
-          ifsc_code: item.rowData.ifsc_code || '',
-          password: item.rowData.password || 'changeme123',
-          employeeId: item.rowData.employeeId || item.row.emp_id
-        };
-        initialEditedRows[`row-${index}`] = rowData;
+        initialEditedRows[`row-${index}`] = { ...item.rowData };
       });
       setEditedRows(initialEditedRows);
       
@@ -97,7 +74,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
   // Check if all edited rows are now valid
   const validateEditedRows = () => {
     const correctedEmployees: CSVEmployeeData[] = [];
-    const stillInvalid: ValidationError[] = [];
+    const stillInvalid: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
     
     // Process each invalid row with its edits
     validationResults.invalidRows.forEach((item, index) => {
@@ -105,7 +82,7 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       const editedRow = editedRows[rowKey] || item.rowData;
       
       // Convert the edited row data to the employee data format
-      const employeeData: CSVEmployeeData = {
+      const employeeData: Partial<CSVEmployeeData> = {
         userId: editedRow.userId || '',
         emp_id: editedRow.emp_id || '',
         name: editedRow.name || '',
@@ -121,7 +98,6 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
         account_number: editedRow.account_number || null,
         ifsc_code: editedRow.ifsc_code || null,
         password: editedRow.password || 'changeme123',
-        employeeId: editedRow.emp_id || editedRow.employeeId || '',
       };
       
       // Validate the edited data
@@ -145,16 +121,16 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       if (validation.isValid) {
         correctedEmployees.push({
-          ...employeeData,
+          ...employeeData as CSVEmployeeData,
           date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
           date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
           password: employeeData.password || 'changeme123'
         });
       } else {
         stillInvalid.push({
-          row: employeeData,
+          row: employeeData as CSVEmployeeData,
           errors: validation.errors,
-          rowData: { ...editedRow, employeeId: employeeData.employeeId }
+          rowData: editedRow
         });
       }
     });

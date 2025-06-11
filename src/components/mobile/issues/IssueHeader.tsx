@@ -29,12 +29,12 @@ const IssueHeader = ({
     <div className="bg-white rounded-lg shadow-md p-4 mb-4">
       <div className="flex justify-between items-start mb-3">
         <h2 className="font-semibold text-lg">
-          {getIssueTypeLabel(issue.typeId || '')}
+          {getIssueTypeLabel(issue.typeId)}
         </h2>
       </div>
       
       <p className="text-sm text-gray-600 mb-3">
-        {getIssueSubTypeLabel(issue.typeId || '', issue.subTypeId || '')}
+        {getIssueSubTypeLabel(issue.typeId, issue.subTypeId)}
       </p>
       
       <div className="text-sm mb-4">

@@ -5,22 +5,22 @@ export interface User {
   email: string;
   phone?: string;
   employeeId?: string;
-  userId?: string;
   city?: string;
   cluster?: string;
+  manager?: string;
   role: 'admin' | 'manager' | 'agent' | 'employee';
   permissions?: string[];
   isActive?: boolean;
   createdAt: string;
   updatedAt: string;
-  // Additional fields for bulk upload compatibility
-  password?: string;
-  dateOfJoining?: string;
-  dateOfBirth?: string;
-  bloodGroup?: string;
-  accountNumber?: string;
-  ifscCode?: string;
-  manager?: string;
+}
+
+export interface IssueComment {
+  id: string;
+  content: string;
+  employeeUuid: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Issue {
@@ -29,6 +29,8 @@ export interface Issue {
   description: string;
   issueType: string;
   issueSubtype?: string;
+  typeId?: string;
+  subTypeId?: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'open' | 'pending' | 'in_progress' | 'resolved' | 'closed';
   employeeId: string;
@@ -39,24 +41,14 @@ export interface Issue {
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
+  closedAt?: string;
   firstResponseAt?: string;
   resolutionNotes?: string;
   additionalDetails?: any;
-  typeId?: string;
-  subTypeId?: string;
+  comments: IssueComment[];
   escalation_level?: number;
   escalated_at?: string;
   reopenableUntil?: string;
-  closedAt?: string;
-  comments?: IssueComment[];
-}
-
-export interface IssueComment {
-  id: string;
-  employeeUuid: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface Comment {
@@ -127,62 +119,42 @@ export interface AuditLog {
   };
 }
 
-// Bulk upload related types
-export interface CSVEmployeeData {
+// Bulk upload types
+export interface RowData {
+  [key: string]: any;
   id?: string;
   userId?: string;
-  emp_id: string;
-  name: string;
-  email: string;
-  phone?: string | null;
-  city?: string | null;
-  cluster?: string | null;
-  role: string;
-  manager?: string | null;
-  date_of_joining?: string | null;
-  date_of_birth?: string | null;
-  blood_group?: string | null;
-  account_number?: string | null;
-  ifsc_code?: string | null;
+  emp_id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  cluster?: string;
+  manager?: string;
+  role?: string;
   password?: string;
-  employeeId?: string; // Required for compatibility
-}
-
-export interface RowData {
-  id: string;
-  userId: string;
-  emp_id: string;
-  name: string;
-  email: string;
-  phone: string;
-  city: string;
-  cluster: string;
-  role: string;
-  manager: string;
-  date_of_joining: string;
-  date_of_birth: string;
-  blood_group: string;
-  account_number: string;
-  ifsc_code: string;
-  password: string;
-  employeeId?: string; // Required for compatibility
+  date_of_joining?: string;
+  date_of_birth?: string;
+  blood_group?: string;
+  account_number?: string;
+  ifsc_code?: string;
 }
 
 export interface ValidationError {
-  row: CSVEmployeeData;
-  errors: string[];
-  rowData: RowData;
-  field?: string;
-  message?: string;
-  value?: any;
+  row: number;
+  field: string;
+  message: string;
+  value: any;
+  rowData?: RowData;
+  errors?: string[];
 }
 
 export interface ValidationResult {
-  validEmployees: CSVEmployeeData[];
-  invalidRows: ValidationError[];
   isValid: boolean;
   validRows: RowData[];
+  invalidRows: ValidationError[];
   errors: ValidationError[];
+  validEmployees: RowData[];
   summary: {
     total: number;
     valid: number;
@@ -194,6 +166,102 @@ export interface EditedRowsRecord {
   [key: string]: RowData;
 }
 
+export interface CSVEmployeeData {
+  name: string;
+  email: string;
+  phone?: string;
+  employeeId: string;
+  city: string;
+  cluster: string;
+  manager?: string;
+  id?: string;
+  userId?: string;
+  emp_id?: string;
+  role?: string;
+  password?: string;
+  isActive?: boolean;
+  date_of_joining?: string;
+  date_of_birth?: string;
+  blood_group?: string;
+  account_number?: string;
+  ifsc_code?: string;
+}
+
+// Sentiment types
+export interface SentimentAlert {
+  id: string;
+  type: 'low_rating' | 'negative_trend' | 'urgent_feedback';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+  createdAt: string;
+  resolved: boolean;
+  is_resolved?: boolean;
+  created_at?: string;
+  trigger_reason?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  average_score?: number;
+  change_percentage?: number;
+}
+
+// Add SentimentEntry interface
+export interface SentimentEntry {
+  id: string;
+  rating: number;
+  feedback_text?: string;
+  tags?: string[];
+  createdAt: string;
+  employee_uuid: string;
+}
+
+// Feedback types
+export interface FeedbackMetrics {
+  totalCount: number;
+  averageRating: number;
+  responseRate: number;
+  satisfactionScore: number;
+  sentimentPercentages: {
+    happy: number;
+    neutral: number;
+    sad: number;
+  };
+  sentimentCounts: {
+    happy: number;
+    neutral: number;
+    sad: number;
+  };
+  topOptions: any[];
+  trendData: any[];
+}
+
+export interface FeedbackFilters {
+  startDate?: string;
+  endDate?: string;
+  dateRange?: {
+    from: Date;
+    to: Date;
+  };
+  category?: string;
+  rating?: number;
+  issueType?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  sentiment?: string;
+}
+
+export interface TrendData {
+  date: string;
+  happy: number;
+  neutral: number;
+  sad: number;
+  total?: number;
+}
+
+export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';
+
+// Interface for filter types used across the dashboard
 export interface DashboardFilters {
   city?: string;
   status?: string;
@@ -206,63 +274,15 @@ export interface DashboardFilters {
   issueType?: string;
 }
 
-export interface SentimentAlert {
-  id: string;
-  type: 'low_rating' | 'negative_sentiment' | 'high_volume';
-  message: string;
-  severity: 'low' | 'medium' | 'high';
-  createdAt: string;
-  created_at?: string;
-  resolved: boolean;
-  is_resolved?: boolean;
-  trigger_reason?: string;
+export interface IssueFilters {
   city?: string;
-  cluster?: string;
-  role?: string;
-  average_score?: number;
-  change_percentage?: number;
-}
-
-export interface FeedbackMetrics {
-  averageRating: number;
-  totalResponses: number;
-  responseRate: number;
-  totalCount: number;
-  sentimentDistribution: {
-    positive: number;
-    neutral: number;
-    negative: number;
-  };
-  sentimentCounts: {
-    happy: number;
-    neutral: number;
-    sad: number;
-  };
-  sentimentPercentages: {
-    happy: number;
-    neutral: number;
-    sad: number;
-  };
-  topOptions: Array<{
-    option: string;
-    count: number;
-    percentage: number;
-  }>;
-  trendData: Array<{
-    date: string;
-    rating: number;
-    responses: number;
-  }>;
-}
-
-export interface FeedbackFilters {
+  status?: string;
+  priority?: string;
   dateRange?: {
     from: Date;
     to: Date;
   };
-  category?: string;
-  rating?: number;
-  issueType?: string;
+  cluster: string;
+  issueType: string;
+  limit?: number;
 }
-
-export type ComparisonMode = 'none' | 'dod' | 'wow' | 'mom' | 'qoq' | 'yoy';

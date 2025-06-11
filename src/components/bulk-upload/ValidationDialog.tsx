@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ValidationResult, EditedRowsRecord, RowData, CSVEmployeeData } from "@/types";
+import { ValidationResult, EditedRowsRecord } from "@/types";
 import ValidationAlerts from './ValidationAlerts';
 import InvalidRowEditor from './InvalidRowEditor';
 import ValidEmployeesList from './ValidEmployeesList';
@@ -21,7 +21,7 @@ interface ValidationDialogProps {
   validationResults: ValidationResult;
   editedRows: EditedRowsRecord;
   isUploading: boolean;
-  handleFieldEdit: (rowKey: string, field: keyof RowData, value: string) => void;
+  handleFieldEdit: (rowKey: string, field: keyof import('@/types').RowData, value: string) => void;
   handleUploadEditedRows: () => void;
   handleProceedAnyway: () => void;
 }
@@ -40,7 +40,7 @@ const ValidationDialog = ({
   const [processingClose, setProcessingClose] = useState(false);
   
   // Get value for a field from edited rows or fall back to original
-  const getRowValue = (rowKey: string, field: keyof RowData, originalValue: string) => {
+  const getRowValue = (rowKey: string, field: keyof import('@/types').RowData, originalValue: string) => {
     return editedRows[rowKey] ? editedRows[rowKey][field] || originalValue : originalValue;
   };
   

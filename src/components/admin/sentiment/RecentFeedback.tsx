@@ -96,7 +96,7 @@ const RecentFeedback: React.FC<RecentFeedbackProps> = ({
                   </div>
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <Clock className="h-3 w-3" />
-                    {formatDate(entry.createdAt)}
+                    {formatDate(entry.created_at)}
                   </div>
                 </div>
                 

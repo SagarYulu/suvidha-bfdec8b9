@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -86,65 +87,75 @@ const MobileLogin = () => {
     try {
       console.log("Attempting mobile verification with:", { email, employeeId });
       // Use employeeId as password for authentication
-      await login(email, employeeId);
+      const success = await login(email, employeeId);
       
-      console.log("Verification successful, checking access rights");
-      
-      // Get user data from localStorage - could be from mockUser or auth state
-      const authStateData = localStorage.getItem("authState");
-      const userData = authStateData ? JSON.parse(authStateData) : null;
-      
-      if (userData && userData.user) {
-        // Check if user email is explicitly restricted
-        if (restrictedEmails.includes(userData.user.email)) {
-          console.log("Restricted email detected:", userData.user.email);
-          setError("Access denied. Please use the admin dashboard login.");
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to the mobile app. Please use the admin dashboard.",
-            variant: "destructive",
-          });
-          logout();
-          setIsLoading(false);
-          return;
-        }
+      if (success) {
+        console.log("Verification successful, checking access rights");
         
-        // Check if user has a dashboard role
-        if (userData.role && dashboardUserRoles.includes(userData.role)) {
-          console.log("Dashboard role detected:", userData.role);
-          setError("Access denied. Please use the admin dashboard login.");
-          toast({
-            title: "Access Denied",
-            description: "You don't have access to the mobile app. Please use the admin dashboard.",
-            variant: "destructive",
-          });
-          logout();
-          setIsLoading(false);
-          return;
-        }
+        // Get user data from localStorage - could be from mockUser or auth state
+        const authStateData = localStorage.getItem("authState");
+        const userData = authStateData ? JSON.parse(authStateData) : null;
         
-        // Success - user has mobile app access
-        console.log("User has mobile app access, redirecting to issues");
-        toast({
-          title: "Verification successful",
-          description: "Welcome back!",
-        });
-        navigate("/mobile/issues", { replace: true });
+        if (userData && userData.user) {
+          // Check if user email is explicitly restricted
+          if (restrictedEmails.includes(userData.user.email)) {
+            console.log("Restricted email detected:", userData.user.email);
+            setError("Access denied. Please use the admin dashboard login.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            await logout();
+            setIsLoading(false);
+            return;
+          }
+          
+          // Check if user has a dashboard role
+          if (userData.role && dashboardUserRoles.includes(userData.role)) {
+            console.log("Dashboard role detected:", userData.role);
+            setError("Access denied. Please use the admin dashboard login.");
+            toast({
+              title: "Access Denied",
+              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              variant: "destructive",
+            });
+            await logout();
+            setIsLoading(false);
+            return;
+          }
+          
+          // Success - user has mobile app access
+          console.log("User has mobile app access, redirecting to issues");
+          toast({
+            title: "Verification successful",
+            description: "Welcome back!",
+          });
+          navigate("/mobile/issues", { replace: true });
+        } else {
+          // If verification succeeded but no user data found
+          console.log("No user data found, assuming regular employee");
+          toast({
+            title: "Verification successful",
+            description: "Welcome back!",
+          });
+          navigate("/mobile/issues", { replace: true });
+        }
       } else {
-        // If verification succeeded but no user data found
-        console.log("No user data found, assuming regular employee");
+        console.log("Verification failed");
+        setError("Invalid email or employee ID. Please try again.");
         toast({
-          title: "Verification successful",
-          description: "Welcome back!",
+          title: "Verification failed",
+          description: "Invalid email or employee ID. Please try again.",
+          variant: "destructive",
         });
-        navigate("/mobile/issues", { replace: true });
       }
     } catch (error) {
-      console.log("Verification failed");
-      setError("Invalid email or employee ID. Please try again.");
+      console.error("Verification error:", error);
+      setError("An unexpected error occurred. Please try again.");
       toast({
-        title: "Verification failed",
-        description: "Invalid email or employee ID. Please try again.",
+        title: "Verification error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

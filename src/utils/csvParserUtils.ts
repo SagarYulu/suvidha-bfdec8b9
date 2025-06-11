@@ -1,185 +1,148 @@
 
 import Papa from 'papaparse';
-import { CSVEmployeeData, RowData, ValidationError, ValidationResult } from '@/types';
+import { CSVEmployeeData, RowData, ValidationResult } from '@/types';
+import { validateEmployeeData } from './validationUtils';
+import { formatDateToYYYYMMDD } from './dateUtils';
 
-const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-};
-
-const validatePhoneNumber = (phone: string): boolean => {
-  const phoneRegex = /^[6-9]\d{9}$/;
-  return phoneRegex.test(phone);
-};
-
-const validateEmployeeData = (data: any): { isValid: boolean; errors: string[] } => {
-  const errors: string[] = [];
-
-  if (!data.emp_id || data.emp_id.trim() === '') {
-    errors.push('Employee ID is required');
-  }
-
-  if (!data.name || data.name.trim() === '') {
-    errors.push('Name is required');
-  }
-
-  if (!data.email || data.email.trim() === '') {
-    errors.push('Email is required');
-  } else if (!validateEmail(data.email)) {
-    errors.push('Invalid email format');
-  }
-
-  if (data.phone && !validatePhoneNumber(data.phone)) {
-    errors.push('Phone number must be 10 digits starting with 6-9');
-  }
-
-  if (!data.password || data.password.trim() === '') {
-    errors.push('Password is required');
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
-
-export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> => {
-  return new Promise((resolve) => {
-    Papa.parse(csvText, {
+/**
+ * Parses and validates a CSV file containing employee data
+ */
+export const parseEmployeeCSV = (file: File): Promise<ValidationResult> => {
+  return new Promise((resolve, reject) => {
+    Papa.parse<Record<string, string>>(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
         const validEmployees: CSVEmployeeData[] = [];
-        const validRows: RowData[] = [];
-        const invalidRows: ValidationError[] = [];
-        const allErrors: string[] = [];
-
-        results.data.forEach((row: any, index: number) => {
-          const validation = validateEmployeeData(row);
+        const invalidRows: {row: CSVEmployeeData, errors: string[], rowData: RowData}[] = [];
+        
+        // Debug: Log the parse results
+        console.log(`CSV parse complete. Found ${results.data.length} rows:`, results);
+        
+        // Process each row
+        results.data.forEach((row, index) => {
+          // Skip empty rows
+          if (Object.values(row).every(val => val === null || val === '')) {
+            return;
+          }
           
-          const employeeData: CSVEmployeeData = {
-            id: `temp-${index}`,
-            userId: row.userId || row['User ID'] || row.user_id || '',
-            emp_id: row.emp_id || row['Employee ID'] || row['Emp ID'] || '',
-            name: row.name || row.Name || '',
-            email: row.email || row.Email || '',
-            phone: row.phone || row.Phone || null,
-            city: row.city || row.City || null,
-            cluster: row.cluster || row.Cluster || null,
-            role: row.role || row.Role || '',
-            manager: row.manager || row.Manager || null,
-            date_of_joining: row.date_of_joining || row['Date of Joining'] || null,
-            date_of_birth: row.date_of_birth || row['Date of Birth'] || null,
-            blood_group: row.blood_group || row['Blood Group'] || null,
-            account_number: row.account_number || row['Account Number'] || null,
-            ifsc_code: row.ifsc_code || row['IFSC Code'] || null,
-            password: row.password || row.Password || 'changeme123',
-            employeeId: row.emp_id || row['Employee ID'] || row['Emp ID'] || ''
+          // Add debug log to check the original CSV data
+          console.log(`[Row ${index}] Original CSV row:`, row);
+          
+          // Check multiple possible header names for user_id field with better detection
+          // This handles different header variations including "User ID" with space
+          const userId = 
+            row.userId || 
+            row.user_id || 
+            row.userid || 
+            row['User ID'] || 
+            row['user id'] || 
+            row['USER ID'] || 
+            row['UserId'] || 
+            '';
+
+          // Check multiple possible header names for emp_id field with better detection
+          // Ensure emp_id is properly trimmed to avoid whitespace issues
+          const empId = (
+            row.emp_id || 
+            row.empId || 
+            row.employee_id || 
+            row.employeeId || 
+            row.EmployeeID ||
+            row['Employee ID'] ||
+            row['emp id'] ||
+            row['EMP ID'] ||
+            ''
+          ).trim();
+          
+          // Convert CSV data to employee format - exclude id field so Supabase will auto-generate a UUID
+          const employeeData: Partial<CSVEmployeeData> = {
+            userId: userId, // Set the userId field explicitly
+            emp_id: empId,
+            name: row.name || '',
+            email: row.email || '',
+            phone: row.phone || null,
+            city: row.city || null,
+            cluster: row.cluster || null,
+            manager: row.manager || null,
+            role: row.role || '',
+            date_of_joining: row.date_of_joining || null,
+            date_of_birth: row.date_of_birth || null,
+            blood_group: row.blood_group || null,
+            account_number: row.account_number || null,
+            ifsc_code: row.ifsc_code || null,
+            password: row.password || 'changeme123', // Use provided password or default
           };
 
+          // Generate a structured data object for display
           const rowData: RowData = {
-            id: employeeData.id!,
-            userId: employeeData.userId || '',
-            emp_id: employeeData.emp_id,
-            name: employeeData.name,
-            email: employeeData.email,
-            phone: employeeData.phone || '',
-            city: employeeData.city || '',
-            cluster: employeeData.cluster || '',
-            role: employeeData.role,
-            manager: employeeData.manager || '',
-            date_of_joining: employeeData.date_of_joining || '',
-            date_of_birth: employeeData.date_of_birth || '',
-            blood_group: employeeData.blood_group || '',
-            account_number: employeeData.account_number || '',
-            ifsc_code: employeeData.ifsc_code || '',
-            password: employeeData.password || 'changeme123',
-            employeeId: employeeData.employeeId
+            id: 'Auto-generated', // UUID will be auto-generated by Supabase
+            userId: userId, // Include userId field
+            emp_id: empId,
+            name: row.name || '',
+            email: row.email || '',
+            phone: row.phone || '',
+            city: row.city || '',
+            cluster: row.cluster || '',
+            manager: row.manager || '',
+            role: row.role || '',
+            date_of_joining: row.date_of_joining || '',
+            date_of_birth: row.date_of_birth || '',
+            blood_group: row.blood_group || '',
+            account_number: row.account_number || '',
+            ifsc_code: row.ifsc_code || '',
+            password: row.password || 'changeme123' // Use provided password or default
           };
 
+          // Add debug log to check extracted values
+          console.log(`[Row ${index}] Processing CSV row:`, { 
+            originalRow: row,
+            extractedUserId: userId,
+            extractedEmpId: empId,
+            parsedData: employeeData
+          });
+
+          // Validate the data using the common validation function
+          const validation = validateEmployeeData({
+            ...employeeData,
+            user_id: employeeData.userId // Map userId to user_id for validation
+          });
+          
           if (validation.isValid) {
-            validEmployees.push(employeeData);
-            validRows.push(rowData);
+            validEmployees.push({
+              ...employeeData as CSVEmployeeData,
+              // Convert dates to YYYY-MM-DD format for database
+              date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
+              date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
+              password: employeeData.password || 'changeme123' // Ensure password is set
+            });
           } else {
-            const validationError: ValidationError = {
-              row: employeeData,
+            invalidRows.push({ 
+              row: {
+                ...employeeData as CSVEmployeeData
+              }, 
               errors: validation.errors,
-              rowData: rowData
-            };
-            invalidRows.push(validationError);
-            allErrors.push(...validation.errors.map(error => `Row ${index + 1}: ${error}`));
+              rowData
+            });
           }
         });
 
-        const result: ValidationResult = {
-          isValid: invalidRows.length === 0,
-          validRows: validRows,
-          validEmployees: validEmployees,
-          invalidRows,
-          errors: allErrors,
-          summary: {
-            total: results.data.length,
-            valid: validEmployees.length,
-            invalid: invalidRows.length
-          }
-        };
+        console.log('Validation complete:', {
+          validEmployees: validEmployees.length,
+          invalidRows: invalidRows.length
+        });
+        
+        // Debug: Log the valid employees for troubleshooting
+        if (validEmployees.length > 0) {
+          console.log('Valid employees ready for upload:', validEmployees);
+        }
 
-        resolve(result);
+        resolve({ validEmployees, invalidRows });
       },
       error: (error) => {
-        resolve({
-          isValid: false,
-          validRows: [],
-          validEmployees: [],
-          invalidRows: [],
-          errors: [`CSV parsing error: ${error.message}`],
-          summary: {
-            total: 0,
-            valid: 0,
-            invalid: 0
-          }
-        });
+        console.error('CSV parsing error:', error);
+        reject(error);
       }
     });
   });
-};
-
-export const generateEmployeeCSVTemplate = (): string => {
-  const headers = [
-    'userId',
-    'emp_id',
-    'name', 
-    'email',
-    'phone',
-    'city',
-    'cluster',
-    'role',
-    'manager',
-    'date_of_joining',
-    'date_of_birth',
-    'blood_group',
-    'account_number',
-    'ifsc_code',
-    'password'
-  ];
-
-  const sampleData = [
-    'john.doe',
-    'EMP001',
-    'John Doe',
-    'john.doe@company.com',
-    '9876543210',
-    'Mumbai',
-    'North Cluster',
-    'Software Engineer',
-    'Jane Smith',
-    '15-01-2024',
-    '15-05-1990',
-    'O+',
-    '12345678901234',
-    'HDFC0001234',
-    'password123'
-  ];
-
-  return Papa.unparse([headers, sampleData]);
 };

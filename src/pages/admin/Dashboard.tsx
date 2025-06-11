@@ -10,6 +10,7 @@ import DashboardLoader from "@/components/dashboard/DashboardLoader";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { formatConsistentIssueData } from "@/services/issues/issueProcessingService";
 
+// Create a client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,6 +20,7 @@ const queryClient = new QueryClient({
   },
 });
 
+// Separate the inner component to use hooks
 const DashboardContent = () => {
   const { 
     analytics,
@@ -31,11 +33,13 @@ const DashboardContent = () => {
     filters,
   } = useDashboardData();
 
+  // Format issues consistently with the other pages
   const formattedRecentIssues = React.useMemo(() => {
     if (!recentIssues) return [];
     return formatConsistentIssueData(recentIssues);
   }, [recentIssues]);
 
+  // Debug logging for current filters
   React.useEffect(() => {
     console.log("Dashboard current filters:", filters);
   }, [filters]);
@@ -46,23 +50,27 @@ const DashboardContent = () => {
         <DashboardLoader />
       ) : (
         <div className="space-y-6">
+          {/* Pass current filters to FilterBar to ensure UI stays in sync */}
           <FilterBar 
-            filters={filters}
-            onFiltersChange={handleFilterChange}
+            onFilterChange={handleFilterChange} 
+            initialFilters={filters}
           />
           
+          {/* Dashboard Metrics */}
           <DashboardMetrics 
             analytics={analytics} 
             userCount={userCount}
             isLoading={isLoading} 
           />
 
+          {/* Charts Section */}
           <ChartSection 
             typePieData={typePieData}
             cityBarData={cityBarData}
             isLoading={isLoading}
           />
 
+          {/* Recent Tickets Table - Pass formatted consistent issues */}
           <RecentTicketsTable 
             recentIssues={formattedRecentIssues}
             isLoading={isLoading}
@@ -73,6 +81,7 @@ const DashboardContent = () => {
   );
 };
 
+// Main component that provides the query client
 const AdminDashboard = () => {
   return (
     <QueryClientProvider client={queryClient}>

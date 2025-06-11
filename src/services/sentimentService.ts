@@ -1,38 +1,5 @@
 
-import { Issue } from '@/types';
-
-export interface SentimentAlert {
-  id: string;
-  type: 'low_rating' | 'negative_sentiment' | 'high_volume';
-  message: string;
-  severity: 'low' | 'medium' | 'high';
-  createdAt: string;
-  created_at?: string;
-  resolved: boolean;
-  is_resolved?: boolean;
-  trigger_reason?: string;
-  city?: string;
-  cluster?: string;
-  role?: string;
-  average_score?: number;
-  change_percentage?: number;
-}
-
-export interface SentimentEntry {
-  id: string;
-  employee_uuid: string;
-  employee_name?: string;
-  rating: number;
-  feedback_text?: string;
-  sentiment_label?: string;
-  sentiment_score?: number;
-  city?: string;
-  cluster?: string;
-  role?: string;
-  tags?: string[];
-  createdAt: string;
-  updatedAt?: string;
-}
+import { SentimentAlert, SentimentEntry } from '@/types';
 
 export interface SentimentFilters {
   startDate?: string;
@@ -40,89 +7,49 @@ export interface SentimentFilters {
   city?: string;
   cluster?: string;
   role?: string;
-  comparisonMode?: string;
 }
 
-export interface SentimentAnalytics {
-  averageRating: number;
-  totalEntries: number;
-  sentimentDistribution: Record<string, number>;
-  trends: any[];
-}
-
-// Mock data for testing
+// Mock data
 const mockSentimentData: SentimentEntry[] = [
   {
     id: '1',
-    employee_uuid: 'emp-001',
-    employee_name: 'John Doe',
     rating: 4,
-    feedback_text: 'Good working environment',
-    sentiment_label: 'positive',
-    sentiment_score: 0.8,
-    city: 'Bangalore',
-    cluster: 'South',
-    role: 'Developer',
-    tags: ['Work Environment'],
-    createdAt: new Date().toISOString()
+    feedback_text: 'Great work environment',
+    tags: ['work-environment'],
+    createdAt: '2024-01-15T10:00:00Z',
+    employee_uuid: 'emp1'
   },
   {
     id: '2',
-    employee_uuid: 'emp-002',
-    employee_name: 'Jane Smith',
-    rating: 2,
-    feedback_text: 'Need better management',
-    sentiment_label: 'negative',
-    sentiment_score: 0.3,
-    city: 'Delhi',
-    cluster: 'North',
-    role: 'Manager',
-    tags: ['Management'],
-    createdAt: new Date().toISOString()
+    rating: 3,
+    feedback_text: 'Could be better',
+    tags: ['management'],
+    createdAt: '2024-01-14T14:00:00Z',
+    employee_uuid: 'emp2'
   }
 ];
 
-const mockSentimentAlerts: SentimentAlert[] = [
+const mockAlerts: SentimentAlert[] = [
   {
     id: '1',
     type: 'low_rating',
-    message: 'Low rating detected in Bangalore office',
+    message: 'Low average rating detected',
     severity: 'high',
-    createdAt: new Date().toISOString(),
+    createdAt: '2024-01-15T10:00:00Z',
     resolved: false,
     trigger_reason: 'Average rating below 2.5',
-    city: 'Bangalore',
-    cluster: 'South',
+    city: 'Mumbai',
+    cluster: 'West',
+    role: 'agent',
     average_score: 2.1,
-    change_percentage: -15.2
+    change_percentage: -15.5
   }
 ];
 
 export const fetchAllSentiment = async (filters: SentimentFilters = {}): Promise<SentimentEntry[]> => {
-  // Simulate API delay
+  // Simulate API call
   await new Promise(resolve => setTimeout(resolve, 500));
-  
-  let filteredData = [...mockSentimentData];
-  
-  if (filters.city) {
-    filteredData = filteredData.filter(item => 
-      item.city?.toLowerCase().includes(filters.city!.toLowerCase())
-    );
-  }
-  
-  if (filters.cluster) {
-    filteredData = filteredData.filter(item => 
-      item.cluster?.toLowerCase().includes(filters.cluster!.toLowerCase())
-    );
-  }
-  
-  if (filters.role) {
-    filteredData = filteredData.filter(item => 
-      item.role?.toLowerCase().includes(filters.role!.toLowerCase())
-    );
-  }
-  
-  return filteredData;
+  return mockSentimentData;
 };
 
 export const submitSentiment = async (data: {
@@ -131,71 +58,62 @@ export const submitSentiment = async (data: {
   employee_uuid: string;
   tags?: string[];
 }): Promise<SentimentEntry> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   const newEntry: SentimentEntry = {
-    id: `sentiment-${Date.now()}`,
-    employee_uuid: data.employee_uuid,
+    id: Date.now().toString(),
     rating: data.rating,
     feedback_text: data.feedback_text,
     tags: data.tags,
-    sentiment_label: data.rating >= 4 ? 'positive' : data.rating <= 2 ? 'negative' : 'neutral',
-    sentiment_score: data.rating / 5,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    employee_uuid: data.employee_uuid
   };
   
-  mockSentimentData.push(newEntry);
   return newEntry;
 };
 
-export const getSentimentAnalytics = async (filters: SentimentFilters = {}): Promise<SentimentAnalytics> => {
-  const data = await fetchAllSentiment(filters);
-  
-  const averageRating = data.length > 0 
-    ? data.reduce((sum, item) => sum + item.rating, 0) / data.length 
-    : 0;
-    
-  const sentimentDistribution = data.reduce((acc, item) => {
-    const sentiment = item.sentiment_label || 'neutral';
-    acc[sentiment] = (acc[sentiment] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+export const getSentimentAnalytics = async (filters: SentimentFilters = {}) => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   return {
-    averageRating,
-    totalEntries: data.length,
-    sentimentDistribution,
-    trends: []
+    averageRating: 3.8,
+    totalResponses: 150,
+    sentimentDistribution: {
+      happy: 65,
+      neutral: 25,
+      sad: 10
+    }
   };
 };
 
-export const getSentimentTrends = async (period: string, filters: SentimentFilters = {}): Promise<any[]> => {
-  // Mock implementation
-  return [];
+export const getSentimentTrends = async (period: 'daily' | 'weekly' | 'monthly', filters: SentimentFilters = {}) => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  
+  return [
+    { date: '2024-01-01', happy: 65, neutral: 25, sad: 10 },
+    { date: '2024-01-02', happy: 70, neutral: 20, sad: 10 },
+    { date: '2024-01-03', happy: 60, neutral: 30, sad: 10 }
+  ];
 };
 
-export const fetchSentimentAlerts = async (showResolved: boolean = false): Promise<SentimentAlert[]> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
+export const fetchSentimentAlerts = async (showResolved?: boolean): Promise<SentimentAlert[]> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
   
-  return mockSentimentAlerts.filter(alert => 
-    showResolved ? alert.resolved : !alert.resolved
-  );
+  return showResolved ? mockAlerts.filter(alert => alert.resolved) : mockAlerts.filter(alert => !alert.resolved);
 };
 
 export const resolveSentimentAlert = async (alertId: string): Promise<void> => {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  const alert = mockSentimentAlerts.find(a => a.id === alertId);
-  if (alert) {
-    alert.resolved = true;
-  }
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log(`Alert ${alertId} marked as resolved`);
 };
 
-export const generateTestSentimentData = async (): Promise<void> => {
-  // Mock implementation for test data generation
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log('Test sentiment data generated');
+export const markAlertAsResolved = async (alertId: string): Promise<void> => {
+  // Simulate API call
+  await new Promise(resolve => setTimeout(resolve, 500));
+  console.log(`Alert ${alertId} marked as resolved`);
 };
