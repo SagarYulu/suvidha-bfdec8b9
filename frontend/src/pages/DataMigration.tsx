@@ -1,85 +1,46 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Database, ArrowLeft } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const DataMigration = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
-
-  const handleMigration = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate migration process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast({
-        title: "Migration completed",
-        description: "Data has been successfully migrated to the system",
-      });
-    } catch (error) {
-      toast({
-        title: "Migration failed",
-        description: "An error occurred during migration",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+export default function DataMigration() {
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Data Migration Tool</h1>
-        
-        <div className="grid gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Database Migration</CardTitle>
-              <CardDescription>
-                Migrate data from existing systems to Yulu Suvidha
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={handleMigration} 
-                disabled={isLoading}
-                className="w-full"
-              >
-                {isLoading ? "Migrating..." : "Start Migration"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Migration Status</CardTitle>
-              <CardDescription>
-                Track the progress of your data migration
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Database Setup</span>
-                  <span className="text-green-600">✓ Complete</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Table Creation</span>
-                  <span className="text-green-600">✓ Complete</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Data Import</span>
-                  <span className="text-yellow-600">⏳ Pending</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/')}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
+          <h1 className="text-3xl font-bold text-gray-900">Data Migration Tool</h1>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Database className="h-6 w-6 mr-2" />
+              Database Migration
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-12">
+              <p className="text-gray-600 mb-4">
+                Data migration tools will be implemented here
+              </p>
+              <p className="text-sm text-gray-500">
+                This will handle migration from existing systems to the new database structure
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default DataMigration;
+}
