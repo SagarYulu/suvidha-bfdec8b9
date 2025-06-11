@@ -68,7 +68,7 @@ const MobileIssues = () => {
             city: employees[0].city || "",
             cluster: employees[0].cluster || "",
             manager: employees[0].manager || "",
-            role: employees[0].role || "",
+            role: employees[0].role || "employee", // Default to 'employee' if role is missing
             password: employees[0].password,
             dateOfJoining: employees[0].date_of_joining || "",
             bloodGroup: employees[0].blood_group || "",

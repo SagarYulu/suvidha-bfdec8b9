@@ -99,11 +99,12 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           if (validation.isValid) {
             validRows.push(employeeData);
           } else {
-            invalidRows.push({
+            const validationError: ValidationError = {
               row: employeeData,
               errors: validation.errors,
               rowData: rowData
-            });
+            };
+            invalidRows.push(validationError);
             allErrors.push(...validation.errors.map(error => `Row ${index + 1}: ${error}`));
           }
         });
