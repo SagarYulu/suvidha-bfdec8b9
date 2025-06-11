@@ -1,6 +1,7 @@
 
-import jwt from 'jsonwebtoken';
 import { User } from '@/types';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { mockUsers } from '@/data/mockData';
 
 // Mock admin user
@@ -74,13 +75,12 @@ export const validateToken = async (token: string) => {
 
 export const createUser = async (userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>) => {
   const id = `user-${Date.now()}`;
-  // For mock service, store password as plain text
-  const password = userData.password || 'default123';
+  const hashedPassword = await bcrypt.hash(userData.password || 'default123', 10);
   
   const newUser: User = {
     ...userData,
     id,
-    password,
+    password: hashedPassword,
     role: userData.role as 'admin' | 'manager' | 'agent' | 'employee',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -100,15 +100,13 @@ export const updateUser = async (id: string, userData: Partial<User>) => {
     throw new Error('User not found');
   }
 
-  // For mock service, store password as plain text if provided
-  const updateData = { ...userData };
   if (userData.password) {
-    updateData.password = userData.password;
+    userData.password = await bcrypt.hash(userData.password, 10);
   }
 
   users[userIndex] = {
     ...users[userIndex],
-    ...updateData,
+    ...userData,
     role: userData.role as 'admin' | 'manager' | 'agent' | 'employee',
     updatedAt: new Date().toISOString(),
   };

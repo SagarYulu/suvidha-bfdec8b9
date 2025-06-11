@@ -1,3 +1,4 @@
+
 import Papa from 'papaparse';
 import { CSVEmployeeData, RowData, ValidationError, ValidationResult } from '@/types';
 
@@ -48,8 +49,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const validEmployees: CSVEmployeeData[] = [];
-        const validRows: RowData[] = [];
+        const validRows: CSVEmployeeData[] = [];
         const invalidRows: ValidationError[] = [];
         const allErrors: string[] = [];
 
@@ -57,7 +57,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           const validation = validateEmployeeData(row);
           
           const employeeData: CSVEmployeeData = {
-            id: `temp-${index}`,
+            id: `temp-${index}`, // Ensure id is always present
             userId: row.userId || row['User ID'] || row.user_id || '',
             emp_id: row.emp_id || row['Employee ID'] || row['Emp ID'] || '',
             name: row.name || row.Name || '',
@@ -77,7 +77,7 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           };
 
           const rowData: RowData = {
-            id: employeeData.id!,
+            id: employeeData.id,
             userId: employeeData.userId || '',
             emp_id: employeeData.emp_id,
             name: employeeData.name,
@@ -97,28 +97,26 @@ export const parseCSVEmployees = (csvText: string): Promise<ValidationResult> =>
           };
 
           if (validation.isValid) {
-            validEmployees.push(employeeData);
-            validRows.push(rowData);
+            validRows.push(employeeData);
           } else {
-            const validationError: ValidationError = {
+            invalidRows.push({
               row: employeeData,
               errors: validation.errors,
               rowData: rowData
-            };
-            invalidRows.push(validationError);
+            });
             allErrors.push(...validation.errors.map(error => `Row ${index + 1}: ${error}`));
           }
         });
 
         const result: ValidationResult = {
           isValid: invalidRows.length === 0,
-          validRows: validRows,
-          validEmployees: validEmployees,
+          validRows,
+          validEmployees: validRows,
           invalidRows,
           errors: allErrors,
           summary: {
             total: results.data.length,
-            valid: validEmployees.length,
+            valid: validRows.length,
             invalid: invalidRows.length
           }
         };
