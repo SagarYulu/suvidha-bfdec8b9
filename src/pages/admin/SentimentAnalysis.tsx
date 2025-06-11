@@ -8,7 +8,7 @@ import SentimentAlerts from '@/components/admin/sentiment/SentimentAlerts';
 import RecentFeedback from '@/components/admin/sentiment/RecentFeedback';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw } from 'lucide-react';
-import { fetchAllSentiment } from '@/services/sentimentService';
+import { fetchAllSentiment, SentimentEntry } from '@/services/sentimentService';
 import { format } from 'date-fns';
 import { saveAs } from 'file-saver';
 import Papa from 'papaparse';
@@ -43,7 +43,7 @@ const SentimentAnalysis: React.FC = () => {
     comparisonMode: 'none'
   });
   const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [sentimentData, setSentimentData] = useState<any[]>([]);
+  const [sentimentData, setSentimentData] = useState<SentimentEntry[]>([]);
   
   const queryClient = useQueryClient();
   
@@ -152,7 +152,7 @@ const SentimentAnalysis: React.FC = () => {
     onSuccess: (data) => {
       // Transform data for CSV export
       const csvData = data.map(item => ({
-        Date: item.created_at ? format(new Date(item.created_at), 'yyyy-MM-dd HH:mm:ss') : '',
+        Date: item.createdAt ? format(new Date(item.createdAt), 'yyyy-MM-dd HH:mm:ss') : '',
         Rating: item.rating,
         Sentiment: item.sentiment_label || '',
         SentimentScore: item.sentiment_score || '',
@@ -160,7 +160,7 @@ const SentimentAnalysis: React.FC = () => {
         Cluster: item.cluster || '',
         Role: item.role || '',
         Tags: item.tags ? item.tags.join(', ') : '',
-        Feedback: item.feedback || ''
+        Feedback: item.feedback_text || ''
       }));
       
       // Convert to CSV
@@ -282,10 +282,7 @@ const SentimentAnalysis: React.FC = () => {
   };
   
   return (
-    <AdminLayout 
-      title="Sentiment Analysis" 
-      requiredPermission="manage:analytics"
-    >
+    <AdminLayout title="Sentiment Analysis">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Employee Sentiment Analysis</h1>
         <div className="space-x-2">
@@ -446,7 +443,7 @@ const SentimentAnalysis: React.FC = () => {
         <SentimentOverview filters={filters} />
       </div>
       
-      <RecentFeedback filters={filters} />
+      <RecentFeedback feedbackData={sentimentData} />
     </AdminLayout>
   );
 };
