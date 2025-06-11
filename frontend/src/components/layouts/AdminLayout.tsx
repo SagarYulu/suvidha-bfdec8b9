@@ -6,14 +6,14 @@ import AdminSidebar from "./sidebars/AdminSidebar";
 import AdminHeader from "./headers/AdminHeader";
 
 const AdminLayout = () => {
-  const { authState, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !authState.isAuthenticated) {
+    if (!isLoading && !user) {
       navigate('/admin/login');
     }
-  }, [authState.isAuthenticated, isLoading, navigate]);
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -23,7 +23,7 @@ const AdminLayout = () => {
     );
   }
 
-  if (!authState.isAuthenticated) {
+  if (!user) {
     return null;
   }
 

@@ -1,89 +1,81 @@
 
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import MobileLayout from "@/components/MobileLayout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { getIssues, getIssueTypeLabel } from "@/services/issueService";
-import { Issue } from "@/types";
-import { formatDate } from "@/lib/utils";
-import { Plus, Eye } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { IssueService } from '@/services/issueService';
+import { Issue } from '@/types';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatDateRelative } from '@/lib/utils';
+import { Plus, AlertCircle } from 'lucide-react';
+import MobileLayout from '@/components/MobileLayout';
 
-const MobileIssues = () => {
-  const navigate = useNavigate();
-  const { authState } = useAuth();
+export default function MobileIssues() {
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authState.isAuthenticated) {
-      navigate('/mobile/login');
-      return;
+    if (user) {
+      loadUserIssues();
     }
-    fetchIssues();
-  }, [authState.isAuthenticated, navigate]);
+  }, [user]);
 
-  const fetchIssues = async () => {
-    if (!authState.user?.id) return;
-    
-    setIsLoading(true);
+  const loadUserIssues = async () => {
     try {
-      const data = await getIssues({ employeeId: authState.user.id });
-      setIssues(data);
+      if (!user) return;
+      const data = await IssueService.getIssues({});
+      // Filter issues for current user
+      const userIssues = data.filter(issue => issue.employeeUuid === user.id);
+      setIssues(userIssues);
     } catch (error) {
-      console.error('Error fetching issues:', error);
+      console.error('Error loading issues:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getStatusBadgeColor = (status: Issue["status"]) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "open":
-        return "bg-red-100 text-red-800";
-      case "in_progress":
-        return "bg-yellow-100 text-yellow-800";
-      case "resolved":
-        return "bg-green-100 text-green-800";
-      case "closed":
-        return "bg-gray-100 text-gray-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+      case 'open': return 'bg-orange-100 text-orange-800';
+      case 'in_progress': return 'bg-blue-100 text-blue-800';
+      case 'resolved': return 'bg-green-100 text-green-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (!authState.isAuthenticated) {
-    return null;
+  if (isLoading) {
+    return (
+      <MobileLayout title="My Issues">
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        </div>
+      </MobileLayout>
+    );
   }
 
   return (
     <MobileLayout title="My Issues">
       <div className="p-4 space-y-4">
-        {/* Header */}
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">My Issues ({issues.length})</h2>
-          <Button
-            onClick={() => navigate('/mobile/issues/new')}
-            className="flex items-center gap-2"
-            size="sm"
-          >
-            <Plus className="h-4 w-4" />
+          <h1 className="text-xl font-bold text-gray-900">My Issues</h1>
+          <Button onClick={() => navigate('/mobile/issues/new')} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
             New Issue
           </Button>
         </div>
 
-        {/* Issues List */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-          </div>
-        ) : issues.length === 0 ? (
+        {issues.length === 0 ? (
           <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500 mb-4">No issues found</p>
+            <CardContent className="text-center py-12">
+              <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No issues found</h3>
+              <p className="text-gray-600 mb-4">You haven't submitted any issues yet.</p>
               <Button onClick={() => navigate('/mobile/issues/new')}>
+                <Plus className="h-4 w-4 mr-2" />
                 Create Your First Issue
               </Button>
             </CardContent>
@@ -91,35 +83,34 @@ const MobileIssues = () => {
         ) : (
           <div className="space-y-3">
             {issues.map((issue) => (
-              <Card key={issue.id} className="cursor-pointer hover:shadow-md transition-shadow">
+              <Card 
+                key={issue.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/mobile/issues/${issue.id}`)}
+              >
                 <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium text-sm">
-                      {getIssueTypeLabel(issue.typeId)}
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="font-medium text-gray-900 text-sm leading-tight">
+                      {issue.description.length > 80 
+                        ? `${issue.description.substring(0, 80)}...` 
+                        : issue.description
+                      }
                     </h3>
-                    <Badge className={getStatusBadgeColor(issue.status)}>
-                      {issue.status.replace("_", " ")}
+                    <Badge className={`${getStatusColor(issue.status)} text-xs ml-2 flex-shrink-0`}>
+                      {issue.status.replace('_', ' ')}
                     </Badge>
                   </div>
                   
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                    {issue.description}
-                  </p>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-gray-500">
-                      {formatDate(issue.createdAt)}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/mobile/issues/${issue.id}`)}
-                      className="flex items-center gap-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      View
-                    </Button>
+                  <div className="flex justify-between items-center text-xs text-gray-500">
+                    <span>Priority: {issue.priority}</span>
+                    <span>{formatDateRelative(issue.createdAt)}</span>
                   </div>
+                  
+                  {issue.comments.length > 0 && (
+                    <div className="mt-2 text-xs text-blue-600">
+                      {issue.comments.length} comment{issue.comments.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
@@ -128,6 +119,4 @@ const MobileIssues = () => {
       </div>
     </MobileLayout>
   );
-};
-
-export default MobileIssues;
+}

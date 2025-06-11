@@ -1,55 +1,52 @@
 
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, Menu } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 interface MobileHeaderProps {
   title: string;
   bgColor?: string;
-  showBack?: boolean;
-  onBack?: () => void;
+  showBackButton?: boolean;
+  onBackClick?: () => void;
 }
 
 const MobileHeader = ({ 
   title, 
-  bgColor = "bg-blue-600", 
-  showBack = true, 
-  onBack 
+  bgColor = "bg-green-600",
+  showBackButton = false,
+  onBackClick 
 }: MobileHeaderProps) => {
   const navigate = useNavigate();
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
+  const handleBackClick = () => {
+    if (onBackClick) {
+      onBackClick();
     } else {
       navigate(-1);
     }
   };
 
   return (
-    <header className={`${bgColor} text-white shadow-lg`}>
+    <header className={`${bgColor} text-white shadow-sm`}>
       <div className="flex items-center justify-between px-4 py-3">
-        {showBack ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="text-white hover:bg-white/20"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        ) : (
-          <div className="w-8" />
-        )}
-        
-        <h1 className="text-lg font-semibold text-center flex-1 px-2">
-          {title}
-        </h1>
+        <div className="flex items-center">
+          {showBackButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackClick}
+              className="text-white hover:bg-white/20 p-2 mr-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          )}
+          <h1 className="text-lg font-semibold">{title}</h1>
+        </div>
         
         <Button
           variant="ghost"
           size="sm"
-          className="text-white hover:bg-white/20"
+          className="text-white hover:bg-white/20 p-2"
         >
           <Menu className="h-5 w-5" />
         </Button>

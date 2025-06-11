@@ -1,6 +1,5 @@
 
 import { ReactNode } from "react";
-import { cn } from "@/lib/utils";
 import MobileHeader from "./layouts/headers/MobileHeader";
 import MobileBottomNav from "./layouts/navigation/MobileBottomNav";
 
@@ -9,18 +8,27 @@ interface MobileLayoutProps {
   title?: string;
   bgColor?: string;
   showBottomNav?: boolean;
+  showBackButton?: boolean;
+  onBackClick?: () => void;
 }
 
 const MobileLayout = ({ 
   children, 
   title = "Yulu Suvidha", 
-  bgColor = "bg-blue-600",
-  showBottomNav = true 
+  bgColor = "bg-green-600",
+  showBottomNav = true,
+  showBackButton = false,
+  onBackClick
 }: MobileLayoutProps) => {
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileHeader title={title} bgColor={bgColor} />
-      <main className="pb-16">
+      <MobileHeader 
+        title={title} 
+        bgColor={bgColor}
+        showBackButton={showBackButton}
+        onBackClick={onBackClick}
+      />
+      <main className={showBottomNav ? "pb-16" : ""}>
         {children}
       </main>
       {showBottomNav && <MobileBottomNav />}

@@ -1,109 +1,98 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
 
-const MobileLogin = () => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const { toast } = useToast();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+export default function MobileLogin() {
+  const [employeeId, setEmployeeId] = useState('');
+  const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!employeeId || !phone) {
+      setError('Please fill in all fields');
+      return;
+    }
 
     try {
-      const success = await login(formData.email, formData.password);
-      
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back!",
-        });
-        navigate('/mobile/issues');
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password",
-          variant: "destructive",
-        });
-      }
+      setIsLoading(true);
+      setError('');
+      // For demo purposes, accept any employee ID and phone
+      await login(employeeId, phone);
+      toast.success('Login successful');
+      navigate('/mobile/issues');
     } catch (error) {
-      toast({
-        title: "Login error",
-        description: "An error occurred during login",
-        variant: "destructive",
-      });
+      setError('Invalid employee ID or phone number');
+      toast.error('Login failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Yulu Suvidha
-          </CardTitle>
-          <CardDescription>
-            Mobile Access - Sign in to your account
-          </CardDescription>
+          <div className="mx-auto mb-4 w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+            <Smartphone className="h-6 w-6 text-white" />
+          </div>
+          <CardTitle className="text-2xl">Employee Login</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="employeeId">Employee ID</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                id="employeeId"
+                type="text"
+                value={employeeId}
+                onChange={(e) => setEmployeeId(e.target.value)}
+                placeholder="Enter your employee ID"
+                disabled={isLoading}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="phone">Phone Number</Label>
               <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
+                disabled={isLoading}
               />
             </div>
             
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
           
-          <div className="mt-6 text-center">
-            <Button 
-              variant="link" 
-              onClick={() => navigate('/')}
-              className="text-sm"
-            >
-              Back to Home
-            </Button>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Demo: Use any employee ID and phone number
+            </p>
           </div>
         </CardContent>
       </Card>
     </div>
   );
-};
-
-export default MobileLogin;
+}
