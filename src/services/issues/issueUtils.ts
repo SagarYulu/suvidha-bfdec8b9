@@ -68,15 +68,10 @@ export const mapDbIssueToAppIssue = (dbIssue: any): Issue => {
     updatedAt: dbIssue.updated_at,
     closedAt: dbIssue.closed_at,
     assignedTo: dbIssue.assigned_to,
-    attachments: dbIssue.attachments || [],
     comments: [],
     title: dbIssue.title || 'Untitled Issue',
     issueType: dbIssue.issue_type || 'General',
-    employeeId: dbIssue.employee_id || dbIssue.employee_uuid,
-    mappedTypeId: dbIssue.mapped_type_id,
-    mappedSubTypeId: dbIssue.mapped_sub_type_id,
-    mappedAt: dbIssue.mapped_at,
-    mappedBy: dbIssue.mapped_by
+    employeeId: dbIssue.employee_id || dbIssue.employee_uuid
   };
 };
 

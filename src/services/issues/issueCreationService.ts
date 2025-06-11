@@ -23,8 +23,8 @@ export const createIssue = async (issueData: Partial<Issue>): Promise<Issue | nu
       priority: issueData.priority || 'low',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      attachment_url: issueData.attachmentUrl || null,
-      attachments: issueData.attachments || null,
+      attachment_url: null,
+      attachments: null,
     };
 
     // Check for required fields

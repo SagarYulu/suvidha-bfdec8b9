@@ -54,11 +54,11 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Updated addComment function to match the expected signature
+// Unified addComment function that accepts the commentData object
 export const addComment = async (
   issueId: string, 
   commentData: { employeeUuid: string; content: string },
-  userId: string
+  userId?: string
 ): Promise<IssueComment> => {
   return addIssueComment(issueId, commentData.employeeUuid, commentData.content);
 };

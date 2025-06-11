@@ -66,3 +66,26 @@ export const getIssuesByUserId = async (userId: string): Promise<Issue[]> => {
     return [];
   }
 };
+
+export const getAssignedIssues = async (assigneeId: string): Promise<Issue[]> => {
+  try {
+    const { data: issues, error } = await supabase
+      .from('issues')
+      .select(`
+        *,
+        issue_comments(*)
+      `)
+      .eq('assigned_to', assigneeId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching assigned issues:', error);
+      return [];
+    }
+
+    return issues.map(mapDbIssueToAppIssue);
+  } catch (error) {
+    console.error('Error in getAssignedIssues:', error);
+    return [];
+  }
+};

@@ -37,7 +37,6 @@ const Analytics: React.FC = () => {
     city: filters.city || '',
     cluster: filters.cluster || '',
     issueType: filters.issueType || '',
-    priority: filters.priority,
     dateFrom: filters.dateRange?.from,
     dateTo: filters.dateRange?.to,
   });

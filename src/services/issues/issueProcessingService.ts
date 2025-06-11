@@ -18,12 +18,7 @@ export const formatConsistentIssueData = (issues: Issue[]): Issue[] => {
     comments: issue.comments || [],
     title: issue.title || 'Untitled Issue',
     issueType: issue.issueType || 'General',
-    employeeId: issue.employeeId || issue.employeeUuid,
-    attachments: issue.attachments || [],
-    mappedTypeId: issue.mappedTypeId,
-    mappedSubTypeId: issue.mappedSubTypeId,
-    mappedAt: issue.mappedAt,
-    mappedBy: issue.mappedBy
+    employeeId: issue.employeeId || issue.employeeUuid
   }));
 };
 
