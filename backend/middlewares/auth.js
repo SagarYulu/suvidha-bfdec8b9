@@ -3,65 +3,76 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const cacheService = require('../services/cacheService');
 
-const authenticate = async (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
     
     if (!token) {
-      return res.status(401).json({ error: 'Access denied. No token provided.' });
+      return res.status(401).json({ 
+        error: 'Access denied',
+        message: 'No token provided' 
+      });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Try to get user from cache first
-    let user = cacheService.getUser(decoded.id);
+    let user = cacheService.getUser(decoded.userId);
     
     if (!user) {
-      user = await User.findById(decoded.id);
+      user = await User.findById(decoded.userId);
       if (!user) {
-        return res.status(401).json({ error: 'Invalid token.' });
+        return res.status(401).json({ 
+          error: 'Invalid token',
+          message: 'User not found' 
+        });
       }
       
       // Cache the user data
-      cacheService.setUser(decoded.id, user);
+      cacheService.setUser(decoded.userId, user);
     }
 
-    // Get permissions from cache or database
-    let permissions = cacheService.getUserPermissions(decoded.id);
-    if (!permissions) {
-      permissions = await User.getUserPermissions(decoded.id);
-      cacheService.setUserPermissions(decoded.id, permissions);
-    }
-
-    req.user = {
-      ...user,
-      permissions: permissions,
-      isSpecialAdmin: decoded.isSpecialAdmin || false
-    };
-    
+    req.user = user;
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(401).json({ error: 'Invalid token.' });
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ 
+        error: 'Invalid token',
+        message: 'Token is malformed' 
+      });
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        error: 'Token expired',
+        message: 'Please login again' 
+      });
+    }
+    
+    res.status(500).json({ 
+      error: 'Authentication failed',
+      message: 'Internal server error' 
+    });
   }
 };
 
-const authorize = (roles = []) => {
+const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Access denied. User not authenticated.' });
+      return res.status(401).json({
+        error: 'Access denied',
+        message: 'User not authenticated'
+      });
     }
 
-    // Special admin accounts have access to everything
-    if (req.user.isSpecialAdmin) {
-      return next();
-    }
-
-    // Check if user has required role
-    if (roles.length > 0 && !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        error: 'Access denied. Insufficient privileges.',
-        required: roles,
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Insufficient privileges',
+        required: allowedRoles,
         current: req.user.role
       });
     }
@@ -70,33 +81,40 @@ const authorize = (roles = []) => {
   };
 };
 
-const checkPermission = (permission) => {
-  return (req, res, next) => {
+const requirePermission = (permission) => {
+  return async (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Access denied. User not authenticated.' });
-    }
-
-    // Special admin accounts have all permissions
-    if (req.user.isSpecialAdmin) {
-      return next();
-    }
-
-    // Check if user has the specific permission
-    const hasPermission = req.user.permissions?.some(p => p.permission_name === permission);
-    
-    if (!hasPermission) {
-      return res.status(403).json({ 
-        error: 'Access denied. Missing required permission.',
-        required: permission
+      return res.status(401).json({
+        error: 'Access denied',
+        message: 'User not authenticated'
       });
     }
 
-    next();
+    try {
+      const userPermissions = await User.getUserPermissions(req.user.id);
+      const hasPermission = userPermissions.some(p => p.permission_name === permission);
+      
+      if (!hasPermission) {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: 'Missing required permission',
+          required: permission
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      res.status(500).json({
+        error: 'Permission check failed',
+        message: 'Internal server error'
+      });
+    }
   };
 };
 
 module.exports = {
-  authenticate,
-  authorize,
-  checkPermission
+  authenticateToken,
+  requireRole,
+  requirePermission
 };
