@@ -1,6 +1,7 @@
 
 const { getPool } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const { validateIssueType } = require('../utils/issueTypeHelpers');
 
 class Issue {
   static async create(issueData) {
@@ -15,6 +16,11 @@ class Issue {
       created_by,
       additional_details = null
     } = issueData;
+    
+    // Validate issue type and subtype
+    if (!validateIssueType(issue_type, issue_subtype)) {
+      throw new Error('Invalid issue type or subtype combination');
+    }
     
     const issueId = uuidv4();
     

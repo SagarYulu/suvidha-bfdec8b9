@@ -1,69 +1,56 @@
 
-import { ApiClient } from './apiClient';
-import { Issue, CreateIssueData, UpdateIssueData, IssueComment, TicketFeedback } from '../types';
+// This file is a facade that re-exports from the modularized services
+// This maintains backwards compatibility while allowing a cleaner structure
 
-export class IssueService {
-  static async getIssues(filters?: {
-    status?: string;
-    priority?: string;
-    assignedTo?: string;
-    city?: string;
-    cluster?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  }): Promise<Issue[]> {
-    const queryParams = new URLSearchParams();
-    if (filters) {
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-    }
-    
-    const response = await ApiClient.get(`/api/issues?${queryParams}`);
-    return response.data;
-  }
+// Re-export types
+import { IssueFilters } from "./issues/issueFilters";
+export type { IssueFilters };
 
-  static async getIssueById(id: string): Promise<Issue> {
-    const response = await ApiClient.get(`/api/issues/${id}`);
-    return response.data;
-  }
+// Re-export all the functions from the modular services
+export { 
+  getIssueById,
+  getIssuesByUserId,
+  createIssue,
+  updateIssueStatus,
+  assignIssueToUser,
+  getAssignedIssues,
+  reopenTicket,
+  updateIssuePriority,
+  updateAllIssuePriorities
+} from "./issues/issueCore";
 
-  static async createIssue(data: CreateIssueData): Promise<Issue> {
-    const response = await ApiClient.post('/api/issues', data);
-    return response.data;
-  }
+export {
+  getIssues
+} from "./issues/issueFilters";
 
-  static async updateIssue(id: string, data: UpdateIssueData): Promise<Issue> {
-    const response = await ApiClient.put(`/api/issues/${id}`, data);
-    return response.data;
-  }
+export { 
+  getIssueTypeLabel, 
+  getIssueSubTypeLabel,
+  getEffectiveIssueType,
+  getEffectiveIssueSubType
+} from "./issues/issueTypeHelpers";
 
-  static async deleteIssue(id: string): Promise<void> {
-    await ApiClient.delete(`/api/issues/${id}`);
-  }
+export { 
+  addNewComment as addComment 
+} from "./issues/issueCommentService";
 
-  static async addComment(issueId: string, content: string): Promise<IssueComment> {
-    const response = await ApiClient.post(`/api/issues/${issueId}/comments`, { content });
-    return response.data;
-  }
+export { 
+  getAnalytics
+} from "./issues/issueAnalyticsService";
 
-  static async submitFeedback(issueId: string, data: {
-    sentiment: 'happy' | 'neutral' | 'sad';
-    feedbackOption: string;
-  }): Promise<TicketFeedback> {
-    const response = await ApiClient.post(`/api/issues/${issueId}/feedback`, data);
-    return response.data;
-  }
+export {
+  getEmployeeNameByUuid,
+  mapEmployeeUuidsToNames
+} from "./issues/issueUtils";
 
-  static async getIssueStats(): Promise<{
-    total: number;
-    open: number;
-    inProgress: number;
-    resolved: number;
-    closed: number;
-    avgResolutionTime: number;
-  }> {
-    const response = await ApiClient.get('/api/issues/stats');
-    return response.data;
-  }
-}
+// Re-export the formatting utilities
+export {
+  formatConsistentIssueData,
+  processIssues
+} from "./issues/issueProcessingService";
+
+// Re-export the mapping utilities
+export {
+  mapIssueType,
+  isIssueMappable
+} from "./issues/issueMapperService";
