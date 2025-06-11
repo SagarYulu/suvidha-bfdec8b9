@@ -1,85 +1,191 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  fetchAllSentiment,
-  submitSentiment,
-  getSentimentAnalytics,
+import { 
+  fetchAllSentiment, 
+  submitSentiment, 
+  getSentimentAnalytics, 
   getSentimentTrends,
-  SentimentFilters,
-  SentimentEntry
+  SentimentFilters 
 } from '@/services/sentimentService';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
 
-export const useSentiment = (initialFilters?: SentimentFilters) => {
-  const [filters, setFilters] = useState<SentimentFilters>(initialFilters || {});
+interface SentimentTag {
+  id: string;
+  name: string;
+  category?: string;
+}
+
+export const useSentiment = () => {
+  const { authState } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Form state
+  const [rating, setRating] = useState<number>(3);
+  const [feedback, setFeedback] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // Mock tags data for now
+  const tags: SentimentTag[] = [
+    { id: '1', name: 'Work Environment', category: 'Workplace' },
+    { id: '2', name: 'Management', category: 'Leadership' },
+    { id: '3', name: 'Salary & Benefits', category: 'Compensation' },
+    { id: '4', name: 'Work-Life Balance', category: 'Wellness' },
+    { id: '5', name: 'Career Growth', category: 'Development' },
+  ];
 
-  const {
-    data: sentimentData,
-    isLoading,
-    refetch
+  // Filters for data fetching
+  const [filters, setFilters] = useState<SentimentFilters>({});
+
+  // Data queries
+  const { 
+    data: sentimentData = [], 
+    isLoading, 
+    refetch 
   } = useQuery({
-    queryKey: ['sentiment', filters],
-    queryFn: () => fetchAllSentiment(filters),
-    staleTime: 5 * 60 * 1000,
+    queryKey: ['sentiment-data', filters],
+    queryFn: () => fetchAllSentiment(filters)
   });
 
-  const {
-    data: analytics,
-    isLoading: analyticsLoading
+  const { 
+    data: analytics, 
+    isLoading: analyticsLoading 
   } = useQuery({
     queryKey: ['sentiment-analytics', filters],
-    queryFn: () => getSentimentAnalytics(filters),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => getSentimentAnalytics(filters)
   });
 
-  const {
-    data: trends,
-    isLoading: trendsLoading
+  const { 
+    data: trends, 
+    isLoading: trendsLoading 
   } = useQuery({
     queryKey: ['sentiment-trends', filters],
-    queryFn: () => getSentimentTrends('weekly', filters),
-    staleTime: 5 * 60 * 1000,
+    queryFn: () => getSentimentTrends('weekly', filters)
   });
 
+  // Form handlers
+  const handleRatingChange = useCallback((newRating: number) => {
+    setRating(newRating);
+  }, []);
+
+  const handleFeedbackChange = useCallback((newFeedback: string) => {
+    setFeedback(newFeedback);
+  }, []);
+
+  const handleTagToggle = useCallback((tagName: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagName) 
+        ? prev.filter(t => t !== tagName)
+        : [...prev, tagName]
+    );
+  }, []);
+
+  const handleAnalyzeFeedback = useCallback(async () => {
+    if (feedback.trim().length < 10) return;
+    
+    setIsAnalyzing(true);
+    try {
+      // Mock analysis - in real app this would call an AI service
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Could suggest tags based on feedback content here
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [feedback]);
+
+  // Submit mutation
   const submitMutation = useMutation({
-    mutationFn: submitSentiment,
+    mutationFn: (data: {
+      rating: number;
+      feedback_text?: string;
+      employee_uuid: string;
+      tags?: string[];
+    }) => submitSentiment(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sentiment'] });
+      toast({
+        title: "Feedback Submitted",
+        description: "Thank you for your feedback! It helps us improve.",
+      });
+      
+      // Reset form
+      setRating(3);
+      setFeedback('');
+      setSelectedTags([]);
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['sentiment-data'] });
       queryClient.invalidateQueries({ queryKey: ['sentiment-analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['sentiment-trends'] });
     },
+    onError: (error) => {
+      toast({
+        title: "Submission Failed",
+        description: "Unable to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Submission error:', error);
+    }
   });
 
-  const handleFilterChange = useCallback((newFilters: Partial<SentimentFilters>) => {
+  const handleSubmit = useCallback(async () => {
+    if (!authState.user?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to submit feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await submitMutation.mutateAsync({
+        rating,
+        feedback_text: feedback.trim() || undefined,
+        employee_uuid: authState.user.id,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [rating, feedback, selectedTags, authState.user?.id, submitMutation]);
+
+  const updateFilters = useCallback((newFilters: Partial<SentimentFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
-  const clearFilters = useCallback(() => {
-    setFilters({});
-  }, []);
-
-  const submitFeedback = useCallback(async (data: {
-    rating: number;
-    feedback_text?: string;
-    employee_uuid: string;
-    tags?: string[];
-  }) => {
-    return submitMutation.mutateAsync(data);
-  }, [submitMutation]);
-
   return {
-    sentimentData: sentimentData || [],
+    // Form state
+    rating,
+    feedback,
+    isSubmitting,
+    tags,
+    selectedTags,
+    suggestedTags: [],
+    isAnalyzing,
+    
+    // Form handlers
+    handleRatingChange,
+    handleFeedbackChange,
+    handleTagToggle,
+    handleAnalyzeFeedback,
+    handleSubmit,
+    
+    // Data
+    sentimentData,
     analytics,
     trends,
     filters,
     isLoading,
     analyticsLoading,
     trendsLoading,
-    isSubmitting: submitMutation.isPending,
-    handleFilterChange,
-    clearFilters,
-    submitFeedback,
-    refetch
+    
+    // Data handlers
+    updateFilters,
+    refetch,
   };
 };

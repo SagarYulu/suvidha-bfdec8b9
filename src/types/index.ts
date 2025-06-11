@@ -119,6 +119,22 @@ export interface AuditLog {
 // Bulk upload types
 export interface RowData {
   [key: string]: any;
+  id?: string;
+  userId?: string;
+  emp_id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  cluster?: string;
+  manager?: string;
+  role?: string;
+  password?: string;
+  date_of_joining?: string;
+  date_of_birth?: string;
+  blood_group?: string;
+  account_number?: string;
+  ifsc_code?: string;
 }
 
 export interface ValidationError {
@@ -133,8 +149,9 @@ export interface ValidationError {
 export interface ValidationResult {
   isValid: boolean;
   validRows: RowData[];
-  invalidRows: RowData[];
+  invalidRows: ValidationError[];
   errors: ValidationError[];
+  validEmployees: RowData[];
   summary: {
     total: number;
     valid: number;
@@ -143,7 +160,7 @@ export interface ValidationResult {
 }
 
 export interface EditedRowsRecord {
-  [key: number]: RowData;
+  [key: string]: RowData;
 }
 
 export interface CSVEmployeeData {
@@ -160,6 +177,11 @@ export interface CSVEmployeeData {
   role?: string;
   password?: string;
   isActive?: boolean;
+  date_of_joining?: string;
+  date_of_birth?: string;
+  blood_group?: string;
+  account_number?: string;
+  ifsc_code?: string;
 }
 
 // Sentiment types

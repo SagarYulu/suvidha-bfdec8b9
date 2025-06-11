@@ -1,124 +1,159 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
-
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  role?: string;
-}
+import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { User } from '@/types';
 
 export interface AuthState {
-  user: User | null;
   isAuthenticated: boolean;
+  user: User | null;
+  role: string | null;
+  permissions: string[];
   isLoading: boolean;
-  role?: string;
+  error: string | null;
 }
 
-interface AuthContextType {
-  authState: AuthState;
+export interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
+  updateUser: (user: User) => void;
+  refreshAuth: () => Promise<void>;
 }
+
+type AuthAction =
+  | { type: 'LOGIN_START' }
+  | { type: 'LOGIN_SUCCESS'; payload: { user: User; role: string; permissions: string[] } }
+  | { type: 'LOGIN_ERROR'; payload: string }
+  | { type: 'LOGOUT' }
+  | { type: 'UPDATE_USER'; payload: User }
+  | { type: 'SET_LOADING'; payload: boolean };
+
+const initialState: AuthState = {
+  isAuthenticated: false,
+  user: null,
+  role: null,
+  permissions: [],
+  isLoading: true,
+  error: null,
+};
+
+const authReducer = (state: AuthState, action: AuthAction): AuthState => {
+  switch (action.type) {
+    case 'LOGIN_START':
+      return { ...state, isLoading: true, error: null };
+    case 'LOGIN_SUCCESS':
+      return {
+        ...state,
+        isAuthenticated: true,
+        user: action.payload.user,
+        role: action.payload.role,
+        permissions: action.payload.permissions,
+        isLoading: false,
+        error: null,
+      };
+    case 'LOGIN_ERROR':
+      return {
+        ...state,
+        isAuthenticated: false,
+        user: null,
+        role: null,
+        permissions: [],
+        isLoading: false,
+        error: action.payload,
+      };
+    case 'LOGOUT':
+      return {
+        ...initialState,
+        isLoading: false,
+      };
+    case 'UPDATE_USER':
+      return {
+        ...state,
+        user: action.payload,
+      };
+    case 'SET_LOADING':
+      return {
+        ...state,
+        isLoading: action.payload,
+      };
+    default:
+      return state;
+  }
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-
-  useEffect(() => {
-    // Check for existing session
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('authToken');
-        const userData = localStorage.getItem('userData');
-        
-        if (token && userData) {
-          const user = JSON.parse(userData);
-          console.info('User is authenticated:', {
-            id: user.id,
-            email: user.email,
-            name: user.name
-          });
-          
-          setAuthState({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-            role: user.role || 'admin'
-          });
-        } else {
-          setAuthState({
-            user: null,
-            isAuthenticated: false,
-            isLoading: false,
-          });
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-    };
-
-    checkAuth();
-  }, []);
+  const [state, dispatch] = useReducer(authReducer, initialState);
 
   const login = async (email: string, password: string) => {
+    dispatch({ type: 'LOGIN_START' });
+    
     try {
-      // Mock login for demo
-      const user = {
-        id: 'admin-uuid-1',
-        email,
+      // Mock login - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockUser: User = {
+        id: '1',
         name: 'Admin User',
-        role: 'admin'
+        email: email,
+        role: 'admin',
+        city: 'Bangalore',
+        cluster: 'South',
+        manager: 'System Manager',
+        permissions: ['read:users', 'write:users', 'read:issues', 'write:issues'],
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-      
-      const token = 'mock-jwt-token';
-      
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('userData', JSON.stringify(user));
-      
-      setAuthState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-        role: user.role
+
+      dispatch({
+        type: 'LOGIN_SUCCESS',
+        payload: {
+          user: mockUser,
+          role: mockUser.role,
+          permissions: mockUser.permissions || [],
+        },
       });
     } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+      dispatch({
+        type: 'LOGIN_ERROR',
+        payload: error instanceof Error ? error.message : 'Login failed',
+      });
     }
   };
 
-  const logout = async () => {
+  const logout = () => {
+    dispatch({ type: 'LOGOUT' });
+  };
+
+  const updateUser = (user: User) => {
+    dispatch({ type: 'UPDATE_USER', payload: user });
+  };
+
+  const refreshAuth = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    
     try {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('userData');
-      
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      // Mock refresh - replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      dispatch({ type: 'SET_LOADING', payload: false });
     } catch (error) {
-      console.error('Logout failed:', error);
-      throw error;
+      dispatch({ type: 'LOGOUT' });
     }
   };
 
-  return (
-    <AuthContext.Provider value={{ authState, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  useEffect(() => {
+    refreshAuth();
+  }, []);
+
+  const value: AuthContextType = {
+    ...state,
+    login,
+    logout,
+    updateUser,
+    refreshAuth,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = (): AuthContextType => {

@@ -5,14 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FeedbackMetricsOverview from './FeedbackMetricsOverview';
 import FeedbackTrendChart from './FeedbackTrendChart';
 import { useFeedbackAnalytics } from '@/hooks/useFeedbackAnalytics';
-import { AnalyticsExportSection } from '@/components/admin/analytics/AnalyticsExportSection';
+import AnalyticsExportSection from '@/components/admin/analytics/AnalyticsExportSection';
 
 const FeedbackAnalyticsPage: React.FC = () => {
   const {
     metrics,
     isLoading,
     filters,
-    updateFilters
+    updateFilters,
+    handleExport
   } = useFeedbackAnalytics();
 
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
@@ -22,9 +23,11 @@ const FeedbackAnalyticsPage: React.FC = () => {
     });
   };
 
-  const handleExport = async (format: 'pdf' | 'csv' | 'excel') => {
+  const handleExportWrapper = async (format: 'pdf' | 'csv' | 'excel') => {
     console.log('Exporting feedback analytics as:', format);
-    // TODO: Implement export functionality
+    if (handleExport) {
+      await handleExport(format);
+    }
   };
 
   return (
@@ -48,7 +51,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
             comparisonMode="none"
           />
           
-          <AnalyticsExportSection />
+          <AnalyticsExportSection onExport={handleExportWrapper} />
         </TabsContent>
 
         <TabsContent value="trends" className="space-y-6">
