@@ -4,13 +4,15 @@ import { authService } from '@/services/authService';
 
 interface User {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   role: string;
   city?: string;
   cluster?: string;
   phone?: string;
   employee_id?: string;
+  cluster_id?: string;
+  is_active: boolean;
 }
 
 interface AuthState {

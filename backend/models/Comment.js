@@ -5,14 +5,15 @@ const { v4: uuidv4 } = require('uuid');
 class Comment {
   static async create(commentData) {
     const pool = getPool();
-    const { issue_id, employee_uuid, content } = commentData;
+    const { issue_id, user_id, content } = commentData;
+    
     const commentId = uuidv4();
     
     const [result] = await pool.execute(
       `INSERT INTO issue_comments 
-       (id, issue_id, employee_uuid, content, created_at) 
+       (id, issue_id, user_id, content, created_at) 
        VALUES (?, ?, ?, ?, NOW())`,
-      [commentId, issue_id, employee_uuid, content]
+      [commentId, issue_id, user_id, content]
     );
     
     return this.findById(commentId);
@@ -21,9 +22,9 @@ class Comment {
   static async findById(id) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      `SELECT c.*, e.emp_name as author_name, e.role as author_role
+      `SELECT c.*, u.full_name as user_name 
        FROM issue_comments c
-       LEFT JOIN employees e ON c.employee_uuid = e.id
+       LEFT JOIN dashboard_users u ON c.user_id = u.id
        WHERE c.id = ?`,
       [id]
     );
@@ -31,52 +32,40 @@ class Comment {
     return rows[0] || null;
   }
 
-  static async findByIssueId(issueId) {
+  static async findByIssueId(issueId, limit = 20, offset = 0) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      `SELECT c.*, e.emp_name as author_name, e.role as author_role
+      `SELECT c.*, u.full_name as user_name 
        FROM issue_comments c
-       LEFT JOIN employees e ON c.employee_uuid = e.id
-       WHERE c.issue_id = ?
-       ORDER BY c.created_at ASC`,
-      [issueId]
+       LEFT JOIN dashboard_users u ON c.user_id = u.id
+       WHERE c.issue_id = ? 
+       ORDER BY c.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [issueId, limit, offset]
     );
     
     return rows;
   }
 
-  static async update(id, updates) {
+  static async update(id, updates, userId) {
     const pool = getPool();
-    const allowedFields = ['content'];
-    const fields = [];
-    const values = [];
-    
-    Object.keys(updates).forEach(key => {
-      if (allowedFields.includes(key)) {
-        fields.push(`${key} = ?`);
-        values.push(updates[key]);
-      }
-    });
-    
-    if (fields.length === 0) {
-      throw new Error('No valid fields to update');
-    }
-    
-    values.push(id);
+    const { content } = updates;
     
     await pool.execute(
-      `UPDATE issue_comments SET ${fields.join(', ')} WHERE id = ?`,
-      values
+      `UPDATE issue_comments 
+       SET content = ?, updated_at = NOW() 
+       WHERE id = ? AND user_id = ?`,
+      [content, id, userId]
     );
     
     return this.findById(id);
   }
 
-  static async delete(id) {
+  static async delete(id, userId) {
     const pool = getPool();
     const [result] = await pool.execute(
-      'DELETE FROM issue_comments WHERE id = ?',
-      [id]
+      'DELETE FROM issue_comments WHERE id = ? AND user_id = ?',
+      [id, userId]
     );
     
     return result.affectedRows > 0;

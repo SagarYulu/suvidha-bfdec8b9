@@ -1,4 +1,37 @@
 
+export interface User {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  city?: string;
+  cluster?: string;
+  phone?: string;
+  employee_id?: string;
+  cluster_id?: string;
+  is_active: boolean;
+}
+
+export interface Employee {
+  id: string;
+  emp_name: string;
+  emp_email: string;
+  emp_mobile?: string;
+  emp_code: string;
+  cluster_id?: string;
+  role: string;
+  date_of_joining?: string;
+  date_of_birth?: string;
+  blood_group?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  manager?: string;
+  cluster_name?: string;
+  city_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Issue {
   id: string;
   title: string;
@@ -15,8 +48,6 @@ export interface Issue {
   attachment_urls?: string[];
   created_at: string;
   updated_at: string;
-  
-  // Joined fields
   emp_name?: string;
   emp_email?: string;
   emp_code?: string;
@@ -33,7 +64,6 @@ export interface CreateIssueData {
   issue_subtype: string;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   employee_id: string;
-  created_by: string;
   additional_details?: any;
 }
 
@@ -53,8 +83,7 @@ export interface IssueComment {
   content: string;
   created_at: string;
   updated_at: string;
-  author_name?: string;
-  author_role?: string;
+  user_name?: string;
 }
 
 export interface TicketFeedback {
@@ -70,28 +99,23 @@ export interface TicketFeedback {
   created_at: string;
 }
 
-export interface Employee {
-  id: string;
-  emp_name: string;
-  emp_email: string;
-  emp_mobile?: string;
-  emp_code: string;
-  cluster_id?: string;
-  role?: string;
-  manager?: string;
-  created_at: string;
-  updated_at: string;
+export interface DashboardAnalytics {
+  totalIssues: number;
+  openIssues: number;
+  inProgressIssues: number;
+  resolvedIssues: number;
+  closedIssues: number;
+  avgResolutionTime: number;
+  issuesByType: Array<{ type: string; count: number }>;
+  issuesByPriority: Array<{ priority: string; count: number }>;
+  issuesByStatus: Array<{ status: string; count: number }>;
+  recentIssues: Issue[];
+  userCount: number;
 }
 
-export interface DashboardUser {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  cluster_id?: string;
-  is_active: boolean;
-  phone?: string;
-  employee_id?: string;
-  created_at: string;
-  updated_at: string;
+export interface ApiResponse<T = any> {
+  success: boolean;
+  message?: string;
+  data: T;
+  error?: string;
 }

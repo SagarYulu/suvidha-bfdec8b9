@@ -3,18 +3,21 @@ import { ApiClient } from './apiClient';
 
 interface User {
   id: string;
-  name: string;
+  full_name: string;
   email: string;
   role: string;
   city?: string;
   cluster?: string;
   phone?: string;
   employee_id?: string;
+  cluster_id?: string;
+  is_active: boolean;
 }
 
 interface LoginResponse {
   user: User;
   token: string;
+  refreshToken: string;
 }
 
 export const authService = {
@@ -23,11 +26,17 @@ export const authService = {
       email,
       password
     });
+    
+    if (response.data.token) {
+      ApiClient.setAuthToken(response.data.token);
+    }
+    
     return response.data;
   },
 
   async logout(): Promise<void> {
     await ApiClient.post('/api/auth/logout');
+    ApiClient.clearAuthToken();
   },
 
   async getCurrentUser(): Promise<User> {
@@ -37,6 +46,9 @@ export const authService = {
 
   async refreshToken(): Promise<string> {
     const response = await ApiClient.post('/api/auth/refresh');
+    if (response.data.token) {
+      ApiClient.setAuthToken(response.data.token);
+    }
     return response.data.token;
   },
 
@@ -48,14 +60,19 @@ export const authService = {
   },
 
   async resetPassword(email: string): Promise<void> {
-    await ApiClient.post('/api/auth/reset-password', {
+    await ApiClient.post('/api/auth/forgot-password', {
       email
     });
   },
 
-  async verifyEmail(token: string): Promise<void> {
-    await ApiClient.post('/api/auth/verify-email', {
-      token
-    });
+  async register(userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    role: string;
+    cluster_id?: string;
+  }): Promise<User> {
+    const response = await ApiClient.post('/api/auth/register', userData);
+    return response.data;
   }
 };

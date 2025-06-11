@@ -371,6 +371,80 @@ class IssueController {
       });
     }
   }
+
+  async escalateIssue(req, res) {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const updatedBy = req.user?.id;
+
+      const issue = await Issue.findById(id);
+      if (!issue) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Issue not found'
+        });
+      }
+
+      if (issue.status === 'escalated') {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          error: 'Issue is already escalated'
+        });
+      }
+
+      const updatedIssue = await Issue.update(id, { 
+        status: 'escalated',
+        additional_details: {
+          ...issue.additional_details,
+          escalation_reason: reason,
+          escalated_at: new Date().toISOString(),
+          escalated_by: updatedBy
+        }
+      }, updatedBy);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Issue escalated successfully',
+        data: updatedIssue
+      });
+    } catch (error) {
+      console.error('Escalate issue error:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Failed to escalate issue',
+        message: error.message
+      });
+    }
+  }
+
+  async deleteIssue(req, res) {
+    try {
+      const { id } = req.params;
+      
+      const issue = await Issue.findById(id);
+      if (!issue) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Issue not found'
+        });
+      }
+
+      await Issue.delete(id);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Issue deleted successfully'
+      });
+    } catch (error) {
+      console.error('Delete issue error:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Failed to delete issue',
+        message: error.message
+      });
+    }
+  }
 }
 
 module.exports = new IssueController();
