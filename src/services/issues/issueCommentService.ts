@@ -54,7 +54,7 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Updated addComment function to accept the correct parameters - now uses issueId, commentData, userId correctly
+// Updated addComment function to accept the correct parameters
 export const addComment = async (
   issueId: string, 
   commentData: { employeeUuid: string; content: string },
