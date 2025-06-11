@@ -47,8 +47,8 @@ const DashboardContent = () => {
       ) : (
         <div className="space-y-6">
           <FilterBar 
-            onFilterChange={handleFilterChange} 
-            initialFilters={filters}
+            filters={filters}
+            onFiltersChange={handleFilterChange}
           />
           
           <DashboardMetrics 
