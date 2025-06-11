@@ -27,11 +27,11 @@ export const useIssueDetails = (issueId?: string) => {
         const issueData = await getIssueById(issueId);
         if (issueData) {
           // Update the issue priority on load
-          const updatedIssueWithPriority = await updateIssuePriority(issueData);
-          // Use the updated issue with recalculated priority
-          const finalIssue = updatedIssueWithPriority || issueData;
-          setIssue(finalIssue);
-          setStatus(finalIssue.status);
+          const priorityResult = await updateIssuePriority(issueData.id, issueData.priority);
+          console.log('Priority update result:', priorityResult);
+          
+          setIssue(issueData);
+          setStatus(issueData.status);
           
           // Fetch employee information
           if (issueData.employeeUuid) {

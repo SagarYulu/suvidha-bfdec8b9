@@ -59,7 +59,7 @@ export const updateAllIssuePriorities = async (): Promise<{ updated: number; err
 
     // Process issues in batches
     for (const issue of issues) {
-      if (issue.priority === 'urgent' || issue.priority === 'urgent') {
+      if (issue.priority === 'urgent') {
         continue; // Skip if already at correct priority levels
       }
 
@@ -130,7 +130,9 @@ const initializeMockIssues = () => {
         comments: [],
         title: 'System Down',
         issueType: 'IT Support',
-        employeeId: 'EMP001'
+        employeeId: 'EMP001',
+        attachmentUrl: '',
+        attachments: []
       }
     ];
   }
@@ -138,3 +140,5 @@ const initializeMockIssues = () => {
 
 // Initialize mock data
 initializeMockIssues();
+
+</edits_to_apply>

@@ -7,6 +7,7 @@ import AnalyticsExportSection from '@/components/admin/analytics/AnalyticsExport
 import TrendAnalysisSection from '@/components/admin/analytics/TrendAnalysisSection';
 import SLAAnalysisSection from '@/components/admin/analytics/SLAAnalysisSection';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { IssueFilters } from '@/services/issues/issueFilters';
 
 const Analytics: React.FC = () => {
   const { 
@@ -31,6 +32,17 @@ const Analytics: React.FC = () => {
     // Implementation would go here
   };
 
+  // Convert DashboardFilters to IssueFilters
+  const convertToIssueFilters = (): IssueFilters => ({
+    city: filters.city || '',
+    status: filters.status,
+    priority: filters.priority,
+    dateFrom: filters.dateRange?.from,
+    dateTo: filters.dateRange?.to,
+    assignedTo: filters.assignedTo,
+    typeId: filters.typeId
+  });
+
   return (
     <AdminLayout title="Analytics">
       <div className="space-y-6">
@@ -54,8 +66,8 @@ const Analytics: React.FC = () => {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <TrendAnalysisSection filters={filters} />
-          <SLAAnalysisSection filters={filters} />
+          <TrendAnalysisSection filters={convertToIssueFilters()} />
+          <SLAAnalysisSection filters={convertToIssueFilters()} />
         </div>
       </div>
     </AdminLayout>

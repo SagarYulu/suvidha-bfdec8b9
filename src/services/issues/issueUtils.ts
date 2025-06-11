@@ -1,3 +1,4 @@
+
 import { Issue } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -32,29 +33,54 @@ export const mapEmployeeUuidsToNames = async (issues: Issue[]): Promise<Record<s
   return names;
 };
 
-export const formatIssueForDisplay = (issue: any): Issue => {
+export const getAvailableAssignees = async (): Promise<{ value: string; label: string }[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('dashboard_users')
+      .select('id, name, role')
+      .in('role', ['admin', 'manager', 'agent']);
+      
+    if (error) {
+      console.error('Error fetching available assignees:', error);
+      return [];
+    }
+    
+    return data.map(user => ({
+      value: user.id,
+      label: `${user.name} (${user.role})`
+    }));
+  } catch (error) {
+    console.error('Error fetching available assignees:', error);
+    return [];
+  }
+};
+
+export const mapDbIssueToAppIssue = (dbIssue: any): Issue => {
   return {
-    id: issue.id,
-    employeeUuid: issue.employee_uuid,
-    typeId: issue.type_id,
-    subTypeId: issue.sub_type_id,
-    description: issue.description,
-    status: issue.status as "open" | "in_progress" | "resolved" | "closed",
-    priority: issue.priority as "low" | "medium" | "high" | "urgent",
-    createdAt: issue.created_at,
-    updatedAt: issue.updated_at,
-    closedAt: issue.closed_at,
-    assignedTo: issue.assigned_to,
-    attachmentUrl: issue.attachment_url,
-    attachments: issue.attachments,
-    comments: [], // Comments will be populated separately
-    title: issue.title || 'Untitled Issue',
-    issueType: issue.issue_type || 'General',
-    employeeId: issue.employee_id || issue.employeeUuid,
-    // Add mapped fields
-    mappedTypeId: issue.mapped_type_id,
-    mappedSubTypeId: issue.mapped_sub_type_id,
-    mappedAt: issue.mapped_at,
-    mappedBy: issue.mapped_by
+    id: dbIssue.id,
+    employeeUuid: dbIssue.employee_uuid,
+    typeId: dbIssue.type_id,
+    subTypeId: dbIssue.sub_type_id,
+    description: dbIssue.description,
+    status: dbIssue.status as "open" | "in_progress" | "resolved" | "closed" | "pending",
+    priority: dbIssue.priority as "low" | "medium" | "high" | "urgent",
+    createdAt: dbIssue.created_at,
+    updatedAt: dbIssue.updated_at,
+    closedAt: dbIssue.closed_at,
+    assignedTo: dbIssue.assigned_to,
+    attachmentUrl: dbIssue.attachment_url,
+    attachments: dbIssue.attachments,
+    comments: [],
+    title: dbIssue.title || 'Untitled Issue',
+    issueType: dbIssue.issue_type || 'General',
+    employeeId: dbIssue.employee_id || dbIssue.employee_uuid,
+    mappedTypeId: dbIssue.mapped_type_id,
+    mappedSubTypeId: dbIssue.mapped_sub_type_id,
+    mappedAt: dbIssue.mapped_at,
+    mappedBy: dbIssue.mapped_by
   };
+};
+
+export const formatIssueForDisplay = (issue: any): Issue => {
+  return mapDbIssueToAppIssue(issue);
 };

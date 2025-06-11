@@ -37,8 +37,8 @@ export const useIssueComments = (
         content: newComment
       };
       
-      // Pass the correct arguments to addComment (based on its signature)
-      await addComment(issueId, commentData);
+      // Pass the correct arguments to addComment (issueId, commentData, currentUserId)
+      await addComment(issueId, commentData, currentUserId);
       
       // Fetch the updated issue with the new comment
       const updatedIssue = await getIssueById(issueId);

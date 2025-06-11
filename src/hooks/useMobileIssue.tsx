@@ -164,7 +164,7 @@ export function useMobileIssue(issueId: string | undefined) {
       const comment = await addComment(issueId, {
         employeeUuid: authState.user.id,
         content: newComment.trim(),
-      });
+      }, authState.user.id);
       
       if (comment) {
         // Fetch the updated issue to get all comments
