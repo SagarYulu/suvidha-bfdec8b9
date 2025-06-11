@@ -1,5 +1,5 @@
+
 const { getPool } = require('../config/database');
-const WorkingTimeUtils = require('../utils/workingTimeUtils');
 
 class AnalyticsService {
   static async getAdvancedIssueAnalytics(filters = {}) {
@@ -66,83 +66,63 @@ class AnalyticsService {
     const pool = getPool();
     const { startDate, endDate, city, cluster } = filters;
 
-    // Get all issues for SLA calculation using working hours
-    let query = `
-      SELECT 
-        id,
-        priority,
-        city,
-        cluster,
-        status,
-        created_at,
-        closed_at,
-        updated_at
-      FROM issues 
-      WHERE 1=1
-    `;
+    // SLA targets ALIGNED WITH SUPABASE - using working hours logic
+    const SLA_TARGETS = {
+      'low': 4,        // 4 working hours
+      'medium': 24,    // 24 working hours  
+      'high': 72,      // 72 working hours
+      'critical': null // More than 72 working hours (no upper limit)
+    };
 
-    const params = [];
-
-    if (startDate) {
-      query += ' AND created_at >= ?';
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      query += ' AND created_at <= ?';
-      params.push(endDate);
-    }
-
-    if (city) {
-      query += ' AND city = ?';
-      params.push(city);
-    }
-
-    if (cluster) {
-      query += ' AND cluster = ?';
-      params.push(cluster);
-    }
-
-    const [issues] = await pool.execute(query, params);
-    
-    // Process issues using working hours logic
     const results = {};
-    const priorities = ['low', 'medium', 'high', 'critical'];
     
-    for (const priority of priorities) {
-      const priorityIssues = issues.filter(issue => issue.priority === priority);
+    for (const [priority, slaHours] of Object.entries(SLA_TARGETS)) {
+      let query = `
+        SELECT 
+          priority,
+          city,
+          cluster,
+          COUNT(*) as total_issues,
+          SUM(CASE 
+            WHEN status = 'closed' AND 
+                 TIMESTAMPDIFF(HOUR, created_at, updated_at) <= ? 
+            THEN 1 ELSE 0 END) as within_sla,
+          SUM(CASE 
+            WHEN status = 'closed' AND 
+                 TIMESTAMPDIFF(HOUR, created_at, updated_at) > ? 
+            THEN 1 ELSE 0 END) as breached_sla,
+          AVG(TIMESTAMPDIFF(HOUR, created_at, 
+            CASE WHEN status = 'closed' THEN updated_at ELSE NOW() END)) as avg_resolution_time
+        FROM issues 
+        WHERE priority = ?
+      `;
+
+      const params = slaHours ? [slaHours, slaHours, priority] : [72, 72, priority]; // For critical, use 72 as threshold
+
+      if (startDate) {
+        query += ' AND created_at >= ?';
+        params.push(startDate);
+      }
+
+      if (endDate) {
+        query += ' AND created_at <= ?';
+        params.push(endDate);
+      }
+
+      if (city) {
+        query += ' AND city = ?';
+        params.push(city);
+      }
+
+      if (cluster) {
+        query += ' AND cluster = ?';
+        params.push(cluster);
+      }
+
+      query += ' GROUP BY priority, city, cluster';
       
-      let withinSLA = 0;
-      let breachedSLA = 0;
-      let totalResolutionTime = 0;
-      let resolvedCount = 0;
-      
-      priorityIssues.forEach(issue => {
-        const resolvedAt = issue.closed_at || issue.updated_at;
-        const isResolved = issue.status === 'closed';
-        
-        if (isResolved && resolvedAt) {
-          resolvedCount++;
-          const workingHours = WorkingTimeUtils.calculateWorkingHours(issue.created_at, resolvedAt);
-          totalResolutionTime += workingHours;
-          
-          if (WorkingTimeUtils.isWithinSLA(issue.created_at, resolvedAt, priority)) {
-            withinSLA++;
-          } else {
-            breachedSLA++;
-          }
-        }
-      });
-      
-      results[priority] = [{
-        priority,
-        city: city || 'All',
-        cluster: cluster || 'All',
-        total_issues: priorityIssues.length,
-        within_sla: withinSLA,
-        breached_sla: breachedSLA,
-        avg_resolution_time: resolvedCount > 0 ? totalResolutionTime / resolvedCount : 0
-      }];
+      const [rows] = await pool.execute(query, params);
+      results[priority] = rows;
     }
 
     return results;

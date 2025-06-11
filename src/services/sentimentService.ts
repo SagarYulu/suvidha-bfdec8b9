@@ -1,119 +1,128 @@
 
-import { SentimentAlert, SentimentEntry } from '@/types';
+import { supabase } from "@/integrations/supabase/client";
 
-export interface SentimentFilters {
+export type SentimentRating = {
+  id?: string;
+  employee_id: string;
+  rating: number;
+  feedback?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  tags?: string[];
+  sentiment_score?: number;
+  sentiment_label?: string;
+  created_at?: string;
+};
+
+export type SentimentTag = {
+  id: string;
+  name: string;
+  category?: string;
+};
+
+export type SentimentAlert = {
+  id: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  average_score: number;
+  previous_average_score?: number;
+  change_percentage?: number;
+  trigger_reason: string;
+  is_resolved: boolean;
+  created_at: string;
+};
+
+export type SentimentAnalysisResult = {
+  sentiment_score: number | null;
+  sentiment_label: string | null;
+  rating?: number;
+  suggested_tags: string[];
+  flag_urgent?: boolean;
+  flag_abusive?: boolean;
+};
+
+// Function to analyze sentiment using Supabase Edge Function
+export const analyzeSentiment = async (feedback: string): Promise<SentimentAnalysisResult> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Mock sentiment analysis for feedback:", feedback);
+  return {
+    sentiment_score: null,
+    sentiment_label: null,
+    suggested_tags: []
+  };
+};
+
+// Function to submit sentiment with better error handling and metadata processing
+export const submitSentiment = async (sentimentData: SentimentRating): Promise<{ success: boolean, error?: string }> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Mock submission of sentiment data:", sentimentData);
+  return { success: true };
+};
+
+// Mock function to check and create alert if sentiment trends warrant it
+async function checkAndCreateAlert(newSentiment: SentimentRating) {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Mock check for sentiment alerts:", newSentiment);
+}
+
+// Function to fetch sentiment tags with improved logging and error handling
+export const fetchSentimentTags = async (): Promise<SentimentTag[]> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Returning mock sentiment tags");
+  return [
+    { id: 'mock-1', name: 'Work-Life Balance', category: 'Wellness' },
+    { id: 'mock-2', name: 'Career Growth', category: 'Development' },
+    { id: 'mock-3', name: 'Salary', category: 'Benefits' }
+  ];
+};
+
+// Function to fetch user sentiment history
+export const fetchUserSentimentHistory = async (employeeId: string): Promise<SentimentRating[]> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Fetching mock sentiment history for employee:", employeeId);
+  return [];
+};
+
+// Admin functions for dashboard
+export const fetchAllSentiment = async (filters: {
   startDate?: string;
   endDate?: string;
   city?: string;
   cluster?: string;
   role?: string;
-}
-
-// Mock data
-const mockSentimentData: SentimentEntry[] = [
-  {
-    id: '1',
-    rating: 4,
-    feedback_text: 'Great work environment',
-    tags: ['work-environment'],
-    createdAt: '2024-01-15T10:00:00Z',
-    employee_uuid: 'emp1'
-  },
-  {
-    id: '2',
-    rating: 3,
-    feedback_text: 'Could be better',
-    tags: ['management'],
-    createdAt: '2024-01-14T14:00:00Z',
-    employee_uuid: 'emp2'
-  }
-];
-
-const mockAlerts: SentimentAlert[] = [
-  {
-    id: '1',
-    type: 'low_rating',
-    message: 'Low average rating detected',
-    severity: 'high',
-    createdAt: '2024-01-15T10:00:00Z',
-    resolved: false,
-    trigger_reason: 'Average rating below 2.5',
-    city: 'Mumbai',
-    cluster: 'West',
-    role: 'agent',
-    average_score: 2.1,
-    change_percentage: -15.5
-  }
-];
-
-export const fetchAllSentiment = async (filters: SentimentFilters = {}): Promise<SentimentEntry[]> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return mockSentimentData;
+}): Promise<SentimentRating[]> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Fetching mock sentiment data with filters:", filters);
+  return [];
 };
 
-export const submitSentiment = async (data: {
-  rating: number;
-  feedback_text?: string;
-  employee_uuid: string;
-  tags?: string[];
-}): Promise<SentimentEntry> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  const newEntry: SentimentEntry = {
-    id: Date.now().toString(),
-    rating: data.rating,
-    feedback_text: data.feedback_text,
-    tags: data.tags,
-    createdAt: new Date().toISOString(),
-    employee_uuid: data.employee_uuid
+// Function to fetch sentiment alerts
+export const fetchSentimentAlerts = async (resolved: boolean = false): Promise<SentimentAlert[]> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Fetching mock sentiment alerts, resolved status:", resolved);
+  return [];
+};
+
+// Function to resolve an alert
+export const resolveSentimentAlert = async (alertId: string): Promise<boolean> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Mock resolving sentiment alert:", alertId);
+  return true;
+};
+
+// Function to generate test sentiment data for demo purposes
+export const generateTestSentimentData = async (): Promise<{
+  employeesProcessed: number;
+  totalEntriesCreated: number;
+  success: boolean;
+}> => {
+  // Mock implementation since sentiment functionality is removed
+  console.log("Mock generating test sentiment data");
+  return { 
+    employeesProcessed: 0, 
+    totalEntriesCreated: 0, 
+    success: true 
   };
-  
-  return newEntry;
-};
-
-export const getSentimentAnalytics = async (filters: SentimentFilters = {}) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return {
-    averageRating: 3.8,
-    totalResponses: 150,
-    sentimentDistribution: {
-      happy: 65,
-      neutral: 25,
-      sad: 10
-    }
-  };
-};
-
-export const getSentimentTrends = async (period: 'daily' | 'weekly' | 'monthly', filters: SentimentFilters = {}) => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return [
-    { date: '2024-01-01', happy: 65, neutral: 25, sad: 10 },
-    { date: '2024-01-02', happy: 70, neutral: 20, sad: 10 },
-    { date: '2024-01-03', happy: 60, neutral: 30, sad: 10 }
-  ];
-};
-
-export const fetchSentimentAlerts = async (showResolved?: boolean): Promise<SentimentAlert[]> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  return showResolved ? mockAlerts.filter(alert => alert.resolved) : mockAlerts.filter(alert => !alert.resolved);
-};
-
-export const resolveSentimentAlert = async (alertId: string): Promise<void> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  console.log(`Alert ${alertId} marked as resolved`);
-};
-
-export const markAlertAsResolved = async (alertId: string): Promise<void> => {
-  // Simulate API call
-  await new Promise(resolve => setTimeout(resolve, 500));
-  console.log(`Alert ${alertId} marked as resolved`);
 };

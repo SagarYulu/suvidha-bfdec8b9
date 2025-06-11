@@ -1,44 +1,60 @@
 
-import React from 'react';
-import { Home, FileText, MessageSquare, BarChart3, Settings } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { Home, FilePlus, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useLocation } from "react-router-dom";
 
-interface NavItem {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  path: string;
+interface MobileBottomNavProps {
+  onHomeClick: () => void;
+  onNewIssueClick: () => void;
+  onLogoutClick: () => void;
 }
 
-const navItems: NavItem[] = [
-  { icon: Home, label: 'Home', path: '/' },
-  { icon: FileText, label: 'Issues', path: '/mobile/issues' },
-  { icon: MessageSquare, label: 'Feedback', path: '/mobile/sentiment' },
-  { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: Settings, label: 'Settings', path: '/admin/settings' },
-];
+const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
+  onHomeClick,
+  onNewIssueClick,
+  onLogoutClick,
+}) => {
+  const location = useLocation();
 
-const MobileBottomNav: React.FC = () => {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
-      <div className="flex justify-around">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              cn(
-                "flex flex-col items-center py-2 px-3 rounded-lg transition-colors",
-                isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-              )
-            }
+    <nav className="bg-white border-t fixed bottom-0 w-full">
+      <div className="flex justify-between items-center">
+        {/* Left section - Home */}
+        <div className="flex-1 flex justify-center">
+          <button 
+            onClick={onHomeClick}
+            className={cn(
+              "flex flex-col items-center py-3",
+              location.pathname === "/mobile/issues" && "text-yulu-dashboard-blue"
+            )}
           >
-            <item.icon className="h-5 w-5 mb-1" />
-            <span className="text-xs font-medium">{item.label}</span>
-          </NavLink>
-        ))}
+            <Home className="h-5 w-5" />
+            <span className="text-xs mt-1">Home</span>
+          </button>
+        </div>
+        
+        {/* Middle section - Raise ticket */}
+        <div className="flex-grow-0 flex justify-center -mt-5 mx-4">
+          <button
+            onClick={onNewIssueClick}
+            className="bg-yulu-dashboard-blue hover:bg-yulu-dashboard-blue-dark text-white w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-md"
+          >
+            <FilePlus className="h-6 w-6" />
+            <span className="text-xs mt-1">Raise ticket</span>
+          </button>
+        </div>
+        
+        {/* Right section - Logout */}
+        <div className="flex-1 flex justify-center">
+          <button
+            onClick={onLogoutClick}
+            className="flex flex-col items-center py-3"
+          >
+            <LogOut className="h-5 w-5 text-gray-600" />
+            <span className="text-xs mt-1 text-gray-600">Logout</span>
+          </button>
+        </div>
       </div>
     </nav>
   );

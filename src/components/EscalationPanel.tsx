@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Clock, ArrowUp, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface EscalationRule {
   id: string;
@@ -34,7 +34,6 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
   status,
   onEscalationChange
 }) => {
-  const { authState } = useAuth();
   const [escalationRules, setEscalationRules] = useState<EscalationRule[]>([]);
   const [selectedRule, setSelectedRule] = useState<string>('');
   const [isEscalating, setIsEscalating] = useState(false);
@@ -81,7 +80,7 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
 
   const getEscalationThreshold = (priority: string): number => {
     switch (priority) {
-      case 'urgent': return 4; // 4 hours (changed from 'critical')
+      case 'critical': return 4; // 4 hours
       case 'high': return 24; // 24 hours
       case 'medium': return 48; // 48 hours
       case 'low': return 72; // 72 hours
@@ -148,7 +147,7 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
 
   const getPriorityBadgeColor = (priority: string) => {
     switch (priority) {
-      case 'urgent': return 'bg-red-100 text-red-800';
+      case 'critical': return 'bg-red-100 text-red-800';
       case 'high': return 'bg-orange-100 text-orange-800';
       case 'medium': return 'bg-yellow-100 text-yellow-800';
       case 'low': return 'bg-green-100 text-green-800';
@@ -240,7 +239,7 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
           <p><strong>Auto-escalation rules:</strong></p>
           <ul className="list-disc list-inside mt-1 space-y-1">
-            <li>Urgent: 4 hours → Manager</li>
+            <li>Critical: 4 hours → Manager</li>
             <li>High: 24 hours → Senior Agent</li>
             <li>Medium: 48 hours → Team Lead</li>
             <li>Low: 72 hours → Supervisor</li>

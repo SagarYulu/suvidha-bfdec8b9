@@ -1,275 +1,302 @@
 
-import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Issue } from '@/types';
+import { useState, useEffect } from 'react';
+import { IssueFilters } from '@/services/issues/issueFilters';
+import { getIssues } from '@/services/issues/issueFilters';
+import { subDays, format, startOfDay, endOfDay } from 'date-fns';
+import { getIssueTypeLabel } from '@/services/issues/issueTypeHelpers';
+import { calculateWorkingHours } from '@/utils/workingTimeUtils';
+
+interface SLAOverviewData {
+  name: string;
+  value: number;
+}
+
+interface SLABreachTrendData {
+  date: string;
+  breached: number;
+  onTime: number;
+  atRisk: number;
+}
+
+interface SLAPerformanceData {
+  type: string;
+  complianceRate: number;
+  breachRate: number;
+  avgResolutionTime: number;
+}
 
 interface SLAMetrics {
-  overallSLA: {
-    breachedCount: number;
-    totalCount: number;
-    breachRate: number;
-  };
-  priorityBreakdown: Array<{
-    priority: string;
-    breachedCount: number;
-    totalCount: number;
-    breachRate: number;
-  }>;
-  cityBreakdown: Array<{
-    city: string;
-    breachedCount: number;
-    totalCount: number;
-    breachRate: number;
-  }>;
-  monthlyTrend: Array<{
-    month: string;
-    breachedCount: number;
-    totalCount: number;
-    breachRate: number;
-  }>;
-  avgResolutionTime: {
-    low: number;
-    medium: number;
-    high: number;
-    urgent: number;
-  };
-  // Add summary metrics for the cards
-  onTime?: number;
-  breached?: number;
-  atRisk?: number;
-  compliance?: string;
+  onTime: number;
+  breached: number;
+  atRisk: number;
+  compliance: string;
 }
 
-interface SLAAnalyticsFilters {
-  startDate?: string;
-  endDate?: string;
-  city?: string;
-  priority?: string;
-}
-
-const getSLATarget = (priority: string): number => {
-  switch (priority) {
-    case 'urgent': return 4; // 4 hours
-    case 'high': return 24; // 24 hours
-    case 'medium': return 48; // 48 hours
-    case 'low': return 72; // 72 hours
-    default: return 48;
-  }
+// SLA thresholds in WORKING HOURS - ALIGNED WITH SUPABASE
+const SLA_THRESHOLDS = {
+  'low': 4,        // 4 working hours
+  'medium': 24,    // 24 working hours
+  'high': 72,      // 72 working hours
+  'critical': 72   // More than 72 working hours (we use 72 as threshold)
 };
 
-const isSLABreached = (issue: Issue): boolean => {
-  const createdAt = new Date(issue.createdAt);
-  const resolvedAt = issue.resolvedAt ? new Date(issue.resolvedAt) : new Date();
-  const resolutionTimeHours = (resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-  const slaTarget = getSLATarget(issue.priority);
-  
-  return resolutionTimeHours > slaTarget;
-};
+export const useSLAAnalytics = (filters: IssueFilters) => {
+  const [slaOverviewData, setSlaOverviewData] = useState<SLAOverviewData[]>([]);
+  const [slaBreachTrendData, setSlaBreachTrendData] = useState<SLABreachTrendData[]>([]);
+  const [slaPerformanceData, setSlaPerformanceData] = useState<SLAPerformanceData[]>([]);
+  const [slaMetrics, setSlaMetrics] = useState<SLAMetrics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-const getResolutionTimeHours = (issue: Issue): number => {
-  const createdAt = new Date(issue.createdAt);
-  const resolvedAt = issue.resolvedAt ? new Date(issue.resolvedAt) : new Date();
-  return (resolvedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
-};
+  const getSLAThreshold = (priority: string): number => {
+    return SLA_THRESHOLDS[priority as keyof typeof SLA_THRESHOLDS] || SLA_THRESHOLDS.medium;
+  };
 
-const mockIssues: Issue[] = [
-  {
-    id: '1',
-    title: 'System Login Issue',
-    description: 'Cannot login to the system',
-    issueType: 'technical',
-    priority: 'high',
-    status: 'resolved',
-    employeeId: 'emp1',
-    city: 'Bangalore',
-    cluster: 'South',
-    createdAt: '2024-01-15T09:00:00Z',
-    updatedAt: '2024-01-15T15:00:00Z',
-    resolvedAt: '2024-01-15T15:00:00Z',
-    comments: []
-  },
-  {
-    id: '2',
-    title: 'Salary Query',
-    description: 'Query about salary calculation',
-    issueType: 'hr',
-    priority: 'medium',
-    status: 'resolved',
-    employeeId: 'emp2',
-    city: 'Mumbai',
-    cluster: 'West',
-    createdAt: '2024-01-14T10:00:00Z',
-    updatedAt: '2024-01-16T12:00:00Z',
-    resolvedAt: '2024-01-16T12:00:00Z',
-    comments: []
-  },
-  {
-    id: '3',
-    title: 'Urgent Server Issue',
-    description: 'Production server is down',
-    issueType: 'technical',
-    priority: 'urgent',
-    status: 'resolved',
-    employeeId: 'emp3',
-    city: 'Delhi',
-    cluster: 'North',
-    createdAt: '2024-01-13T14:00:00Z',
-    updatedAt: '2024-01-13T16:00:00Z',
-    resolvedAt: '2024-01-13T16:00:00Z',
-    comments: []
-  }
-];
-
-export const useSLAAnalytics = (filters?: SLAAnalyticsFilters) => {
-  const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('30d');
-
-  const { data: issues = mockIssues, isLoading } = useQuery({
-    queryKey: ['sla-issues', filters, selectedPeriod],
-    queryFn: async () => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return mockIssues;
-    },
-  });
-
-  const calculateSLAMetrics = useCallback((issues: Issue[]): SLAMetrics => {
-    const totalCount = issues.length;
-    const breachedIssues = issues.filter(isSLABreached);
-    const breachedCount = breachedIssues.length;
-    const breachRate = totalCount > 0 ? (breachedCount / totalCount) * 100 : 0;
-    const onTimeCount = totalCount - breachedCount;
-
-    // Priority breakdown
-    const priorityMap = new Map<string, { breached: number; total: number }>();
-    issues.forEach(issue => {
-      const priority = issue.priority;
-      if (!priorityMap.has(priority)) {
-        priorityMap.set(priority, { breached: 0, total: 0 });
+  const calculateSLAStatus = (issue: any) => {
+    const threshold = getSLAThreshold(issue.priority);
+    const now = new Date().toISOString();
+    const createdAt = issue.createdAt;
+    
+    if (issue.closedAt) {
+      // Closed ticket - check if it was resolved within SLA using working hours
+      const workingHoursToResolve = calculateWorkingHours(createdAt, issue.closedAt);
+      
+      if (issue.priority === 'critical') {
+        return workingHoursToResolve > 72 ? 'breached' : 'onTime';
+      } else {
+        return workingHoursToResolve <= threshold ? 'onTime' : 'breached';
       }
-      const stats = priorityMap.get(priority)!;
-      stats.total++;
-      if (isSLABreached(issue)) {
-        stats.breached++;
+    } else {
+      // Open ticket - check current working hours age against SLA
+      const currentWorkingAge = calculateWorkingHours(createdAt, now);
+      
+      if (issue.priority === 'critical') {
+        if (currentWorkingAge > 72) {
+          return 'breached';
+        } else if (currentWorkingAge > 72 * 0.8) {
+          return 'atRisk';
+        } else {
+          return 'pending';
+        }
+      } else {
+        if (currentWorkingAge > threshold) {
+          return 'breached';
+        } else if (currentWorkingAge > threshold * 0.8) {
+          return 'atRisk';
+        } else {
+          return 'pending';
+        }
       }
-    });
+    }
+  };
 
-    const priorityBreakdown = Array.from(priorityMap.entries()).map(([priority, stats]) => ({
-      priority,
-      breachedCount: stats.breached,
-      totalCount: stats.total,
-      breachRate: stats.total > 0 ? (stats.breached / stats.total) * 100 : 0,
-    }));
+  useEffect(() => {
+    const fetchSLAData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch all issues with current filters
+        const allIssues = await getIssues(filters);
+        console.log("SLA Analytics: Processing", allIssues.length, "issues");
+        
+        if (allIssues.length === 0) {
+          setSlaOverviewData([
+            { name: 'On Time', value: 0 },
+            { name: 'Breached', value: 0 },
+            { name: 'At Risk', value: 0 },
+            { name: 'Pending', value: 0 }
+          ]);
+          setSlaMetrics({
+            onTime: 0,
+            breached: 0,
+            atRisk: 0,
+            compliance: '0%'
+          });
+          setSlaBreachTrendData([]);
+          setSlaPerformanceData([]);
+          setIsLoading(false);
+          return;
+        }
+        
+        // Calculate SLA status for each issue using WORKING HOURS and correct priority-based SLA
+        const issuesWithSLA = allIssues.map(issue => {
+          const slaStatus = calculateSLAStatus(issue);
+          console.log(`Issue ${issue.id}: Priority = ${issue.priority}, Status = ${slaStatus}`);
+          return {
+            ...issue,
+            slaStatus
+          };
+        });
 
-    // City breakdown
-    const cityMap = new Map<string, { breached: number; total: number }>();
-    issues.forEach(issue => {
-      const city = issue.city || 'Unknown';
-      if (!cityMap.has(city)) {
-        cityMap.set(city, { breached: 0, total: 0 });
+        // Generate overview data
+        const slaStatusCounts = issuesWithSLA.reduce((acc, issue) => {
+          acc[issue.slaStatus] = (acc[issue.slaStatus] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        console.log("SLA Status Counts:", slaStatusCounts);
+
+        const overview: SLAOverviewData[] = [
+          { name: 'On Time', value: slaStatusCounts.onTime || 0 },
+          { name: 'Breached', value: slaStatusCounts.breached || 0 },
+          { name: 'At Risk', value: slaStatusCounts.atRisk || 0 },
+          { name: 'Pending', value: slaStatusCounts.pending || 0 }
+        ];
+
+        setSlaOverviewData(overview);
+
+        // Calculate metrics
+        const totalIssues = issuesWithSLA.length;
+        const onTimeCount = slaStatusCounts.onTime || 0;
+        const compliance = totalIssues > 0 ? ((onTimeCount / totalIssues) * 100).toFixed(1) + '%' : '0%';
+
+        setSlaMetrics({
+          onTime: onTimeCount,
+          breached: slaStatusCounts.breached || 0,
+          atRisk: slaStatusCounts.atRisk || 0,
+          compliance
+        });
+
+        // Generate trend data for the last 14 days
+        const last14Days = Array.from({ length: 14 }, (_, i) => {
+          const date = subDays(new Date(), 13 - i);
+          return {
+            date: format(date, 'yyyy-MM-dd'),
+            start: startOfDay(date),
+            end: endOfDay(date)
+          };
+        });
+
+        const trendData: SLABreachTrendData[] = last14Days.map(({ date, start, end }) => {
+          const relevantIssues = issuesWithSLA.filter(issue => {
+            const createdDate = new Date(issue.createdAt);
+            return createdDate <= end;
+          });
+
+          const counts = relevantIssues.reduce((acc, issue) => {
+            const createdAt = issue.createdAt;
+            const threshold = getSLAThreshold(issue.priority);
+            
+            const workingAgeOnDate = calculateWorkingHours(createdAt, end.toISOString());
+            
+            let statusOnDate: string;
+            
+            if (issue.closedAt) {
+              const closedAt = new Date(issue.closedAt);
+              if (closedAt <= end) {
+                const workingResolutionTime = calculateWorkingHours(createdAt, issue.closedAt);
+                if (issue.priority === 'critical') {
+                  statusOnDate = workingResolutionTime > 72 ? 'breached' : 'onTime';
+                } else {
+                  statusOnDate = workingResolutionTime <= threshold ? 'onTime' : 'breached';
+                }
+              } else {
+                if (issue.priority === 'critical') {
+                  if (workingAgeOnDate > 72) {
+                    statusOnDate = 'breached';
+                  } else if (workingAgeOnDate > 72 * 0.8) {
+                    statusOnDate = 'atRisk';
+                  } else {
+                    statusOnDate = 'pending';
+                  }
+                } else {
+                  if (workingAgeOnDate > threshold) {
+                    statusOnDate = 'breached';
+                  } else if (workingAgeOnDate > threshold * 0.8) {
+                    statusOnDate = 'atRisk';
+                  } else {
+                    statusOnDate = 'pending';
+                  }
+                }
+              }
+            } else {
+              if (issue.priority === 'critical') {
+                if (workingAgeOnDate > 72) {
+                  statusOnDate = 'breached';
+                } else if (workingAgeOnDate > 72 * 0.8) {
+                  statusOnDate = 'atRisk';
+                } else {
+                  statusOnDate = 'pending';
+                }
+              } else {
+                if (workingAgeOnDate > threshold) {
+                  statusOnDate = 'breached';
+                } else if (workingAgeOnDate > threshold * 0.8) {
+                  statusOnDate = 'atRisk';
+                } else {
+                  statusOnDate = 'pending';
+                }
+              }
+            }
+
+            acc[statusOnDate] = (acc[statusOnDate] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+
+          return {
+            date,
+            breached: counts.breached || 0,
+            onTime: counts.onTime || 0,
+            atRisk: counts.atRisk || 0
+          };
+        });
+
+        setSlaBreachTrendData(trendData);
+
+        // Generate performance by type data using WORKING HOURS for SLA calculation
+        const typeGroups = issuesWithSLA.reduce((acc, issue) => {
+          const typeLabel = getIssueTypeLabel(issue.typeId);
+          if (!acc[typeLabel]) {
+            acc[typeLabel] = [];
+          }
+          acc[typeLabel].push(issue);
+          return acc;
+        }, {} as Record<string, any[]>);
+
+        const performanceData: SLAPerformanceData[] = Object.entries(typeGroups).map(([type, issues]) => {
+          const onTimeCount = issues.filter(i => i.slaStatus === 'onTime').length;
+          const breachedCount = issues.filter(i => i.slaStatus === 'breached').length;
+          const total = issues.length;
+
+          const complianceRate = total > 0 ? (onTimeCount / total) * 100 : 0;
+          const breachRate = total > 0 ? (breachedCount / total) * 100 : 0;
+
+          // Calculate average resolution time for closed issues using working hours
+          const closedIssues = issues.filter(i => i.closedAt);
+          const avgResolutionTime = closedIssues.length > 0 
+            ? closedIssues.reduce((sum, issue) => {
+                const workingHours = calculateWorkingHours(issue.createdAt, issue.closedAt);
+                return sum + workingHours;
+              }, 0) / closedIssues.length
+            : 0;
+
+          return {
+            type,
+            complianceRate: Math.round(complianceRate),
+            breachRate: Math.round(breachRate),
+            avgResolutionTime: Math.round(avgResolutionTime)
+          };
+        });
+
+        setSlaPerformanceData(performanceData);
+
+      } catch (error) {
+        console.error('Error fetching SLA analytics:', error);
+        setSlaOverviewData([]);
+        setSlaBreachTrendData([]);
+        setSlaPerformanceData([]);
+        setSlaMetrics(null);
+      } finally {
+        setIsLoading(false);
       }
-      const stats = cityMap.get(city)!;
-      stats.total++;
-      if (isSLABreached(issue)) {
-        stats.breached++;
-      }
-    });
-
-    const cityBreakdown = Array.from(cityMap.entries()).map(([city, stats]) => ({
-      city,
-      breachedCount: stats.breached,
-      totalCount: stats.total,
-      breachRate: stats.total > 0 ? (stats.breached / stats.total) * 100 : 0,
-    }));
-
-    // Monthly trend (mock data for now)
-    const monthlyTrend = [
-      { month: 'Jan', breachedCount: 5, totalCount: 20, breachRate: 25 },
-      { month: 'Feb', breachedCount: 8, totalCount: 25, breachRate: 32 },
-      { month: 'Mar', breachedCount: 3, totalCount: 18, breachRate: 16.7 },
-    ];
-
-    // Average resolution time by priority
-    const resolutionTimes = {
-      low: 0,
-      medium: 0,
-      high: 0,
-      urgent: 0,
     };
 
-    ['low', 'medium', 'high', 'urgent'].forEach(priority => {
-      const priorityIssues = issues.filter(issue => issue.priority === priority);
-      if (priorityIssues.length > 0) {
-        const avgTime = priorityIssues.reduce((sum, issue) => 
-          sum + getResolutionTimeHours(issue), 0) / priorityIssues.length;
-        resolutionTimes[priority as keyof typeof resolutionTimes] = avgTime;
-      }
-    });
-
-    return {
-      overallSLA: {
-        breachedCount,
-        totalCount,
-        breachRate,
-      },
-      priorityBreakdown,
-      cityBreakdown,
-      monthlyTrend,
-      avgResolutionTime: resolutionTimes,
-      onTime: onTimeCount,
-      breached: breachedCount,
-      atRisk: Math.floor(Math.random() * 5), // Mock data
-      compliance: `${(100 - breachRate).toFixed(1)}%`
-    };
-  }, []);
-
-  const metrics = calculateSLAMetrics(issues);
-
-  // Mock data for charts
-  const slaOverviewData = [
-    { name: 'On Time', value: metrics.onTime || 0 },
-    { name: 'Breached', value: metrics.breached || 0 },
-    { name: 'At Risk', value: metrics.atRisk || 0 },
-    { name: 'Pending', value: Math.floor(Math.random() * 3) }
-  ];
-
-  const slaBreachTrendData = [
-    { date: '2024-01-01', breached: 2, onTime: 8, atRisk: 1 },
-    { date: '2024-01-02', breached: 3, onTime: 7, atRisk: 2 },
-    { date: '2024-01-03', breached: 1, onTime: 9, atRisk: 1 },
-    { date: '2024-01-04', breached: 4, onTime: 6, atRisk: 3 },
-    { date: '2024-01-05', breached: 2, onTime: 8, atRisk: 2 }
-  ];
-
-  const slaPerformanceData = [
-    { type: 'Technical', complianceRate: 85, breachRate: 15 },
-    { type: 'HR', complianceRate: 92, breachRate: 8 },
-    { type: 'Finance', complianceRate: 78, breachRate: 22 },
-    { type: 'Admin', complianceRate: 88, breachRate: 12 }
-  ];
-
-  const updateFilters = useCallback((newFilters: Partial<SLAAnalyticsFilters>) => {
-    // Filter logic would be implemented here
-  }, []);
-
-  const updatePeriod = useCallback((period: '7d' | '30d' | '90d') => {
-    setSelectedPeriod(period);
-  }, []);
+    fetchSLAData();
+  }, [filters]);
 
   return {
-    metrics,
     slaOverviewData,
     slaBreachTrendData,
     slaPerformanceData,
-    slaMetrics: {
-      onTime: metrics.onTime,
-      breached: metrics.breached,
-      atRisk: metrics.atRisk,
-      compliance: metrics.compliance
-    },
-    isLoading,
-    filters: filters || {},
-    selectedPeriod,
-    updateFilters,
-    updatePeriod,
+    slaMetrics,
+    isLoading
   };
 };

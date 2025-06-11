@@ -207,9 +207,9 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
 
   // Calculate average sentiment by date for current period
   const sentimentByDate = sentimentData.reduce((acc, curr) => {
-    if (!curr.createdAt) return acc;
+    if (!curr.created_at) return acc;
     
-    const date = format(parseISO(curr.createdAt), 'yyyy-MM-dd');
+    const date = format(parseISO(curr.created_at), 'yyyy-MM-dd');
     if (!acc[date]) {
       acc[date] = { 
         count: 0, 
@@ -220,17 +220,19 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     }
     acc[date].count++;
     acc[date].totalRating += curr.rating;
-    // Remove sentiment_score references as it doesn't exist in SentimentEntry
+    if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
+      acc[date].totalScore += curr.sentiment_score;
+    }
     acc[date].ratings[curr.rating - 1]++;
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number, ratings: number[] }>);
 
   // Calculate average sentiment by date for previous period
   const previousSentimentByDate = showComparison ? previousPeriodData.reduce((acc, curr) => {
-    if (!curr.createdAt) return acc;
+    if (!curr.created_at) return acc;
     
     // For comparison, adjust dates to align with current period
-    let dateObj = parseISO(curr.createdAt);
+    let dateObj = parseISO(curr.created_at);
     let adjustedDate: Date;
     
     switch (filters.comparisonMode) {
@@ -260,7 +262,9 @@ export const useSentimentOverviewData = (filters: SentimentFilters) => {
     }
     acc[date].count++;
     acc[date].totalRating += curr.rating;
-    // Remove sentiment_score references
+    if (curr.sentiment_score !== null && curr.sentiment_score !== undefined) {
+      acc[date].totalScore += curr.sentiment_score;
+    }
     return acc;
   }, {} as Record<string, { count: number; totalRating: number; totalScore: number }>) : {};
 

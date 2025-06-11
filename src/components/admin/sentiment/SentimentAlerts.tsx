@@ -29,6 +29,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 
 const SentimentAlerts: React.FC = () => {
@@ -117,15 +118,15 @@ const SentimentAlerts: React.FC = () => {
               {alerts.map((alert) => (
                 <TableRow key={alert.id}>
                   <TableCell>
-                    <Badge variant={(alert.resolved || alert.is_resolved) ? "outline" : "destructive"}>
-                      {(alert.resolved || alert.is_resolved)
+                    <Badge variant={alert.is_resolved ? "outline" : "destructive"}>
+                      {alert.is_resolved 
                         ? <Check className="h-3 w-3 mr-1 inline" /> 
                         : <AlertTriangle className="h-3 w-3 mr-1 inline" />
                       }
-                      {(alert.resolved || alert.is_resolved) ? "Resolved" : "Active"}
+                      {alert.is_resolved ? "Resolved" : "Active"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{alert.trigger_reason || alert.type}</TableCell>
+                  <TableCell>{alert.trigger_reason}</TableCell>
                   <TableCell>
                     {alert.city && <span>{alert.city}</span>}
                     {alert.cluster && <span> - {alert.cluster}</span>}
@@ -135,14 +136,14 @@ const SentimentAlerts: React.FC = () => {
                   <TableCell>
                     <span 
                       className={
-                        (alert.average_score || 3) < 2.5
+                        alert.average_score < 2.5
                           ? "text-red-500 font-medium"
-                          : (alert.average_score || 3) < 3.5
+                          : alert.average_score < 3.5
                           ? "text-yellow-500 font-medium"
                           : "text-green-500 font-medium"
                       }
                     >
-                      {(alert.average_score || 3).toFixed(1)} / 5
+                      {alert.average_score.toFixed(1)} / 5
                     </span>
                     {alert.change_percentage && (
                       <span 
@@ -158,10 +159,10 @@ const SentimentAlerts: React.FC = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {format(parseISO(alert.created_at || alert.createdAt), 'PPp')}
+                    {format(parseISO(alert.created_at), 'PPp')}
                   </TableCell>
                   <TableCell>
-                    {!(alert.resolved || alert.is_resolved) && (
+                    {!alert.is_resolved && (
                       <Button 
                         variant="ghost" 
                         size="sm"

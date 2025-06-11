@@ -1,174 +1,360 @@
 
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User } from '@/types';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { login as authServiceLogin } from '@/services/authService';
 
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: User | null;
-  role: string | null;
-  permissions: string[];
+// Define the AuthContext type
+interface AuthContextType {
+  authState: {
+    isAuthenticated: boolean;
+    user: {
+      id: string;
+      email: string;
+      name: string;
+    } | null;
+    session: Session | null;
+    role: string | null;
+  };
   isLoading: boolean;
-  error: string | null;
-}
-
-export interface AuthContextType {
-  authState: AuthState;
-  isAuthenticated: boolean;
-  user: User | null;
-  role: string | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  updateUser: (user: User) => void;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+  } | null;
+  signIn: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  login: (email: string, password: string) => Promise<boolean>;
+  refreshSession: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
 
-type AuthAction =
-  | { type: 'LOGIN_START' }
-  | { type: 'LOGIN_SUCCESS'; payload: { user: User; role: string; permissions: string[] } }
-  | { type: 'LOGIN_ERROR'; payload: string }
-  | { type: 'LOGOUT' }
-  | { type: 'UPDATE_USER'; payload: User }
-  | { type: 'SET_LOADING'; payload: boolean };
-
-const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
-  role: null,
-  permissions: [],
-  isLoading: true,
-  error: null,
-};
-
-const authReducer = (state: AuthState, action: AuthAction): AuthState => {
-  switch (action.type) {
-    case 'LOGIN_START':
-      return { ...state, isLoading: true, error: null };
-    case 'LOGIN_SUCCESS':
-      return {
-        ...state,
-        isAuthenticated: true,
-        user: action.payload.user,
-        role: action.payload.role,
-        permissions: action.payload.permissions,
-        isLoading: false,
-        error: null,
-      };
-    case 'LOGIN_ERROR':
-      return {
-        ...state,
-        isAuthenticated: false,
-        user: null,
-        role: null,
-        permissions: [],
-        isLoading: false,
-        error: action.payload,
-      };
-    case 'LOGOUT':
-      return {
-        ...initialState,
-        isLoading: false,
-      };
-    case 'UPDATE_USER':
-      return {
-        ...state,
-        user: action.payload,
-      };
-    case 'SET_LOADING':
-      return {
-        ...state,
-        isLoading: action.payload,
-      };
-    default:
-      return state;
-  }
-};
-
+// Create the AuthContext with a default value
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// AuthProvider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  // Initialize state from localStorage if available to prevent flashing
+  const initialAuthState = (() => {
+    try {
+      const savedState = localStorage.getItem('authState');
+      if (savedState) {
+        const parsed = JSON.parse(savedState);
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse saved auth state:", e);
+    }
+    return { isAuthenticated: false, user: null, session: null, role: null };
+  })();
 
-  const login = async (email: string, password: string) => {
-    dispatch({ type: 'LOGIN_START' });
+  const [authState, setAuthState] = useState<AuthContextType['authState']>(initialAuthState);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Use refs to prevent duplicate calls and track initialization
+  const initialized = useRef(false);
+  const refreshInProgress = useRef(false);
+  const lastRefreshTime = useRef<number>(Date.now() - 10000); // Initialize to allow initial refresh
+  
+  // Function to refresh the session with debouncing and lock
+  const refreshSession = useCallback(async () => {
+    // Prevent concurrent refreshes or refreshing too frequently
+    const now = Date.now();
+    if (refreshInProgress.current || now - lastRefreshTime.current < 10000) {
+      return;
+    }
+    
+    refreshInProgress.current = true;
+    lastRefreshTime.current = now;
     
     try {
-      // Mock login - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log("Refreshing auth session...");
+      setIsLoading(true);
       
-      const mockUser: User = {
-        id: '1',
-        name: 'Admin User',
-        email: email,
-        role: 'admin',
-        city: 'Bangalore',
-        cluster: 'South',
-        manager: 'System Manager',
-        permissions: ['read:users', 'write:users', 'read:issues', 'write:issues'],
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      // Check for mock user first
+      const mockUserStr = localStorage.getItem('mockUser');
+      if (mockUserStr) {
+        try {
+          const mockUser = JSON.parse(mockUserStr);
+          if (mockUser && mockUser.email) {
+            const newAuthState = {
+              isAuthenticated: true,
+              user: {
+                id: mockUser.id || `mock-${Date.now()}`,
+                email: mockUser.email,
+                name: mockUser.name || mockUser.email.split('@')[0],
+              },
+              session: null,
+              role: mockUser.role || 'user',
+            };
+            
+            setAuthState(newAuthState);
+            localStorage.setItem('authState', JSON.stringify(newAuthState));
+            setIsLoading(false);
+            refreshInProgress.current = false;
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing mock user:", e);
+          localStorage.removeItem('mockUser');
+        }
+      }
 
-      dispatch({
-        type: 'LOGIN_SUCCESS',
-        payload: {
-          user: mockUser,
-          role: mockUser.role,
-          permissions: mockUser.permissions || [],
-        },
-      });
+      // If no mock user, check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        const { user } = session;
+        let userRole: string | null = null;
+        
+        try {
+          const { data: dashboardUser } = await supabase
+            .from('dashboard_users')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          if (dashboardUser) {
+            userRole = dashboardUser.role || null;
+          }
+        } catch (error) {
+          console.error("Error fetching user details:", error);
+        }
+
+        const newAuthState = {
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email || '',
+            name: user.email?.split('@')[0] || 'Unnamed User',
+          },
+          session: session,
+          role: userRole,
+        };
+        
+        setAuthState(newAuthState);
+        localStorage.setItem('authState', JSON.stringify(newAuthState));
+      } else {
+        // No session found
+        const newAuthState = {
+          isAuthenticated: false,
+          user: null,
+          session: null,
+          role: null,
+        };
+        
+        setAuthState(newAuthState);
+        localStorage.removeItem('authState');
+      }
     } catch (error) {
-      dispatch({
-        type: 'LOGIN_ERROR',
-        payload: error instanceof Error ? error.message : 'Login failed',
+      console.error("Error refreshing session:", error);
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        session: null,
+        role: null,
       });
+      localStorage.removeItem('authState');
+    } finally {
+      setIsLoading(false);
+      refreshInProgress.current = false;
     }
-  };
-
-  const logout = () => {
-    dispatch({ type: 'LOGOUT' });
-  };
-
-  const updateUser = (user: User) => {
-    dispatch({ type: 'UPDATE_USER', payload: user });
-  };
-
-  const refreshAuth = async () => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    
-    try {
-      // Mock refresh - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      dispatch({ type: 'SET_LOADING', payload: false });
-    } catch (error) {
-      dispatch({ type: 'LOGOUT' });
-    }
-  };
-
-  useEffect(() => {
-    refreshAuth();
   }, []);
 
+  // Alias for refreshSession
+  const refreshAuth = refreshSession;
+
+  // Set up auth change listener only once on mount
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    
+    console.log("Setting up auth change listener...");
+    
+    // Set up listener for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth state changed: ${event}`);
+      
+      // Handle only significant auth events to prevent loops
+      if (['SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+        // Use timeout to debounce multiple rapid auth change events
+        setTimeout(() => {
+          // Only refresh if not recently refreshed
+          if (Date.now() - lastRefreshTime.current > 5000) {
+            refreshSession();
+          }
+        }, 100);
+      }
+    });
+
+    // Initial session check only once at startup
+    refreshSession();
+
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [refreshSession]);
+
+  // Sign-in function
+  const signIn = async (email: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      // Try local authentication first
+      const localUser = await authServiceLogin(email, password);
+      
+      if (localUser) {
+        // Local auth success
+        try {
+          // Also try Supabase auth but don't fail if it doesn't work
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          }).catch(error => {
+            console.log("Supabase auth failed, using local auth:", error);
+          });
+        } catch (error) {
+          console.log("Supabase auth error:", error);
+        }
+        
+        // Store mock user for session persistence
+        localStorage.setItem('mockUser', JSON.stringify({
+          id: localUser.id,
+          email: localUser.email,
+          name: localUser.name,
+          role: localUser.role
+        }));
+        
+        // Update auth state directly
+        const newAuthState = {
+          isAuthenticated: true,
+          user: {
+            id: localUser.id,
+            email: localUser.email,
+            name: localUser.name,
+          },
+          session: null,
+          role: localUser.role,
+        };
+        
+        setAuthState(newAuthState);
+        localStorage.setItem('authState', JSON.stringify(newAuthState));
+        
+        setIsLoading(false);
+        return true;
+      }
+      
+      // Try Supabase-only auth if local auth failed
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        console.error("Supabase authentication error:", error);
+        setIsLoading(false);
+        return false;
+      }
+      
+      if (data.session) {
+        // Let the auth change event handle state updates
+        setIsLoading(false);
+        return true;
+      }
+      
+      setIsLoading(false);
+      return false;
+    } catch (error) {
+      console.error("Sign-in error:", error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  // Sign-up function
+  const signUp = async (email: string, password: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+      setIsLoading(false);
+    } catch (error: any) {
+      console.error("Sign-up error:", error);
+      setIsLoading(false);
+      throw new Error(error.message || "Failed to sign up");
+    }
+  };
+
+  // Logout function
+  const logout = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Clear local storage first
+      localStorage.removeItem('mockUser');
+      localStorage.removeItem('authState');
+      
+      // Then sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Update auth state explicitly
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        session: null,
+        role: null,
+      });
+      
+      setIsLoading(false);
+    } catch (error: any) {
+      console.error("Logout error:", error);
+      setIsLoading(false);
+      throw new Error(error.message || "Failed to log out");
+    }
+  };
+
+  // login function (alias for signIn)
+  const login = signIn;
+
+  // Provide the auth context value
   const value: AuthContextType = {
-    authState: state,
-    isAuthenticated: state.isAuthenticated,
-    user: state.user,
-    role: state.role,
-    isLoading: state.isLoading,
-    login,
+    authState,
+    isLoading,
+    user: authState.user,
+    signIn,
+    signUp,
     logout,
-    updateUser,
+    login,
+    refreshSession,
     refreshAuth,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // Simple loading spinner shown only during authentication operations
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yulu-blue"></div>
+      </div>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-export const useAuth = (): AuthContextType => {
+// Custom hook to use the auth context
+export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };

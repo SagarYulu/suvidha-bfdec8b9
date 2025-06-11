@@ -8,7 +8,7 @@ import {
   Tooltip
 } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { SENTIMENT_COLORS, hasData } from '@/components/charts/ChartUtils';
+import { SENTIMENT_COLORS, getSentimentColor, hasData } from '@/components/charts/ChartUtils';
 
 interface MobileSentimentPieChartProps {
   data: Array<{
@@ -16,17 +16,6 @@ interface MobileSentimentPieChartProps {
     value: number;
   }> | undefined;
 }
-
-const getSentimentColor = (sentiment: string): string => {
-  const normalizedSentiment = sentiment.toLowerCase();
-  if (normalizedSentiment.includes('happy') || normalizedSentiment.includes('positive')) {
-    return SENTIMENT_COLORS.happy;
-  }
-  if (normalizedSentiment.includes('sad') || normalizedSentiment.includes('negative')) {
-    return SENTIMENT_COLORS.sad;
-  }
-  return SENTIMENT_COLORS.neutral;
-};
 
 const MobileSentimentPieChart: React.FC<MobileSentimentPieChartProps> = ({ data }) => {
   // Safely check if data exists and has items

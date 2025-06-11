@@ -1,132 +1,162 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, memo } from 'react';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { ISSUE_TYPES } from "@/config/issueTypes";
+import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
+import { IssueFilters } from "@/services/issues/issueFilters";
 
-interface FilterBarProps {
-  onFilterChange: (filters: any) => void;
-  initialFilters?: any;
-}
+type FilterBarProps = {
+  onFilterChange: (filters: IssueFilters) => void;
+  initialFilters?: IssueFilters;
+};
 
-const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange, initialFilters = {} }) => {
-  const [filters, setFilters] = useState(initialFilters);
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-
+// Using memo to prevent unnecessary re-renders
+const FilterBar = memo(({ onFilterChange, initialFilters }: FilterBarProps) => {
+  // State to track dropdown values
+  const [city, setCity] = useState<string | null>(null);
+  const [cluster, setCluster] = useState<string | null>(null);
+  const [issueType, setIssueType] = useState<string | null>(null);
+  
+  // Sync component state with parent component filters
   useEffect(() => {
-    onFilterChange(filters);
-  }, [filters, onFilterChange]);
+    if (initialFilters) {
+      console.log("Updating FilterBar state with initialFilters:", initialFilters);
+      setCity(initialFilters.city);
+      setCluster(initialFilters.cluster);
+      setIssueType(initialFilters.issueType);
+    }
+  }, [initialFilters]);
+  
+  // Get available clusters based on selected city
+  const availableClusters = city && city !== "all" && CLUSTER_OPTIONS[city] 
+    ? CLUSTER_OPTIONS[city] 
+    : [];
 
-  const handleFilterChange = (key: string, value: any) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
+  // Handle city selection - immediately apply the filter
+  const handleCityChange = (value: string) => {
+    console.log("City changed to:", value);
+    const newCity = value === "all" ? null : value;
+    setCity(newCity);
+    
+    // Reset cluster when city changes
+    setCluster(null);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city: newCity,
+      cluster: null, // Reset cluster in filter when city changes
+      issueType // Maintain current issue type
+    });
   };
 
-  const clearFilters = () => {
-    setFilters({});
-    setDateRange({});
+  // Handle cluster selection - immediately apply the filter
+  const handleClusterChange = (value: string) => {
+    console.log("Cluster changed to:", value);
+    const newCluster = value === "all" ? null : value;
+    setCluster(newCluster);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city, // Maintain current city
+      cluster: newCluster,
+      issueType // Maintain current issue type
+    });
   };
 
-  const hasActiveFilters = Object.keys(filters).some(key => filters[key] && filters[key] !== '');
+  // Handle issue type selection - immediately apply the filter
+  const handleIssueTypeChange = (value: string) => {
+    console.log("Issue type changed to:", value);
+    const newIssueType = value === "all" ? null : value;
+    setIssueType(newIssueType);
+    
+    // Immediately apply the filter
+    onFilterChange({ 
+      city, // Maintain current city
+      cluster, // Maintain current cluster
+      issueType: newIssueType
+    });
+  };
+
+  // IMPORTANT: To fix the UI display of selected filters
+  // Get the appropriate select value to display, handling null values properly
+  const getSelectValue = (value: string | null): string => {
+    return value || "all";
+  };
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="flex gap-2">
-            <Select value={filters.city || ''} onValueChange={(value) => handleFilterChange('city', value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Select City" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Cities</SelectItem>
-                <SelectItem value="Mumbai">Mumbai</SelectItem>
-                <SelectItem value="Delhi">Delhi</SelectItem>
-                <SelectItem value="Bangalore">Bangalore</SelectItem>
-                <SelectItem value="Chennai">Chennai</SelectItem>
-                <SelectItem value="Kolkata">Kolkata</SelectItem>
-              </SelectContent>
-            </Select>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 border rounded-md bg-background">
+      <div>
+        <Label htmlFor="city-filter" className="mb-1 block">City</Label>
+        <Select
+          value={getSelectValue(city)}
+          onValueChange={handleCityChange}
+        >
+          <SelectTrigger id="city-filter">
+            <SelectValue placeholder="All Cities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Cities</SelectItem>
+            {CITY_OPTIONS.map((cityOption) => (
+              <SelectItem key={cityOption} value={cityOption}>
+                {cityOption}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            <Select value={filters.type || ''} onValueChange={(value) => handleFilterChange('type', value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Issue Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
-                <SelectItem value="salary">Salary</SelectItem>
-                <SelectItem value="leave">Leave</SelectItem>
-                <SelectItem value="infrastructure">Infrastructure</SelectItem>
-                <SelectItem value="policy">Policy</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+      <div>
+        <Label htmlFor="cluster-filter" className="mb-1 block">Cluster</Label>
+        <Select
+          value={getSelectValue(cluster)}
+          onValueChange={handleClusterChange}
+          disabled={!city || city === "all" || availableClusters.length === 0}
+        >
+          <SelectTrigger id="cluster-filter">
+            <SelectValue placeholder={city && city !== "all" ? "All Clusters" : "Select City First"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clusters</SelectItem>
+            {availableClusters.map((clusterOption) => (
+              <SelectItem key={clusterOption} value={clusterOption}>
+                {clusterOption}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            <Select value={filters.status || ''} onValueChange={(value) => handleFilterChange('status', value)}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="resolved">Resolved</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-40 justify-start text-left font-normal",
-                    !dateRange.from && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, "LLL dd")} - {format(dateRange.to, "LLL dd")}
-                      </>
-                    ) : (
-                      format(dateRange.from, "LLL dd, y")
-                    )
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="range"
-                  selected={dateRange}
-                  onSelect={(range) => {
-                    setDateRange(range || {});
-                    handleFilterChange('dateRange', range);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {hasActiveFilters && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <X className="h-4 w-4 mr-2" />
-              Clear Filters
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      <div>
+        <Label htmlFor="issue-type-filter" className="mb-1 block">Issue Type</Label>
+        <Select
+          value={getSelectValue(issueType)}
+          onValueChange={handleIssueTypeChange}
+        >
+          <SelectTrigger id="issue-type-filter">
+            <SelectValue placeholder="All Issue Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Issue Types</SelectItem>
+            {ISSUE_TYPES.map((type) => (
+              <SelectItem key={type.id} value={type.id}>
+                {type.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
-};
+});
+
+// Display name for debugging
+FilterBar.displayName = 'FilterBar';
 
 export default FilterBar;

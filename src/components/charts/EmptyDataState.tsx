@@ -1,27 +1,17 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
 
 interface EmptyDataStateProps {
-  message?: string;
-  description?: string;
-  icon?: React.ReactNode;
+  message: string;
+  subMessage?: string;
 }
 
-const EmptyDataState: React.FC<EmptyDataStateProps> = ({ 
-  message = "No data available", 
-  description = "There is no data to display at this time.",
-  icon
-}) => {
+export const EmptyDataState: React.FC<EmptyDataStateProps> = ({ message, subMessage }) => {
   return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-12">
-        {icon || <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />}
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{message}</h3>
-        <p className="text-sm text-gray-500 text-center max-w-sm">{description}</p>
-      </CardContent>
-    </Card>
+    <div className="text-center text-gray-500 py-8">
+      <p>{message}</p>
+      {subMessage && <p className="mt-2">{subMessage}</p>}
+    </div>
   );
 };
 
