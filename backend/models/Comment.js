@@ -10,8 +10,7 @@ class Comment {
     const commentId = uuidv4();
     
     const [result] = await pool.execute(
-      `INSERT INTO issue_comments 
-       (id, issue_id, user_id, content, created_at) 
+      `INSERT INTO comments (id, issue_id, user_id, content, created_at) 
        VALUES (?, ?, ?, ?, NOW())`,
       [commentId, issue_id, user_id, content]
     );
@@ -23,8 +22,8 @@ class Comment {
     const pool = getPool();
     const [rows] = await pool.execute(
       `SELECT c.*, u.full_name as user_name 
-       FROM issue_comments c
-       LEFT JOIN dashboard_users u ON c.user_id = u.id
+       FROM comments c 
+       LEFT JOIN dashboard_users u ON c.user_id = u.id 
        WHERE c.id = ?`,
       [id]
     );
@@ -32,43 +31,35 @@ class Comment {
     return rows[0] || null;
   }
 
-  static async findByIssueId(issueId, limit = 20, offset = 0) {
+  static async findByIssueId(issue_id) {
     const pool = getPool();
     const [rows] = await pool.execute(
       `SELECT c.*, u.full_name as user_name 
-       FROM issue_comments c
-       LEFT JOIN dashboard_users u ON c.user_id = u.id
+       FROM comments c 
+       LEFT JOIN dashboard_users u ON c.user_id = u.id 
        WHERE c.issue_id = ? 
-       ORDER BY c.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [issueId, limit, offset]
+       ORDER BY c.created_at ASC`,
+      [issue_id]
     );
     
     return rows;
   }
 
-  static async update(id, updates, userId) {
+  static async update(id, updates) {
     const pool = getPool();
     const { content } = updates;
     
     await pool.execute(
-      `UPDATE issue_comments 
-       SET content = ?, updated_at = NOW() 
-       WHERE id = ? AND user_id = ?`,
-      [content, id, userId]
+      'UPDATE comments SET content = ?, updated_at = NOW() WHERE id = ?',
+      [content, id]
     );
     
     return this.findById(id);
   }
 
-  static async delete(id, userId) {
+  static async delete(id) {
     const pool = getPool();
-    const [result] = await pool.execute(
-      'DELETE FROM issue_comments WHERE id = ? AND user_id = ?',
-      [id, userId]
-    );
-    
-    return result.affectedRows > 0;
+    await pool.execute('DELETE FROM comments WHERE id = ?', [id]);
   }
 }
 

@@ -1,16 +1,12 @@
 
 const Comment = require('../models/Comment');
-const NotificationService = require('../services/notificationService');
 const { HTTP_STATUS } = require('../config/constants');
 
 class CommentController {
   async getIssueComments(req, res) {
     try {
-      const { id } = req.params;
-      const { page = 1, limit = 20 } = req.query;
-      const offset = (page - 1) * limit;
-      
-      const comments = await Comment.findByIssueId(id, parseInt(limit), offset);
+      const { id } = req.params; // issue id
+      const comments = await Comment.findByIssueId(id);
       
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -18,10 +14,10 @@ class CommentController {
         data: comments
       });
     } catch (error) {
-      console.error('Get issue comments error:', error);
+      console.error('Get comments error:', error);
       res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        error: 'Failed to get comments',
+        error: 'Failed to retrieve comments',
         message: error.message
       });
     }
@@ -29,18 +25,15 @@ class CommentController {
 
   async addComment(req, res) {
     try {
-      const { id } = req.params;
+      const { id } = req.params; // issue id
       const { content } = req.body;
-      const userId = req.user.id;
+      const user_id = req.user.id;
       
       const comment = await Comment.create({
         issue_id: id,
-        user_id: userId,
+        user_id,
         content
       });
-      
-      // Create notification for comment
-      await NotificationService.notifyNewComment(id, comment.id, userId);
       
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
@@ -61,14 +54,30 @@ class CommentController {
     try {
       const { commentId } = req.params;
       const { content } = req.body;
-      const userId = req.user.id;
+      const user_id = req.user.id;
       
-      const comment = await Comment.update(commentId, { content }, userId);
+      const comment = await Comment.findById(commentId);
+      if (!comment) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Comment not found'
+        });
+      }
+      
+      // Check if user owns the comment or is admin
+      if (comment.user_id !== user_id && req.user.role !== 'admin') {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          error: 'Not authorized to update this comment'
+        });
+      }
+      
+      const updatedComment = await Comment.update(commentId, { content });
       
       res.status(HTTP_STATUS.OK).json({
         success: true,
         message: 'Comment updated successfully',
-        data: comment
+        data: updatedComment
       });
     } catch (error) {
       console.error('Update comment error:', error);
@@ -83,9 +92,25 @@ class CommentController {
   async deleteComment(req, res) {
     try {
       const { commentId } = req.params;
-      const userId = req.user.id;
+      const user_id = req.user.id;
       
-      await Comment.delete(commentId, userId);
+      const comment = await Comment.findById(commentId);
+      if (!comment) {
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          success: false,
+          error: 'Comment not found'
+        });
+      }
+      
+      // Check if user owns the comment or is admin
+      if (comment.user_id !== user_id && req.user.role !== 'admin') {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          error: 'Not authorized to delete this comment'
+        });
+      }
+      
+      await Comment.delete(commentId);
       
       res.status(HTTP_STATUS.OK).json({
         success: true,

@@ -7,6 +7,8 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import Login from '@/pages/admin/Login';
 import Dashboard from '@/pages/admin/Dashboard';
 import Issues from '@/pages/admin/Issues';
+import Employees from '@/pages/admin/Employees';
+import Analytics from '@/pages/admin/Analytics';
 import { Toaster } from '@/components/ui/toaster';
 
 const queryClient = new QueryClient({
@@ -35,8 +37,8 @@ function App() {
               <Route path="/admin" element={<AdminLayout />}>
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="issues" element={<Issues />} />
-                <Route path="employees" element={<div>Employees Page (Coming Soon)</div>} />
-                <Route path="analytics" element={<div>Analytics Page (Coming Soon)</div>} />
+                <Route path="employees" element={<Employees />} />
+                <Route path="analytics" element={<Analytics />} />
                 <Route path="bulk-upload" element={<div>Bulk Upload Page (Coming Soon)</div>} />
                 <Route path="feedback" element={<div>Feedback Page (Coming Soon)</div>} />
                 <Route path="reports" element={<div>Reports Page (Coming Soon)</div>} />
