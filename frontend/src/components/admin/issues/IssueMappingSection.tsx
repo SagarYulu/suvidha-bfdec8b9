@@ -3,150 +3,123 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Save, RotateCcw } from 'lucide-react';
-import { ISSUE_TYPES } from '@/config/issueTypes';
+import { ArrowRight, Save, RotateCcw, Info } from 'lucide-react';
 
 interface IssueMappingSectionProps {
   issueId: string;
-  currentTypeId: string;
-  currentSubTypeId: string;
-  mappedTypeId?: string;
-  mappedSubTypeId?: string;
+  originalType: string;
+  originalSubType: string;
+  mappedType?: string;
+  mappedSubType?: string;
   onSaveMapping: (typeId: string, subTypeId: string) => void;
-  canEdit?: boolean;
-  isLoading?: boolean;
+  availableTypes: Array<{ id: string; label: string; subTypes: Array<{ id: string; label: string }> }>;
 }
 
 const IssueMappingSection: React.FC<IssueMappingSectionProps> = ({
   issueId,
-  currentTypeId,
-  currentSubTypeId,
-  mappedTypeId,
-  mappedSubTypeId,
+  originalType,
+  originalSubType,
+  mappedType,
+  mappedSubType,
   onSaveMapping,
-  canEdit = false,
-  isLoading = false
+  availableTypes
 }) => {
-  const [selectedTypeId, setSelectedTypeId] = useState(mappedTypeId || currentTypeId);
-  const [selectedSubTypeId, setSelectedSubTypeId] = useState(mappedSubTypeId || currentSubTypeId);
+  const [selectedType, setSelectedType] = useState(mappedType || '');
+  const [selectedSubType, setSelectedSubType] = useState(mappedSubType || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  const getCurrentTypeLabel = () => {
-    const type = ISSUE_TYPES.find(t => t.id === currentTypeId);
-    return type ? type.label : currentTypeId;
-  };
+  const selectedTypeData = availableTypes.find(type => type.id === selectedType);
+  const hasChanges = selectedType !== mappedType || selectedSubType !== mappedSubType;
+  const isMapped = Boolean(mappedType && mappedSubType);
 
-  const getCurrentSubTypeLabel = () => {
-    const type = ISSUE_TYPES.find(t => t.id === currentTypeId);
-    if (!type) return currentSubTypeId;
-    const subType = type.subTypes.find(st => st.id === currentSubTypeId);
-    return subType ? subType.label : currentSubTypeId;
-  };
-
-  const getSelectedTypeLabel = () => {
-    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
-    return type ? type.label : selectedTypeId;
-  };
-
-  const getSelectedSubTypeLabel = () => {
-    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
-    if (!type) return selectedSubTypeId;
-    const subType = type.subTypes.find(st => st.id === selectedSubTypeId);
-    return subType ? subType.label : selectedSubTypeId;
-  };
-
-  const getSubTypesForSelectedType = () => {
-    const type = ISSUE_TYPES.find(t => t.id === selectedTypeId);
-    return type ? type.subTypes : [];
-  };
-
-  const handleSave = async () => {
-    if (!canEdit || isSaving) return;
+  const handleSaveMapping = async () => {
+    if (!selectedType || !selectedSubType) return;
 
     setIsSaving(true);
     try {
-      await onSaveMapping(selectedTypeId, selectedSubTypeId);
+      await onSaveMapping(selectedType, selectedSubType);
+    } catch (error) {
+      console.error('Failed to save mapping:', error);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleReset = () => {
-    setSelectedTypeId(currentTypeId);
-    setSelectedSubTypeId(currentSubTypeId);
+    setSelectedType(mappedType || '');
+    setSelectedSubType(mappedSubType || '');
   };
 
-  const hasChanges = selectedTypeId !== (mappedTypeId || currentTypeId) || 
-                    selectedSubTypeId !== (mappedSubTypeId || currentSubTypeId);
+  const getOriginalTypeLabel = (typeId: string) => {
+    const type = availableTypes.find(t => t.id === typeId);
+    return type?.label || typeId;
+  };
+
+  const getOriginalSubTypeLabel = (typeId: string, subTypeId: string) => {
+    const type = availableTypes.find(t => t.id === typeId);
+    const subType = type?.subTypes.find(st => st.id === subTypeId);
+    return subType?.label || subTypeId;
+  };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MapPin className="h-5 w-5" />
+          <ArrowRight className="h-5 w-5" />
           Issue Type Mapping
+          {isMapped && <Badge variant="secondary">Mapped</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Original Classification */}
-        <div>
-          <h4 className="font-medium mb-2">Original Classification</h4>
-          <div className="flex gap-2">
-            <Badge variant="outline">{getCurrentTypeLabel()}</Badge>
-            <Badge variant="outline">{getCurrentSubTypeLabel()}</Badge>
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Map the original issue type to a standardized category for better analytics and reporting.
+          </AlertDescription>
+        </Alert>
+
+        {/* Original Type Display */}
+        <div className="bg-gray-50 p-3 rounded-lg">
+          <h4 className="font-medium mb-2">Original Issue Type</h4>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">{getOriginalTypeLabel(originalType)}</Badge>
+            <ArrowRight className="h-3 w-3 text-gray-400" />
+            <Badge variant="outline">{getOriginalSubTypeLabel(originalType, originalSubType)}</Badge>
           </div>
         </div>
 
-        {/* Current/Mapped Classification */}
-        {(mappedTypeId || mappedSubTypeId) && (
+        {/* Mapping Controls */}
+        <div className="space-y-3">
           <div>
-            <h4 className="font-medium mb-2">Current Classification</h4>
-            <div className="flex gap-2">
-              <Badge className="bg-blue-100 text-blue-800">
-                {getSelectedTypeLabel()}
-              </Badge>
-              <Badge className="bg-blue-100 text-blue-800">
-                {getSelectedSubTypeLabel()}
-              </Badge>
-            </div>
+            <label className="text-sm font-medium mb-2 block">Map to Standard Type</label>
+            <Select value={selectedType} onValueChange={(value) => {
+              setSelectedType(value);
+              setSelectedSubType(''); // Reset subtype when type changes
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select standard type" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTypes.map((type) => (
+                  <SelectItem key={type.id} value={type.id}>
+                    {type.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        )}
 
-        {canEdit && (
-          <div className="space-y-4 pt-4 border-t">
-            <h4 className="font-medium">Update Classification</h4>
-            
-            {/* Type Selection */}
+          {selectedType && selectedTypeData && (
             <div>
-              <label className="text-sm font-medium mb-2 block">Issue Type</label>
-              <Select value={selectedTypeId} onValueChange={setSelectedTypeId}>
+              <label className="text-sm font-medium mb-2 block">Map to Standard Sub-Type</label>
+              <Select value={selectedSubType} onValueChange={setSelectedSubType}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select standard sub-type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ISSUE_TYPES.map(type => (
-                    <SelectItem key={type.id} value={type.id}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sub Type Selection */}
-            <div>
-              <label className="text-sm font-medium mb-2 block">Issue Sub Type</label>
-              <Select 
-                value={selectedSubTypeId} 
-                onValueChange={setSelectedSubTypeId}
-                disabled={!selectedTypeId}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {getSubTypesForSelectedType().map(subType => (
+                  {selectedTypeData.subTypes.map((subType) => (
                     <SelectItem key={subType.id} value={subType.id}>
                       {subType.label}
                     </SelectItem>
@@ -154,28 +127,50 @@ const IssueMappingSection: React.FC<IssueMappingSectionProps> = ({
                 </SelectContent>
               </Select>
             </div>
+          )}
+        </div>
 
-            {/* Action Buttons */}
-            <div className="flex gap-2 pt-2">
-              <Button 
-                onClick={handleSave}
-                disabled={!hasChanges || isSaving || isLoading}
-                size="sm"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Mapping'}
-              </Button>
-              
-              <Button 
-                variant="outline"
-                onClick={handleReset}
-                disabled={!hasChanges || isSaving}
-                size="sm"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Reset
-              </Button>
+        {/* Mapping Preview */}
+        {selectedType && selectedSubType && (
+          <div className="bg-green-50 p-3 rounded-lg border-green-200 border">
+            <h4 className="font-medium mb-2 text-green-800">Mapping Preview</h4>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-green-100 text-green-800">
+                {selectedTypeData?.label}
+              </Badge>
+              <ArrowRight className="h-3 w-3 text-green-600" />
+              <Badge className="bg-green-100 text-green-800">
+                {selectedTypeData?.subTypes.find(st => st.id === selectedSubType)?.label}
+              </Badge>
             </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleSaveMapping}
+            disabled={!selectedType || !selectedSubType || !hasChanges || isSaving}
+            className="flex-1"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isSaving ? 'Saving...' : 'Save Mapping'}
+          </Button>
+          
+          {hasChanges && (
+            <Button variant="outline" onClick={handleReset}>
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          )}
+        </div>
+
+        {/* Current Mapping Status */}
+        {isMapped && (
+          <div className="text-sm text-gray-600">
+            <p>
+              Currently mapped to: <strong>{getOriginalTypeLabel(mappedType!)}</strong> → <strong>{getOriginalSubTypeLabel(mappedType!, mappedSubType!)}</strong>
+            </p>
           </div>
         )}
       </CardContent>

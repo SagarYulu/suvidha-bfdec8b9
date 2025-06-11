@@ -1,104 +1,106 @@
 
 import React from 'react';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 interface SunburstData {
   name: string;
   value: number;
   children?: SunburstData[];
-  fill?: string;
+  color?: string;
 }
 
 interface SunburstChartProps {
   data: SunburstData[];
-  width?: number;
-  height?: number;
+  title?: string;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const SunburstChart: React.FC<SunburstChartProps> = ({ data, title = "Feedback Distribution" }) => {
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
 
-const SunburstChart: React.FC<SunburstChartProps> = ({ 
-  data, 
-  width = 400, 
-  height = 400 
-}) => {
-  // Flatten the hierarchical data for the chart
-  const flattenData = (items: SunburstData[], level = 0): any[] => {
-    let result: any[] = [];
-    
-    items.forEach((item, index) => {
-      result.push({
-        ...item,
-        fill: COLORS[index % COLORS.length],
-        level
-      });
-      
-      if (item.children) {
-        result = result.concat(flattenData(item.children, level + 1));
-      }
-    });
-    
-    return result;
-  };
-
-  const flatData = flattenData(data);
-  const innerData = flatData.filter(item => item.level === 0);
-  const outerData = flatData.filter(item => item.level === 1);
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+  const renderCustomTooltip = (props: any) => {
+    if (props.active && props.payload && props.payload.length) {
+      const data = props.payload[0].payload;
       return (
-        <div className="bg-white p-3 border rounded shadow-lg">
+        <div className="bg-white p-3 border rounded-lg shadow-lg">
           <p className="font-medium">{data.name}</p>
-          <p className="text-blue-600">Value: {data.value}</p>
+          <p className="text-sm text-gray-600">Count: {data.value}</p>
+          <p className="text-sm text-gray-600">
+            Percentage: {((data.value / data.total) * 100).toFixed(1)}%
+          </p>
         </div>
       );
     }
     return null;
   };
 
+  // Calculate totals for percentage calculation
+  const dataWithTotals = data.map(item => ({
+    ...item,
+    total: data.reduce((sum, d) => sum + d.value, 0)
+  }));
+
   return (
-    <div className="w-full h-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          {/* Inner ring */}
-          <Pie
-            data={innerData}
-            cx="50%"
-            cy="50%"
-            innerRadius={40}
-            outerRadius={80}
-            paddingAngle={2}
-            dataKey="value"
-          >
-            {innerData.map((entry, index) => (
-              <Cell key={`inner-cell-${index}`} fill={entry.fill} />
-            ))}
-          </Pie>
-          
-          {/* Outer ring */}
-          {outerData.length > 0 && (
-            <Pie
-              data={outerData}
-              cx="50%"
-              cy="50%"
-              innerRadius={90}
-              outerRadius={120}
-              paddingAngle={1}
-              dataKey="value"
-            >
-              {outerData.map((entry, index) => (
-                <Cell key={`outer-cell-${index}`} fill={entry.fill} opacity={0.7} />
-              ))}
-            </Pie>
-          )}
-          
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-96">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              {/* Outer ring */}
+              <Pie
+                data={dataWithTotals}
+                cx="50%"
+                cy="50%"
+                outerRadius={120}
+                innerRadius={60}
+                paddingAngle={2}
+                dataKey="value"
+              >
+                {dataWithTotals.map((entry, index) => (
+                  <Cell key={`outer-cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              
+              {/* Inner ring for subcategories if available */}
+              {data.some(item => item.children) && (
+                <Pie
+                  data={data.flatMap(item => item.children || [])}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={60}
+                  innerRadius={20}
+                  paddingAngle={1}
+                  dataKey="value"
+                >
+                  {data.flatMap(item => item.children || []).map((entry, index) => (
+                    <Cell key={`inner-cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} opacity={0.7} />
+                  ))}
+                </Pie>
+              )}
+              
+              <Tooltip content={renderCustomTooltip} />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* Legend */}
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          {dataWithTotals.map((item, index) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }}
+              />
+              <span className="text-sm">{item.name}: {item.value}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

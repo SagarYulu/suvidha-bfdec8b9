@@ -1,67 +1,110 @@
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Mail, Phone, User } from "lucide-react";
-import { User as UserType } from "@/types";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { User, Mail, Phone, MapPin, Building, Calendar } from 'lucide-react';
 
-interface EmployeeInformationProps {
-  employee: UserType | null;
+interface Employee {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  cluster?: string;
+  role?: string;
+  employeeId?: string;
+  dateOfJoining?: string;
 }
 
-const EmployeeInformation = ({ employee }: EmployeeInformationProps) => {
+interface EmployeeInformationProps {
+  employee: Employee;
+}
+
+const EmployeeInformation: React.FC<EmployeeInformationProps> = ({ employee }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Employee Information</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Employee Information
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        {employee ? (
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl">
-                {employee.name.charAt(0)}
+            <div className="flex items-center gap-3">
+              <User className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium">Name</p>
+                <p className="text-sm text-gray-600">{employee.name}</p>
               </div>
             </div>
             
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <User className="h-4 w-4 mr-2 text-gray-500" />
-                <span>{employee.name}</span>
-              </div>
-              <div className="flex items-center">
-                <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                <span>{employee.email}</span>
-              </div>
-              <div className="flex items-center">
-                <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                <span>{employee.phone}</span>
+            <div className="flex items-center gap-3">
+              <Mail className="h-4 w-4 text-gray-500" />
+              <div>
+                <p className="text-sm font-medium">Email</p>
+                <p className="text-sm text-gray-600">{employee.email}</p>
               </div>
             </div>
             
-            <Separator />
-            
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <p className="text-sm text-gray-500">Employee ID</p>
-                <p className="font-medium">{employee.employeeId}</p>
+            {employee.phone && (
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium">Phone</p>
+                  <p className="text-sm text-gray-600">{employee.phone}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">City</p>
-                <p className="font-medium">{employee.city}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Cluster</p>
-                <p className="font-medium">{employee.cluster}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Manager</p>
-                <p className="font-medium">{employee.manager || "N/A"}</p>
-              </div>
-            </div>
+            )}
           </div>
-        ) : (
-          <p className="text-gray-500">Employee information not available</p>
-        )}
+          
+          <div className="space-y-3">
+            {employee.employeeId && (
+              <div className="flex items-center gap-3">
+                <Badge variant="outline">ID: {employee.employeeId}</Badge>
+              </div>
+            )}
+            
+            {employee.city && (
+              <div className="flex items-center gap-3">
+                <MapPin className="h-4 w-4 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium">City</p>
+                  <p className="text-sm text-gray-600">{employee.city}</p>
+                </div>
+              </div>
+            )}
+            
+            {employee.cluster && (
+              <div className="flex items-center gap-3">
+                <Building className="h-4 w-4 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium">Cluster</p>
+                  <p className="text-sm text-gray-600">{employee.cluster}</p>
+                </div>
+              </div>
+            )}
+            
+            {employee.role && (
+              <div className="flex items-center gap-3">
+                <Badge variant="secondary">{employee.role}</Badge>
+              </div>
+            )}
+            
+            {employee.dateOfJoining && (
+              <div className="flex items-center gap-3">
+                <Calendar className="h-4 w-4 text-gray-500" />
+                <div>
+                  <p className="text-sm font-medium">Date of Joining</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(employee.dateOfJoining).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

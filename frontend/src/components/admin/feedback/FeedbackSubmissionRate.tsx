@@ -1,149 +1,84 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Calendar, Users, TrendingUp } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TrendingUp, Users, FileText } from 'lucide-react';
 
 interface SubmissionData {
   date: string;
   submissions: number;
-  target: number;
-  activeUsers: number;
+  totalTickets: number;
+  rate: number;
 }
 
 interface FeedbackSubmissionRateProps {
   data: SubmissionData[];
-  isLoading?: boolean;
+  totalSubmissions: number;
+  totalTickets: number;
+  averageRate: number;
 }
 
 const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
   data,
-  isLoading = false
+  totalSubmissions,
+  totalTickets,
+  averageRate
 }) => {
-  const calculateMetrics = () => {
-    if (!data || data.length === 0) return null;
-
-    const totalSubmissions = data.reduce((sum, item) => sum + item.submissions, 0);
-    const totalTarget = data.reduce((sum, item) => sum + item.target, 0);
-    const averageActiveUsers = data.reduce((sum, item) => sum + item.activeUsers, 0) / data.length;
-    const achievementRate = totalTarget > 0 ? (totalSubmissions / totalTarget) * 100 : 0;
-
-    return {
-      totalSubmissions,
-      totalTarget,
-      averageActiveUsers: Math.round(averageActiveUsers),
-      achievementRate
-    };
-  };
-
-  const metrics = calculateMetrics();
-
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Feedback Submission Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Feedback Submission Rate</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center text-gray-500 py-8">
-            No submission data available
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calendar className="h-5 w-5" />
-          Feedback Submission Rate
-        </CardTitle>
+        <CardTitle>Feedback Submission Rate</CardTitle>
       </CardHeader>
       <CardContent>
-        {/* Metrics Summary */}
-        {metrics && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{metrics.totalSubmissions}</div>
-              <div className="text-sm text-gray-600">Total Submissions</div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <FileText className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium">Total Submissions</span>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{metrics.totalTarget}</div>
-              <div className="text-sm text-gray-600">Target</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{metrics.averageActiveUsers}</div>
-              <div className="text-sm text-gray-600">Avg Active Users</div>
-            </div>
-            <div className="text-center">
-              <div className={`text-2xl font-bold ${metrics.achievementRate >= 100 ? 'text-green-600' : 'text-orange-600'}`}>
-                {metrics.achievementRate.toFixed(1)}%
-              </div>
-              <div className="text-sm text-gray-600">Achievement Rate</div>
-            </div>
+            <p className="text-2xl font-bold text-blue-600">{totalSubmissions}</p>
           </div>
-        )}
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium">Total Tickets</span>
+            </div>
+            <p className="text-2xl font-bold text-gray-600">{totalTickets}</p>
+          </div>
+          
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium">Average Rate</span>
+            </div>
+            <p className="text-2xl font-bold text-green-600">{averageRate}%</p>
+          </div>
+        </div>
 
-        {/* Chart */}
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="date" 
+                tick={{ fontSize: 12 }}
                 tickFormatter={(value) => new Date(value).toLocaleDateString()}
               />
-              <YAxis yAxisId="submissions" orientation="left" />
-              <YAxis yAxisId="users" orientation="right" />
-              <Tooltip 
-                labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                formatter={(value, name) => [
-                  value,
-                  name === 'submissions' ? 'Submissions' :
-                  name === 'target' ? 'Target' :
-                  'Active Users'
-                ]}
+              <YAxis 
+                tick={{ fontSize: 12 }}
+                tickFormatter={(value) => `${value}%`}
               />
-              <Legend />
+              <Tooltip
+                labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                formatter={(value: number) => [`${value}%`, 'Submission Rate']}
+              />
               <Line 
-                yAxisId="submissions"
                 type="monotone" 
-                dataKey="submissions" 
+                dataKey="rate" 
                 stroke="#2563eb" 
                 strokeWidth={2}
-                name="Submissions"
-              />
-              <Line 
-                yAxisId="submissions"
-                type="monotone" 
-                dataKey="target" 
-                stroke="#dc2626" 
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                name="Target"
-              />
-              <Line 
-                yAxisId="users"
-                type="monotone" 
-                dataKey="activeUsers" 
-                stroke="#7c3aed" 
-                strokeWidth={2}
-                name="Active Users"
+                dot={{ fill: '#2563eb', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>

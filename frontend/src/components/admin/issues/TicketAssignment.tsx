@@ -3,57 +3,52 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { User, Save, UserCheck } from 'lucide-react';
-
-interface Agent {
-  id: string;
-  name: string;
-  email: string;
-  workload: number;
-  isAvailable: boolean;
-}
+import { User, UserCheck, Clock, AlertCircle } from 'lucide-react';
 
 interface TicketAssignmentProps {
   issueId: string;
   currentAssignee?: string;
-  agents: Agent[];
-  onAssign: (agentId: string) => void;
-  canAssign?: boolean;
-  isLoading?: boolean;
+  availableAgents: Array<{ id: string; name: string; workload: number; isAvailable: boolean }>;
+  onAssign: (agentId: string, notes?: string) => void;
 }
 
 const TicketAssignment: React.FC<TicketAssignmentProps> = ({
   issueId,
   currentAssignee,
-  agents,
-  onAssign,
-  canAssign = false,
-  isLoading = false
+  availableAgents,
+  onAssign
 }) => {
-  const [selectedAgent, setSelectedAgent] = useState<string>(currentAssignee || '');
+  const [selectedAgent, setSelectedAgent] = useState('');
+  const [assignmentNotes, setAssignmentNotes] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
 
   const handleAssign = async () => {
-    if (!selectedAgent || isAssigning) return;
+    if (!selectedAgent) return;
 
     setIsAssigning(true);
     try {
-      await onAssign(selectedAgent);
+      await onAssign(selectedAgent, assignmentNotes);
+      setSelectedAgent('');
+      setAssignmentNotes('');
+    } catch (error) {
+      console.error('Assignment failed:', error);
     } finally {
       setIsAssigning(false);
     }
   };
 
-  const getCurrentAssignee = () => {
-    return agents.find(agent => agent.id === currentAssignee);
+  const getWorkloadColor = (workload: number) => {
+    if (workload <= 3) return 'text-green-600';
+    if (workload <= 7) return 'text-yellow-600';
+    return 'text-red-600';
   };
 
-  const getWorkloadColor = (workload: number) => {
-    if (workload >= 10) return 'text-red-600';
-    if (workload >= 7) return 'text-orange-600';
-    if (workload >= 4) return 'text-yellow-600';
-    return 'text-green-600';
+  const getWorkloadLabel = (workload: number) => {
+    if (workload <= 3) return 'Low';
+    if (workload <= 7) return 'Medium';
+    return 'High';
   };
 
   return (
@@ -66,84 +61,129 @@ const TicketAssignment: React.FC<TicketAssignmentProps> = ({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Current Assignment */}
-        {currentAssignee ? (
-          <div>
-            <h4 className="font-medium mb-2">Currently Assigned To</h4>
-            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center text-sm">
-                {getCurrentAssignee()?.name.charAt(0) || 'A'}
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{getCurrentAssignee()?.name || currentAssignee}</p>
-                <p className="text-xs text-gray-600">{getCurrentAssignee()?.email}</p>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                <UserCheck className="h-3 w-3 mr-1" />
-                Assigned
-              </Badge>
+        {currentAssignee && (
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-blue-600" />
+              <span className="text-sm font-medium">Currently assigned to:</span>
+              <Badge variant="secondary">{currentAssignee}</Badge>
             </div>
-          </div>
-        ) : (
-          <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
-            <p className="text-sm text-orange-800 font-medium">Unassigned</p>
-            <p className="text-xs text-orange-600">This ticket needs to be assigned to an agent</p>
           </div>
         )}
 
-        {canAssign && (
-          <div className="space-y-4 pt-4 border-t">
-            <h4 className="font-medium">
-              {currentAssignee ? 'Reassign Ticket' : 'Assign Ticket'}
-            </h4>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Select Agent</label>
-              <Select value={selectedAgent} onValueChange={setSelectedAgent}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose an agent..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents.map(agent => (
-                    <SelectItem key={agent.id} value={agent.id} disabled={!agent.isAvailable}>
-                      <div className="flex items-center justify-between w-full">
-                        <div>
-                          <p className="font-medium">{agent.name}</p>
-                          <p className="text-xs text-gray-600">{agent.email}</p>
-                        </div>
-                        <div className="flex items-center gap-2 ml-4">
-                          <span className={`text-xs ${getWorkloadColor(agent.workload)}`}>
-                            {agent.workload} tickets
-                          </span>
-                          {!agent.isAvailable && (
-                            <Badge variant="outline" className="text-xs">
-                              Unavailable
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Agent Selection */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Assign to Agent</label>
+          <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select an agent" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableAgents.map((agent) => (
+                <SelectItem 
+                  key={agent.id} 
+                  value={agent.id}
+                  disabled={!agent.isAvailable}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <span>{agent.name}</span>
+                      {!agent.isAvailable && (
+                        <Badge variant="destructive" className="text-xs">
+                          Unavailable
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span className={`text-xs ${getWorkloadColor(agent.workload)}`}>
+                        {agent.workload} tickets ({getWorkloadLabel(agent.workload)})
+                      </span>
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
 
+        {/* Selected Agent Info */}
+        {selectedAgent && (
+          <div className="bg-gray-50 p-3 rounded-lg">
+            {(() => {
+              const agent = availableAgents.find(a => a.id === selectedAgent);
+              if (!agent) return null;
+              
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{agent.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-sm ${getWorkloadColor(agent.workload)}`}>
+                        Current workload: {agent.workload} tickets
+                      </span>
+                    </div>
+                  </div>
+                  {agent.workload >= 8 && (
+                    <div className="flex items-center gap-2 text-red-600 text-sm">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>High workload - consider redistributing tickets</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Assignment Notes */}
+        <div>
+          <label className="text-sm font-medium mb-2 block">Assignment Notes (Optional)</label>
+          <Textarea
+            placeholder="Add any notes for the assigned agent..."
+            value={assignmentNotes}
+            onChange={(e) => setAssignmentNotes(e.target.value)}
+            className="min-h-[80px]"
+          />
+        </div>
+
+        {/* Assignment Actions */}
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleAssign}
+            disabled={!selectedAgent || isAssigning}
+            className="flex-1"
+          >
+            <User className="h-4 w-4 mr-2" />
+            {isAssigning ? 'Assigning...' : 'Assign Ticket'}
+          </Button>
+          
+          {currentAssignee && (
             <Button 
-              onClick={handleAssign}
-              disabled={!selectedAgent || selectedAgent === currentAssignee || isAssigning || isLoading}
-              className="w-full"
+              variant="outline" 
+              onClick={() => onAssign('', 'Ticket unassigned')}
+              disabled={isAssigning}
             >
-              <Save className="h-4 w-4 mr-2" />
-              {isAssigning ? 'Assigning...' : 
-               currentAssignee ? 'Reassign Ticket' : 'Assign Ticket'}
+              Unassign
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
-        {isLoading && (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-2 text-center text-xs text-gray-600 border-t pt-3">
+          <div>
+            <p className="font-medium">{availableAgents.filter(a => a.isAvailable).length}</p>
+            <p>Available</p>
           </div>
-        )}
+          <div>
+            <p className="font-medium">{availableAgents.filter(a => a.workload <= 3).length}</p>
+            <p>Low Load</p>
+          </div>
+          <div>
+            <p className="font-medium">{availableAgents.filter(a => a.workload >= 8).length}</p>
+            <p>High Load</p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
