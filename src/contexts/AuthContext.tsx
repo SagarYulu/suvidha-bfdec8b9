@@ -1,6 +1,8 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { authService } from '@/services/api/authService';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { login as authServiceLogin } from '@/services/authService';
 
 // Define the AuthContext type
 interface AuthContextType {
@@ -11,7 +13,7 @@ interface AuthContextType {
       email: string;
       name: string;
     } | null;
-    session: any | null;
+    session: Session | null;
     role: string | null;
   };
   isLoading: boolean;
@@ -70,52 +72,81 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Refreshing auth session...");
       setIsLoading(true);
       
-      // Check for stored auth token first
-      const savedAuthState = localStorage.getItem('authState');
-      if (savedAuthState) {
+      // Check for mock user first
+      const mockUserStr = localStorage.getItem('mockUser');
+      if (mockUserStr) {
         try {
-          const parsed = JSON.parse(savedAuthState);
-          if (parsed && parsed.token) {
-            // Try to get current user with the stored token
-            try {
-              const user = await authService.getCurrentUser();
-              const newAuthState = {
-                isAuthenticated: true,
-                user: {
-                  id: user.id,
-                  email: user.email,
-                  name: user.name,
-                },
-                session: { token: parsed.token },
-                role: user.role,
-              };
-              
-              setAuthState(newAuthState);
-              localStorage.setItem('authState', JSON.stringify(newAuthState));
-              setIsLoading(false);
-              refreshInProgress.current = false;
-              return;
-            } catch (error) {
-              console.log("Token validation failed, clearing auth state");
-              localStorage.removeItem('authState');
-            }
+          const mockUser = JSON.parse(mockUserStr);
+          if (mockUser && mockUser.email) {
+            const newAuthState = {
+              isAuthenticated: true,
+              user: {
+                id: mockUser.id || `mock-${Date.now()}`,
+                email: mockUser.email,
+                name: mockUser.name || mockUser.email.split('@')[0],
+              },
+              session: null,
+              role: mockUser.role || 'user',
+            };
+            
+            setAuthState(newAuthState);
+            localStorage.setItem('authState', JSON.stringify(newAuthState));
+            setIsLoading(false);
+            refreshInProgress.current = false;
+            return;
           }
         } catch (e) {
-          console.error("Error parsing saved auth state:", e);
-          localStorage.removeItem('authState');
+          console.error("Error parsing mock user:", e);
+          localStorage.removeItem('mockUser');
         }
       }
 
-      // No valid session found
-      const newAuthState = {
-        isAuthenticated: false,
-        user: null,
-        session: null,
-        role: null,
-      };
+      // If no mock user, check Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
       
-      setAuthState(newAuthState);
-      localStorage.removeItem('authState');
+      if (session) {
+        const { user } = session;
+        let userRole: string | null = null;
+        
+        try {
+          const { data: dashboardUser } = await supabase
+            .from('dashboard_users')
+            .select('*')
+            .eq('email', user.email)
+            .single();
+          
+          if (dashboardUser) {
+            userRole = dashboardUser.role || null;
+          }
+        } catch (error) {
+          console.error("Error fetching user details:", error);
+        }
+
+        const newAuthState = {
+          isAuthenticated: true,
+          user: {
+            id: user.id,
+            email: user.email || '',
+            name: user.email?.split('@')[0] || 'Unnamed User',
+          },
+          session: session,
+          role: userRole,
+        };
+        
+        setAuthState(newAuthState);
+        localStorage.setItem('authState', JSON.stringify(newAuthState));
+      } else {
+        // No session found
+        const newAuthState = {
+          isAuthenticated: false,
+          user: null,
+          session: null,
+          role: null,
+        };
+        
+        setAuthState(newAuthState);
+        localStorage.removeItem('authState');
+      }
     } catch (error) {
       console.error("Error refreshing session:", error);
       setAuthState({
@@ -134,15 +165,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Alias for refreshSession
   const refreshAuth = refreshSession;
 
-  // Set up auth check only once on mount
+  // Set up auth change listener only once on mount
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
     
-    console.log("Setting up auth initialization...");
+    console.log("Setting up auth change listener...");
     
+    // Set up listener for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log(`Auth state changed: ${event}`);
+      
+      // Handle only significant auth events to prevent loops
+      if (['SIGNED_IN', 'SIGNED_OUT', 'TOKEN_REFRESHED', 'USER_UPDATED'].includes(event)) {
+        // Use timeout to debounce multiple rapid auth change events
+        setTimeout(() => {
+          // Only refresh if not recently refreshed
+          if (Date.now() - lastRefreshTime.current > 5000) {
+            refreshSession();
+          }
+        }, 100);
+      }
+    });
+
     // Initial session check only once at startup
     refreshSession();
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [refreshSession]);
 
   // Sign-in function
@@ -150,32 +201,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      console.log("Attempting login with backend API...");
-      const response = await authService.login({ email, password });
+      // Try local authentication first
+      const localUser = await authServiceLogin(email, password);
       
-      if (response && response.user && response.token) {
-        // Store token and user data
+      if (localUser) {
+        // Local auth success
+        try {
+          // Also try Supabase auth but don't fail if it doesn't work
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          }).catch(error => {
+            console.log("Supabase auth failed, using local auth:", error);
+          });
+        } catch (error) {
+          console.log("Supabase auth error:", error);
+        }
+        
+        // Store mock user for session persistence
+        localStorage.setItem('mockUser', JSON.stringify({
+          id: localUser.id,
+          email: localUser.email,
+          name: localUser.name,
+          role: localUser.role
+        }));
+        
+        // Update auth state directly
         const newAuthState = {
           isAuthenticated: true,
           user: {
-            id: response.user.id,
-            email: response.user.email,
-            name: response.user.name,
+            id: localUser.id,
+            email: localUser.email,
+            name: localUser.name,
           },
-          session: { token: response.token },
-          role: response.user.role,
-          token: response.token, // Also store token at root level for compatibility
+          session: null,
+          role: localUser.role,
         };
         
         setAuthState(newAuthState);
         localStorage.setItem('authState', JSON.stringify(newAuthState));
         
-        console.log("Login successful");
         setIsLoading(false);
         return true;
       }
       
-      console.log("Login failed - no valid response");
+      // Try Supabase-only auth if local auth failed
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) {
+        console.error("Supabase authentication error:", error);
+        setIsLoading(false);
+        return false;
+      }
+      
+      if (data.session) {
+        // Let the auth change event handle state updates
+        setIsLoading(false);
+        return true;
+      }
+      
       setIsLoading(false);
       return false;
     } catch (error) {
@@ -189,14 +276,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      
-      await authService.register({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
-        name: email.split('@')[0], // Default name from email
-        role: 'employee', // Default role
       });
-      
+
+      if (error) throw error;
       setIsLoading(false);
     } catch (error: any) {
       console.error("Sign-up error:", error);
@@ -211,14 +296,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // Clear local storage first
+      localStorage.removeItem('mockUser');
       localStorage.removeItem('authState');
       
-      // Try to logout from backend (but don't fail if it doesn't work)
-      try {
-        await authService.logout();
-      } catch (error) {
-        console.warn("Backend logout failed, but continuing with local logout");
-      }
+      // Then sign out from Supabase
+      await supabase.auth.signOut();
       
       // Update auth state explicitly
       setAuthState({
