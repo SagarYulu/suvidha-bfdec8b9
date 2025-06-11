@@ -7,7 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: string | Date) {
-  return new Date(date).toLocaleDateString('en-US', {
+  const d = new Date(date);
+  return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -16,32 +17,26 @@ export function formatDate(date: string | Date) {
   });
 }
 
-export function formatDateRelative(date: string | Date) {
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(amount);
+}
+
+export function formatRelativeTime(date: string | Date) {
+  const d = new Date(date);
   const now = new Date();
-  const target = new Date(date);
-  const diffInHours = Math.floor((now.getTime() - target.getTime()) / (1000 * 60 * 60));
+  const diffInMs = now.getTime() - d.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
   
-  if (diffInHours < 1) {
-    return 'Just now';
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`;
-  } else if (diffInHours < 168) { // 7 days
-    return `${Math.floor(diffInHours / 24)}d ago`;
+  if (diffInDays === 0) {
+    return 'Today';
+  } else if (diffInDays === 1) {
+    return 'Yesterday';
+  } else if (diffInDays < 7) {
+    return `${diffInDays} days ago`;
   } else {
     return formatDate(date);
   }
-}
-
-export function getInitials(name: string) {
-  return name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export function truncateText(text: string, maxLength: number) {
-  if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength) + '...';
 }
