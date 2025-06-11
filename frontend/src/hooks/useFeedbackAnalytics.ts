@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FeedbackMetrics, FeedbackFilters, ComparisonMode } from '@/types';
 
@@ -128,10 +128,6 @@ export const useFeedbackAnalytics = (initialFilters?: FeedbackFilters) => {
     refetchCategories();
     refetchSentiment();
   }, [refetchMetrics, refetchTrends, refetchCategories, refetchSentiment]);
-
-  useEffect(() => {
-    refreshData();
-  }, [filters, selectedPeriod]);
 
   const isLoading = metricsLoading || trendsLoading || categoriesLoading || sentimentLoading;
 

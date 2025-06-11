@@ -12,12 +12,12 @@ const FeedbackAnalyticsPage: React.FC = () => {
     metrics,
     isLoading,
     filters,
-    handleFilterChange,
+    updateFilters,
     handleExport
   } = useFeedbackAnalytics();
 
   const handleDateRangeChange = (range: { from: Date; to: Date }) => {
-    handleFilterChange({
+    updateFilters({
       dateRange: range
     });
   };
