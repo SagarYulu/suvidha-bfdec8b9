@@ -13,7 +13,11 @@ import { updateAllIssuePriorities } from '@/services/issues/priorityUpdateServic
 import { Issue } from '@/types';
 
 const Issues: React.FC = () => {
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    city: '',
+    cluster: '',
+    issueType: ''
+  });
 
   const { data: issues = [], isLoading, error } = useQuery({
     queryKey: ['issues', filters],

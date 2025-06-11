@@ -1,98 +1,68 @@
 
-import { Issue } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
-import { mapDbIssueToAppIssue } from "./issueUtils";
-import { processIssues } from "./issueProcessingService";
+import { Issue } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { mapDbIssueToAppIssue } from './issueUtils';
 
-/**
- * Fetches an issue by its ID
- */
-export const getIssueById = async (id: string): Promise<Issue | undefined> => {
+export const getIssueById = async (issueId: string): Promise<Issue | null> => {
   try {
-    // Get the issue from the database
-    const { data: dbIssue, error } = await supabase
+    // First try to get from Supabase
+    const { data: issueData, error } = await supabase
       .from('issues')
-      .select('*')
-      .eq('id', id)
+      .select(`
+        *,
+        issue_comments(*)
+      `)
+      .eq('id', issueId)
       .single();
-    
+
     if (error) {
-      console.error('Error fetching issue by ID:', error);
-      return undefined;
+      console.error('Error fetching issue from Supabase:', error);
+      return null;
     }
-    
-    // Get comments for this issue
-    const { data: comments, error: commentsError } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .eq('issue_id', id)
-      .order('created_at', { ascending: true });
-    
-    if (commentsError) {
-      console.error('Error fetching comments for issue:', commentsError);
-      return undefined;
+
+    if (issueData) {
+      const mappedIssue = mapDbIssueToAppIssue(issueData);
+      
+      // Map comments
+      if (issueData.issue_comments) {
+        mappedIssue.comments = issueData.issue_comments.map((comment: any) => ({
+          id: comment.id,
+          employeeUuid: comment.employee_uuid,
+          content: comment.content,
+          createdAt: comment.created_at,
+          updatedAt: comment.created_at
+        }));
+      }
+
+      return mappedIssue;
     }
-    
-    // Map comments to the expected format
-    const formattedComments = comments ? comments.map(comment => ({
-      id: comment.id,
-      employeeUuid: comment.employee_uuid,
-      content: comment.content,
-      createdAt: comment.created_at
-    })) : [];
-    
-    // Map database issue to app Issue type
-    return mapDbIssueToAppIssue(dbIssue, formattedComments);
+
+    return null;
   } catch (error) {
     console.error('Error in getIssueById:', error);
-    return undefined;
+    return null;
   }
 };
 
-/**
- * Fetches issues for a specific user
- */
-export const getIssuesByUserId = async (employeeUuid: string): Promise<Issue[]> => {
+export const getIssuesByUserId = async (userId: string): Promise<Issue[]> => {
   try {
-    // Get user issues from the database
-    const { data: dbIssues, error } = await supabase
+    const { data: issues, error } = await supabase
       .from('issues')
-      .select('*')
-      .eq('employee_uuid', employeeUuid)
+      .select(`
+        *,
+        issue_comments(*)
+      `)
+      .eq('employee_uuid', userId)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error fetching user issues:', error);
       return [];
     }
-    
-    // Process issues with comments and return
-    return await processIssues(dbIssues || []);
+
+    return issues.map(mapDbIssueToAppIssue);
   } catch (error) {
     console.error('Error in getIssuesByUserId:', error);
-    return [];
-  }
-};
-
-/**
- * Fetches issues assigned to a specific user
- */
-export const getAssignedIssues = async (userUuid: string): Promise<Issue[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('issues')
-      .select('*')
-      .eq('assigned_to', userUuid);
-    
-    if (error) {
-      console.error('Error fetching assigned issues:', error);
-      throw error;
-    }
-    
-    // Transform the raw issues into our Issue type with comments
-    return await processIssues(data || []);
-  } catch (error) {
-    console.error('Error in getAssignedIssues:', error);
     return [];
   }
 };

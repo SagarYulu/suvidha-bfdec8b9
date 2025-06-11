@@ -54,11 +54,11 @@ export const addIssueComment = async (
   return newComment;
 };
 
-// Overload for object parameter
+// Updated addComment function to match the expected signature
 export const addComment = async (
   issueId: string, 
   commentData: { employeeUuid: string; content: string },
-  _userId?: string
+  userId: string
 ): Promise<IssueComment> => {
   return addIssueComment(issueId, commentData.employeeUuid, commentData.content);
 };

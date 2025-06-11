@@ -131,8 +131,7 @@ const initializeMockIssues = () => {
         comments: [],
         title: 'System Down',
         issueType: 'IT Support',
-        employeeId: 'EMP001',
-        attachments: []
+        employeeId: 'EMP001'
       }
     ];
   }

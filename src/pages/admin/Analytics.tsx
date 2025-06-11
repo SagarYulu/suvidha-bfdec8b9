@@ -35,12 +35,11 @@ const Analytics: React.FC = () => {
   // Convert DashboardFilters to IssueFilters
   const convertToIssueFilters = (): IssueFilters => ({
     city: filters.city || '',
-    status: filters.status,
+    cluster: filters.cluster || '',
+    issueType: filters.issueType || '',
     priority: filters.priority,
     dateFrom: filters.dateRange?.from,
     dateTo: filters.dateRange?.to,
-    assignedTo: filters.assignedTo,
-    typeId: filters.typeId
   });
 
   return (
