@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 interface ChartSectionProps {
   typePieData: Array<{ name: string; value: number }>;
@@ -11,28 +11,28 @@ interface ChartSectionProps {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
-const ChartSection: React.FC<ChartSectionProps> = ({ 
-  typePieData, 
-  cityBarData, 
-  isLoading 
+const ChartSection: React.FC<ChartSectionProps> = ({
+  typePieData,
+  cityBarData,
+  isLoading
 }) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-            </div>
+          <CardHeader>
+            <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-6">
-            <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/3 mb-4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-            </div>
+          <CardHeader>
+            <div className="h-5 bg-gray-200 rounded w-32 animate-pulse"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
           </CardContent>
         </Card>
       </div>
@@ -79,6 +79,7 @@ const ChartSection: React.FC<ChartSectionProps> = ({
               <XAxis dataKey="name" />
               <YAxis />
               <Tooltip />
+              <Legend />
               <Bar dataKey="value" fill="#8884d8" />
             </BarChart>
           </ResponsiveContainer>

@@ -1,29 +1,31 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Issue } from '@/types';
+import { Badge } from '@/components/ui/badge';
+import { Eye } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+interface Issue {
+  id: string;
+  description: string;
+  status: string;
+  priority: string;
+  emp_name?: string;
+  emp_code?: string;
+  created_at: string;
+  issue_type: string;
+}
 
 interface RecentTicketsTableProps {
   recentIssues: Issue[];
   isLoading: boolean;
 }
 
-const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({ 
-  recentIssues, 
-  isLoading 
+const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({
+  recentIssues,
+  isLoading
 }) => {
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-500 text-white';
-      case 'high': return 'bg-orange-500 text-white';
-      case 'medium': return 'bg-yellow-500 text-white';
-      case 'low': return 'bg-green-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-blue-500 text-white';
@@ -35,6 +37,16 @@ const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({
     }
   };
 
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent': return 'bg-red-500 text-white';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'medium': return 'bg-yellow-500 text-white';
+      case 'low': return 'bg-green-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -42,9 +54,13 @@ const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({
           <CardTitle>Recent Issues</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-4">
+          <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-12 bg-gray-200 rounded"></div>
+              <div key={i} className="flex space-x-4">
+                <div className="h-4 bg-gray-200 rounded flex-1 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-20 animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded w-16 animate-pulse"></div>
+              </div>
             ))}
           </div>
         </CardContent>
@@ -61,27 +77,32 @@ const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Issue</TableHead>
+              <TableHead>ID</TableHead>
               <TableHead>Employee</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {recentIssues.map((issue) => (
               <TableRow key={issue.id}>
+                <TableCell className="font-mono text-xs">
+                  {issue.id.substring(0, 8)}...
+                </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">
-                      {issue.title || `${issue.issue_type} - ${issue.issue_subtype}`}
-                    </div>
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
-                      {issue.description}
-                    </div>
+                    <div className="font-medium">{issue.emp_name}</div>
+                    <div className="text-sm text-gray-500">{issue.emp_code}</div>
                   </div>
                 </TableCell>
-                <TableCell>{issue.emp_name}</TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {issue.description}
+                </TableCell>
+                <TableCell>{issue.issue_type}</TableCell>
                 <TableCell>
                   <Badge className={getPriorityColor(issue.priority)}>
                     {issue.priority}
@@ -92,8 +113,13 @@ const RecentTicketsTable: React.FC<RecentTicketsTableProps> = ({
                     {issue.status.replace('_', ' ')}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                <TableCell className="text-sm text-gray-500">
                   {new Date(issue.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <Button variant="outline" size="sm">
+                    <Eye className="h-3 w-3" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

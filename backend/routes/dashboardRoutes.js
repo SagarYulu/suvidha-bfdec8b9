@@ -1,87 +1,105 @@
 
 const express = require('express');
 const router = express.Router();
-const dashboardController = require('../controllers/dashboardController');
-const { authenticateToken } = require('../middlewares/auth');
+const DashboardService = require('../services/dashboardService');
+const auth = require('../middlewares/auth');
+const { HTTP_STATUS } = require('../config/constants');
 
-// All dashboard routes require authentication
-router.use(authenticateToken);
-
-// Dashboard analytics
-router.get('/analytics', dashboardController.getOverview);
-router.get('/overview', dashboardController.getOverview);
-
-// Recent issues
-router.get('/recent-issues', async (req, res) => {
+// Get dashboard analytics
+router.get('/analytics', auth, async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
-    const data = await require('../services/dashboardService').getRecentIssues(limit);
+    const filters = req.query;
+    const analytics = await DashboardService.getOverviewData(filters);
     
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data
+      data: analytics
     });
   } catch (error) {
-    console.error('Recent issues error:', error);
-    res.status(500).json({
+    console.error('Dashboard analytics error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to fetch recent issues'
+      error: 'Failed to fetch analytics',
+      message: error.message
     });
   }
 });
 
-// User count
-router.get('/user-count', async (req, res) => {
+// Get recent issues
+router.get('/recent-issues', auth, async (req, res) => {
   try {
-    const count = await require('../services/dashboardService').getUserCount();
+    const limit = parseInt(req.query.limit) || 10;
+    const recentIssues = await DashboardService.getRecentIssues(limit);
     
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
+      success: true,
+      data: recentIssues
+    });
+  } catch (error) {
+    console.error('Recent issues error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      error: 'Failed to fetch recent issues',
+      message: error.message
+    });
+  }
+});
+
+// Get user count
+router.get('/user-count', auth, async (req, res) => {
+  try {
+    const count = await DashboardService.getUserCount();
+    
+    res.status(HTTP_STATUS.OK).json({
       success: true,
       data: { count }
     });
   } catch (error) {
     console.error('User count error:', error);
-    res.status(500).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to fetch user count'
+      error: 'Failed to fetch user count',
+      message: error.message
     });
   }
 });
 
-// Issues trend
-router.get('/issues-trend', async (req, res) => {
+// Get issues trend
+router.get('/issues-trend', auth, async (req, res) => {
   try {
     const period = req.query.period || '30d';
-    const data = await require('../services/dashboardService').getIssuesTrend(period);
+    const trend = await DashboardService.getIssuesTrend(period);
     
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data
+      data: trend
     });
   } catch (error) {
     console.error('Issues trend error:', error);
-    res.status(500).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to fetch issues trend'
+      error: 'Failed to fetch issues trend',
+      message: error.message
     });
   }
 });
 
-// Resolution time trend
-router.get('/resolution-time-trend', async (req, res) => {
+// Get resolution time trend
+router.get('/resolution-time-trend', auth, async (req, res) => {
   try {
     const period = req.query.period || '30d';
-    const data = await require('../services/dashboardService').getResolutionTimeTrend(period);
+    const trend = await DashboardService.getResolutionTimeTrend(period);
     
-    res.json({
+    res.status(HTTP_STATUS.OK).json({
       success: true,
-      data
+      data: trend
     });
   } catch (error) {
     console.error('Resolution time trend error:', error);
-    res.status(500).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: 'Failed to fetch resolution time trend'
+      error: 'Failed to fetch resolution time trend',
+      message: error.message
     });
   }
 });
