@@ -23,7 +23,7 @@ interface AuthState {
 
 interface AuthContextType {
   authState: AuthState;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, isAdminLogin?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   isLoading: boolean;
@@ -74,9 +74,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, isAdminLogin = false) => {
     try {
-      const { user, token } = await authService.login(email, password);
+      const { user, token } = await authService.login(email, password, isAdminLogin);
       localStorage.setItem('authToken', token);
       setAuthState({
         user,

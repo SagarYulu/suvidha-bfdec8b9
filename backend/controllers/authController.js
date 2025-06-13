@@ -1,4 +1,3 @@
-
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { HTTP_STATUS, JWT } = require('../config/constants');
@@ -11,12 +10,12 @@ class AuthController {
       
       const result = await AuthService.login(email, password);
       
-      // Add role validation to prevent cross-platform access
+      // Enhanced role validation to prevent cross-platform access
       const user = result.user;
       const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
       const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
       
-      // Check if this is an admin login request (from admin dashboard)
+      // Check if this is an admin login request
       const isAdminRequest = req.headers['x-admin-login'] === 'true' || req.path.includes('admin');
       
       if (isAdminRequest) {

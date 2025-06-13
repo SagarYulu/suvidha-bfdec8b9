@@ -31,7 +31,10 @@ export const authService = {
       headers['x-mobile-login'] = 'true';
     }
     
-    const response = await ApiClient.post('/api/auth/login', {
+    // Use different endpoints for admin vs mobile login
+    const endpoint = isAdminLogin ? '/api/admin/login' : '/api/mobile/login';
+    
+    const response = await ApiClient.post(endpoint, {
       email,
       password
     }, { headers });
