@@ -28,25 +28,16 @@ export default function MobileLogin() {
     try {
       setIsLoading(true);
       setError('');
-      // Pass isAdminLogin = false for mobile app login
-      await login(employeeId, phone, false);
+      // For demo purposes, accept any employee ID and phone
+      await login(employeeId, phone);
       toast.success('Login successful');
       navigate('/mobile/issues');
-    } catch (error: any) {
-      if (error.message.includes('Admin users cannot access the mobile app')) {
-        setError('Access denied. Admin users should use the dashboard login.');
-      } else {
-        setError('Invalid employee ID or phone number');
-      }
+    } catch (error) {
+      setError('Invalid employee ID or phone number');
       toast.error('Login failed');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setEmployeeId('employee@yulu.com');
-    setPhone('emp123');
   };
 
   return (
@@ -95,24 +86,10 @@ export default function MobileLogin() {
             </Button>
           </form>
           
-          <div className="mt-4 space-y-2">
-            <Button 
-              variant="outline" 
-              onClick={fillDemoCredentials}
-              className="w-full"
-              disabled={isLoading}
-            >
-              Use Employee Demo Credentials
-            </Button>
-            
-            <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">
-                For employees only
-              </p>
-              <a href="/admin/login" className="text-sm text-blue-600 hover:underline">
-                Admin? Go to Dashboard Login
-              </a>
-            </div>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Demo: Use any employee ID and phone number
+            </p>
           </div>
         </CardContent>
       </Card>

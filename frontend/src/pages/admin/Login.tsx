@@ -24,23 +24,13 @@ const Login: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Pass isAdminLogin = true for admin dashboard login
-      await login(email, password, true);
+      await login(email, password);
       navigate('/admin/dashboard');
     } catch (error: any) {
-      if (error.message.includes('Admin dashboard access restricted')) {
-        setError('Access denied. This login is for admin dashboard only. Regular employees should use the mobile app.');
-      } else {
-        setError(error.message || 'Login failed. Please check your credentials.');
-      }
+      setError(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fillDemoCredentials = () => {
-    setEmail('admin@yulu.com');
-    setPassword('admin123');
   };
 
   return (
@@ -51,7 +41,7 @@ const Login: React.FC = () => {
             Yulu Admin Dashboard
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Admin login only - Regular employees use the mobile app
+            Sign in to your admin account
           </p>
         </div>
         
@@ -62,7 +52,7 @@ const Login: React.FC = () => {
               Admin Login
             </CardTitle>
             <CardDescription>
-              Enter your admin credentials to access the dashboard
+              Enter your credentials to access the admin dashboard
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -74,7 +64,7 @@ const Login: React.FC = () => {
               )}
               
               <div>
-                <Label htmlFor="email">Admin Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -110,29 +100,17 @@ const Login: React.FC = () => {
                     Signing in...
                   </>
                 ) : (
-                  'Admin Sign In'
+                  'Sign In'
                 )}
               </Button>
             </form>
-            
-            <div className="mt-4 space-y-2">
-              <Button 
-                variant="outline" 
-                onClick={fillDemoCredentials}
-                className="w-full"
-                disabled={isLoading}
-              >
-                Use Admin Demo Credentials
-              </Button>
-              
-              <div className="text-center">
-                <a href="/mobile/login" className="text-sm text-blue-600 hover:underline">
-                  Employee? Go to Mobile App Login
-                </a>
-              </div>
-            </div>
           </CardContent>
         </Card>
+        
+        <div className="text-center text-sm text-gray-500">
+          <p>Demo Credentials:</p>
+          <p>Email: admin@yulu.com | Password: admin123</p>
+        </div>
       </div>
     </div>
   );

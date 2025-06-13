@@ -1,4 +1,6 @@
 
+import { ApiClient } from './apiClient';
+
 interface User {
   id: string;
   full_name: string;
@@ -18,13 +20,9 @@ interface LoginResponse {
   refreshToken: string;
 }
 
-const API_BASE_URL = 'http://localhost:3001';
-
 export const authService = {
   async login(email: string, password: string, isAdminLogin = false): Promise<LoginResponse> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
     
     // Add header to identify admin vs mobile login
     if (isAdminLogin) {
@@ -33,136 +31,47 @@ export const authService = {
       headers['x-mobile-login'] = 'true';
     }
     
-    // Use different endpoints for admin vs mobile login
-    const endpoint = isAdminLogin ? '/api/admin/login' : '/api/mobile/login';
-    const url = `${API_BASE_URL}${endpoint}`;
+    const response = await ApiClient.post('/api/auth/login', {
+      email,
+      password
+    }, { headers });
     
-    console.log('Making login request to:', url);
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        email,
-        password
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Network error' }));
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    if (response.data.token) {
+      ApiClient.setAuthToken(response.data.token);
     }
     
-    const data = await response.json();
-    
-    if (!data.success) {
-      throw new Error(data.message || 'Login failed');
-    }
-    
-    return data.data;
+    return response.data;
   },
 
   async logout(): Promise<void> {
-    const token = localStorage.getItem('authToken');
-    
-    if (token) {
-      try {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      } catch (error) {
-        console.error('Logout API call failed:', error);
-      }
-    }
+    await ApiClient.post('/api/auth/logout');
+    ApiClient.clearAuthToken();
   },
 
   async getCurrentUser(): Promise<User> {
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      throw new Error('No auth token found');
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to get current user');
-    }
-    
-    const data = await response.json();
-    return data.data;
+    const response = await ApiClient.get('/api/auth/me');
+    return response.data;
   },
 
   async refreshToken(): Promise<string> {
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      throw new Error('No auth token found');
+    const response = await ApiClient.post('/api/auth/refresh');
+    if (response.data.token) {
+      ApiClient.setAuthToken(response.data.token);
     }
-    
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error('Failed to refresh token');
-    }
-    
-    const data = await response.json();
-    localStorage.setItem('authToken', data.data.token);
-    return data.data.token;
+    return response.data.token;
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    const token = localStorage.getItem('authToken');
-    
-    if (!token) {
-      throw new Error('No auth token found');
-    }
-    
-    const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        currentPassword,
-        newPassword
-      })
+    await ApiClient.post('/api/auth/change-password', {
+      currentPassword,
+      newPassword
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to change password');
-    }
   },
 
   async resetPassword(email: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/forgot-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        email
-      })
+    await ApiClient.post('/api/auth/forgot-password', {
+      email
     });
-    
-    if (!response.ok) {
-      throw new Error('Failed to send reset email');
-    }
   },
 
   async register(userData: {
@@ -172,19 +81,7 @@ export const authService = {
     role: string;
     cluster_id?: string;
   }): Promise<User> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(userData)
-    });
-    
-    if (!response.ok) {
-      throw new Error('Registration failed');
-    }
-    
-    const data = await response.json();
-    return data.data;
+    const response = await ApiClient.post('/api/auth/register', userData);
+    return response.data;
   }
 };

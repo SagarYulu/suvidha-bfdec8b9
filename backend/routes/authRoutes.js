@@ -5,7 +5,7 @@ const authController = require('../controllers/authController');
 const { authenticateToken } = require('../middlewares/auth');
 const { validationRules, handleValidationErrors } = require('../middlewares/validation');
 
-// Public routes with enhanced role validation
+// Public routes
 router.post('/login', 
   validationRules.login,
   handleValidationErrors,
