@@ -1,45 +1,7 @@
-
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-
-// Mock login function to match the expected signature
-const mockLogin = async (email: string, password: string): Promise<{ 
-  id: string; 
-  email: string; 
-  name: string; 
-  role: string; 
-}> => {
-  // Mock user data for testing
-  const mockUsers = [
-    { 
-      id: 'admin-1', 
-      email: 'admin@yulu.com', 
-      password: 'admin123', 
-      name: 'Admin User', 
-      role: 'admin' 
-    },
-    { 
-      id: 'emp-1', 
-      email: 'employee@yulu.com', 
-      password: 'emp123', 
-      name: 'Employee User', 
-      role: 'employee' 
-    }
-  ];
-
-  const user = mockUsers.find(u => u.email === email && u.password === password);
-  if (!user) {
-    throw new Error('Invalid credentials');
-  }
-
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role
-  };
-};
+import { login as authServiceLogin } from '@/services/authService';
 
 // Define the AuthContext type
 interface AuthContextType {
@@ -62,7 +24,7 @@ interface AuthContextType {
   signIn: (email: string, password: string, isAdminLogin?: boolean) => Promise<boolean>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, isAdminLogin?: boolean) => Promise<boolean>;
   refreshSession: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -238,30 +200,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Try local authentication first
-      const localUser = await mockLogin(email, password);
+      // Try local authentication first with login type
+      const localUser = await authServiceLogin(email, password, isAdminLogin);
       
       if (localUser) {
-        // Define admin roles and emails
-        const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
-        const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
-        
-        const isAdminRole = adminRoles.includes(localUser.role);
-        const isAdminEmail = adminEmails.includes(localUser.email);
-        
-        // Check access based on login type
-        if (isAdminLogin) {
-          // Admin dashboard login - only allow admin roles/emails
-          if (!isAdminRole && !isAdminEmail) {
-            setIsLoading(false);
-            return false;
-          }
-        } else {
-          // Mobile app login - prevent admin users from accessing
-          if (isAdminRole || isAdminEmail) {
-            setIsLoading(false);
-            return false;
-          }
+        // Local auth success
+        try {
+          // Also try Supabase auth but don't fail if it doesn't work
+          await supabase.auth.signInWithPassword({
+            email,
+            password
+          }).catch(error => {
+            console.log("Supabase auth failed, using local auth:", error);
+          });
+        } catch (error) {
+          console.log("Supabase auth error:", error);
         }
         
         // Store mock user for session persistence
@@ -364,10 +317,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // login function (alias for signIn with 2 parameters only)
-  const login = async (email: string, password: string): Promise<boolean> => {
-    return signIn(email, password, false);
-  };
+  // login function (alias for signIn)
+  const login = signIn;
 
   // Provide the auth context value
   const value: AuthContextType = {
