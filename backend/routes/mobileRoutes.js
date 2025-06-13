@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const issueController = require('../controllers/issueController');
@@ -10,6 +9,11 @@ const { validationRules, handleValidationErrors } = require('../middlewares/vali
 router.post('/login', 
   validationRules.userLogin, 
   handleValidationErrors, 
+  (req, res, next) => {
+    // Mark this as a mobile login request
+    req.headers['x-mobile-login'] = 'true';
+    next();
+  },
   authController.login
 );
 
@@ -17,6 +21,27 @@ router.post('/logout',
   authenticateToken, 
   authController.logout
 );
+
+// Mobile access middleware - prevent admin users from accessing mobile endpoints
+const preventAdminAccess = (req, res, next) => {
+  const user = req.user;
+  const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+  const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+  
+  if (user && (adminRoles.includes(user.role) || adminEmails.includes(user.email))) {
+    return res.status(403).json({
+      success: false,
+      error: 'Access denied',
+      message: 'Admin users cannot access mobile endpoints. Please use the admin dashboard.'
+    });
+  }
+  
+  next();
+};
+
+// Apply mobile access protection to all authenticated routes
+router.use(authenticateToken);
+router.use(preventAdminAccess);
 
 // Mobile-specific issue routes
 router.use(authenticateToken);

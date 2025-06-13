@@ -21,11 +21,20 @@ interface LoginResponse {
 }
 
 export const authService = {
-  async login(email: string, password: string): Promise<LoginResponse> {
+  async login(email: string, password: string, isAdminLogin = false): Promise<LoginResponse> {
+    const headers: Record<string, string> = {};
+    
+    // Add header to identify admin vs mobile login
+    if (isAdminLogin) {
+      headers['x-admin-login'] = 'true';
+    } else {
+      headers['x-mobile-login'] = 'true';
+    }
+    
     const response = await ApiClient.post('/api/auth/login', {
       email,
       password
-    });
+    }, { headers });
     
     if (response.data.token) {
       ApiClient.setAuthToken(response.data.token);

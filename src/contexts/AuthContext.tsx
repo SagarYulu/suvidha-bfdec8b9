@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -22,10 +21,10 @@ interface AuthContextType {
     email: string;
     name: string;
   } | null;
-  signIn: (email: string, password: string) => Promise<boolean>;
+  signIn: (email: string, password: string, isAdminLogin?: boolean) => Promise<boolean>;
   signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string, isAdminLogin?: boolean) => Promise<boolean>;
   refreshSession: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
@@ -197,12 +196,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [refreshSession]);
 
   // Sign-in function
-  const signIn = async (email: string, password: string): Promise<boolean> => {
+  const signIn = async (email: string, password: string, isAdminLogin = false): Promise<boolean> => {
     try {
       setIsLoading(true);
       
-      // Try local authentication first
-      const localUser = await authServiceLogin(email, password);
+      // Try local authentication first with login type
+      const localUser = await authServiceLogin(email, password, isAdminLogin);
       
       if (localUser) {
         // Local auth success

@@ -18,33 +18,28 @@ const MobileLogin = () => {
   const navigate = useNavigate();
   const initialCheckDone = useRef(false);
 
-  // Dashboard user roles that should be redirected to admin dashboard
-  const dashboardUserRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
-  
-  // Restricted emails that should never access mobile app
-  const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+  // Admin roles that should NOT access mobile app
+  const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+  const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
 
-  // Check auth only once on component mount with improved loading state
   useEffect(() => {
-    if (initialCheckDone.current) {
-      return; // Skip if we've already checked
-    }
+    if (initialCheckDone.current) return;
     
-    // Add a short timeout to allow UI to render before checking auth
     const timer = setTimeout(() => {
-      // Mark that we've done the initial check
       initialCheckDone.current = true;
       
       const checkExistingAuth = () => {
         if (authState && authState.isAuthenticated && authState.user) {
-          console.log("User already authenticated, checking access rights");
+          console.log("User already authenticated, checking mobile app access rights");
           
-          // Check if user email is explicitly restricted
-          if (restrictedEmails.includes(authState.user.email)) {
-            console.log("Restricted email detected:", authState.user.email);
+          const isAdminEmail = adminEmails.includes(authState.user.email);
+          const isAdminRole = authState.role && adminRoles.includes(authState.role);
+          
+          if (isAdminEmail || isAdminRole) {
+            console.log("Admin user detected:", authState.user.email, "role:", authState.role);
             toast({
               title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              description: "Admin users cannot access the mobile app. Please use the admin dashboard.",
               variant: "destructive",
             });
             logout();
@@ -52,29 +47,15 @@ const MobileLogin = () => {
             return;
           }
           
-          // Check if user has a dashboard role
-          if (authState.role && dashboardUserRoles.includes(authState.role)) {
-            console.log("Dashboard role detected:", authState.role);
-            toast({
-              title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
-              variant: "destructive",
-            });
-            logout();
-            setPageLoading(false);
-            return;
-          }
-          
-          // If no restrictions, redirect to mobile issues
+          // Regular employee - allow access
           navigate("/mobile/issues", { replace: true });
         } else {
-          // Not authenticated, just show login form
           setPageLoading(false);
         }
       };
       
       checkExistingAuth();
-    }, 300); // Small delay for better UI experience
+    }, 300);
     
     return () => clearTimeout(timer);
   }, [authState, navigate, logout]);
@@ -86,24 +67,24 @@ const MobileLogin = () => {
 
     try {
       console.log("Attempting mobile verification with:", { email, employeeId });
-      // Use employeeId as password for authentication
       const success = await login(email, employeeId);
       
       if (success) {
-        console.log("Verification successful, checking access rights");
+        console.log("Verification successful, checking mobile app access rights");
         
-        // Get user data from localStorage - could be from mockUser or auth state
         const authStateData = localStorage.getItem("authState");
         const userData = authStateData ? JSON.parse(authStateData) : null;
         
         if (userData && userData.user) {
-          // Check if user email is explicitly restricted
-          if (restrictedEmails.includes(userData.user.email)) {
-            console.log("Restricted email detected:", userData.user.email);
-            setError("Access denied. Please use the admin dashboard login.");
+          const isAdminEmail = adminEmails.includes(userData.user.email);
+          const isAdminRole = userData.role && adminRoles.includes(userData.role);
+          
+          if (isAdminEmail || isAdminRole) {
+            console.log("Admin user detected:", userData.user.email, "role:", userData.role);
+            setError("Access denied. Admin users should use the dashboard login at /admin/login");
             toast({
               title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
+              description: "Admin users cannot access the mobile app. Please use the admin dashboard at /admin/login",
               variant: "destructive",
             });
             await logout();
@@ -111,29 +92,14 @@ const MobileLogin = () => {
             return;
           }
           
-          // Check if user has a dashboard role
-          if (userData.role && dashboardUserRoles.includes(userData.role)) {
-            console.log("Dashboard role detected:", userData.role);
-            setError("Access denied. Please use the admin dashboard login.");
-            toast({
-              title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
-              variant: "destructive",
-            });
-            await logout();
-            setIsLoading(false);
-            return;
-          }
-          
-          // Success - user has mobile app access
-          console.log("User has mobile app access, redirecting to issues");
+          // Regular employee - allow access
+          console.log("Regular employee has mobile app access, redirecting to issues");
           toast({
             title: "Verification successful",
             description: "Welcome back!",
           });
           navigate("/mobile/issues", { replace: true });
         } else {
-          // If verification succeeded but no user data found
           console.log("No user data found, assuming regular employee");
           toast({
             title: "Verification successful",
@@ -194,15 +160,13 @@ const MobileLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#1E40AF]/10">
-      {/* Full-width curved blue background */}
       <div className="bg-[#1E40AF] h-[40vh] w-full"></div>
 
-      {/* Card positioned over the background */}
       <div className="relative px-6 mx-auto max-w-md -mt-32">
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
           <div className="px-8 py-10">
             <h1 className="text-3xl font-bold text-center text-[#1E40AF] mb-10">
-              Yulu Suvidha
+              Yulu Employee App
             </h1>
             
             {error && (
@@ -212,9 +176,8 @@ const MobileLogin = () => {
             )}
 
             <form onSubmit={handleVerify} className="space-y-8">
-              {/* Email input with label */}
               <div className="space-y-2">
-                <label className="text-gray-500 text-sm font-medium ml-1">Email ID</label>
+                <label className="text-gray-500 text-sm font-medium ml-1">Employee Email</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <MailIcon className="h-5 w-5 text-[#1E40AF]" />
@@ -230,7 +193,6 @@ const MobileLogin = () => {
                 </div>
               </div>
 
-              {/* Employee ID input with label */}
               <div className="space-y-2">
                 <label className="text-gray-500 text-sm font-medium ml-1">Employee ID</label>
                 <div className="relative">
@@ -258,9 +220,12 @@ const MobileLogin = () => {
             </form>
 
             <div className="mt-8 text-center">
-              <p className="text-sm text-gray-500">
-                Use your employee email and employee ID
+              <p className="text-sm text-gray-500 mb-2">
+                For employees only
               </p>
+              <a href="/admin/login" className="text-sm text-blue-600 hover:underline">
+                Admin? Go to Dashboard Login
+              </a>
             </div>
           </div>
         </div>

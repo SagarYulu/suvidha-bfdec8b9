@@ -1,3 +1,4 @@
+
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { HTTP_STATUS, JWT } = require('../config/constants');
@@ -9,6 +10,40 @@ class AuthController {
       const { email, password } = req.body;
       
       const result = await AuthService.login(email, password);
+      
+      // Add role validation to prevent cross-platform access
+      const user = result.user;
+      const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+      const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+      
+      // Check if this is an admin login request (from admin dashboard)
+      const isAdminRequest = req.headers['x-admin-login'] === 'true' || req.path.includes('admin');
+      
+      if (isAdminRequest) {
+        // Admin dashboard login - only allow admin roles/emails
+        const isAdminRole = adminRoles.includes(user.role);
+        const isAdminEmail = adminEmails.includes(user.email);
+        
+        if (!isAdminRole && !isAdminEmail) {
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            error: 'Access denied',
+            message: 'Admin dashboard access restricted to authorized personnel only. Please use the employee mobile app.'
+          });
+        }
+      } else {
+        // Mobile app login - prevent admin users from accessing
+        const isAdminRole = adminRoles.includes(user.role);
+        const isAdminEmail = adminEmails.includes(user.email);
+        
+        if (isAdminRole || isAdminEmail) {
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            error: 'Access denied',
+            message: 'Admin users cannot access the mobile app. Please use the admin dashboard.'
+          });
+        }
+      }
       
       res.status(HTTP_STATUS.OK).json({
         success: true,
