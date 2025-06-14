@@ -1,96 +1,156 @@
 
-import { ApiClient } from './apiClient';
+import { User } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { MOCK_USERS } from "@/data/mockData";
 
-interface User {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  city?: string;
-  cluster?: string;
-  phone?: string;
-  employee_id?: string;
-  cluster_id?: string;
-  is_active: boolean;
-}
+// Admin user credentials - hardcoded for demonstration purposes
+export const DEFAULT_ADMIN_USER: User = {
+  id: "admin-uuid-1",
+  userId: "admin-001",
+  name: "Admin User",
+  email: "admin@yulu.com",
+  phone: "1234567890",
+  employeeId: "ADMIN001",
+  city: "System",
+  cluster: "System",
+  manager: "",
+  role: "admin",
+  password: "admin123",
+  dateOfJoining: "2023-01-01",
+  bloodGroup: "",
+  dateOfBirth: "",
+  accountNumber: "",
+  ifscCode: ""
+};
 
-interface LoginResponse {
-  user: User;
-  token: string;
-  refreshToken: string;
-}
+export const login = async (email: string, password: string): Promise<User | null> => {
+  console.log('Login attempt:', { email });
 
-const login = async (email: string, password: string, isAdminLogin = false): Promise<LoginResponse> => {
-  const headers: Record<string, string> = {};
-  
-  if (isAdminLogin) {
-    headers['x-admin-login'] = 'true';
-  } else {
-    headers['x-mobile-login'] = 'true';
+  try {
+    // Step 1: Check if it's the default admin user
+    if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
+        password === DEFAULT_ADMIN_USER.password) {
+      console.log('Default admin login successful');
+      
+      // Try to fetch actual user from dashboard_users table
+      try {
+        const { data: dashboardUser, error } = await supabase
+          .from('dashboard_users')
+          .select('*')
+          .eq('email', email.toLowerCase())
+          .maybeSingle(); // Use maybeSingle() instead of single()
+          
+        if (!error && dashboardUser) {
+          console.log('Found matching dashboard user:', dashboardUser);
+          return {
+            ...DEFAULT_ADMIN_USER,
+            id: dashboardUser.id,
+          };
+        }
+      } catch (error) {
+        console.log('Error fetching dashboard user:', error);
+      }
+      
+      return DEFAULT_ADMIN_USER;
+    }
+    
+    // Step 2: Check mock users (for demo accounts)
+    const mockUser = MOCK_USERS.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase() && 
+      (u.password === password || u.employeeId === password)
+    );
+
+    if (mockUser) {
+      console.log('User found in mock data:', mockUser);
+      return mockUser;
+    }
+
+    // Step 3: Check dashboard_users table (prioritize over employees)
+    console.log('User not found in mock data, checking dashboard_users table...');
+    try {
+      const { data: dashboardUsers, error: dashboardError } = await supabase
+        .from('dashboard_users')
+        .select('*')
+        .eq('email', email.toLowerCase());
+      
+      if (!dashboardError && dashboardUsers && dashboardUsers.length > 0) {
+        // Check if any user matches the password or employee_id
+        const matchingUser = dashboardUsers.find(user => 
+          user.password === password || user.employee_id === password
+        );
+        
+        if (matchingUser) {
+          console.log('User found in dashboard_users:', matchingUser);
+          
+          return {
+            id: matchingUser.id,
+            userId: matchingUser.user_id || "",
+            name: matchingUser.name,
+            email: matchingUser.email,
+            phone: matchingUser.phone || "",
+            employeeId: matchingUser.employee_id || "",
+            city: matchingUser.city || "",
+            cluster: matchingUser.cluster || "",
+            manager: matchingUser.manager || "",
+            role: matchingUser.role || "employee",
+            password: matchingUser.password,
+            dateOfJoining: "",
+            bloodGroup: "",
+            dateOfBirth: "",
+            accountNumber: "",
+            ifscCode: ""
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Error querying dashboard_users:', error);
+    }
+
+    // Step 4: Check employees table
+    console.log('User not found in dashboard_users, checking employees table...');
+    try {
+      const { data: employees, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', email.toLowerCase());
+
+      if (!error && employees && employees.length > 0) {
+        // Check if any employee matches the password or emp_id
+        const matchingEmployee = employees.find(emp => 
+          emp.password === password || emp.emp_id === password
+        );
+        
+        if (matchingEmployee) {
+          console.log('Employee found in database:', matchingEmployee);
+          
+          return {
+            id: matchingEmployee.id,
+            userId: matchingEmployee.user_id || "",
+            name: matchingEmployee.name,
+            email: matchingEmployee.email,
+            phone: matchingEmployee.phone || "",
+            employeeId: matchingEmployee.emp_id,
+            city: matchingEmployee.city || "",
+            cluster: matchingEmployee.cluster || "",
+            manager: matchingEmployee.manager || "",
+            role: matchingEmployee.role || "employee",
+            password: matchingEmployee.password,
+            dateOfJoining: matchingEmployee.date_of_joining || "",
+            bloodGroup: matchingEmployee.blood_group || "",
+            dateOfBirth: matchingEmployee.date_of_birth || "",
+            accountNumber: matchingEmployee.account_number || "",
+            ifscCode: matchingEmployee.ifsc_code || ""
+          };
+        }
+      }
+    } catch (error) {
+      console.log('Error querying employees table:', error);
+    }
+    
+    console.log('No matching user found in any database');
+    return null;
+  } catch (error) {
+    console.error("Login error:", error);
+    return null;
   }
-  
-  const response = await ApiClient.post('/api/auth/login', {
-    email,
-    password
-  }, { headers });
-  
-  if (response.data.token && ApiClient.setAuthToken) {
-    ApiClient.setAuthToken(response.data.token);
-  }
-  
-  return response.data;
-};
-
-const logout = async (): Promise<void> => {
-  await ApiClient.post('/api/auth/logout');
-  if (ApiClient.clearAuthToken) {
-    ApiClient.clearAuthToken();
-  }
-};
-
-const getCurrentUser = async (): Promise<User> => {
-  const response = await ApiClient.get('/api/auth/me');
-  return response.data;
-};
-
-const refreshToken = async (): Promise<string> => {
-  const response = await ApiClient.post('/api/auth/refresh');
-  if (response.data.token && ApiClient.setAuthToken) {
-    ApiClient.setAuthToken(response.data.token);
-  }
-  return response.data.token;
-};
-
-const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-  await ApiClient.post('/api/auth/change-password', {
-    currentPassword,
-    newPassword
-  });
-};
-
-const resetPassword = async (email: string): Promise<void> => {
-  await ApiClient.post('/api/auth/forgot-password', {
-    email
-  });
-};
-
-const register = async (userData: {
-  email: string;
-  password: string;
-  full_name: string;
-  role: string;
-  cluster_id?: string;
-}): Promise<User> => {
-  const response = await ApiClient.post('/api/auth/register', userData);
-  return response.data;
-};
-
-export const authService = {
-  login,
-  logout,
-  getCurrentUser,
-  refreshToken,
-  changePassword,
-  resetPassword,
-  register
 };
