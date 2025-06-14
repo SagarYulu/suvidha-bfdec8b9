@@ -5,7 +5,7 @@ const User = require('../models/User');
 const { JWT } = require('../config/constants');
 
 class AuthService {
-  static async login(email, password) {
+  static async login(email, password, isAdminRequest = false) {
     // Find user by email
     const user = await User.findByEmail(email);
     if (!user) {
@@ -21,6 +21,28 @@ class AuthService {
     // Check if user is active
     if (!user.is_active) {
       throw new Error('Account is deactivated');
+    }
+
+    // Add role validation to prevent cross-platform access
+    const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+    const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+
+    if (isAdminRequest) {
+      // Admin dashboard login - only allow admin roles/emails
+      const isAdminRole = adminRoles.includes(user.role);
+      const isAdminEmail = adminEmails.includes(user.email);
+      
+      if (!isAdminRole && !isAdminEmail) {
+        throw new Error('Access denied: Admin dashboard access restricted to authorized personnel only. Please use the employee mobile app.');
+      }
+    } else {
+      // Mobile app login - prevent admin users from accessing
+      const isAdminRole = adminRoles.includes(user.role);
+      const isAdminEmail = adminEmails.includes(user.email);
+      
+      if (isAdminRole || isAdminEmail) {
+        throw new Error('Access denied: Admin users cannot access the mobile app. Please use the admin dashboard.');
+      }
     }
 
     // Generate tokens
