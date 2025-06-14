@@ -5,6 +5,7 @@ import { authService } from '@/services/authService';
 interface User {
   id: string;
   full_name: string;
+  name: string; // Add name property for compatibility
   email: string;
   role: string;
   city?: string;
@@ -23,9 +24,11 @@ interface AuthState {
 
 interface AuthContextType {
   authState: AuthState;
+  user: User | null; // Add user property for direct access
   login: (email: string, password: string, isAdminLogin?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  refreshAuth: () => Promise<void>; // Add refreshAuth method
   isLoading: boolean;
 }
 
@@ -60,10 +63,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const token = localStorage.getItem('authToken');
       if (token) {
         const user = await authService.getCurrentUser();
+        // Ensure name property exists for compatibility
+        const userWithName = {
+          ...user,
+          name: user.name || user.full_name
+        };
         setAuthState({
-          user,
+          user: userWithName,
           isAuthenticated: true,
-          role: user.role
+          role: userWithName.role
         });
       }
     } catch (error) {
@@ -78,10 +86,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const { user, token } = await authService.login(email, password, isAdminLogin);
       localStorage.setItem('authToken', token);
+      // Ensure name property exists for compatibility
+      const userWithName = {
+        ...user,
+        name: user.name || user.full_name
+      };
       setAuthState({
-        user,
+        user: userWithName,
         isAuthenticated: true,
-        role: user.role
+        role: userWithName.role
       });
     } catch (error) {
       console.error('Login failed:', error);
@@ -107,10 +120,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshUser = async () => {
     try {
       const user = await authService.getCurrentUser();
+      // Ensure name property exists for compatibility
+      const userWithName = {
+        ...user,
+        name: user.name || user.full_name
+      };
       setAuthState(prev => ({
         ...prev,
-        user,
-        role: user.role
+        user: userWithName,
+        role: userWithName.role
       }));
     } catch (error) {
       console.error('Failed to refresh user:', error);
@@ -118,11 +136,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const refreshAuth = async () => {
+    await checkAuthStatus();
+  };
+
   const value: AuthContextType = {
     authState,
+    user: authState.user, // Add direct user access
     login,
     logout,
     refreshUser,
+    refreshAuth, // Add refreshAuth method
     isLoading
   };
 

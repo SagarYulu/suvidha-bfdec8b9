@@ -34,7 +34,7 @@ interface RBACProviderProps {
 interface ExtendedUser {
   id: string;
   email: string;
-  name: string;
+  name?: string; // Make name optional to avoid type conflicts
   user_id?: string; // Add the user_id field that might be present at runtime
 }
 
@@ -137,7 +137,13 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
       const cache: Record<string, boolean> = {};
       
       // Safely access possible extended user properties
-      const extendedUser = authState.user as ExtendedUser;
+      const extendedUser: ExtendedUser = {
+        id: authState.user.id,
+        email: authState.user.email,
+        name: authState.user.name,
+        user_id: (authState.user as any).user_id // Safe type assertion
+      };
+      
       const userIdForPermissions = extendedUser.user_id && isValidUuid(extendedUser.user_id)
         ? extendedUser.user_id
         : (isValidUuid(authState.user.id) ? authState.user.id : null);
