@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,8 +201,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Try local authentication first with login type
-      const localUser = await authServiceLogin(email, password, isAdminLogin);
+      // Try local authentication first
+      const localUser = await authServiceLogin(email, password);
       
       if (localUser) {
         // Local auth success
