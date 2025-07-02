@@ -67,7 +67,7 @@ const MobileLogin = () => {
 
     try {
       console.log("Attempting mobile verification with:", { email, employeeId });
-      const success = await login(email, employeeId);
+      const success = await login({ email, password: employeeId });
       
       if (success) {
         console.log("Verification successful, checking mobile app access rights");
