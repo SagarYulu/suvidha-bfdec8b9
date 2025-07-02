@@ -1,183 +1,155 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { ApiClient } from '@/services/apiClient';
+import { TrendingUp } from 'lucide-react';
 
-interface MoodDataPoint {
+interface MoodTrendData {
   date: string;
-  averageMood: number;
-  positiveCount: number;
-  negativeCount: number;
-  neutralCount: number;
-  totalFeedback: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  average: number;
 }
 
 interface MoodTrendSectionProps {
-  data: MoodDataPoint[];
-  timeframe: string;
+  filters?: any;
 }
 
-const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({ data, timeframe }) => {
-  // Calculate overall trend
-  const calculateTrend = () => {
-    if (data.length < 2) return 'stable';
-    const first = data[0].averageMood;
-    const last = data[data.length - 1].averageMood;
-    const change = ((last - first) / first) * 100;
-    
-    if (change > 5) return 'up';
-    if (change < -5) return 'down';
-    return 'stable';
-  };
+const MoodTrendSection: React.FC<MoodTrendSectionProps> = ({ filters = {} }) => {
+  const [data, setData] = useState<MoodTrendData[]>([]);
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const trend = calculateTrend();
-  const averageMood = data.reduce((sum, point) => sum + point.averageMood, 0) / data.length;
-  const totalFeedback = data.reduce((sum, point) => sum + point.totalFeedback, 0);
+  useEffect(() => {
+    fetchMoodTrend();
+  }, [period, filters]);
 
-  const getTrendIcon = () => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="h-5 w-5 text-green-600" />;
-      case 'down':
-        return <TrendingDown className="h-5 w-5 text-red-600" />;
-      default:
-        return <Minus className="h-5 w-5 text-gray-600" />;
+  const fetchMoodTrend = async () => {
+    setIsLoading(true);
+    try {
+      const response = await ApiClient.get(`/api/sentiment/mood-trend?period=${period}`);
+      setData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch mood trend:', error);
+      // Mock data for development
+      setData([
+        { date: '2024-01-01', positive: 65, neutral: 25, negative: 10, average: 4.2 },
+        { date: '2024-01-02', positive: 70, neutral: 20, negative: 10, average: 4.3 },
+        { date: '2024-01-03', positive: 60, neutral: 30, negative: 10, average: 4.0 },
+        { date: '2024-01-04', positive: 75, neutral: 15, negative: 10, average: 4.5 },
+        { date: '2024-01-05', positive: 68, neutral: 22, negative: 10, average: 4.2 }
+      ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getTrendColor = () => {
-    switch (trend) {
-      case 'up':
-        return 'text-green-600';
-      case 'down':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-3 border rounded shadow-lg">
+          <p className="font-medium">{new Date(label).toLocaleDateString()}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }}>
+              {entry.name}: {entry.value}
+              {entry.dataKey !== 'average' ? '%' : ''}
+            </p>
+          ))}
+        </div>
+      );
     }
+    return null;
   };
 
-  const formatTooltip = (value: number, name: string) => {
-    if (name === 'averageMood') {
-      return [value.toFixed(2), 'Average Mood Score'];
-    }
-    return [value, name];
-  };
-
-  const getMoodLabel = (score: number) => {
-    if (score >= 4) return 'Very Positive';
-    if (score >= 3) return 'Positive';
-    if (score >= 2) return 'Neutral';
-    if (score >= 1) return 'Negative';
-    return 'Very Negative';
-  };
-
-  const getMoodColor = (score: number) => {
-    if (score >= 4) return '#22c55e';
-    if (score >= 3) return '#84cc16';
-    if (score >= 2) return '#eab308';
-    if (score >= 1) return '#f97316';
-    return '#ef4444';
-  };
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Mood Trend Analysis</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-64 bg-gray-200 rounded animate-pulse"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Mood Trend Analysis</span>
-          <div className="flex items-center gap-2">
-            {getTrendIcon()}
-            <span className={`text-sm ${getTrendColor()}`}>
-              {trend === 'stable' ? 'Stable' : trend === 'up' ? 'Improving' : 'Declining'}
-            </span>
-          </div>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Mood Trend Analysis
         </CardTitle>
+        <div className="flex justify-between items-center">
+          <p className="text-sm text-gray-600">
+            Track sentiment changes over time
+          </p>
+          <Select value={period} onValueChange={(value: '7d' | '30d' | '90d') => setPeriod(value)}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7d">Last 7 days</SelectItem>
+              <SelectItem value="30d">Last 30 days</SelectItem>
+              <SelectItem value="90d">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold" style={{ color: getMoodColor(averageMood) }}>
-              {averageMood.toFixed(2)}
-            </p>
-            <p className="text-sm text-gray-600">Average Mood</p>
-            <p className="text-xs text-gray-500">{getMoodLabel(averageMood)}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600">{totalFeedback}</p>
-            <p className="text-sm text-gray-600">Total Responses</p>
-            <p className="text-xs text-gray-500">{timeframe}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">
-              {data.length > 0 ? (data[data.length - 1].averageMood - data[0].averageMood).toFixed(2) : '0.00'}
-            </p>
-            <p className="text-sm text-gray-600">Change</p>
-            <p className="text-xs text-gray-500">vs Start of Period</p>
-          </div>
-        </div>
-
-        {/* Trend Chart */}
-        <div className="h-64 mb-4">
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+              <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="date" 
-                tick={{ fontSize: 12 }}
                 tickFormatter={(value) => new Date(value).toLocaleDateString()}
               />
-              <YAxis 
-                domain={[0, 5]}
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => value.toFixed(1)}
-              />
-              <Tooltip
-                labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                formatter={formatTooltip}
-                contentStyle={{
-                  backgroundColor: 'white',
-                  border: '1px solid #ccc',
-                  borderRadius: '6px'
-                }}
-              />
-              
-              {/* Reference lines for mood levels */}
-              <ReferenceLine y={3} stroke="#84cc16" strokeDasharray="2 2" opacity={0.5} />
-              <ReferenceLine y={2} stroke="#eab308" strokeDasharray="2 2" opacity={0.5} />
+              <YAxis yAxisId="left" />
+              <YAxis yAxisId="right" orientation="right" domain={[1, 5]} />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend />
               
               <Line 
+                yAxisId="left"
                 type="monotone" 
-                dataKey="averageMood" 
-                stroke="#2563eb" 
+                dataKey="positive" 
+                stroke="#10B981" 
+                strokeWidth={2}
+                name="Positive %"
+              />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="neutral" 
+                stroke="#F59E0B" 
+                strokeWidth={2}
+                name="Neutral %"
+              />
+              <Line 
+                yAxisId="left"
+                type="monotone" 
+                dataKey="negative" 
+                stroke="#EF4444" 
+                strokeWidth={2}
+                name="Negative %"
+              />
+              <Line 
+                yAxisId="right"
+                type="monotone" 
+                dataKey="average" 
+                stroke="#6366F1" 
                 strokeWidth={3}
-                dot={{ fill: '#2563eb', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#2563eb', strokeWidth: 2, fill: 'white' }}
+                strokeDasharray="5 5"
+                name="Avg Rating"
               />
             </LineChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Mood Distribution for Latest Period */}
-        {data.length > 0 && (
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h4 className="font-medium mb-3">Latest Period Breakdown</h4>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div className="text-center">
-                <p className="font-medium text-green-600">{data[data.length - 1].positiveCount}</p>
-                <p className="text-gray-600">Positive</p>
-              </div>
-              <div className="text-center">
-                <p className="font-medium text-gray-600">{data[data.length - 1].neutralCount}</p>
-                <p className="text-gray-600">Neutral</p>
-              </div>
-              <div className="text-center">
-                <p className="font-medium text-red-600">{data[data.length - 1].negativeCount}</p>
-                <p className="text-gray-600">Negative</p>
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

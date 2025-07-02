@@ -1,60 +1,44 @@
 
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
-import AdminLayout from '@/components/admin/AdminLayout';
-import Login from '@/pages/admin/Login';
-import Dashboard from '@/pages/admin/Dashboard';
-import Issues from '@/pages/admin/Issues';
-import Employees from '@/pages/admin/Employees';
-import Analytics from '@/pages/admin/Analytics';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      retry: 1,
-    },
-  },
-});
+// Admin Pages
+import Dashboard from '@/pages/admin/Dashboard';
+import Issues from '@/pages/admin/Issues';
+import Analytics from '@/pages/admin/Analytics';
+import Feedback from '@/pages/admin/Feedback';
+
+// Mobile Pages
+import Login from '@/pages/mobile/Login';
+import MobileIssues from '@/pages/mobile/Issues';
+import NewIssue from '@/pages/mobile/NewIssue';
+import IssueDetails from '@/pages/mobile/IssueDetails';
+import MobileFeedback from '@/pages/mobile/Feedback';
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <div className="min-h-screen bg-background">
-            <Routes>
-              {/* Redirect root to admin */}
-              <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-              
-              {/* Admin Login */}
-              <Route path="/admin/login" element={<Login />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="issues" element={<Issues />} />
-                <Route path="employees" element={<Employees />} />
-                <Route path="analytics" element={<Analytics />} />
-                <Route path="bulk-upload" element={<div className="p-6"><h1 className="text-2xl font-bold">Bulk Upload</h1><p>Coming Soon</p></div>} />
-                <Route path="feedback" element={<div className="p-6"><h1 className="text-2xl font-bold">Feedback</h1><p>Coming Soon</p></div>} />
-                <Route path="reports" element={<div className="p-6"><h1 className="text-2xl font-bold">Reports</h1><p>Coming Soon</p></div>} />
-                <Route path="users" element={<div className="p-6"><h1 className="text-2xl font-bold">User Management</h1><p>Coming Soon</p></div>} />
-                <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Settings</h1><p>Coming Soon</p></div>} />
-              </Route>
-              
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
-            </Routes>
-            
-            <Toaster />
-          </div>
-        </Router>
-      </AuthProvider>
-    </QueryClientProvider>
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Admin Routes */}
+          <Route path="/admin" element={<Dashboard />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
+          <Route path="/admin/issues" element={<Issues />} />
+          <Route path="/admin/analytics" element={<Analytics />} />
+          <Route path="/admin/feedback" element={<Feedback />} />
+          
+          {/* Mobile Routes */}
+          <Route path="/" element={<Login />} />
+          <Route path="/mobile/login" element={<Login />} />
+          <Route path="/mobile/issues" element={<MobileIssues />} />
+          <Route path="/mobile/new-issue" element={<NewIssue />} />
+          <Route path="/mobile/issue/:id" element={<IssueDetails />} />
+          <Route path="/mobile/feedback" element={<MobileFeedback />} />
+        </Routes>
+        <Toaster />
+      </div>
+    </Router>
   );
 }
 

@@ -4,53 +4,51 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Send, User, Clock, Eye } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { MessageCircle, Send, Lock } from 'lucide-react';
+import { formatDate } from '@/utils/dateUtils';
 
 interface InternalComment {
   id: string;
   content: string;
-  authorName: string;
-  authorRole: string;
   createdAt: string;
-  visibility: 'internal' | 'admin_only';
+  createdBy: string;
+  author: {
+    name: string;
+    role: string;
+  };
 }
 
 interface InternalCommentSectionProps {
   issueId: string;
-  canAddComments?: boolean;
+  comments: InternalComment[];
+  onAddComment: (content: string) => void;
+  isLoading?: boolean;
 }
 
 const InternalCommentSection: React.FC<InternalCommentSectionProps> = ({
   issueId,
-  canAddComments = true
+  comments,
+  onAddComment,
+  isLoading = false
 }) => {
   const [newComment, setNewComment] = useState('');
-  const [visibility, setVisibility] = useState<'internal' | 'admin_only'>('internal');
-  const [internalComments, setInternalComments] = useState<InternalComment[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAddingComment, setIsAddingComment] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmitComment = async () => {
-    if (!newComment.trim()) return;
-    
-    setIsAddingComment(true);
+  const handleSubmit = async () => {
+    if (!newComment.trim() || isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
-      const newCommentObj: InternalComment = {
-        id: Date.now().toString(),
-        content: newComment,
-        authorName: 'Current User',
-        authorRole: 'Admin',
-        createdAt: new Date().toISOString(),
-        visibility
-      };
-      
-      setInternalComments(prev => [...prev, newCommentObj]);
+      await onAddComment(newComment.trim());
       setNewComment('');
-    } catch (error) {
-      console.error('Failed to add internal comment:', error);
     } finally {
-      setIsAddingComment(false);
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      handleSubmit();
     }
   };
 
@@ -58,102 +56,71 @@ const InternalCommentSection: React.FC<InternalCommentSectionProps> = ({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lock className="h-5 w-5 text-red-600" />
-          Internal Comments ({internalComments.length})
+          <Lock className="h-5 w-5 text-orange-600" />
+          Internal Comments
+          <Badge variant="secondary">Admin Only</Badge>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Warning Notice */}
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-red-800">
-            <Lock className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              Internal comments are not visible to end users
-            </span>
+        {/* Add New Comment */}
+        <div className="space-y-3">
+          <Textarea
+            placeholder="Add an internal comment (Ctrl+Enter to send)..."
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+            onKeyDown={handleKeyPress}
+            className="min-h-[80px]"
+          />
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleSubmit}
+              disabled={!newComment.trim() || isSubmitting}
+              size="sm"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Sending...' : 'Send'}
+            </Button>
           </div>
         </div>
 
         {/* Comments List */}
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map(i => (
-                <div key={i} className="animate-pulse">
-                  <div className="h-20 bg-gray-200 rounded"></div>
-                </div>
-              ))}
-            </div>
-          ) : internalComments.length === 0 ? (
+        <div className="space-y-4">
+          {comments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No internal comments yet.
+              <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No internal comments yet</p>
+              <p className="text-sm">Add the first internal comment to start the discussion</p>
             </div>
           ) : (
-            internalComments.map((comment) => (
-              <div key={comment.id} className="border rounded-lg p-4 bg-red-50">
-                <div className="flex items-start justify-between mb-2">
+            comments.map((comment) => (
+              <div key={comment.id} className="border rounded-lg p-4 bg-orange-50">
+                <div className="flex justify-between items-start mb-2">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span className="font-medium">{comment.authorName}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {comment.authorRole}
-                    </Badge>
-                    <Badge 
-                      variant={comment.visibility === 'admin_only' ? 'destructive' : 'secondary'} 
-                      className="text-xs flex items-center gap-1"
-                    >
-                      <Eye className="h-3 w-3" />
-                      {comment.visibility === 'admin_only' ? 'Admin Only' : 'Internal'}
-                    </Badge>
+                    <div className="w-8 h-8 rounded-full bg-orange-600 text-white flex items-center justify-center text-sm">
+                      {comment.author.name.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{comment.author.name}</p>
+                      <Badge variant="outline" className="text-xs">
+                        {comment.author.role}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <Clock className="h-3 w-3" />
-                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                  </div>
+                  <span className="text-xs text-gray-500">
+                    {formatDate(comment.createdAt)}
+                  </span>
                 </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
+                <p className="text-sm text-gray-700 whitespace-pre-wrap pl-10">
+                  {comment.content}
+                </p>
               </div>
             ))
           )}
         </div>
 
-        {/* Add Internal Comment Form */}
-        {canAddComments && (
-          <div className="space-y-3 border-t pt-4">
-            <div className="flex gap-2 mb-2">
-              <Button
-                variant={visibility === 'internal' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setVisibility('internal')}
-              >
-                Internal Team
-              </Button>
-              <Button
-                variant={visibility === 'admin_only' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setVisibility('admin_only')}
-              >
-                Admin Only
-              </Button>
-            </div>
-            
-            <Textarea
-              placeholder="Add an internal comment..."
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="min-h-[80px] bg-red-50"
-            />
-            
-            <div className="flex justify-end">
-              <Button 
-                onClick={handleSubmitComment}
-                disabled={!newComment.trim() || isAddingComment}
-                className="flex items-center gap-2"
-                variant="destructive"
-              >
-                <Send className="h-4 w-4" />
-                {isAddingComment ? 'Posting...' : 'Post Internal Comment'}
-              </Button>
-            </div>
+        {isLoading && (
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           </div>
         )}
       </CardContent>

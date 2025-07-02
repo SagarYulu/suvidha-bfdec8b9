@@ -1,59 +1,6 @@
 
 import { ApiClient } from './apiClient';
-
-export interface Issue {
-  id: string;
-  title: string;
-  description: string;
-  issue_type: string;
-  issue_subtype: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed' | 'pending' | 'escalated';
-  employee_id: string;
-  created_by: string;
-  assigned_to?: string;
-  resolved_at?: string;
-  additional_details?: any;
-  attachment_urls?: string[];
-  created_at: string;
-  updated_at: string;
-  emp_name?: string;
-  emp_email?: string;
-  emp_code?: string;
-  cluster_name?: string;
-  city_name?: string;
-  created_by_name?: string;
-  assigned_to_name?: string;
-}
-
-export interface CreateIssueData {
-  title?: string;
-  description: string;
-  issue_type: string;
-  issue_subtype: string;
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  employee_id: string;
-  additional_details?: any;
-}
-
-export interface UpdateIssueData {
-  title?: string;
-  description?: string;
-  status?: string;
-  priority?: string;
-  assigned_to?: string;
-  resolution_notes?: string;
-}
-
-export interface IssueComment {
-  id: string;
-  issue_id: string;
-  user_id: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-  user_name?: string;
-}
+import { Issue, CreateIssueData, UpdateIssueData, IssueComment, TicketFeedback } from '../types';
 
 export class IssueService {
   static async getIssues(filters?: {
@@ -64,16 +11,15 @@ export class IssueService {
     cluster?: string;
     dateFrom?: string;
     dateTo?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<{
-    issues: Issue[];
-    total: number;
-    page: number;
-    limit: number;
-    pages: number;
-  }> {
-    const response = await ApiClient.get('/api/issues', { params: filters });
+  }): Promise<Issue[]> {
+    const queryParams = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) queryParams.append(key, value);
+      });
+    }
+    
+    const response = await ApiClient.get(`/api/issues?${queryParams}`);
     return response.data;
   }
 
@@ -101,35 +47,23 @@ export class IssueService {
     return response.data;
   }
 
+  static async submitFeedback(issueId: string, data: {
+    sentiment: 'happy' | 'neutral' | 'sad';
+    feedbackOption: string;
+  }): Promise<TicketFeedback> {
+    const response = await ApiClient.post(`/api/issues/${issueId}/feedback`, data);
+    return response.data;
+  }
+
   static async getIssueStats(): Promise<{
     total: number;
     open: number;
-    in_progress: number;
+    inProgress: number;
     resolved: number;
     closed: number;
     avgResolutionTime: number;
   }> {
     const response = await ApiClient.get('/api/issues/stats');
-    return response.data;
-  }
-
-  static async updateIssueStatus(id: string, status: string): Promise<Issue> {
-    const response = await ApiClient.patch(`/api/issues/${id}/status`, { status });
-    return response.data;
-  }
-
-  static async assignIssue(id: string, assignedTo: string): Promise<Issue> {
-    const response = await ApiClient.patch(`/api/issues/${id}/assign`, { assigned_to: assignedTo });
-    return response.data;
-  }
-
-  static async reopenIssue(id: string): Promise<Issue> {
-    const response = await ApiClient.post(`/api/issues/${id}/reopen`);
-    return response.data;
-  }
-
-  static async escalateIssue(id: string, reason?: string): Promise<Issue> {
-    const response = await ApiClient.post(`/api/issues/${id}/escalate`, { reason });
     return response.data;
   }
 }

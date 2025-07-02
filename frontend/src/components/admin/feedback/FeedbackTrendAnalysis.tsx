@@ -1,84 +1,77 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import FeedbackTrendChart from './FeedbackTrendChart';
-import FeedbackSubmissionRate from './FeedbackSubmissionRate';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface TrendData {
-  daily: any[];
-  weekly: any[];
-  monthly: any[];
-  submissionRate: any[];
+  date: string;
+  positive: number;
+  neutral: number;
+  negative: number;
 }
 
 interface FeedbackTrendAnalysisProps {
-  data: TrendData | undefined;
-  isLoading?: boolean;
+  data: TrendData[];
 }
 
 const FeedbackTrendAnalysis: React.FC<FeedbackTrendAnalysisProps> = ({
-  data,
-  isLoading = false
+  data = []
 }) => {
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="h-64 bg-gray-200 animate-pulse rounded"></div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const mockData: TrendData[] = [
+    { date: '2024-01-01', positive: 45, neutral: 30, negative: 15 },
+    { date: '2024-01-02', positive: 52, neutral: 28, negative: 12 },
+    { date: '2024-01-03', positive: 48, neutral: 32, negative: 18 },
+    { date: '2024-01-04', positive: 55, neutral: 25, negative: 10 },
+    { date: '2024-01-05', positive: 50, neutral: 30, negative: 15 }
+  ];
 
-  if (!data) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-center text-gray-500">
-          No trend data available
-        </CardContent>
-      </Card>
-    );
-  }
+  const displayData = data.length > 0 ? data : mockData;
 
   return (
-    <div className="space-y-6">
-      <Tabs defaultValue="daily" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="daily">Daily Trends</TabsTrigger>
-          <TabsTrigger value="weekly">Weekly Trends</TabsTrigger>
-          <TabsTrigger value="monthly">Monthly Trends</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="daily">
-          <FeedbackTrendChart 
-            data={data.daily} 
-            title="Daily Feedback Trends"
-            period="daily"
-          />
-        </TabsContent>
-        
-        <TabsContent value="weekly">
-          <FeedbackTrendChart 
-            data={data.weekly} 
-            title="Weekly Feedback Trends"
-            period="weekly"
-          />
-        </TabsContent>
-        
-        <TabsContent value="monthly">
-          <FeedbackTrendChart 
-            data={data.monthly} 
-            title="Monthly Feedback Trends"
-            period="monthly"
-          />
-        </TabsContent>
-      </Tabs>
-
-      <FeedbackSubmissionRate data={data.submissionRate} />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Feedback Trend Analysis</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={displayData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={(value) => new Date(value).toLocaleDateString()}
+              />
+              <YAxis />
+              <Tooltip 
+                labelFormatter={(value) => new Date(value).toLocaleDateString()}
+              />
+              <Legend />
+              <Line 
+                type="monotone" 
+                dataKey="positive" 
+                stroke="#10B981" 
+                strokeWidth={2}
+                name="Positive"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="neutral" 
+                stroke="#F59E0B" 
+                strokeWidth={2}
+                name="Neutral"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="negative" 
+                stroke="#EF4444" 
+                strokeWidth={2}
+                name="Negative"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -2,17 +2,19 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Activity, MessageSquare, User, AlertTriangle, CheckCircle } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { Activity, User, Clock, MessageSquare, Edit } from 'lucide-react';
+import { formatDate } from '@/utils/dateUtils';
 
 interface ActivityItem {
   id: string;
-  type: 'status_change' | 'comment' | 'assignment' | 'escalation' | 'priority_change';
+  type: 'status_change' | 'assignment' | 'comment' | 'update' | 'creation';
   description: string;
-  user: string;
   timestamp: string;
-  metadata?: Record<string, any>;
+  user: {
+    name: string;
+    role: string;
+  };
+  details?: Record<string, any>;
 }
 
 interface IssueActivityProps {
@@ -20,19 +22,20 @@ interface IssueActivityProps {
   isLoading?: boolean;
 }
 
-const IssueActivity: React.FC<IssueActivityProps> = ({ activities, isLoading = false }) => {
+const IssueActivity: React.FC<IssueActivityProps> = ({
+  activities,
+  isLoading = false
+}) => {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'status_change':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'comment':
-        return <MessageSquare className="h-4 w-4 text-blue-600" />;
+        return <Edit className="h-4 w-4 text-blue-600" />;
       case 'assignment':
-        return <User className="h-4 w-4 text-purple-600" />;
-      case 'escalation':
-        return <AlertTriangle className="h-4 w-4 text-red-600" />;
-      case 'priority_change':
-        return <AlertTriangle className="h-4 w-4 text-orange-600" />;
+        return <User className="h-4 w-4 text-green-600" />;
+      case 'comment':
+        return <MessageSquare className="h-4 w-4 text-purple-600" />;
+      case 'update':
+        return <Edit className="h-4 w-4 text-orange-600" />;
       default:
         return <Activity className="h-4 w-4 text-gray-600" />;
     }
@@ -41,14 +44,12 @@ const IssueActivity: React.FC<IssueActivityProps> = ({ activities, isLoading = f
   const getActivityColor = (type: string) => {
     switch (type) {
       case 'status_change':
-        return 'bg-green-50 border-green-200';
-      case 'comment':
         return 'bg-blue-50 border-blue-200';
       case 'assignment':
+        return 'bg-green-50 border-green-200';
+      case 'comment':
         return 'bg-purple-50 border-purple-200';
-      case 'escalation':
-        return 'bg-red-50 border-red-200';
-      case 'priority_change':
+      case 'update':
         return 'bg-orange-50 border-orange-200';
       default:
         return 'bg-gray-50 border-gray-200';
@@ -61,14 +62,14 @@ const IssueActivity: React.FC<IssueActivityProps> = ({ activities, isLoading = f
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Issue Activity
+            Activity Timeline
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="animate-pulse">
-                <div className="h-16 bg-gray-200 rounded"></div>
+                <div className="h-16 bg-gray-200 rounded-lg"></div>
               </div>
             ))}
           </div>
@@ -82,55 +83,65 @@ const IssueActivity: React.FC<IssueActivityProps> = ({ activities, isLoading = f
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          Issue Activity ({activities.length})
+          Activity Timeline
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-96">
-          <div className="space-y-4">
-            {activities.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No activity recorded yet.
-              </div>
-            ) : (
-              activities.map((activity, index) => (
-                <div 
-                  key={activity.id} 
-                  className={`p-3 border rounded-lg ${getActivityColor(activity.type)}`}
-                >
-                  <div className="flex items-start gap-3">
+        <div className="space-y-4">
+          {activities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <p>No activity recorded yet</p>
+            </div>
+          ) : (
+            activities.map((activity, index) => (
+              <div key={activity.id} className="relative">
+                {/* Timeline line */}
+                {index < activities.length - 1 && (
+                  <div className="absolute left-6 top-12 w-0.5 h-8 bg-gray-200"></div>
+                )}
+                
+                <div className={`flex gap-4 p-4 rounded-lg border ${getActivityColor(activity.type)}`}>
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white border flex items-center justify-center">
                     {getActivityIcon(activity.type)}
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">{activity.description}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {activity.type.replace('_', ' ').toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
-                        <span>by {activity.user}</span>
-                        <span>{formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}</span>
-                      </div>
-                      {activity.metadata && (
-                        <div className="text-xs text-gray-600 bg-white/50 p-2 rounded">
-                          {Object.entries(activity.metadata).map(([key, value]) => (
-                            <div key={key}>
-                              <strong>{key}:</strong> {String(value)}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
                   
-                  {index < activities.length - 1 && (
-                    <div className="ml-2 mt-2 border-l-2 border-gray-200 h-4"></div>
-                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-sm font-medium text-gray-900">
+                        {activity.description}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {activity.user.role}
+                        </Badge>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(activity.timestamp)}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-gray-600">
+                      by {activity.user.name}
+                    </p>
+                    
+                    {activity.details && Object.keys(activity.details).length > 0 && (
+                      <div className="mt-2 p-2 bg-white/50 rounded text-xs">
+                        {Object.entries(activity.details).map(([key, value]) => (
+                          <div key={key} className="flex justify-between">
+                            <span className="capitalize">{key.replace('_', ' ')}:</span>
+                            <span className="font-medium">{String(value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
-        </ScrollArea>
+              </div>
+            ))
+          )}
+        </div>
       </CardContent>
     </Card>
   );

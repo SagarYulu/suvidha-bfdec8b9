@@ -1,87 +1,56 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, FileText } from 'lucide-react';
-
-interface SubmissionData {
-  date: string;
-  submissions: number;
-  totalTickets: number;
-  rate: number;
-}
+import { Progress } from '@/components/ui/progress';
+import { MessageSquare, Users } from 'lucide-react';
 
 interface FeedbackSubmissionRateProps {
-  data: SubmissionData[];
-  totalSubmissions: number;
-  totalTickets: number;
-  averageRate: number;
+  totalFeedback: number;
+  totalClosedTickets: number;
+  submissionRate: number;
 }
 
 const FeedbackSubmissionRate: React.FC<FeedbackSubmissionRateProps> = ({
-  data,
-  totalSubmissions,
-  totalTickets,
-  averageRate
+  totalFeedback,
+  totalClosedTickets,
+  submissionRate
 }) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Feedback Submission Rate</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Feedback Submission Rate
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <FileText className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium">Total Submissions</span>
-            </div>
-            <p className="text-2xl font-bold text-blue-600">{totalSubmissions}</p>
+      <CardContent className="space-y-4">
+        <div className="text-center">
+          <div className="text-3xl font-bold text-blue-600 mb-2">
+            {submissionRate.toFixed(1)}%
           </div>
-          
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium">Total Tickets</span>
-            </div>
-            <p className="text-2xl font-bold text-gray-600">{totalTickets}</p>
-          </div>
-          
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium">Average Rate</span>
-            </div>
-            <p className="text-2xl font-bold text-green-600">{averageRate}%</p>
-          </div>
+          <p className="text-sm text-gray-600">
+            of closed tickets received feedback
+          </p>
         </div>
 
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="date" 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => new Date(value).toLocaleDateString()}
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => `${value}%`}
-              />
-              <Tooltip
-                labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                formatter={(value: number) => [`${value}%`, 'Submission Rate']}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="rate" 
-                stroke="#2563eb" 
-                strokeWidth={2}
-                dot={{ fill: '#2563eb', strokeWidth: 2 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+        <Progress value={submissionRate} className="h-3" />
+
+        <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-center justify-center mb-1">
+              <MessageSquare className="h-4 w-4 text-blue-600 mr-1" />
+              <span className="text-sm text-blue-600">Feedback</span>
+            </div>
+            <div className="text-lg font-semibold">{totalFeedback}</div>
+          </div>
+          
+          <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="flex items-center justify-center mb-1">
+              <Users className="h-4 w-4 text-green-600 mr-1" />
+              <span className="text-sm text-green-600">Closed Tickets</span>
+            </div>
+            <div className="text-lg font-semibold">{totalClosedTickets}</div>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -1,87 +1,85 @@
 
 import { ApiClient } from './apiClient';
 
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+  phone?: string;
+}
+
 interface User {
   id: string;
-  full_name: string;
   email: string;
+  name: string;
   role: string;
-  city?: string;
-  cluster?: string;
   phone?: string;
-  employee_id?: string;
-  cluster_id?: string;
-  is_active: boolean;
 }
 
-interface LoginResponse {
+interface AuthResponse {
   user: User;
   token: string;
-  refreshToken: string;
 }
 
-export const authService = {
-  async login(email: string, password: string, isAdminLogin = false): Promise<LoginResponse> {
-    const headers: Record<string, string> = {};
-    
-    // Add header to identify admin vs mobile login
-    if (isAdminLogin) {
-      headers['x-admin-login'] = 'true';
-    } else {
-      headers['x-mobile-login'] = 'true';
-    }
-    
-    const response = await ApiClient.post('/api/auth/login', {
-      email,
-      password
-    }, { headers });
+class AuthService {
+  async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    const response = await ApiClient.post('/api/auth/login', credentials);
     
     if (response.data.token) {
-      ApiClient.setAuthToken(response.data.token);
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
     }
     
-    return response.data;
-  },
-
-  async logout(): Promise<void> {
-    await ApiClient.post('/api/auth/logout');
-    ApiClient.clearAuthToken();
-  },
-
-  async getCurrentUser(): Promise<User> {
-    const response = await ApiClient.get('/api/auth/me');
-    return response.data;
-  },
-
-  async refreshToken(): Promise<string> {
-    const response = await ApiClient.post('/api/auth/refresh');
-    if (response.data.token) {
-      ApiClient.setAuthToken(response.data.token);
-    }
-    return response.data.token;
-  },
-
-  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
-    await ApiClient.post('/api/auth/change-password', {
-      currentPassword,
-      newPassword
-    });
-  },
-
-  async resetPassword(email: string): Promise<void> {
-    await ApiClient.post('/api/auth/forgot-password', {
-      email
-    });
-  },
-
-  async register(userData: {
-    email: string;
-    password: string;
-    full_name: string;
-    role: string;
-    cluster_id?: string;
-  }): Promise<User> {
-    const response = await ApiClient.post('/api/auth/register', userData);
     return response.data;
   }
-};
+
+  async register(data: RegisterData): Promise<AuthResponse> {
+    const response = await ApiClient.post('/api/auth/register', data);
+    
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    
+    return response.data;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await ApiClient.post('/api/auth/logout');
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+    }
+  }
+
+  async getCurrentUser(): Promise<User | null> {
+    try {
+      const response = await ApiClient.get('/api/auth/me');
+      return response.data.user;
+    } catch (error) {
+      this.logout();
+      return null;
+    }
+  }
+
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('authToken');
+  }
+
+  getStoredUser(): User | null {
+    const user = localStorage.getItem('user');
+    return user ? JSON.parse(user) : null;
+  }
+
+  getAuthToken(): string | null {
+    return localStorage.getItem('authToken');
+  }
+}
+
+export const authService = new AuthService();

@@ -1,41 +1,69 @@
 
 import { useState, useEffect } from 'react';
-import { feedbackAnalyticsService } from '@/services/feedbackAnalyticsService';
+import { ApiClient } from '@/services/apiClient';
 
-interface FeedbackAnalyticsData {
-  overview: any;
-  trends: any;
-  breakdown: any;
+export interface FeedbackMetrics {
+  totalFeedback: number;
+  responseRate: number;
+  positiveSentiment: number;
+  averageRating: number;
 }
 
-export const useFeedbackAnalytics = (filters: Record<string, any>) => {
-  const [data, setData] = useState<FeedbackAnalyticsData | null>(null);
+export const useFeedbackAnalytics = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [metrics, setMetrics] = useState<FeedbackMetrics | null>(null);
+  const [comparisonMetrics, setComparisonMetrics] = useState<FeedbackMetrics | null>(null);
+  const [rawData, setRawData] = useState<any[]>([]);
+  const [filters, setFilters] = useState<any>({});
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [filters]);
-
-  const loadAnalytics = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
-      setError(null);
-      
-      const [overview, trends, breakdown] = await Promise.all([
-        feedbackAnalyticsService.getFeedbackOverview(filters),
-        feedbackAnalyticsService.getFeedbackTrends(filters),
-        feedbackAnalyticsService.getFeedbackBreakdown(filters)
-      ]);
-
-      setData({ overview, trends, breakdown });
+      const response = await ApiClient.get('/api/feedback/analytics');
+      setMetrics(response.data.metrics);
+      setRawData(response.data.rawData || []);
     } catch (err) {
-      setError(err as Error);
-      console.error('Failed to load feedback analytics:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { data, isLoading, error, refetch: loadAnalytics };
+  useEffect(() => {
+    fetchData();
+  }, [filters]);
+
+  const updateFilters = (newFilters: any) => {
+    setFilters(newFilters);
+  };
+
+  const toggleComparison = (enabled: boolean) => {
+    if (enabled) {
+      // Fetch comparison data
+      fetchComparisonData();
+    } else {
+      setComparisonMetrics(null);
+    }
+  };
+
+  const fetchComparisonData = async () => {
+    try {
+      const response = await ApiClient.get('/api/feedback/analytics/comparison');
+      setComparisonMetrics(response.data.metrics);
+    } catch (err) {
+      console.error('Error fetching comparison data:', err);
+    }
+  };
+
+  return {
+    isLoading,
+    error,
+    metrics,
+    comparisonMetrics,
+    rawData,
+    filters,
+    updateFilters,
+    toggleComparison
+  };
 };

@@ -6,33 +6,26 @@ class Employee {
   static async create(employeeData) {
     const pool = getPool();
     const {
+      emp_code,
       emp_name,
       emp_email,
       emp_mobile,
-      emp_code,
+      designation,
+      department,
       cluster_id,
-      role = 'employee',
       date_of_joining,
-      date_of_birth,
-      blood_group,
-      account_number,
-      ifsc_code,
-      manager,
-      city,
-      cluster
+      is_active = true
     } = employeeData;
     
     const employeeId = uuidv4();
     
     const [result] = await pool.execute(
       `INSERT INTO employees 
-       (id, emp_name, emp_email, emp_mobile, emp_code, cluster_id, role, 
-        date_of_joining, date_of_birth, blood_group, account_number, ifsc_code, 
-        manager, city, cluster, created_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [employeeId, emp_name, emp_email, emp_mobile, emp_code, cluster_id, role,
-       date_of_joining, date_of_birth, blood_group, account_number, ifsc_code,
-       manager, city, cluster]
+       (id, emp_code, emp_name, emp_email, emp_mobile, designation, 
+        department, cluster_id, date_of_joining, is_active, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [employeeId, emp_code, emp_name, emp_email, emp_mobile, 
+       designation, department, cluster_id, date_of_joining, is_active]
     );
     
     return this.findById(employeeId);
@@ -41,7 +34,11 @@ class Employee {
   static async findById(id) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      'SELECT * FROM employees WHERE id = ?',
+      `SELECT e.*, c.cluster_name, ct.city_name 
+       FROM employees e
+       LEFT JOIN master_clusters c ON e.cluster_id = c.id
+       LEFT JOIN master_cities ct ON c.city_id = ct.id
+       WHERE e.id = ?`,
       [id]
     );
     
@@ -51,17 +48,25 @@ class Employee {
   static async findByEmail(email) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      'SELECT * FROM employees WHERE emp_email = ?',
+      `SELECT e.*, c.cluster_name, ct.city_name 
+       FROM employees e
+       LEFT JOIN master_clusters c ON e.cluster_id = c.id
+       LEFT JOIN master_cities ct ON c.city_id = ct.id
+       WHERE e.emp_email = ?`,
       [email]
     );
     
     return rows[0] || null;
   }
 
-  static async findByCode(emp_code) {
+  static async findByEmpCode(emp_code) {
     const pool = getPool();
     const [rows] = await pool.execute(
-      'SELECT * FROM employees WHERE emp_code = ?',
+      `SELECT e.*, c.cluster_name, ct.city_name 
+       FROM employees e
+       LEFT JOIN master_clusters c ON e.cluster_id = c.id
+       LEFT JOIN master_cities ct ON c.city_id = ct.id
+       WHERE e.emp_code = ?`,
       [emp_code]
     );
     
@@ -70,29 +75,47 @@ class Employee {
 
   static async findAll(filters = {}) {
     const pool = getPool();
-    let query = 'SELECT * FROM employees WHERE 1=1';
+    let query = `
+      SELECT e.*, c.cluster_name, ct.city_name 
+      FROM employees e
+      LEFT JOIN master_clusters c ON e.cluster_id = c.id
+      LEFT JOIN master_cities ct ON c.city_id = ct.id
+      WHERE 1=1
+    `;
+    
     const params = [];
     
-    if (filters.city) {
-      query += ' AND city = ?';
-      params.push(filters.city);
+    if (filters.is_active !== undefined) {
+      query += ' AND e.is_active = ?';
+      params.push(filters.is_active);
     }
     
-    if (filters.cluster) {
-      query += ' AND cluster = ?';
-      params.push(filters.cluster);
+    if (filters.cluster_id) {
+      query += ' AND e.cluster_id = ?';
+      params.push(filters.cluster_id);
     }
     
-    if (filters.role) {
-      query += ' AND role = ?';
-      params.push(filters.role);
+    if (filters.department) {
+      query += ' AND e.department = ?';
+      params.push(filters.department);
     }
     
-    query += ' ORDER BY created_at DESC';
+    if (filters.search) {
+      query += ' AND (e.emp_name LIKE ? OR e.emp_email LIKE ? OR e.emp_code LIKE ?)';
+      const searchTerm = `%${filters.search}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+    }
+    
+    query += ' ORDER BY e.emp_name ASC';
     
     if (filters.limit) {
       query += ' LIMIT ?';
       params.push(parseInt(filters.limit));
+      
+      if (filters.offset) {
+        query += ' OFFSET ?';
+        params.push(parseInt(filters.offset));
+      }
     }
     
     const [rows] = await pool.execute(query, params);
@@ -102,15 +125,14 @@ class Employee {
   static async update(id, updates) {
     const pool = getPool();
     const allowedFields = [
-      'emp_name', 'emp_email', 'emp_mobile', 'cluster_id', 'role',
-      'date_of_joining', 'date_of_birth', 'blood_group', 'account_number',
-      'ifsc_code', 'manager', 'city', 'cluster'
+      'emp_name', 'emp_email', 'emp_mobile', 'designation', 
+      'department', 'cluster_id', 'is_active'
     ];
     const fields = [];
     const values = [];
     
     Object.keys(updates).forEach(key => {
-      if (allowedFields.includes(key) && updates[key] !== undefined) {
+      if (allowedFields.includes(key)) {
         fields.push(`${key} = ?`);
         values.push(updates[key]);
       }
@@ -132,13 +154,31 @@ class Employee {
 
   static async delete(id) {
     const pool = getPool();
-    await pool.execute('DELETE FROM employees WHERE id = ?', [id]);
+    const [result] = await pool.execute(
+      'DELETE FROM employees WHERE id = ?',
+      [id]
+    );
+    
+    return result.affectedRows > 0;
   }
 
-  static async getCount() {
+  static async getCount(filters = {}) {
     const pool = getPool();
-    const [rows] = await pool.execute('SELECT COUNT(*) as count FROM employees');
-    return rows[0].count;
+    let query = 'SELECT COUNT(*) as total FROM employees WHERE 1=1';
+    const params = [];
+    
+    if (filters.is_active !== undefined) {
+      query += ' AND is_active = ?';
+      params.push(filters.is_active);
+    }
+    
+    if (filters.cluster_id) {
+      query += ' AND cluster_id = ?';
+      params.push(filters.cluster_id);
+    }
+    
+    const [rows] = await pool.execute(query, params);
+    return rows[0].total;
   }
 }
 

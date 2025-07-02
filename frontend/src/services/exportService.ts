@@ -1,51 +1,54 @@
 
 import { ApiClient } from './apiClient';
 
-export const exportService = {
-  async exportAnalyticsToCSV(filters: Record<string, any>): Promise<void> {
-    await ApiClient.downloadFile(
-      '/api/analytics/export/csv',
-      'analytics-export.csv',
-      { params: filters }
-    );
-  },
+export interface ExportOptions {
+  format: 'csv' | 'excel' | 'pdf';
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+  filters?: Record<string, any>;
+  includeComments?: boolean;
+}
 
-  async exportAnalyticsToPDF(filters: Record<string, any>): Promise<void> {
-    await ApiClient.downloadFile(
-      '/api/analytics/export/pdf',
-      'analytics-report.pdf',
-      { params: filters }
-    );
-  },
-
-  async exportIssuesData(filters: Record<string, any>, format: 'csv' | 'excel'): Promise<void> {
-    await ApiClient.downloadFile(
-      `/api/issues/export/${format}`,
-      `issues-export.${format}`,
-      { params: filters }
-    );
-  },
-
-  async exportFeedbackData(filters: Record<string, any>): Promise<void> {
-    await ApiClient.downloadFile(
-      '/api/feedback/export/csv',
-      'feedback-export.csv',
-      { params: filters }
-    );
-  },
-
-  async exportUserData(): Promise<void> {
-    await ApiClient.downloadFile(
-      '/api/users/export/csv',
-      'users-export.csv'
-    );
-  },
-
-  async exportSentimentData(filters: Record<string, any>): Promise<void> {
-    await ApiClient.downloadFile(
-      '/api/sentiment/export/csv',
-      'sentiment-export.csv',
-      { params: filters }
-    );
+class ExportServiceClass {
+  async exportIssues(options: ExportOptions) {
+    try {
+      const response = await ApiClient.post('/api/export/issues', options);
+      return response.data;
+    } catch (error) {
+      throw new Error('Failed to export issues');
+    }
   }
-};
+
+  async exportAnalytics(options: ExportOptions) {
+    try {
+      const response = await ApiClient.post('/api/export/analytics', options);
+      return response.data;
+    } catch (error) {
+      throw new Error('Failed to export analytics');
+    }
+  }
+
+  async exportFeedback(options: ExportOptions) {
+    try {
+      const response = await ApiClient.post('/api/export/feedback', options);
+      return response.data;
+    } catch (error) {
+      throw new Error('Failed to export feedback');
+    }
+  }
+
+  downloadFile(blob: Blob, filename: string) {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  }
+}
+
+export const ExportService = new ExportServiceClass();
