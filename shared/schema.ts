@@ -33,7 +33,7 @@ export const employees = pgTable("employees", {
 
 // Dashboard users table
 export const dashboardUsers = pgTable("dashboard_users", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -75,29 +75,30 @@ export const issues = pgTable("issues", {
 
 // Issue comments table
 export const issueComments = pgTable("issue_comments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  issueId: text("issue_id").notNull(),
+  id: serial("id").primaryKey(),
+  issueId: integer("issue_id").notNull(),
   content: text("content").notNull(),
-  employeeUuid: text("employee_uuid").notNull(),
+  employeeId: integer("employee_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Issue internal comments table
 export const issueInternalComments = pgTable("issue_internal_comments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  issueId: text("issue_id").notNull(),
+  id: serial("id").primaryKey(),
+  issueId: integer("issue_id").notNull(),
   content: text("content").notNull(),
-  employeeUuid: text("employee_uuid").notNull(),
+  employeeId: integer("employee_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Issue audit trail table
 export const issueAuditTrail = pgTable("issue_audit_trail", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  issueId: text("issue_id").notNull(),
+  id: serial("id").primaryKey(),
+  issueId: integer("issue_id").notNull(),
   action: text("action").notNull(),
-  employeeUuid: text("employee_uuid").notNull(),
+  employeeId: integer("employee_id").notNull(),
   previousStatus: text("previous_status"),
   newStatus: text("new_status"),
   details: jsonb("details"),
@@ -106,9 +107,9 @@ export const issueAuditTrail = pgTable("issue_audit_trail", {
 
 // Issue notifications table
 export const issueNotifications = pgTable("issue_notifications", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  issueId: text("issue_id").notNull(),
-  userId: text("user_id").notNull(),
+  id: serial("id").primaryKey(),
+  issueId: integer("issue_id").notNull(),
+  userId: integer("user_id").notNull(),
   content: text("content").notNull(),
   isRead: boolean("is_read").default(false),
   createdAt: timestamp("created_at").defaultNow(),
@@ -116,9 +117,9 @@ export const issueNotifications = pgTable("issue_notifications", {
 
 // Ticket feedback table
 export const ticketFeedback = pgTable("ticket_feedback", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  issueId: text("issue_id").notNull(),
-  employeeUuid: text("employee_uuid").notNull(),
+  id: serial("id").primaryKey(),
+  issueId: integer("issue_id").notNull(),
+  employeeId: integer("employee_id").notNull(),
   feedbackOption: text("feedback_option").notNull(),
   sentiment: text("sentiment").notNull(),
   agentId: text("agent_id"),
@@ -130,7 +131,7 @@ export const ticketFeedback = pgTable("ticket_feedback", {
 
 // RBAC tables
 export const rbacRoles = pgTable("rbac_roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -138,7 +139,7 @@ export const rbacRoles = pgTable("rbac_roles", {
 });
 
 export const rbacPermissions = pgTable("rbac_permissions", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -146,60 +147,60 @@ export const rbacPermissions = pgTable("rbac_permissions", {
 });
 
 export const rbacRolePermissions = pgTable("rbac_role_permissions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  roleId: text("role_id").notNull(),
-  permissionId: text("permission_id").notNull(),
+  id: serial("id").primaryKey(),
+  roleId: integer("role_id").notNull(),
+  permissionId: integer("permission_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const rbacUserRoles = pgTable("rbac_user_roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  roleId: text("role_id").notNull(),
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  roleId: integer("role_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Master data tables
 export const masterRoles = pgTable("master_roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const masterCities = pgTable("master_cities", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const masterClusters = pgTable("master_clusters", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  cityId: text("city_id").notNull(),
+  cityId: integer("city_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Audit logs
 export const dashboardUserAuditLogs = pgTable("dashboard_user_audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   entityType: text("entity_type").notNull(),
-  entityId: text("entity_id").notNull(),
+  entityId: integer("entity_id").notNull(),
   action: text("action").notNull(),
   changes: jsonb("changes").notNull(),
-  performedBy: text("performed_by"),
+  performedBy: integer("performed_by"),
   performedAt: timestamp("performed_at").defaultNow(),
 });
 
 export const masterAuditLogs = pgTable("master_audit_logs", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   entityType: text("entity_type").notNull(),
-  entityId: text("entity_id").notNull(),
+  entityId: integer("entity_id").notNull(),
   action: text("action").notNull(),
   changes: jsonb("changes").notNull(),
-  createdBy: text("created_by").notNull(),
+  createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

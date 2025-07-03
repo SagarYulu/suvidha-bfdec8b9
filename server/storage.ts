@@ -16,40 +16,40 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   
   // Employee methods
-  getEmployeeById(id: string): Promise<Employee | undefined>;
+  getEmployeeById(id: number): Promise<Employee | undefined>;
   getEmployeeByEmail(email: string): Promise<Employee | undefined>;
   getEmployees(): Promise<Employee[]>;
   createEmployee(employee: InsertEmployee): Promise<Employee>;
-  updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee | undefined>;
-  deleteEmployee(id: string): Promise<boolean>;
+  updateEmployee(id: number, updates: Partial<Employee>): Promise<Employee | undefined>;
+  deleteEmployee(id: number): Promise<boolean>;
   
   // Dashboard user methods
   getDashboardUsers(): Promise<DashboardUser[]>;
-  getDashboardUserById(id: string): Promise<DashboardUser | undefined>;
+  getDashboardUserById(id: number): Promise<DashboardUser | undefined>;
   getDashboardUserByEmail(email: string): Promise<DashboardUser | undefined>;
   createDashboardUser(user: InsertDashboardUser): Promise<DashboardUser>;
-  updateDashboardUser(id: string, updates: Partial<DashboardUser>): Promise<DashboardUser | undefined>;
-  deleteDashboardUser(id: string): Promise<boolean>;
+  updateDashboardUser(id: number, updates: Partial<DashboardUser>): Promise<DashboardUser | undefined>;
+  deleteDashboardUser(id: number): Promise<boolean>;
   
   // Issue methods
   getIssues(filters?: {
     status?: string;
     priority?: string;
     assignedTo?: string;
-    employeeUuid?: string;
+    employeeId?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<Issue[]>;
-  getIssueById(id: string): Promise<Issue | undefined>;
+  getIssueById(id: number): Promise<Issue | undefined>;
   createIssue(issue: InsertIssue): Promise<Issue>;
-  updateIssue(id: string, updates: Partial<Issue>): Promise<Issue | undefined>;
+  updateIssue(id: number, updates: Partial<Issue>): Promise<Issue | undefined>;
   
   // Issue comment methods
-  getIssueComments(issueId: string): Promise<IssueComment[]>;
+  getIssueComments(issueId: number): Promise<IssueComment[]>;
   createIssueComment(comment: InsertIssueComment): Promise<IssueComment>;
   
   // Ticket feedback methods
-  getTicketFeedback(issueId?: string): Promise<TicketFeedback[]>;
+  getTicketFeedback(issueId?: number): Promise<TicketFeedback[]>;
   createTicketFeedback(feedback: InsertTicketFeedback): Promise<TicketFeedback>;
 }
 
@@ -71,7 +71,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Employee methods
-  async getEmployeeById(id: string): Promise<Employee | undefined> {
+  async getEmployeeById(id: number): Promise<Employee | undefined> {
     const result = await db.select().from(employees).where(eq(employees.id, id));
     return result[0];
   }
@@ -90,7 +90,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateEmployee(id: string, updates: Partial<Employee>): Promise<Employee | undefined> {
+  async updateEmployee(id: number, updates: Partial<Employee>): Promise<Employee | undefined> {
     const result = await db.update(employees)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(employees.id, id))
@@ -98,7 +98,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async deleteEmployee(id: string): Promise<boolean> {
+  async deleteEmployee(id: number): Promise<boolean> {
     const result = await db.delete(employees).where(eq(employees.id, id));
     return (result.rowCount ?? 0) > 0;
   }
@@ -108,7 +108,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(dashboardUsers).orderBy(desc(dashboardUsers.createdAt));
   }
 
-  async getDashboardUserById(id: string): Promise<DashboardUser | undefined> {
+  async getDashboardUserById(id: number): Promise<DashboardUser | undefined> {
     const result = await db.select().from(dashboardUsers).where(eq(dashboardUsers.id, id));
     return result[0];
   }
@@ -123,7 +123,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateDashboardUser(id: string, updates: Partial<DashboardUser>): Promise<DashboardUser | undefined> {
+  async updateDashboardUser(id: number, updates: Partial<DashboardUser>): Promise<DashboardUser | undefined> {
     const result = await db.update(dashboardUsers)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(dashboardUsers.id, id))
@@ -131,7 +131,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async deleteDashboardUser(id: string): Promise<boolean> {
+  async deleteDashboardUser(id: number): Promise<boolean> {
     const result = await db.delete(dashboardUsers).where(eq(dashboardUsers.id, id));
     return (result.rowCount ?? 0) > 0;
   }
@@ -141,7 +141,7 @@ export class DatabaseStorage implements IStorage {
     status?: string;
     priority?: string;
     assignedTo?: string;
-    employeeUuid?: string;
+    employeeId?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<Issue[]> {
@@ -157,10 +157,16 @@ export class DatabaseStorage implements IStorage {
         conditions.push(eq(issues.priority, filters.priority));
       }
       if (filters.assignedTo) {
-        conditions.push(eq(issues.assignedTo, filters.assignedTo));
+        const assignedToId = parseInt(filters.assignedTo);
+        if (!isNaN(assignedToId)) {
+          conditions.push(eq(issues.assignedTo, assignedToId));
+        }
       }
       if (filters.employeeId) {
-        conditions.push(eq(issues.employeeId, filters.employeeId));
+        const employeeId = parseInt(filters.employeeId);
+        if (!isNaN(employeeId)) {
+          conditions.push(eq(issues.employeeId, employeeId));
+        }
       }
       if (filters.startDate) {
         conditions.push(sql`${issues.createdAt} >= ${filters.startDate}`);
@@ -177,7 +183,7 @@ export class DatabaseStorage implements IStorage {
     return await query.orderBy(desc(issues.createdAt));
   }
 
-  async getIssueById(id: string): Promise<Issue | undefined> {
+  async getIssueById(id: number): Promise<Issue | undefined> {
     const result = await db.select().from(issues).where(eq(issues.id, id));
     return result[0];
   }
@@ -187,7 +193,7 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async updateIssue(id: string, updates: Partial<Issue>): Promise<Issue | undefined> {
+  async updateIssue(id: number, updates: Partial<Issue>): Promise<Issue | undefined> {
     const result = await db.update(issues)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(issues.id, id))
@@ -196,7 +202,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Issue comment methods
-  async getIssueComments(issueId: string): Promise<IssueComment[]> {
+  async getIssueComments(issueId: number): Promise<IssueComment[]> {
     return await db.select()
       .from(issueComments)
       .where(eq(issueComments.issueId, issueId))
@@ -209,7 +215,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Ticket feedback methods
-  async getTicketFeedback(issueId?: string): Promise<TicketFeedback[]> {
+  async getTicketFeedback(issueId?: number): Promise<TicketFeedback[]> {
     if (issueId) {
       return await db.select()
         .from(ticketFeedback)

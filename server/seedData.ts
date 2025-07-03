@@ -63,7 +63,7 @@ export async function seedDatabase() {
       priority: "high",
       typeId: "salary",
       subTypeId: "delay",
-      employeeUuid: employee1.id,
+      employeeId: employee1.id,
       assignedTo: hrAdmin.id
     });
 
@@ -73,7 +73,7 @@ export async function seedDatabase() {
       priority: "medium",
       typeId: "pf",
       subTypeId: "update",
-      employeeUuid: employee2.id,
+      employeeId: employee2.id,
       assignedTo: hrAdmin.id
     });
 
@@ -81,19 +81,19 @@ export async function seedDatabase() {
     await storage.createIssueComment({
       issueId: issue1.id,
       content: "Looking into the salary credit issue. Will update within 24 hours.",
-      employeeUuid: hrAdmin.id
+      employeeId: hrAdmin.id
     });
 
     await storage.createIssueComment({
       issueId: issue2.id,
       content: "Please provide the new PF account number details.",
-      employeeUuid: hrAdmin.id
+      employeeId: hrAdmin.id
     });
 
     await storage.createIssueComment({
       issueId: issue2.id,
       content: "My new PF account number is 123456789012",
-      employeeUuid: employee2.id
+      employeeId: employee2.id
     });
 
     console.log("✅ Database seeded successfully with demo data");

@@ -21,7 +21,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/employees/:id", async (req, res) => {
     try {
-      const employee = await storage.getEmployeeById(req.params.id);
+      const employeeId = parseInt(req.params.id);
+      if (isNaN(employeeId)) {
+        return res.status(400).json({ error: "Invalid employee ID" });
+      }
+      const employee = await storage.getEmployeeById(employeeId);
       if (!employee) {
         return res.status(404).json({ error: "Employee not found" });
       }
@@ -45,7 +49,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/employees/:id", async (req, res) => {
     try {
-      const employee = await storage.updateEmployee(req.params.id, req.body);
+      const employeeId = parseInt(req.params.id);
+      if (isNaN(employeeId)) {
+        return res.status(400).json({ error: "Invalid employee ID" });
+      }
+      const employee = await storage.updateEmployee(employeeId, req.body);
       if (!employee) {
         return res.status(404).json({ error: "Employee not found" });
       }
@@ -58,7 +66,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/employees/:id", async (req, res) => {
     try {
-      const success = await storage.deleteEmployee(req.params.id);
+      const employeeId = parseInt(req.params.id);
+      if (isNaN(employeeId)) {
+        return res.status(400).json({ error: "Invalid employee ID" });
+      }
+      const success = await storage.deleteEmployee(employeeId);
       if (!success) {
         return res.status(404).json({ error: "Employee not found" });
       }
@@ -82,7 +94,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/dashboard-users/:id", async (req, res) => {
     try {
-      const user = await storage.getDashboardUserById(req.params.id);
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      const user = await storage.getDashboardUserById(userId);
       if (!user) {
         return res.status(404).json({ error: "Dashboard user not found" });
       }
@@ -106,7 +122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/dashboard-users/:id", async (req, res) => {
     try {
-      const user = await storage.updateDashboardUser(req.params.id, req.body);
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      const user = await storage.updateDashboardUser(userId, req.body);
       if (!user) {
         return res.status(404).json({ error: "Dashboard user not found" });
       }
@@ -119,7 +139,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/dashboard-users/:id", async (req, res) => {
     try {
-      const success = await storage.deleteDashboardUser(req.params.id);
+      const userId = parseInt(req.params.id);
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      const success = await storage.deleteDashboardUser(userId);
       if (!success) {
         return res.status(404).json({ error: "Dashboard user not found" });
       }
@@ -159,7 +183,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/issues/:id", async (req, res) => {
     try {
-      const issue = await storage.getIssueById(req.params.id);
+      const issueId = parseInt(req.params.id);
+      if (isNaN(issueId)) {
+        return res.status(400).json({ error: "Invalid issue ID" });
+      }
+      const issue = await storage.getIssueById(issueId);
       if (!issue) {
         return res.status(404).json({ error: "Issue not found" });
       }
@@ -183,7 +211,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/issues/:id", async (req, res) => {
     try {
-      const issue = await storage.updateIssue(req.params.id, req.body);
+      const issueId = parseInt(req.params.id);
+      if (isNaN(issueId)) {
+        return res.status(400).json({ error: "Invalid issue ID" });
+      }
+      const issue = await storage.updateIssue(issueId, req.body);
       if (!issue) {
         return res.status(404).json({ error: "Issue not found" });
       }
@@ -197,7 +229,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Issue comment routes
   app.get("/api/issues/:issueId/comments", async (req, res) => {
     try {
-      const comments = await storage.getIssueComments(req.params.issueId);
+      const issueId = parseInt(req.params.issueId);
+      if (isNaN(issueId)) {
+        return res.status(400).json({ error: "Invalid issue ID" });
+      }
+      const comments = await storage.getIssueComments(issueId);
       res.json(comments);
     } catch (error) {
       console.error("Error fetching issue comments:", error);
@@ -207,9 +243,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/issues/:issueId/comments", async (req, res) => {
     try {
+      const issueId = parseInt(req.params.issueId);
+      if (isNaN(issueId)) {
+        return res.status(400).json({ error: "Invalid issue ID" });
+      }
       const validatedData = insertIssueCommentSchema.parse({
         ...req.body,
-        issueId: req.params.issueId
+        issueId: issueId
       });
       const comment = await storage.createIssueComment(validatedData);
       res.status(201).json(comment);
@@ -222,7 +262,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ticket feedback routes
   app.get("/api/ticket-feedback", async (req, res) => {
     try {
-      const issueId = req.query.issueId as string;
+      const issueIdParam = req.query.issueId as string;
+      const issueId = issueIdParam ? parseInt(issueIdParam) : undefined;
+      if (issueIdParam && isNaN(issueId!)) {
+        return res.status(400).json({ error: "Invalid issue ID" });
+      }
       const feedback = await storage.getTicketFeedback(issueId);
       res.json(feedback);
     } catch (error) {
