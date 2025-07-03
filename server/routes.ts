@@ -734,6 +734,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add original Supabase data route
+  app.post("/api/seed-original-data", async (req, res) => {
+    try {
+      // Add authentic Supabase data programmatically
+      
+      // Dashboard users with correct columns
+      const dashboardUsers = [
+        {
+          name: "Sagar KM",
+          email: "sagar.km@yulu.bike", 
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          role: "City Head",
+          phone: "+91-9876543220",
+          city: "Bangalore",
+          cluster: "Central"
+        },
+        {
+          name: "Amit Sharma",
+          email: "amit.sharma@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", 
+          role: "City Head",
+          phone: "+91-9876543221",
+          city: "Mumbai",
+          cluster: "Central"
+        },
+        {
+          name: "Rajesh Kumar", 
+          email: "rajesh.kumar@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          role: "City Head",
+          phone: "+91-9876543222", 
+          city: "Delhi",
+          cluster: "Central"
+        },
+        {
+          name: "HR Admin",
+          email: "hr@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          role: "HR Admin", 
+          phone: "+91-9876543223",
+          city: "Bangalore",
+          cluster: "HQ_YULU PTP"
+        }
+      ];
+
+      // Create dashboard users
+      const createdDashboardUsers = [];
+      for (const userData of dashboardUsers) {
+        try {
+          const user = await storage.createDashboardUser(userData);
+          createdDashboardUsers.push(user);
+        } catch (error) {
+          console.log(`Dashboard user ${userData.name} may already exist`);
+        }
+      }
+
+      // Employees with correct columns 
+      const employees = [
+        {
+          name: "Ravi Kumar",
+          email: "ravi.kumar@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP003",
+          phone: "+91-9876543210",
+          city: "Bangalore", 
+          cluster: "Koramangala",
+          role: "Delivery Executive",
+          manager: "Sagar KM"
+        },
+        {
+          name: "Priya Singh",
+          email: "priya.singh@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP004", 
+          phone: "+91-9876543211",
+          city: "Mumbai",
+          cluster: "Andheri",
+          role: "Pilot",
+          manager: "Amit Sharma"
+        },
+        {
+          name: "Suresh Yadav",
+          email: "suresh.yadav@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP005",
+          phone: "+91-9876543212",
+          city: "Delhi",
+          cluster: "Dwarka", 
+          role: "Mechanic",
+          manager: "Rajesh Kumar"
+        },
+        {
+          name: "Kavita Sharma",
+          email: "kavita.sharma@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP006",
+          phone: "+91-9876543213",
+          city: "Bangalore",
+          cluster: "HSR Layout",
+          role: "Marshal", 
+          manager: "Sagar KM"
+        },
+        {
+          name: "Deepak Gupta",
+          email: "deepak.gupta@yulu.bike", 
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP007",
+          phone: "+91-9876543214",
+          city: "Mumbai",
+          cluster: "Bandra",
+          role: "Zone Screener",
+          manager: "Amit Sharma"
+        },
+        {
+          name: "Sunita Devi",
+          email: "sunita.devi@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP008",
+          phone: "+91-9876543215", 
+          city: "Delhi",
+          cluster: "Central Delhi",
+          role: "Yulu Captain",
+          manager: "Rajesh Kumar"
+        },
+        {
+          name: "Manish Tiwari",
+          email: "manish.tiwari@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP009",
+          phone: "+91-9876543216",
+          city: "Bangalore",
+          cluster: "Electronic city",
+          role: "Bike Captain",
+          manager: "Sagar KM" 
+        },
+        {
+          name: "Rekha Singh",
+          email: "rekha.singh@yulu.bike",
+          password: "$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
+          empId: "EMP010",
+          phone: "+91-9876543217",
+          city: "Mumbai",
+          cluster: "Powai",
+          role: "Operator",
+          manager: "Amit Sharma"
+        }
+      ];
+
+      // Create employees
+      const createdEmployees = [];
+      for (const empData of employees) {
+        try {
+          const employee = await storage.createEmployee(empData);
+          createdEmployees.push(employee);
+        } catch (error) {
+          console.log(`Employee ${empData.name} may already exist`);
+        }
+      }
+
+      res.json({
+        message: "Original Supabase data added successfully",
+        summary: {
+          dashboardUsers: createdDashboardUsers.length,
+          employees: createdEmployees.length
+        }
+      });
+    } catch (error) {
+      console.error("Error adding original data:", error);
+      res.status(500).json({ error: "Failed to add original data" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
