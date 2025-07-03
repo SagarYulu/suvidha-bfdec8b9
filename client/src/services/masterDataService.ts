@@ -1,5 +1,4 @@
 import { Role, City, Cluster, AuditLog } from "@/types/admin";
-import { supabase } from "@/integrations/supabase/client";
 
 // -------------------- Role Management --------------------
 export const getRoles = async (): Promise<Role[]> => {

@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { toast } from "@/hooks/use-toast";

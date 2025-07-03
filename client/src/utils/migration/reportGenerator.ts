@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 
 export class ReportGenerator {
   static async generateTableReport(): Promise<string> {

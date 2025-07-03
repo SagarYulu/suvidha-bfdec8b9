@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { createAuditLog } from "@/services/issues/issueAuditService";
 
 export interface InternalComment {

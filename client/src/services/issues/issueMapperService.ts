@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { createAuditLog } from "./issueAuditService";
 import { toast } from "@/hooks/use-toast";

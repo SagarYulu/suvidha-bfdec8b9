@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Check if a user has a specific role

@@ -4,7 +4,6 @@ import { Issue } from "@/types";
 import { addComment } from "@/services/issueService";
 import { getIssueById } from "@/services/issues/issueFetchService";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export const useIssueComments = (
   issueId: string | undefined,

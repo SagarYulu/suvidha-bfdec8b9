@@ -19,7 +19,6 @@ import { CalendarIcon, ChevronDown, BarChartHorizontalBig, BarChart3, Users } fr
 import { format } from 'date-fns';
 import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
 import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
-import { supabase } from '@/integrations/supabase/client';
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
 interface FeedbackFiltersPanelProps {

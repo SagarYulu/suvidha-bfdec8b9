@@ -1,5 +1,4 @@
 import { IssueComment } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { logAuditTrail } from "./issueAuditService";
 
 export const getCommentsForIssue = async (issueId: string): Promise<IssueComment[]> => {

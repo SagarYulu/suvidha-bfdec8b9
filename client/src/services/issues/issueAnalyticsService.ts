@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { getUsers } from "@/services/userService";
 import { IssueFilters } from "./issueFilters";
 import { getIssues } from "./issueFilters";

@@ -1,51 +1,46 @@
 import { User } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { apiClient } from "./apiClient";
 
 // Keep a local cache of users for faster access
 let users: User[] = [];
 
-// Function to map Supabase employee to User type
+// Function to map API employee to User type
 const mapEmployeeToUser = (employee: any): User => {
   return {
     id: String(employee.id), // UUID - auto-generated, ensure it's a string
-    userId: employee.user_id || "", // User ID - manual numeric ID
+    userId: employee.userId || "", // User ID - manual numeric ID
     name: employee.name,
     email: employee.email,
     phone: employee.phone || "",
-    employeeId: employee.emp_id,
+    employeeId: employee.empId,
     city: employee.city || "",
     cluster: employee.cluster || "",
     manager: employee.manager || "",
     role: employee.role || "",
     password: employee.password,
-    dateOfJoining: employee.date_of_joining || "",
-    bloodGroup: employee.blood_group || "",
-    dateOfBirth: employee.date_of_birth || "",
-    accountNumber: employee.account_number || "",
-    ifscCode: employee.ifsc_code || ""
+    dateOfJoining: employee.dateOfJoining || "",
+    bloodGroup: employee.bloodGroup || "",
+    dateOfBirth: employee.dateOfBirth || "",
+    accountNumber: employee.accountNumber || "",
+    ifscCode: employee.ifscCode || ""
   };
 };
 
-// Initialize: Load users from Supabase
+// Initialize: Load users from API
 const initializeUsers = async (): Promise<void> => {
   try {
-    const { data: employees, error } = await supabase.from('employees').select('*');
+    const employees = await apiClient.getEmployees();
     
-    if (error) {
-      console.error("Error loading employees from Supabase:", error);
-      return;
-    }
-
     if (employees && employees.length > 0) {
       users = employees.map(mapEmployeeToUser);
-      console.log(`Loaded ${users.length} users from Supabase employees table`);
+      console.log(`Loaded ${users.length} users from API employees table`);
     } else {
-      // If no employees in database, initialize with empty array - no mock data
+      // If no employees in database, initialize with empty array
       console.log("No employees found in database");
       users = [];
     }
   } catch (error) {
-    console.error("Error initializing users from Supabase:", error);
+    console.error("Error initializing users from API:", error);
   }
 };
 
@@ -54,38 +49,13 @@ initializeUsers();
 
 export const getUsers = async (): Promise<User[]> => {
   try {
-    console.log("Fetching users from Supabase...");
+    console.log("Fetching users from API...");
     
-    // Debug log for Supabase client
-    console.log("Supabase client check:", {
-      isInitialized: !!supabase,
-      status: supabase ? "Connected" : "Not connected"
-    });
+    const employees = await apiClient.getEmployees();
     
-    // Add more verbose logging
-    console.log("Attempting to fetch from employees table...");
-    
-    // Force cache refresh by always fetching from Supabase with cache reload
-    const { data: employees, error } = await supabase
-      .from('employees')
-      .select('*')
-      .order('name', { ascending: true });
-    
-    if (error) {
-      console.error("Error fetching users:", error);
-      console.error("Error details:", {
-        code: error.code,
-        message: error.message,
-        details: error.details
-      });
-      throw error;
-    }
-    
-    if (employees) {
-      // Add detailed logging for the response data
+    if (employees && employees.length > 0) {
       console.log(`Successfully fetched ${employees.length} users from database:`, employees);
       
-      // Double check that the data is mapped properly
       const mappedUsers = employees.map(mapEmployeeToUser);
       console.log("Mapped users:", mappedUsers);
       
@@ -106,18 +76,7 @@ export const getUsers = async (): Promise<User[]> => {
 
 export const getUserById = async (id: string): Promise<User | undefined> => {
   try {
-    const { data: employee, error } = await supabase
-      .from('employees')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error) {
-      console.error("Error fetching user by ID:", error);
-      // Fall back to local cache
-      return users.find(user => user.id === id);
-    }
-    
+    const employee = await apiClient.getEmployeeById(id);
     return employee ? mapEmployeeToUser(employee) : undefined;
   } catch (error) {
     console.error("Error in getUserById:", error);
@@ -128,51 +87,25 @@ export const getUserById = async (id: string): Promise<User | undefined> => {
 
 export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
   try {
-    // First check if employee ID already exists
-    const { data: existingEmp, error: checkError } = await supabase
-      .from('employees')
-      .select('emp_id')
-      .eq('emp_id', user.employeeId)
-      .maybeSingle();
-    
-    if (checkError) {
-      console.error("Error checking existing employee:", checkError);
-      throw checkError;
-    }
-    
-    if (existingEmp) {
-      throw new Error(`Employee with ID ${user.employeeId} already exists.`);
-    }
-    
     const newEmployee = {
-      user_id: user.userId, // Add User ID field
+      userId: user.userId,
       name: user.name,
       email: user.email,
       phone: user.phone,
-      emp_id: user.employeeId,
+      empId: user.employeeId,
       city: user.city,
       cluster: user.cluster,
       manager: user.manager,
       role: user.role,
       password: user.password,
-      date_of_joining: user.dateOfJoining,
-      date_of_birth: user.dateOfBirth,
-      blood_group: user.bloodGroup,
-      account_number: user.accountNumber,
-      ifsc_code: user.ifscCode
+      dateOfJoining: user.dateOfJoining,
+      dateOfBirth: user.dateOfBirth,
+      bloodGroup: user.bloodGroup,
+      accountNumber: user.accountNumber,
+      ifscCode: user.ifscCode
     };
     
-    // Don't specify id - let Supabase generate a UUID
-    const { data: employee, error } = await supabase
-      .from('employees')
-      .insert(newEmployee)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Error creating user in Supabase:", error);
-      throw error;
-    }
+    const employee = await apiClient.createEmployee(newEmployee);
     
     const newUser = mapEmployeeToUser(employee);
     // Update local cache
@@ -187,43 +120,28 @@ export const createUser = async (user: Omit<User, 'id'>): Promise<User> => {
 
 export const updateUser = async (id: string, userData: Partial<User>): Promise<User | undefined> => {
   try {
-    // Convert User type to employee table schema
+    // Convert User type to employee API schema
     const employeeUpdate: any = {};
     
     if (userData.name) employeeUpdate.name = userData.name;
     if (userData.email) employeeUpdate.email = userData.email;
     if (userData.phone) employeeUpdate.phone = userData.phone;
-    if (userData.employeeId) employeeUpdate.emp_id = userData.employeeId;
+    if (userData.employeeId) employeeUpdate.empId = userData.employeeId;
     if (userData.city) employeeUpdate.city = userData.city;
     if (userData.cluster) employeeUpdate.cluster = userData.cluster;
     if (userData.manager) employeeUpdate.manager = userData.manager;
     if (userData.role) employeeUpdate.role = userData.role;
     if (userData.password) employeeUpdate.password = userData.password;
-    if (userData.dateOfJoining) employeeUpdate.date_of_joining = userData.dateOfJoining;
-    if (userData.dateOfBirth) employeeUpdate.date_of_birth = userData.dateOfBirth;
-    if (userData.bloodGroup) employeeUpdate.blood_group = userData.bloodGroup;
-    if (userData.accountNumber) employeeUpdate.account_number = userData.accountNumber;
-    if (userData.ifscCode) employeeUpdate.ifsc_code = userData.ifscCode;
+    if (userData.dateOfJoining) employeeUpdate.dateOfJoining = userData.dateOfJoining;
+    if (userData.dateOfBirth) employeeUpdate.dateOfBirth = userData.dateOfBirth;
+    if (userData.bloodGroup) employeeUpdate.bloodGroup = userData.bloodGroup;
+    if (userData.accountNumber) employeeUpdate.accountNumber = userData.accountNumber;
+    if (userData.ifscCode) employeeUpdate.ifscCode = userData.ifscCode;
     
-    const { data: employee, error } = await supabase
-      .from('employees')
-      .update(employeeUpdate)
-      .eq('id', String(id)) // Ensure ID is handled as string
-      .select()
-      .single();
+    const employee = await apiClient.updateEmployee(id, employeeUpdate);
     
-    if (error) {
-      console.error("Error updating user in Supabase:", error);
-      
-      // Fall back to in-memory update
-      users = users.map(user => {
-        if (user.id === id) {
-          return { ...user, ...userData };
-        }
-        return user;
-      });
-      
-      return users.find(user => user.id === id);
+    if (!employee) {
+      throw new Error("Failed to update employee");
     }
     
     const updatedUser = mapEmployeeToUser(employee);
@@ -254,23 +172,15 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
 
 export const deleteUser = async (id: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('employees')
-      .delete()
-      .eq('id', String(id)); // Ensure ID is handled as string
+    const success = await apiClient.deleteEmployee(id);
     
-    if (error) {
-      console.error("Error deleting user from Supabase:", error);
-      
-      // Fall back to in-memory delete
-      const initialLength = users.length;
+    if (success) {
+      // Update local cache
       users = users.filter(user => user.id !== id);
-      return users.length < initialLength;
+      return true;
     }
     
-    // Update local cache
-    users = users.filter(user => user.id !== id);
-    return true;
+    return false;
   } catch (error) {
     console.error("Error in deleteUser:", error);
     
@@ -280,3 +190,6 @@ export const deleteUser = async (id: string): Promise<boolean> => {
     return users.length < initialLength;
   }
 };
+
+// Export the users cache for direct access when needed
+export const getUsersCache = (): User[] => users;

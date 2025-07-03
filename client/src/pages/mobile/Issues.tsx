@@ -12,7 +12,7 @@ import { Clock, Search, User as UserIcon, CreditCard, MessageSquare } from "luci
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+
 import FeedbackDialog from "@/components/mobile/issues/FeedbackDialog";
 import { checkFeedbackExists } from "@/services/ticketFeedbackService";
 

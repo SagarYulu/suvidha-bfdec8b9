@@ -1,6 +1,5 @@
 
 import { User } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { MOCK_USERS } from "@/data/mockData";
 
 // Admin user credentials - hardcoded for demonstration purposes

@@ -1,5 +1,4 @@
 import { Issue } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { mapDbIssueToAppIssue } from "./issueUtils";
 
 // Initialize service

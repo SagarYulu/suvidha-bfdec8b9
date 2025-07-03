@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 import type { Database } from "@/integrations/supabase/types";
 

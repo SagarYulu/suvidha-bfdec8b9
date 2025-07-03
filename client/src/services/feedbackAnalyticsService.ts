@@ -1,4 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
 

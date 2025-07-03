@@ -1,5 +1,4 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
 import { createAuditLog } from "./issueAuditService";

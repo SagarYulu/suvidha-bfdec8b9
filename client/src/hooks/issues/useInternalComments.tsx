@@ -5,7 +5,6 @@ import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRBAC } from "@/contexts/RBACContext";
-import { supabase } from "@/integrations/supabase/client";
 
 export const useInternalComments = (issueId: string | undefined, assigneeId: string | null) => {
   const [internalComments, setInternalComments] = useState<InternalComment[]>([]);

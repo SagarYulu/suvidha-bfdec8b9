@@ -1,6 +1,5 @@
 
 import { Issue } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Issue utility functions - helpers for processing issue data
