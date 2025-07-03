@@ -121,16 +121,18 @@ This is a full-stack web application for managing employee issues and feedback i
 ## Changelog
 
 - July 03, 2025. Initial setup and migration from Lovable to Replit completed
-- July 03, 2025. Complete refactoring to Node.js Express + MySQL + React architecture
-  - Migrated from PostgreSQL/Drizzle to MySQL with mysql2
+- July 03, 2025. Complete refactoring to Node.js Express + PostgreSQL + React architecture
+  - Updated from Supabase to PostgreSQL with Drizzle ORM
   - Implemented clean MVC pattern in backend
   - Created JWT-based authentication system
   - Built RESTful API with proper error handling and validation
-  - Replaced TypeScript with JavaScript for simplicity
   - Updated frontend to use Axios and React Context for state management
   - Added comprehensive security middleware (CORS, Helmet, Rate limiting)
   - Implemented role-based access control (Admin/Employee)
   - Created modular file structure following best practices
+  - Fixed feedback analytics system with proper API integration
+  - Clarified database architecture: employees table for mobile users, dashboard_users for admin users
+  - Fixed welcome page styling with proper Tailwind color definitions
 
 ## User Preferences
 
