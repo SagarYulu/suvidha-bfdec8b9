@@ -669,6 +669,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Audit logs routes
+  app.get("/api/audit-logs", async (req, res) => {
+    try {
+      // For now, return empty array since audit logs aren't fully implemented
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching audit logs:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/audit-logs", async (req, res) => {
+    try {
+      // For now, just acknowledge the request since audit logs aren't fully implemented
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error creating audit log:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Seed data route (for development/demo)
   app.post("/api/seed-data", async (req, res) => {
     try {

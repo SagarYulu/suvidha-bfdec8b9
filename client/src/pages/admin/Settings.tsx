@@ -162,11 +162,14 @@ const Settings = () => {
     try {
       const success = await deleteRole(roleToDelete.id, userId);
       if (success) {
+        // Remove the deleted role from state immediately
+        setRoles(prev => prev.filter(role => role.id !== roleToDelete.id));
         toast({
           title: "Success",
           description: "Role deleted successfully",
         });
-        loadRoles();
+        // Also refresh from server to ensure consistency
+        setTimeout(() => loadRoles(), 100);
       } else {
         throw new Error("Failed to delete role");
       }
@@ -235,11 +238,14 @@ const Settings = () => {
     try {
       const success = await deleteCity(cityToDelete.id, userId);
       if (success) {
+        // Remove the deleted city from state immediately
+        setCities(prev => prev.filter(city => city.id !== cityToDelete.id));
         toast({
           title: "Success",
           description: "City deleted successfully",
         });
-        loadCities();
+        // Also refresh from server to ensure consistency
+        setTimeout(() => loadCities(), 100);
       } else {
         throw new Error("Failed to delete city");
       }
@@ -314,11 +320,14 @@ const Settings = () => {
     try {
       const success = await deleteCluster(clusterToDelete.id, userId);
       if (success) {
+        // Remove the deleted cluster from state immediately
+        setClusters(prev => prev.filter(cluster => cluster.id !== clusterToDelete.id));
         toast({
           title: "Success",
           description: "Cluster deleted successfully",
         });
-        loadClusters();
+        // Also refresh from server to ensure consistency
+        setTimeout(() => loadClusters(), 100);
       } else {
         throw new Error("Failed to delete cluster");
       }
@@ -879,7 +888,7 @@ const Settings = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {auditLogs.map((log) => (
+                      {Array.isArray(auditLogs) && auditLogs.map((log) => (
                         <TableRow key={log.id}>
                           <TableCell>{formatDate(log.createdAt)}</TableCell>
                           <TableCell>{log.userName || log.createdBy}</TableCell>
