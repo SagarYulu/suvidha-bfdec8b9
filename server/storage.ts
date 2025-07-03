@@ -1,20 +1,15 @@
 import { db } from "./db";
 import { 
-  users, employees, dashboardUsers, issues, issueComments, 
+  employees, dashboardUsers, issues, issueComments, 
   issueInternalComments, ticketFeedback, rbacRoles, rbacPermissions,
-  type User, type Employee, type DashboardUser, type Issue, 
-  type IssueComment, type InsertUser, type InsertEmployee, 
+  type Employee, type DashboardUser, type Issue, 
+  type IssueComment, type InsertEmployee, 
   type InsertDashboardUser, type InsertIssue, type InsertIssueComment,
   type InsertTicketFeedback, type TicketFeedback
 } from "@shared/schema";
 import { eq, and, desc, or, like, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  
   // Employee methods
   getEmployeeById(id: number): Promise<Employee | undefined>;
   getEmployeeByEmail(email: string): Promise<Employee | undefined>;
@@ -54,22 +49,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User methods
-  async getUser(id: number): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id));
-    return result[0];
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username));
-    return result[0];
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
-  }
-
   // Employee methods
   async getEmployeeById(id: number): Promise<Employee | undefined> {
     const result = await db.select().from(employees).where(eq(employees.id, id));

@@ -21,9 +21,10 @@ This is a full-stack web application for managing employee issues and feedback i
 - **RESTful API design** with `/api/v1` prefix
 - **Modular controller and route structure**
 
-### Database Design
-- **MySQL** with AUTO_INCREMENT integer IDs
-- **Raw SQL queries** with parameterized statements
+### Database Design  
+- **PostgreSQL** with Drizzle ORM and AUTO_INCREMENT integer IDs
+- **Two main user tables**: employees (mobile app users) and dashboard_users (admin users)
+- **No separate authentication table** - authentication handled directly through employee/dashboard user tables
 - **Foreign key constraints** with CASCADE operations
 - **Connection pooling** for performance optimization
 

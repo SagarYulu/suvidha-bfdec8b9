@@ -2,13 +2,6 @@ import { pgTable, text, serial, integer, boolean, timestamp, uuid, jsonb } from 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table for basic authentication
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
 // Employees table
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
@@ -205,11 +198,6 @@ export const masterAuditLogs = pgTable("master_audit_logs", {
 });
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
   createdAt: true,
@@ -239,9 +227,6 @@ export const insertTicketFeedbackSchema = createInsertSchema(ticketFeedback).omi
 });
 
 // Types
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Employee = typeof employees.$inferSelect;
 
