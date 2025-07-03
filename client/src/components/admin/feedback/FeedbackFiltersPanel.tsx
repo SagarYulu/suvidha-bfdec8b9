@@ -46,19 +46,21 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const { data, error } = await supabase
-          .from('dashboard_users')
-          .select('id, name')
-          .order('name');
-          
-        if (error) {
-          console.error('Error fetching agents:', error);
-          return;
+        const response = await fetch('/api/dashboard-users');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch agents: ${response.statusText}`);
         }
         
-        setAgents(data || []);
+        const data = await response.json();
+        const formattedAgents = data.map((user: any) => ({
+          id: String(user.id),
+          name: user.name
+        }));
+        
+        setAgents(formattedAgents || []);
       } catch (err) {
         console.error('Failed to fetch agents:', err);
+        setAgents([]);
       }
     };
     

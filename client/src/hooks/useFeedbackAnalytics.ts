@@ -46,18 +46,29 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   
   // Helper function to ensure we have data points for each day in the date range and all sentiment values are properly initialized
   const fillMissingDates = (data: any[], startDate: string, endDate: string) => {
-    if (!startDate || !endDate) return data;
+    if (!startDate || !endDate) {
+      console.warn("Missing start or end date for fillMissingDates");
+      return data;
+    }
     
     try {
       // Create a map of existing data by date
       const dataByDate = data.reduce((acc: Record<string, any>, item) => {
-        acc[item.date] = item;
+        if (item && item.date) {
+          acc[item.date] = item;
+        }
         return acc;
       }, {});
       
-      // Generate all dates in the range
-      const start = parse(startDate, 'yyyy-MM-dd', new Date());
-      const end = parse(endDate, 'yyyy-MM-dd', new Date());
+      // Generate all dates in the range using Date constructor instead of parse
+      const start = new Date(startDate + 'T00:00:00');
+      const end = new Date(endDate + 'T00:00:00');
+      
+      // Validate dates
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        console.error("Invalid date format:", { startDate, endDate });
+        return data;
+      }
       
       const allDates = eachDayOfInterval({ start, end });
       
@@ -87,7 +98,7 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         };
       });
       
-      console.log("After filling missing dates:", filledData);
+      console.log("After filling missing dates:", filledData.length, "entries");
       return filledData;
     } catch (err) {
       console.error("Error filling missing dates:", err);
@@ -193,7 +204,10 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
   // Fetch data when filters change
   useEffect(() => {
     const fetchData = async () => {
-      if (dataFetched || activeDataFetch) return;
+      if (dataFetched || activeDataFetch) {
+        console.log("Skipping fetch - dataFetched:", dataFetched, "activeDataFetch:", activeDataFetch);
+        return;
+      }
       
       setIsLoading(true);
       setError(null);
@@ -219,7 +233,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           if (result.previous && result.previous.trendData) {
             result.previous.trendData = fillMissingDates(
               result.previous.trendData,
-              // We use the same date range length for previous period
               filters.startDate || '',
               filters.endDate || ''
             );
@@ -249,9 +262,6 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
               filters.startDate || '',
               filters.endDate || ''
             );
-            
-            // Debug the trend data after filling
-            console.log("Trend data after filling:", calculatedMetrics.trendData);
           }
           
           // Generate hierarchical data for the visualization
@@ -265,9 +275,10 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
         }
         
         setDataFetched(true);
+        console.log("Successfully fetched and processed feedback data");
       } catch (err) {
         console.error('Error in useFeedbackAnalytics:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch feedback data';
         setError(err instanceof Error ? err : new Error(errorMessage));
         
         toast({
@@ -276,16 +287,13 @@ export const useFeedbackAnalytics = (initialFilters?: Partial<FeedbackFilters>) 
           variant: "destructive"
         });
       } finally {
-        // Small delay before turning off loading indicator to prevent flickering
-        setTimeout(() => {
-          setIsLoading(false);
-          setActiveDataFetch(false);
-        }, 500);
+        setIsLoading(false);
+        setActiveDataFetch(false);
       }
     };
     
     fetchData();
-  }, [filters, showComparison, dataFetched, activeDataFetch, toast, filterChangeCount]);
+  }, [filters.startDate, filters.endDate, filters.comparisonMode, showComparison, toast, filterChangeCount]);
   
   return {
     isLoading,

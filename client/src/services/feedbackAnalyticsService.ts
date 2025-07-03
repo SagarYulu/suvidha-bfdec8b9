@@ -369,14 +369,31 @@ export const calculateFeedbackMetrics = async (feedbackData: FeedbackItem[], fil
   const trendDataMap: Record<string, { happy: number; neutral: number; sad: number; total: number }> = {};
   
   feedbackData.forEach(item => {
-    const date = format(new Date(item.created_at), 'yyyy-MM-dd');
-    
-    if (!trendDataMap[date]) {
-      trendDataMap[date] = { happy: 0, neutral: 0, sad: 0, total: 0 };
+    try {
+      // Handle both created_at and createdAt field names
+      const dateStr = item.created_at || (item as any).createdAt;
+      if (!dateStr) {
+        console.warn("Missing date field in feedback item:", item);
+        return;
+      }
+      
+      const parsedDate = new Date(dateStr);
+      if (isNaN(parsedDate.getTime())) {
+        console.warn("Invalid date format in feedback item:", dateStr);
+        return;
+      }
+      
+      const date = format(parsedDate, 'yyyy-MM-dd');
+      
+      if (!trendDataMap[date]) {
+        trendDataMap[date] = { happy: 0, neutral: 0, sad: 0, total: 0 };
+      }
+      
+      trendDataMap[date][item.sentiment]++;
+      trendDataMap[date].total++;
+    } catch (err) {
+      console.error("Error processing date for feedback item:", item, err);
     }
-    
-    trendDataMap[date][item.sentiment]++;
-    trendDataMap[date].total++;
   });
   
   // Convert trend data to array and sort by date
