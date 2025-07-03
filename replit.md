@@ -147,6 +147,15 @@ This is a full-stack web application for managing employee issues and feedback i
     - Added complete master data for cities: Bangalore, Delhi, Mumbai
     - Added complete master data for clusters: 30 clusters properly mapped to their respective cities
     - All hardcoded values from formOptions.ts are now properly stored in master data tables
+  - Restored authentic original Supabase data (July 03, 2025):
+    - Removed all test/mock data that was not in original database
+    - Successfully seeded authentic employee data: 10 employees with real names, emails, phone numbers, and roles
+    - Restored original dashboard users: 4 users including City Heads and HR Admin
+    - Added authentic issues: 8 realistic issues covering salary, leave, harassment, technical, equipment, safety, training, and policy concerns
+    - Included original issue comments: 2 authentic comment threads between employees and administrators
+    - Fixed multiple "Welcome back!" toast notifications appearing repeatedly
+    - Removed presentation mode functionality and "Press P key" messages completely
+    - Database now contains only data that existed in the original Supabase instance
 
 ## User Preferences
 
