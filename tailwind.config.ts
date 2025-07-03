@@ -61,6 +61,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Custom Yulu colors
+        "yulu-cyan": "hsl(var(--yulu-cyan))",
+        "yulu-cyan-dark": "hsl(var(--yulu-cyan-dark))",
+        "yulu-blue": "hsl(var(--yulu-dashboard-blue))",
+        "yulu-blue-light": "hsl(var(--yulu-dashboard-blue-light))",
+        "yulu-blue-dark": "hsl(var(--yulu-dashboard-blue-dark))",
+        "yulu-teal": "hsl(var(--yulu-teal))",
+        "yulu-teal-light": "hsl(var(--yulu-teal-light))",
       },
       keyframes: {
         "accordion-down": {

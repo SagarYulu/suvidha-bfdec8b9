@@ -91,9 +91,6 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg overflow-hidden">
-        <div className="bg-yulu-blue p-8">
-          <h1 className="text-4xl font-bold text-white text-center">Yulu Suvidha Management</h1>
-        </div>
         <div className="p-8 space-y-6">
           <div className="space-y-2">
             <h2 className="text-2xl font-semibold text-center">Welcome</h2>
@@ -104,21 +101,21 @@ const Index = () => {
           <div className="flex flex-col space-y-4">
             <Button 
               onClick={handleAdminClick}
-              className="py-6 bg-yulu-blue hover:bg-blue-700"
+              className="py-6 bg-yulu-blue hover:bg-yulu-blue-dark text-white font-medium"
             >
               Admin Dashboard
             </Button>
             <Button 
               onClick={handleEmployeeClick}
               variant="outline"
-              className="py-6 border-2 border-yulu-blue text-yulu-blue hover:bg-gray-100"
+              className="py-6 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 font-medium"
             >
               Employee Mobile App
             </Button>
             <Button 
               onClick={handleExportClick}
               variant="outline"
-              className="py-6 border-2 border-green-600 text-green-600 hover:bg-green-50"
+              className="py-6 border-2 border-green-600 text-green-600 hover:bg-green-50 font-medium"
             >
               <Download className="h-5 w-5 mr-2" />
               Export Database
