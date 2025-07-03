@@ -1,5 +1,6 @@
 import { Issue } from "@/types";
 import { mapDbIssueToAppIssue } from "./issueUtils";
+import { apiClient } from "../apiClient";
 
 // Initialize service
 const initializeService = () => {
@@ -22,31 +23,30 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
   let commentsByIssueId: Record<string, any[]> = {};
   
   if (issueIds.length > 0) {
-    const { data: dbComments, error: commentsError } = await supabase
-      .from('issue_comments')
-      .select('*')
-      .in('issue_id', issueIds)
-      .order('created_at', { ascending: true });
-    
-    if (commentsError) {
+    try {
+      // Get comments from API
+      const dbComments = await apiClient.getIssueComments();
+      
+      // Filter comments for our specific issues and group by issue_id
+      if (dbComments && Array.isArray(dbComments)) {
+        dbComments
+          .filter(comment => issueIds.includes(comment.issueId))
+          .forEach(comment => {
+            const issueId = comment.issueId;
+            if (!commentsByIssueId[issueId]) {
+              commentsByIssueId[issueId] = [];
+            }
+            
+            commentsByIssueId[issueId].push({
+              id: comment.id,
+              employeeUuid: comment.employeeId,
+              content: comment.content,
+              createdAt: comment.createdAt
+            });
+          });
+      }
+    } catch (commentsError) {
       console.error('Error fetching comments:', commentsError);
-    }
-    
-    // Group comments by issue_id
-    if (dbComments) {
-      dbComments.forEach(comment => {
-        const issueId = comment.issue_id;
-        if (!commentsByIssueId[issueId]) {
-          commentsByIssueId[issueId] = [];
-        }
-        
-        commentsByIssueId[issueId].push({
-          id: comment.id,
-          employeeUuid: comment.employee_uuid,
-          content: comment.content,
-          createdAt: comment.created_at
-        });
-      });
     }
   }
   

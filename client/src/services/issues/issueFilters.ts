@@ -1,6 +1,7 @@
 
 import { Issue } from "@/types";
 import { processIssues } from "./issueCore";
+import { apiClient } from "../apiClient";
 
 // Define filter types
 export type IssueFilters = {
@@ -14,7 +15,7 @@ export type IssueFilters = {
  * 
  * Database mapping notes:
  * - In the issues table, `id` is the unique issue identifier
- * - In the issues table, `employee_uuid` contains the employee's UUID (maps to employees.id)
+ * - In the issues table, `employee_id` contains the employee's ID (maps to employees.id)
  * 
  * @param filters Optional filters for city, cluster, and issue type
  * @returns Processed list of issues
@@ -27,23 +28,22 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
     if (!filters || (!filters.city && !filters.cluster && !filters.issueType)) {
       console.log("No filters applied, fetching all issues");
       
-      // Get all issues
-      const { data: dbIssues, error } = await supabase
-        .from('issues')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Get all issues from API
+      const dbIssues = await apiClient.getIssues();
       
-      if (error) {
-        console.error('Error fetching all issues:', error);
+      if (!dbIssues) {
+        console.error('No issues data received from API');
         return [];
       }
+      
+      console.log(`Fetched ${dbIssues.length} issues from API`);
       
       // Process issues with comments and return
       return await processIssues(dbIssues || []);
     }
     
     // At least one filter is active, so we need to apply filtering
-    let employeeIds: string[] = [];
+    let employeeIds: number[] = [];
     let shouldFilterByEmployees = false;
     
     // Only query employees if city or cluster filter is active
@@ -51,29 +51,24 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       console.log("Applying city/cluster filter");
       shouldFilterByEmployees = true;
       
-      // Build employee query
-      let employeeQuery = supabase.from('employees').select('id');
+      // Get employees from API
+      const allEmployees = await apiClient.getEmployees();
+      
+      // Filter employees by city and/or cluster
+      let filteredEmployees = allEmployees;
       
       if (filters.city) {
         console.log("Filtering employees by city:", filters.city);
-        employeeQuery = employeeQuery.eq('city', filters.city);
+        filteredEmployees = filteredEmployees.filter((emp: any) => emp.city === filters.city);
       }
       
       if (filters.cluster) {
         console.log("Filtering employees by cluster:", filters.cluster);
-        employeeQuery = employeeQuery.eq('cluster', filters.cluster);
-      }
-      
-      // Execute employee query
-      const { data: employees, error: employeeError } = await employeeQuery;
-      
-      if (employeeError) {
-        console.error('Error fetching employees for filtering:', employeeError);
-        return [];
+        filteredEmployees = filteredEmployees.filter((emp: any) => emp.cluster === filters.cluster);
       }
       
       // Extract employee IDs from filtered employees
-      employeeIds = employees?.map(emp => emp.id) || [];
+      employeeIds = filteredEmployees?.map((emp: any) => emp.id) || [];
       console.log(`Found ${employeeIds.length} employees matching the city/cluster filters with IDs:`, employeeIds);
       
       // If filtering by city/cluster but no matching employees found, return empty result
@@ -83,30 +78,19 @@ export const getIssues = async (filters?: IssueFilters): Promise<Issue[]> => {
       }
     }
     
-    // Start building the issues query
-    let issuesQuery = supabase
-      .from('issues')
-      .select('*')
-      .order('created_at', { ascending: false });
+    // Get all issues from API first
+    let dbIssues = await apiClient.getIssues();
     
-    // Apply employee_uuid filter if needed - employee_uuid in issues table contains the employee.id
+    // Apply employee_id filter if needed
     if (shouldFilterByEmployees && employeeIds.length > 0) {
-      console.log("Applying employee_uuid filter with employee IDs:", employeeIds);
-      issuesQuery = issuesQuery.in('employee_uuid', employeeIds);
+      console.log("Applying employee_id filter with employee IDs:", employeeIds);
+      dbIssues = dbIssues.filter((issue: any) => employeeIds.includes(issue.employeeId));
     }
     
     // Filter by issue type if specified
     if (filters.issueType) {
       console.log("Filtering by issue type:", filters.issueType);
-      issuesQuery = issuesQuery.eq('type_id', filters.issueType);
-    }
-    
-    // Execute the final issues query
-    const { data: dbIssues, error } = await issuesQuery;
-    
-    if (error) {
-      console.error('Error fetching filtered issues:', error);
-      return [];
+      dbIssues = dbIssues.filter((issue: any) => issue.typeId === filters.issueType);
     }
     
     console.log(`Found ${dbIssues?.length || 0} issues matching the filters`);
