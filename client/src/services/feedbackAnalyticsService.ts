@@ -84,152 +84,126 @@ export const getComparisonDate = (date: Date, mode: ComparisonMode): Date => {
 export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<FeedbackItem[]> => {
   console.log("Fetching feedback data with filters:", filters);
   
-  let query = supabase
-    .from('ticket_feedback')
-    .select(`
-      id,
-      issue_id,
-      employee_uuid,
-      sentiment,
-      feedback_option,
-      created_at,
-      city,
-      cluster,
-      agent_id,
-      agent_name
-    `);
-  
-  // Apply date filters if provided
-  if (filters.startDate) {
-    query = query.gte('created_at', filters.startDate);
-  }
-  
-  if (filters.endDate) {
-    // Add one day to include the end date fully
-    const nextDay = new Date(filters.endDate);
-    nextDay.setDate(nextDay.getDate() + 1);
-    query = query.lt('created_at', nextDay.toISOString());
-  }
-  
-  // Apply sentiment filter if provided
-  if (filters.sentiment) {
-    query = query.eq('sentiment', filters.sentiment);
-  }
-  
-  // Apply employee filter if provided
-  if (filters.employeeUuid) {
-    query = query.eq('employee_uuid', filters.employeeUuid);
-  }
-  
-  // Apply city filter directly if provided
-  if (filters.city) {
-    query = query.eq('city', filters.city);
-  }
-  
-  // Apply cluster filter directly if provided
-  if (filters.cluster) {
-    query = query.eq('cluster', filters.cluster);
-  }
-  
-  // Apply agent filter directly if provided
-  if (filters.agentId) {
-    query = query.eq('agent_id', filters.agentId);
-  }
-  
-  // Apply agent name filter if provided
-  if (filters.agentName) {
-    query = query.eq('agent_name', filters.agentName);
-  }
-  
-  // Order by created_at to ensure consistent results
-  query = query.order('created_at', { ascending: false });
-  
-  const { data, error } = await query;
-  
-  if (error) {
+  try {
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    
+    if (filters.startDate) {
+      queryParams.append('startDate', filters.startDate);
+    }
+    
+    if (filters.endDate) {
+      queryParams.append('endDate', filters.endDate);
+    }
+    
+    if (filters.sentiment) {
+      queryParams.append('sentiment', filters.sentiment);
+    }
+    
+    if (filters.employeeUuid) {
+      queryParams.append('employeeUuid', filters.employeeUuid);
+    }
+    
+    if (filters.city) {
+      queryParams.append('city', filters.city);
+    }
+    
+    if (filters.cluster) {
+      queryParams.append('cluster', filters.cluster);
+    }
+    
+    if (filters.agentId) {
+      queryParams.append('agentId', filters.agentId);
+    }
+    
+    if (filters.agentName) {
+      queryParams.append('agentName', filters.agentName);
+    }
+    
+    // Make API call to get feedback data
+    const response = await fetch(`/api/ticket-feedback?${queryParams.toString()}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch feedback data: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || data.length === 0) {
+      console.log("No feedback data found for the given filters");
+      return [];
+    }
+    
+    console.log(`Found ${data.length} feedback items`);
+    
+    // Process and validate the data to ensure it conforms to FeedbackItem type
+    return data.map((item: any) => {
+      // Validate that sentiment is one of the allowed values
+      let validSentiment: FeedbackSentiment = 'neutral';
+      if (item && typeof item === 'object' && 'sentiment' in item) {
+        const sentimentValue = item.sentiment as string;
+        if (sentimentValue === 'happy' || sentimentValue === 'sad' || sentimentValue === 'neutral') {
+          validSentiment = sentimentValue as FeedbackSentiment;
+        }
+      }
+      
+      // Cast the item to the expected type
+      return {
+        id: String(item.id || ''),
+        issue_id: String(item.issue_id || ''),
+        employee_uuid: String(item.employee_uuid || ''),
+        sentiment: validSentiment,
+        feedback_option: String(item.feedback_option || ''),
+        created_at: String(item.created_at || ''),
+        city: item.city ? String(item.city) : undefined,
+        cluster: item.cluster ? String(item.cluster) : undefined,
+        agent_id: item.agent_id ? String(item.agent_id) : undefined,
+        agent_name: item.agent_name ? String(item.agent_name) : undefined
+      } as FeedbackItem;
+    });
+  } catch (error) {
     console.error('Error fetching feedback data:', error);
     throw error;
   }
-  
-  if (!data || data.length === 0) {
-    console.log("No feedback data found for the given filters");
-    return [];
-  }
-  
-  console.log(`Found ${data.length} feedback items`);
-  
-  // Process and validate the data to ensure it conforms to FeedbackItem type
-  return data.map(item => {
-    // Validate that sentiment is one of the allowed values
-    let validSentiment: FeedbackSentiment = 'neutral';
-    if (item && typeof item === 'object' && 'sentiment' in item) {
-      const sentimentValue = item.sentiment as string;
-      if (sentimentValue === 'happy' || sentimentValue === 'sad' || sentimentValue === 'neutral') {
-        validSentiment = sentimentValue as FeedbackSentiment;
-      }
-    }
-    
-    // Cast the item to the expected type
-    return {
-      id: String(item.id || ''),
-      issue_id: String(item.issue_id || ''),
-      employee_uuid: String(item.employee_uuid || ''),
-      sentiment: validSentiment,
-      feedback_option: String(item.feedback_option || ''),
-      created_at: String(item.created_at || ''),
-      city: item.city ? String(item.city) : undefined,
-      cluster: item.cluster ? String(item.cluster) : undefined,
-      agent_id: item.agent_id ? String(item.agent_id) : undefined,
-      agent_name: item.agent_name ? String(item.agent_name) : undefined
-    } as FeedbackItem;
-  });
 };
 
 // Fetch closed tickets count for the given time period and filters
 export const fetchClosedTicketsCount = async (filters: FeedbackFilters): Promise<number> => {
   try {
-    let query = supabase
-      .from('issues')
-      .select('id', { count: 'exact' })
-      .eq('status', 'closed');
+    // Build query parameters
+    const queryParams = new URLSearchParams();
+    queryParams.append('status', 'closed');
     
-    // Apply date filters if provided
     if (filters.startDate) {
-      query = query.gte('closed_at', filters.startDate);
+      queryParams.append('startDate', filters.startDate);
     }
     
     if (filters.endDate) {
-      // Add one day to include the end date fully
-      const nextDay = new Date(filters.endDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      query = query.lt('closed_at', nextDay.toISOString());
+      queryParams.append('endDate', filters.endDate);
     }
     
-    // Apply city filter if provided
     if (filters.city) {
-      // For issues, we need to join with employees table to filter by city
-      // In this simplified version, we'll just count all closed tickets
-      // In a real implementation, you'd need to join with the employees table
+      queryParams.append('city', filters.city);
     }
     
-    // Apply cluster filter if provided
     if (filters.cluster) {
-      // Similar to city filter, we'd need to join with employees table
+      queryParams.append('cluster', filters.cluster);
     }
     
-    // Apply agent filter if provided
     if (filters.agentId) {
-      query = query.eq('assigned_to', filters.agentId);
+      queryParams.append('assignedTo', filters.agentId);
     }
     
-    const { count, error } = await query;
+    // Make API call to get issues count
+    const response = await fetch(`/api/issues/count?${queryParams.toString()}`);
     
-    if (error) {
-      console.error('Error fetching closed tickets count:', error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch closed tickets count: ${response.statusText}`);
     }
     
-    return count || 0;
+    const data = await response.json();
+    
+    return data.count || 0;
   } catch (err) {
     console.error('Error in fetchClosedTicketsCount:', err);
     return 0;
@@ -239,45 +213,34 @@ export const fetchClosedTicketsCount = async (filters: FeedbackFilters): Promise
 // Fetch agent-wise statistics
 export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise<AgentFeedbackStats[]> => {
   try {
-    // First, fetch all agents who have closed tickets in the selected period
-    let agentQuery = supabase
-      .from('issues')
-      .select(`
-        assigned_to,
-        id
-      `)
-      .eq('status', 'closed')
-      .not('assigned_to', 'is', null);
+    // Build query parameters for closed tickets
+    const queryParams = new URLSearchParams();
+    queryParams.append('status', 'closed');
     
-    // Apply date filters if provided
     if (filters.startDate) {
-      agentQuery = agentQuery.gte('closed_at', filters.startDate);
+      queryParams.append('startDate', filters.startDate);
     }
     
     if (filters.endDate) {
-      // Add one day to include the end date fully
-      const nextDay = new Date(filters.endDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      agentQuery = agentQuery.lt('closed_at', nextDay.toISOString());
+      queryParams.append('endDate', filters.endDate);
     }
     
-    // Apply city filter if provided
     if (filters.city) {
-      // In a real implementation, you'd need to join with the employees table
-      // This is simplified for now
+      queryParams.append('city', filters.city);
     }
     
-    // Apply cluster filter if provided
     if (filters.cluster) {
-      // Similar to city filter
+      queryParams.append('cluster', filters.cluster);
     }
     
-    const { data: closedTicketsData, error: closedTicketsError } = await agentQuery;
+    // First, fetch all agents who have closed tickets in the selected period
+    const response = await fetch(`/api/issues?${queryParams.toString()}`);
     
-    if (closedTicketsError) {
-      console.error('Error fetching agent closed tickets:', closedTicketsError);
-      throw closedTicketsError;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch agent closed tickets: ${response.statusText}`);
     }
+    
+    const closedTicketsData = await response.json();
     
     if (!closedTicketsData || closedTicketsData.length === 0) {
       return [];
@@ -285,7 +248,7 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     
     // Group closed tickets by agent
     const agentClosedTickets: Record<string, number> = {};
-    closedTicketsData.forEach(item => {
+    closedTicketsData.forEach((item: any) => {
       if (item.assigned_to) {
         if (!agentClosedTickets[item.assigned_to]) {
           agentClosedTickets[item.assigned_to] = 0;
@@ -295,23 +258,17 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     });
     
     // Now fetch feedback data
-    const { data: feedbackData, error: feedbackError } = await supabase
-      .from('ticket_feedback')
-      .select(`
-        agent_id,
-        agent_name,
-        issue_id
-      `)
-      .not('agent_id', 'is', null);
+    const feedbackResponse = await fetch(`/api/ticket-feedback`);
     
-    if (feedbackError) {
-      console.error('Error fetching feedback data for agents:', feedbackError);
-      throw feedbackError;
+    if (!feedbackResponse.ok) {
+      throw new Error(`Failed to fetch feedback data: ${feedbackResponse.statusText}`);
     }
+    
+    const feedbackData = await feedbackResponse.json();
     
     // Group feedback by agent
     const agentFeedbacks: Record<string, { count: number, name: string }> = {};
-    feedbackData?.forEach(item => {
+    feedbackData?.forEach((item: any) => {
       if (item.agent_id) {
         if (!agentFeedbacks[item.agent_id]) {
           agentFeedbacks[item.agent_id] = { count: 0, name: item.agent_name || 'Unknown Agent' };
@@ -325,17 +282,17 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     const missingNameAgents = agentIds.filter(id => !agentFeedbacks[id] || !agentFeedbacks[id].name);
     
     if (missingNameAgents.length > 0) {
-      const { data: agentData, error: agentError } = await supabase
-        .from('dashboard_users')
-        .select('id, name')
-        .in('id', missingNameAgents);
+      const agentResponse = await fetch(`/api/dashboard-users`);
       
-      if (!agentError && agentData) {
-        agentData.forEach(agent => {
-          if (!agentFeedbacks[agent.id]) {
-            agentFeedbacks[agent.id] = { count: 0, name: agent.name };
-          } else if (!agentFeedbacks[agent.id].name) {
-            agentFeedbacks[agent.id].name = agent.name;
+      if (agentResponse.ok) {
+        const agentData = await agentResponse.json();
+        agentData.forEach((agent: any) => {
+          if (missingNameAgents.includes(String(agent.id))) {
+            if (!agentFeedbacks[String(agent.id)]) {
+              agentFeedbacks[String(agent.id)] = { count: 0, name: agent.name };
+            } else if (!agentFeedbacks[String(agent.id)].name) {
+              agentFeedbacks[String(agent.id)].name = agent.name;
+            }
           }
         });
       }
@@ -500,7 +457,7 @@ export const fetchComparisonData = async (
   const periodDuration = endDate.getTime() - startDate.getTime();
   
   // Get comparison dates based on mode
-  const previousEndDate = getComparisonDate(startDate, filters.comparisonMode);
+  const previousEndDate = getComparisonDate(startDate, filters.comparisonMode || 'wow');
   const previousStartDate = new Date(previousEndDate.getTime() - periodDuration);
   
   // Create new filters for previous period

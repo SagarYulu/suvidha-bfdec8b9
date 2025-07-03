@@ -181,6 +181,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/issues/count", async (req, res) => {
+    try {
+      const filters = {
+        status: req.query.status as string,
+        priority: req.query.priority as string,
+        assignedTo: req.query.assignedTo as string,
+        employeeId: req.query.employeeId as string,
+        startDate: req.query.startDate as string,
+        endDate: req.query.endDate as string,
+      };
+      
+      // Remove undefined values
+      Object.keys(filters).forEach(key => {
+        if (filters[key as keyof typeof filters] === undefined) {
+          delete filters[key as keyof typeof filters];
+        }
+      });
+
+      const issues = await storage.getIssues(filters);
+      res.json({ count: issues.length });
+    } catch (error) {
+      console.error("Error fetching issues count:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/issues/:id", async (req, res) => {
     try {
       const issueId = parseInt(req.params.id);
@@ -267,8 +293,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (issueIdParam && isNaN(issueId!)) {
         return res.status(400).json({ error: "Invalid issue ID" });
       }
+      
+      // Get all feedback first
       const feedback = await storage.getTicketFeedback(issueId);
-      res.json(feedback);
+      
+      // Apply additional filters for analytics
+      let filteredFeedback = feedback;
+      
+      // Filter by date range
+      if (req.query.startDate) {
+        const startDate = new Date(req.query.startDate as string);
+        filteredFeedback = filteredFeedback.filter((f: any) => {
+          const feedbackDate = new Date(f.createdAt || f.created_at || '');
+          return feedbackDate >= startDate;
+        });
+      }
+      
+      if (req.query.endDate) {
+        const endDate = new Date(req.query.endDate as string);
+        endDate.setDate(endDate.getDate() + 1); // Include the end date
+        filteredFeedback = filteredFeedback.filter((f: any) => {
+          const feedbackDate = new Date(f.createdAt || f.created_at || '');
+          return feedbackDate < endDate;
+        });
+      }
+      
+      // Filter by sentiment
+      if (req.query.sentiment) {
+        filteredFeedback = filteredFeedback.filter((f: any) => f.sentiment === req.query.sentiment);
+      }
+      
+      // Filter by city
+      if (req.query.city) {
+        filteredFeedback = filteredFeedback.filter((f: any) => f.city === req.query.city);
+      }
+      
+      // Filter by cluster
+      if (req.query.cluster) {
+        filteredFeedback = filteredFeedback.filter((f: any) => f.cluster === req.query.cluster);
+      }
+      
+      // Filter by agent
+      if (req.query.agentId) {
+        filteredFeedback = filteredFeedback.filter((f: any) => f.agentId === req.query.agentId || f.agent_id === req.query.agentId);
+      }
+      
+      if (req.query.agentName) {
+        filteredFeedback = filteredFeedback.filter((f: any) => f.agentName === req.query.agentName || f.agent_name === req.query.agentName);
+      }
+      
+      res.json(filteredFeedback);
     } catch (error) {
       console.error("Error fetching ticket feedback:", error);
       res.status(500).json({ error: "Internal server error" });
