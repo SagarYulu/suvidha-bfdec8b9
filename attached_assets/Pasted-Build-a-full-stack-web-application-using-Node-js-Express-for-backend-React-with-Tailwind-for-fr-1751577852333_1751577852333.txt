@@ -1,0 +1,106 @@
+Build a full-stack web application using Node.js (Express) for backend, React (with Tailwind) for frontend, and MySQL as the database. Follow a clean MVC modular architecture for both frontend and backend.
+
+✅ Backend Requirements:
+
+Use Node.js + Express in MVC modular structure:
+
+bash
+Copy
+Edit
+backend/
+├── config/               # DB config, JWT, AWS setup
+│   └── db.js             # MySQL connection using `mysql2`
+├── controllers/          # Business logic
+├── routes/               # RESTful route handlers
+├── models/               # MySQL models or raw query files
+├── services/             # Helper logic or calculations
+├── middlewares/          # Auth, error handlers
+├── utils/                # Token generation, formatters
+├── .env                  # Environment config (see below)
+└── server.js             # App entry point
+Use MySQL as database:
+
+Replace all uuid usage with integer-based AUTO_INCREMENT id
+
+Setup foreign key constraints (with ON DELETE CASCADE if needed)
+
+Use the following DB credentials:
+
+DB_HOST=localhost
+
+DB_USER=root
+
+DB_PASSWORD=Yulu@123
+
+DB_NAME=your_database_name
+
+DB_PORT=3306
+
+Use JWT for authentication.
+
+Create .env in backend with:
+
+ini
+Copy
+Edit
+DB_HOST=localhost  
+DB_USER=root  
+DB_PASSWORD=Yulu@123  
+DB_NAME=your_database_name  
+DB_PORT=3306  
+JWT_SECRET=YourJWTSecretHere  
+AWS_ACCESS_KEY_ID=your_access_key  
+AWS_SECRET_ACCESS_KEY=your_secret_key  
+AWS_REGION=ap-south-1  
+AWS_BUCKET_NAME=your-bucket  
+PORT=5000  
+✅ Frontend Requirements:
+
+Use React + Tailwind and create modular folders:
+
+bash
+Copy
+Edit
+frontend/
+├── public/
+├── src/
+│   ├── components/        # Reusable UI
+│   ├── pages/             # Route-level screens
+│   ├── services/          # Axios API service (`api.js`)
+│   ├── hooks/             # Custom hooks
+│   ├── context/           # React Context API
+│   ├── utils/             # Formatters, helpers
+│   ├── App.jsx
+│   └── main.jsx
+└── .env                  # REACT_APP_API_BASE_URL=http://localhost:5000/api
+Use Axios for API communication with a central api.js using:
+
+js
+Copy
+Edit
+axios.create({
+  baseURL: process.env.REACT_APP_API_BASE_URL,
+});
+✅ Additional:
+
+All routes should be RESTful, under /api/v1/...
+
+Secure backend using CORS, Helmet, compression
+
+Modularize file uploads so it can easily integrate with AWS S3
+
+Ensure code is scalable, production-ready, and works locally or on Replit
+
+🎯 Final output should be a complete full-stack app with:
+
+Clean modular MVC folders
+
+MySQL DB integration with id fields
+
+Working JWT-based auth
+
+Axios-powered frontend
+
+All secrets in .env
+
+Deployment-ready structure for AWS

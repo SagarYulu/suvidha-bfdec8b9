@@ -7,25 +7,25 @@ This is a full-stack web application for managing employee issues and feedback i
 ## System Architecture
 
 ### Frontend Architecture
-- **React 18** with TypeScript for type safety
+- **React 18** with JSX for component development
 - **Vite** as the build tool and development server
-- **Tailwind CSS** with shadcn/ui components for consistent styling
+- **Tailwind CSS** for utility-first styling
 - **React Router** for client-side routing
-- **TanStack Query** for server state management and caching
-- **Zustand** for local state management
+- **Axios** for API communication with centralized client
+- **React Context API** for state management
 
 ### Backend Architecture
-- **Express.js** server with TypeScript
-- **PostgreSQL** database with Drizzle ORM
-- **Neon Database** as the PostgreSQL provider
-- Session-based authentication with pg-simple store
-- RESTful API design with `/api` prefix
+- **Express.js** server with JavaScript following MVC pattern
+- **MySQL** database with mysql2 driver
+- **JWT-based authentication** with secure token management
+- **RESTful API design** with `/api/v1` prefix
+- **Modular controller and route structure**
 
 ### Database Design
-- **Drizzle ORM** with PostgreSQL dialect
-- Schema-first approach with TypeScript types
-- Migration system for database versioning
-- Connection pooling with Neon serverless
+- **MySQL** with AUTO_INCREMENT integer IDs
+- **Raw SQL queries** with parameterized statements
+- **Foreign key constraints** with CASCADE operations
+- **Connection pooling** for performance optimization
 
 ## Key Components
 
@@ -120,7 +120,17 @@ This is a full-stack web application for managing employee issues and feedback i
 
 ## Changelog
 
-- July 03, 2025. Initial setup
+- July 03, 2025. Initial setup and migration from Lovable to Replit completed
+- July 03, 2025. Complete refactoring to Node.js Express + MySQL + React architecture
+  - Migrated from PostgreSQL/Drizzle to MySQL with mysql2
+  - Implemented clean MVC pattern in backend
+  - Created JWT-based authentication system
+  - Built RESTful API with proper error handling and validation
+  - Replaced TypeScript with JavaScript for simplicity
+  - Updated frontend to use Axios and React Context for state management
+  - Added comprehensive security middleware (CORS, Helmet, Rate limiting)
+  - Implemented role-based access control (Admin/Employee)
+  - Created modular file structure following best practices
 
 ## User Preferences
 
