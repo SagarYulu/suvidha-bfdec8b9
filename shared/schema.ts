@@ -11,7 +11,7 @@ export const users = pgTable("users", {
 
 // Employees table
 export const employees = pgTable("employees", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -26,7 +26,7 @@ export const employees = pgTable("employees", {
   dateOfBirth: text("date_of_birth"),
   accountNumber: text("account_number"),
   ifscCode: text("ifsc_code"),
-  userId: text("user_id"),
+  userId: integer("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -52,21 +52,23 @@ export const dashboardUsers = pgTable("dashboard_users", {
 
 // Issues table
 export const issues = pgTable("issues", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: serial("id").primaryKey(),
   description: text("description").notNull(),
   status: text("status").notNull(),
   priority: text("priority").notNull(),
-  typeId: text("type_id").notNull(),
-  subTypeId: text("sub_type_id").notNull(),
-  employeeUuid: text("employee_uuid").notNull(),
-  assignedTo: text("assigned_to"),
+  typeId: text("type_id"),
+  subTypeId: text("sub_type_id"),
+  employeeId: integer("employee_id").notNull(),
+  assignedTo: integer("assigned_to"),
   attachmentUrl: text("attachment_url"),
-  attachments: text("attachments").array(),
+  attachments: jsonb("attachments"),
   mappedTypeId: text("mapped_type_id"),
   mappedSubTypeId: text("mapped_sub_type_id"),
-  mappedBy: text("mapped_by"),
+  mappedBy: integer("mapped_by"),
   mappedAt: timestamp("mapped_at"),
   closedAt: timestamp("closed_at"),
+  escalationLevel: integer("escalation_level").default(0),
+  escalatedAt: timestamp("escalated_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

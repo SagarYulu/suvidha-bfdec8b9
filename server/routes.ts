@@ -137,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: req.query.status as string,
         priority: req.query.priority as string,
         assignedTo: req.query.assignedTo as string,
-        employeeUuid: req.query.employeeUuid as string,
+        employeeId: req.query.employeeId as string,
         startDate: req.query.startDate as string,
         endDate: req.query.endDate as string,
       };

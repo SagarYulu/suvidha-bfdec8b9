@@ -1,125 +1,125 @@
-const { pool } = require('../config/db');
+const { pool } = require('../config/db-postgres');
 const bcrypt = require('bcryptjs');
 
 class User {
   // Create a new user
   static async create({ username, password, role = 'user' }) {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
       const hashedPassword = await bcrypt.hash(password, 12);
       
-      const [result] = await connection.execute(
-        'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+      const result = await client.query(
+        'INSERT INTO users (username, password, role) VALUES ($1, $2, $3) RETURNING id',
         [username, hashedPassword, role]
       );
       
-      return { id: result.insertId, username, role };
+      return { id: result.rows[0].id, username, role };
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Find user by username
   static async findByUsername(username) {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      const [rows] = await connection.execute(
-        'SELECT * FROM users WHERE username = ?',
+      const result = await client.query(
+        'SELECT * FROM users WHERE username = $1',
         [username]
       );
-      return rows[0] || null;
+      return result.rows[0] || null;
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Find user by ID
   static async findById(id) {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      const [rows] = await connection.execute(
-        'SELECT id, username, role, created_at, updated_at FROM users WHERE id = ?',
+      const result = await client.query(
+        'SELECT * FROM users WHERE id = $1',
         [id]
       );
-      return rows[0] || null;
+      return result.rows[0] || null;
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Get all users
   static async findAll() {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      const [rows] = await connection.execute(
-        'SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at DESC'
-      );
-      return rows;
+      const result = await client.query('SELECT * FROM users ORDER BY created_at DESC');
+      return result.rows;
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Update user
   static async update(id, updates) {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
       const fields = [];
       const values = [];
+      let paramCount = 1;
 
-      if (updates.username) {
-        fields.push('username = ?');
-        values.push(updates.username);
-      }
-
-      if (updates.password) {
-        fields.push('password = ?');
-        values.push(await bcrypt.hash(updates.password, 12));
-      }
-
-      if (updates.role) {
-        fields.push('role = ?');
-        values.push(updates.role);
-      }
+      const allowedFields = ['username', 'password', 'role'];
+      
+      allowedFields.forEach(field => {
+        if (updates[field] !== undefined) {
+          if (field === 'password') {
+            fields.push(`${field} = $${paramCount}`);
+            values.push(bcrypt.hashSync(updates[field], 12));
+          } else {
+            fields.push(`${field} = $${paramCount}`);
+            values.push(updates[field]);
+          }
+          paramCount++;
+        }
+      });
 
       if (fields.length === 0) {
         throw new Error('No fields to update');
       }
 
+      fields.push(`updated_at = CURRENT_TIMESTAMP`);
       values.push(id);
 
-      const [result] = await connection.execute(
-        `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      const result = await client.query(
+        `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
         values
       );
 
-      if (result.affectedRows === 0) {
+      if (result.rows.length === 0) {
         throw new Error('User not found');
       }
 
-      return this.findById(id);
+      return result.rows[0];
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Delete user
   static async delete(id) {
-    const connection = await pool.getConnection();
+    const client = await pool.connect();
     try {
-      const [result] = await connection.execute(
-        'DELETE FROM users WHERE id = ?',
+      const result = await client.query(
+        'DELETE FROM users WHERE id = $1',
         [id]
       );
-      return result.affectedRows > 0;
+      return result.rowCount > 0;
     } finally {
-      connection.release();
+      client.release();
     }
   }
 
   // Verify password
   static async verifyPassword(plainPassword, hashedPassword) {
-    return bcrypt.compare(plainPassword, hashedPassword);
+    return await bcrypt.compare(plainPassword, hashedPassword);
   }
 }
 

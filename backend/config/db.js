@@ -49,21 +49,38 @@ const initializeDatabase = async () => {
 };
 
 const createTables = async (connection) => {
+  // Drop existing tables if they exist (for clean migration)
+  await connection.execute(`DROP TABLE IF EXISTS ticket_feedback`);
+  await connection.execute(`DROP TABLE IF EXISTS issue_comments`);
+  await connection.execute(`DROP TABLE IF EXISTS issues`);
+  await connection.execute(`DROP TABLE IF EXISTS rbac_user_roles`);
+  await connection.execute(`DROP TABLE IF EXISTS rbac_role_permissions`);
+  await connection.execute(`DROP TABLE IF EXISTS rbac_permissions`);
+  await connection.execute(`DROP TABLE IF EXISTS rbac_roles`);
+  await connection.execute(`DROP TABLE IF EXISTS master_clusters`);
+  await connection.execute(`DROP TABLE IF EXISTS master_cities`);
+  await connection.execute(`DROP TABLE IF EXISTS master_roles`);
+  await connection.execute(`DROP TABLE IF EXISTS dashboard_users`);
+  await connection.execute(`DROP TABLE IF EXISTS employees`);
+  await connection.execute(`DROP TABLE IF EXISTS users`);
+
   // Users table (for authentication)
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS users (
+    CREATE TABLE users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       username VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
       role VARCHAR(50) DEFAULT 'user',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_username (username),
+      INDEX idx_role (role)
     )
   `);
 
   // Employees table
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS employees (
+    CREATE TABLE employees (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -82,13 +99,17 @@ const createTables = async (connection) => {
       user_id INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_email (email),
+      INDEX idx_emp_id (emp_id),
+      INDEX idx_city (city),
+      INDEX idx_cluster (cluster)
     )
   `);
 
   // Dashboard Users table
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS dashboard_users (
+    CREATE TABLE dashboard_users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -106,20 +127,22 @@ const createTables = async (connection) => {
       last_updated_by INT,
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
       FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
-      FOREIGN KEY (last_updated_by) REFERENCES users(id) ON DELETE SET NULL
+      FOREIGN KEY (last_updated_by) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_email (email),
+      INDEX idx_role (role)
     )
   `);
 
   // Issues table
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS issues (
+    CREATE TABLE issues (
       id INT AUTO_INCREMENT PRIMARY KEY,
       description TEXT NOT NULL,
       status VARCHAR(50) DEFAULT 'open',
       priority VARCHAR(20) DEFAULT 'medium',
       type_id VARCHAR(50),
       sub_type_id VARCHAR(50),
-      employee_uuid INT NOT NULL,
+      employee_id INT NOT NULL,
       assigned_to INT,
       attachment_url TEXT,
       attachments JSON,
@@ -130,62 +153,72 @@ const createTables = async (connection) => {
       closed_at TIMESTAMP NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE,
+      FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
       FOREIGN KEY (assigned_to) REFERENCES dashboard_users(id) ON DELETE SET NULL,
-      FOREIGN KEY (mapped_by) REFERENCES dashboard_users(id) ON DELETE SET NULL
+      FOREIGN KEY (mapped_by) REFERENCES dashboard_users(id) ON DELETE SET NULL,
+      INDEX idx_status (status),
+      INDEX idx_priority (priority),
+      INDEX idx_employee_id (employee_id),
+      INDEX idx_assigned_to (assigned_to)
     )
   `);
 
   // Issue Comments table
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS issue_comments (
+    CREATE TABLE issue_comments (
       id INT AUTO_INCREMENT PRIMARY KEY,
       issue_id INT NOT NULL,
       content TEXT NOT NULL,
-      employee_uuid INT NOT NULL,
+      employee_id INT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
-      FOREIGN KEY (employee_uuid) REFERENCES employees(id) ON DELETE CASCADE
+      FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+      INDEX idx_issue_id (issue_id),
+      INDEX idx_employee_id (employee_id)
     )
   `);
 
   // Ticket Feedback table
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS ticket_feedback (
+    CREATE TABLE ticket_feedback (
       id INT AUTO_INCREMENT PRIMARY KEY,
       issue_id INT NOT NULL,
       feedback TEXT NOT NULL,
       sentiment VARCHAR(20),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE
+      FOREIGN KEY (issue_id) REFERENCES issues(id) ON DELETE CASCADE,
+      INDEX idx_issue_id (issue_id),
+      INDEX idx_sentiment (sentiment)
     )
   `);
 
   // RBAC Tables
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS rbac_roles (
+    CREATE TABLE rbac_roles (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
       description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_name (name)
     )
   `);
 
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS rbac_permissions (
+    CREATE TABLE rbac_permissions (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
       description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_name (name)
     )
   `);
 
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS rbac_role_permissions (
+    CREATE TABLE rbac_role_permissions (
       id INT AUTO_INCREMENT PRIMARY KEY,
       role_id INT NOT NULL,
       permission_id INT NOT NULL,
@@ -197,7 +230,7 @@ const createTables = async (connection) => {
   `);
 
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS rbac_user_roles (
+    CREATE TABLE rbac_user_roles (
       id INT AUTO_INCREMENT PRIMARY KEY,
       user_id INT NOT NULL,
       role_id INT NOT NULL,
@@ -210,34 +243,38 @@ const createTables = async (connection) => {
 
   // Master Data Tables
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS master_roles (
+    CREATE TABLE master_roles (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
       description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_name (name)
     )
   `);
 
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS master_cities (
+    CREATE TABLE master_cities (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) UNIQUE NOT NULL,
       state VARCHAR(100),
       country VARCHAR(100) DEFAULT 'India',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      INDEX idx_name (name)
     )
   `);
 
   await connection.execute(`
-    CREATE TABLE IF NOT EXISTS master_clusters (
+    CREATE TABLE master_clusters (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       city_id INT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (city_id) REFERENCES master_cities(id) ON DELETE CASCADE
+      FOREIGN KEY (city_id) REFERENCES master_cities(id) ON DELETE CASCADE,
+      INDEX idx_name (name),
+      INDEX idx_city_id (city_id)
     )
   `);
 };

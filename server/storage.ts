@@ -159,8 +159,8 @@ export class DatabaseStorage implements IStorage {
       if (filters.assignedTo) {
         conditions.push(eq(issues.assignedTo, filters.assignedTo));
       }
-      if (filters.employeeUuid) {
-        conditions.push(eq(issues.employeeUuid, filters.employeeUuid));
+      if (filters.employeeId) {
+        conditions.push(eq(issues.employeeId, filters.employeeId));
       }
       if (filters.startDate) {
         conditions.push(sql`${issues.createdAt} >= ${filters.startDate}`);
