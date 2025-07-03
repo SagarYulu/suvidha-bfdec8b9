@@ -129,7 +129,7 @@ const MobileLogin = () => {
           console.log("User has mobile app access, redirecting to issues");
           toast({
             title: "Verification successful",
-            description: "Welcome back!",
+            description: "Redirecting to your issues...",
           });
           navigate("/mobile/issues", { replace: true });
         } else {
@@ -137,7 +137,7 @@ const MobileLogin = () => {
           console.log("No user data found, assuming regular employee");
           toast({
             title: "Verification successful",
-            description: "Welcome back!",
+            description: "Redirecting to your issues...",
           });
           navigate("/mobile/issues", { replace: true });
         }

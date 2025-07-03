@@ -2,15 +2,13 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useState } from "react";
-import { toast } from "@/hooks/use-toast";
-import { AlertCircle, Download } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useEffect } from "react";
+import { Download } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { authState, refreshAuth } = useAuth();
-  const [isPresentationMode, setIsPresentationMode] = useState(false);
+
   
   useEffect(() => {
     // Try to refresh auth on load
@@ -21,13 +19,9 @@ const Index = () => {
     checkAuth();
   }, [refreshAuth]);
   
+  // Removed welcome toast as it was showing repeatedly
   useEffect(() => {
-    // If already logged in, show welcoming toast
     if (authState.isAuthenticated) {
-      toast({
-        title: "Welcome back!",
-        description: `You are logged in as ${authState.user?.name}`,
-      });
       console.log("User is authenticated:", authState.user);
     }
   }, [authState]);
@@ -64,29 +58,7 @@ const Index = () => {
     navigate("/export");
   };
 
-  const togglePresentationMode = () => {
-    setIsPresentationMode(!isPresentationMode);
-    if (!isPresentationMode) {
-      toast({
-        title: "Presentation mode activated",
-        description: "Press P key to exit presentation mode",
-      });
-    }
-  };
-
-  // Event listener for P key to toggle presentation mode
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === 'p') {
-        togglePresentationMode();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isPresentationMode]);
+  // Removed presentation mode functionality
   
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
@@ -124,29 +96,7 @@ const Index = () => {
         </div>
       </div>
       
-      {!isPresentationMode && (
-        <Alert className="fixed bottom-4 right-4 max-w-md shadow-lg border border-gray-200">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Press the <strong>P</strong> key to enter presentation mode and hide this message box.
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      {/* This div will cover the chat interface when in presentation mode */}
-      {isPresentationMode && (
-        <div 
-          className="fixed top-0 left-0 w-1/2 h-full bg-white z-50"
-          onClick={togglePresentationMode}
-        >
-          <div className="h-full flex items-center justify-center">
-            <p className="text-gray-400 text-xl p-4 text-center">
-              Presentation Mode<br/>
-              Click anywhere or press P to exit
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Removed presentation mode UI */}
     </div>
   );
 };
