@@ -1,23 +1,15 @@
 import { Role, City, Cluster, AuditLog } from "@/types/admin";
+import axios from 'axios';
 
 // -------------------- Role Management --------------------
 export const getRoles = async (): Promise<Role[]> => {
   try {
-    const { data, error } = await supabase
-      .from('master_roles')
-      .select('*')
-      .order('name');
-      
-    if (error) {
-      console.error("Error fetching roles:", error);
-      return [];
-    }
-    
-    return data.map(role => ({
+    const response = await axios.get('/api/master-roles');
+    return response.data.map((role: any) => ({
       id: role.id,
       name: role.name,
-      createdAt: role.created_at,
-      updatedAt: role.updated_at
+      createdAt: role.createdAt,
+      updatedAt: role.updatedAt
     })) || [];
   } catch (error) {
     console.error("Error in getRoles:", error);
@@ -27,16 +19,8 @@ export const getRoles = async (): Promise<Role[]> => {
 
 export const createRole = async (name: string, userId: string): Promise<Role | null> => {
   try {
-    const { data, error } = await supabase
-      .from('master_roles')
-      .insert({ name })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error("Error creating role:", error);
-      return null;
-    }
+    const response = await axios.post('/api/master-roles', { name });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
@@ -50,91 +34,57 @@ export const createRole = async (name: string, userId: string): Promise<Role | n
     return {
       id: data.id,
       name: data.name,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in createRole:", error);
+    console.error("Error creating role:", error);
     return null;
   }
 };
 
 export const updateRole = async (id: string, name: string, userId: string): Promise<Role | null> => {
   try {
-    // Get current role data for audit
-    const { data: currentRole } = await supabase
-      .from('master_roles')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    const { data, error } = await supabase
-      .from('master_roles')
-      .update({ name, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error("Error updating role:", error);
-      return null;
-    }
+    const response = await axios.put(`/api/master-roles/${id}`, { name });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
       entityType: 'role',
       entityId: id,
       action: 'update',
-      changes: { 
-        before: { name: currentRole?.name }, 
-        after: { name } 
-      },
+      changes: { name },
       createdBy: userId
     });
     
     return {
       id: data.id,
       name: data.name,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in updateRole:", error);
+    console.error("Error updating role:", error);
     return null;
   }
 };
 
 export const deleteRole = async (id: string, userId: string): Promise<boolean> => {
   try {
-    // Get current role data for audit
-    const { data: currentRole } = await supabase
-      .from('master_roles')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    const { error } = await supabase
-      .from('master_roles')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error("Error deleting role:", error);
-      return false;
-    }
+    await axios.delete(`/api/master-roles/${id}`);
     
     // Log audit entry
     await createAuditLog({
       entityType: 'role',
       entityId: id,
       action: 'delete',
-      changes: { deleted: currentRole },
+      changes: {},
       createdBy: userId
     });
     
     return true;
   } catch (error) {
-    console.error("Error in deleteRole:", error);
+    console.error("Error deleting role:", error);
     return false;
   }
 };
@@ -142,21 +92,12 @@ export const deleteRole = async (id: string, userId: string): Promise<boolean> =
 // -------------------- City Management --------------------
 export const getCities = async (): Promise<City[]> => {
   try {
-    const { data, error } = await supabase
-      .from('master_cities')
-      .select('*')
-      .order('name');
-      
-    if (error) {
-      console.error("Error fetching cities:", error);
-      return [];
-    }
-    
-    return data.map(city => ({
+    const response = await axios.get('/api/master-cities');
+    return response.data.map((city: any) => ({
       id: city.id,
       name: city.name,
-      createdAt: city.created_at,
-      updatedAt: city.updated_at
+      createdAt: city.createdAt,
+      updatedAt: city.updatedAt
     })) || [];
   } catch (error) {
     console.error("Error in getCities:", error);
@@ -166,16 +107,8 @@ export const getCities = async (): Promise<City[]> => {
 
 export const createCity = async (name: string, userId: string): Promise<City | null> => {
   try {
-    const { data, error } = await supabase
-      .from('master_cities')
-      .insert({ name })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error("Error creating city:", error);
-      return null;
-    }
+    const response = await axios.post('/api/master-cities', { name });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
@@ -189,91 +122,57 @@ export const createCity = async (name: string, userId: string): Promise<City | n
     return {
       id: data.id,
       name: data.name,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in createCity:", error);
+    console.error("Error creating city:", error);
     return null;
   }
 };
 
 export const updateCity = async (id: string, name: string, userId: string): Promise<City | null> => {
   try {
-    // Get current city data for audit
-    const { data: currentCity } = await supabase
-      .from('master_cities')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    const { data, error } = await supabase
-      .from('master_cities')
-      .update({ name, updated_at: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-      
-    if (error) {
-      console.error("Error updating city:", error);
-      return null;
-    }
+    const response = await axios.put(`/api/master-cities/${id}`, { name });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
       entityType: 'city',
       entityId: id,
       action: 'update',
-      changes: { 
-        before: { name: currentCity?.name }, 
-        after: { name } 
-      },
+      changes: { name },
       createdBy: userId
     });
     
     return {
       id: data.id,
       name: data.name,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in updateCity:", error);
+    console.error("Error updating city:", error);
     return null;
   }
 };
 
 export const deleteCity = async (id: string, userId: string): Promise<boolean> => {
   try {
-    // Get current city data for audit
-    const { data: currentCity } = await supabase
-      .from('master_cities')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    const { error } = await supabase
-      .from('master_cities')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error("Error deleting city:", error);
-      return false;
-    }
+    await axios.delete(`/api/master-cities/${id}`);
     
     // Log audit entry
     await createAuditLog({
       entityType: 'city',
       entityId: id,
       action: 'delete',
-      changes: { deleted: currentCity },
+      changes: {},
       createdBy: userId
     });
     
     return true;
   } catch (error) {
-    console.error("Error in deleteCity:", error);
+    console.error("Error deleting city:", error);
     return false;
   }
 };
@@ -281,24 +180,15 @@ export const deleteCity = async (id: string, userId: string): Promise<boolean> =
 // -------------------- Cluster Management --------------------
 export const getClusters = async (): Promise<Cluster[]> => {
   try {
-    const { data, error } = await supabase
-      .from('master_clusters')
-      .select('*, master_cities(name)')
-      .order('name');
-      
-    if (error) {
-      console.error("Error fetching clusters:", error);
-      return [];
-    }
-    
-    return data.map(cluster => ({
+    const response = await axios.get('/api/master-clusters');
+    return response.data.map((cluster: any) => ({
       id: cluster.id,
       name: cluster.name,
-      cityName: cluster.master_cities?.name,
-      cityId: cluster.city_id,
-      createdAt: cluster.created_at,
-      updatedAt: cluster.updated_at
-    }));
+      cityId: cluster.cityId,
+      cityName: cluster.cityName,
+      createdAt: cluster.createdAt,
+      updatedAt: cluster.updatedAt
+    })) || [];
   } catch (error) {
     console.error("Error in getClusters:", error);
     return [];
@@ -307,25 +197,8 @@ export const getClusters = async (): Promise<Cluster[]> => {
 
 export const getClustersByCity = async (cityId: string): Promise<Cluster[]> => {
   try {
-    const { data, error } = await supabase
-      .from('master_clusters')
-      .select('*, master_cities(name)')
-      .eq('city_id', cityId)
-      .order('name');
-      
-    if (error) {
-      console.error("Error fetching clusters by city:", error);
-      return [];
-    }
-    
-    return data.map(cluster => ({
-      id: cluster.id,
-      name: cluster.name,
-      cityName: cluster.master_cities?.name,
-      cityId: cluster.city_id,
-      createdAt: cluster.created_at,
-      updatedAt: cluster.updated_at
-    }));
+    const allClusters = await getClusters();
+    return allClusters.filter(cluster => cluster.cityId === cityId);
   } catch (error) {
     console.error("Error in getClustersByCity:", error);
     return [];
@@ -334,192 +207,111 @@ export const getClustersByCity = async (cityId: string): Promise<Cluster[]> => {
 
 export const createCluster = async (name: string, cityId: string, userId: string): Promise<Cluster | null> => {
   try {
-    const { data, error } = await supabase
-      .from('master_clusters')
-      .insert({ name, city_id: cityId })
-      .select()
-      .single();
-      
-    if (error) {
-      console.error("Error creating cluster:", error);
-      return null;
-    }
+    const response = await axios.post('/api/master-clusters', { name, cityId: parseInt(cityId) });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
       entityType: 'cluster',
       entityId: data.id,
       action: 'create',
-      changes: { name, city_id: cityId },
+      changes: { name, cityId },
       createdBy: userId
     });
     
     return {
       id: data.id,
       name: data.name,
-      cityId: data.city_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      cityId: data.cityId,
+      cityName: '',
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in createCluster:", error);
+    console.error("Error creating cluster:", error);
     return null;
   }
 };
 
 export const updateCluster = async (
-  id: string, 
-  name: string, 
-  cityId: string, 
+  id: string,
+  name: string,
+  cityId: string,
   userId: string
 ): Promise<Cluster | null> => {
   try {
-    // Get current cluster data for audit
-    const { data: currentCluster } = await supabase
-      .from('master_clusters')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    const { data, error } = await supabase
-      .from('master_clusters')
-      .update({ 
-        name, 
-        city_id: cityId, 
-        updated_at: new Date().toISOString() 
-      })
-      .eq('id', id)
-      .select('*, master_cities(name)')
-      .single();
-      
-    if (error) {
-      console.error("Error updating cluster:", error);
-      return null;
-    }
+    const response = await axios.put(`/api/master-clusters/${id}`, { name, cityId: parseInt(cityId) });
+    const data = response.data;
     
     // Log audit entry
     await createAuditLog({
       entityType: 'cluster',
       entityId: id,
       action: 'update',
-      changes: { 
-        before: { 
-          name: currentCluster?.name,
-          city_id: currentCluster?.city_id
-        }, 
-        after: { 
-          name,
-          city_id: cityId
-        } 
-      },
+      changes: { name, cityId },
       createdBy: userId
     });
     
     return {
       id: data.id,
       name: data.name,
-      cityName: data.master_cities?.name,
-      cityId: data.city_id,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at
+      cityId: data.cityId,
+      cityName: '',
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt
     };
   } catch (error) {
-    console.error("Error in updateCluster:", error);
+    console.error("Error updating cluster:", error);
     return null;
   }
 };
 
 export const deleteCluster = async (id: string, userId: string): Promise<boolean> => {
   try {
-    // Get current cluster data for audit
-    const { data: currentCluster } = await supabase
-      .from('master_clusters')
-      .select('*')
-      .eq('id', id)
-      .single();
-      
-    const { error } = await supabase
-      .from('master_clusters')
-      .delete()
-      .eq('id', id);
-      
-    if (error) {
-      console.error("Error deleting cluster:", error);
-      return false;
-    }
+    await axios.delete(`/api/master-clusters/${id}`);
     
     // Log audit entry
     await createAuditLog({
       entityType: 'cluster',
       entityId: id,
       action: 'delete',
-      changes: { deleted: currentCluster },
+      changes: {},
       createdBy: userId
     });
     
     return true;
   } catch (error) {
-    console.error("Error in deleteCluster:", error);
+    console.error("Error deleting cluster:", error);
     return false;
   }
 };
 
-// -------------------- Audit Logging --------------------
+// -------------------- Audit Log Management --------------------
 export const createAuditLog = async (logData: Omit<AuditLog, 'id' | 'createdAt' | 'userName'>): Promise<void> => {
   try {
-    await supabase
-      .from('master_audit_logs')
-      .insert({
-        entity_type: logData.entityType,
-        entity_id: logData.entityId,
-        action: logData.action,
-        changes: logData.changes,
-        created_by: logData.createdBy
-      });
+    await axios.post('/api/audit-logs', logData);
   } catch (error) {
     console.error("Error creating audit log:", error);
   }
 };
 
 export const getAuditLogs = async (
-  entityType?: 'role' | 'city' | 'cluster',
+  entityType?: string,
   entityId?: string,
-  limit: number = 100
+  limit: number = 50,
+  offset: number = 0
 ): Promise<AuditLog[]> => {
   try {
-    let query = supabase
-      .from('master_audit_logs')
-      .select('*, employees(name)')
-      .order('created_at', { ascending: false })
-      .limit(limit);
-      
-    if (entityType) {
-      query = query.eq('entity_type', entityType);
-    }
+    const params = new URLSearchParams();
+    if (entityType) params.append('entityType', entityType);
+    if (entityId) params.append('entityId', entityId);
+    params.append('limit', limit.toString());
+    params.append('offset', offset.toString());
     
-    if (entityId) {
-      query = query.eq('entity_id', entityId);
-    }
-    
-    const { data, error } = await query;
-      
-    if (error) {
-      console.error("Error fetching audit logs:", error);
-      return [];
-    }
-    
-    return data.map(log => ({
-      id: log.id,
-      entityType: log.entity_type as 'role' | 'city' | 'cluster',
-      entityId: log.entity_id,
-      action: log.action as 'create' | 'update' | 'delete',
-      changes: log.changes,
-      createdBy: log.created_by,
-      createdAt: log.created_at,
-      userName: log.employees?.name
-    }));
+    const response = await axios.get(`/api/audit-logs?${params}`);
+    return response.data || [];
   } catch (error) {
-    console.error("Error in getAuditLogs:", error);
+    console.error("Error fetching audit logs:", error);
     return [];
   }
 };

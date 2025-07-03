@@ -2,6 +2,7 @@ import { db } from "./db";
 import { 
   employees, dashboardUsers, issues, issueComments, 
   issueInternalComments, ticketFeedback, rbacRoles, rbacPermissions,
+  masterRoles, masterCities, masterClusters,
   type Employee, type DashboardUser, type Issue, 
   type IssueComment, type InsertEmployee, 
   type InsertDashboardUser, type InsertIssue, type InsertIssueComment,
@@ -46,6 +47,22 @@ export interface IStorage {
   // Ticket feedback methods
   getTicketFeedback(issueId?: number): Promise<TicketFeedback[]>;
   createTicketFeedback(feedback: InsertTicketFeedback): Promise<TicketFeedback>;
+  
+  // Master data methods
+  getMasterRoles(): Promise<any[]>;
+  createMasterRole(name: string): Promise<any>;
+  updateMasterRole(id: number, name: string): Promise<any>;
+  deleteMasterRole(id: number): Promise<boolean>;
+  
+  getMasterCities(): Promise<any[]>;
+  createMasterCity(name: string): Promise<any>;
+  updateMasterCity(id: number, name: string): Promise<any>;
+  deleteMasterCity(id: number): Promise<boolean>;
+  
+  getMasterClusters(): Promise<any[]>;
+  createMasterCluster(name: string, cityId: number): Promise<any>;
+  updateMasterCluster(id: number, name: string, cityId: number): Promise<any>;
+  deleteMasterCluster(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -210,6 +227,82 @@ export class DatabaseStorage implements IStorage {
   async createTicketFeedback(feedback: InsertTicketFeedback): Promise<TicketFeedback> {
     const result = await db.insert(ticketFeedback).values(feedback).returning();
     return result[0];
+  }
+
+  // Master data methods
+  async getMasterRoles(): Promise<any[]> {
+    return await db.select().from(masterRoles).orderBy(masterRoles.name);
+  }
+
+  async createMasterRole(name: string): Promise<any> {
+    const result = await db.insert(masterRoles).values({ name }).returning();
+    return result[0];
+  }
+
+  async updateMasterRole(id: number, name: string): Promise<any> {
+    const result = await db.update(masterRoles)
+      .set({ name })
+      .where(eq(masterRoles.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMasterRole(id: number): Promise<boolean> {
+    const result = await db.delete(masterRoles).where(eq(masterRoles.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getMasterCities(): Promise<any[]> {
+    return await db.select().from(masterCities).orderBy(masterCities.name);
+  }
+
+  async createMasterCity(name: string): Promise<any> {
+    const result = await db.insert(masterCities).values({ name }).returning();
+    return result[0];
+  }
+
+  async updateMasterCity(id: number, name: string): Promise<any> {
+    const result = await db.update(masterCities)
+      .set({ name })
+      .where(eq(masterCities.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMasterCity(id: number): Promise<boolean> {
+    const result = await db.delete(masterCities).where(eq(masterCities.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getMasterClusters(): Promise<any[]> {
+    return await db.select({
+      id: masterClusters.id,
+      name: masterClusters.name,
+      cityId: masterClusters.cityId,
+      cityName: masterCities.name,
+      createdAt: masterClusters.createdAt
+    })
+    .from(masterClusters)
+    .leftJoin(masterCities, eq(masterClusters.cityId, masterCities.id))
+    .orderBy(masterClusters.name);
+  }
+
+  async createMasterCluster(name: string, cityId: number): Promise<any> {
+    const result = await db.insert(masterClusters).values({ name, cityId }).returning();
+    return result[0];
+  }
+
+  async updateMasterCluster(id: number, name: string, cityId: number): Promise<any> {
+    const result = await db.update(masterClusters)
+      .set({ name, cityId })
+      .where(eq(masterClusters.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteMasterCluster(id: number): Promise<boolean> {
+    const result = await db.delete(masterClusters).where(eq(masterClusters.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 

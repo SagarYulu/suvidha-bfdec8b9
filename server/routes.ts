@@ -487,6 +487,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Master data routes
+  
+  // Master roles routes
+  app.get("/api/master-roles", async (req, res) => {
+    try {
+      const result = await storage.getMasterRoles();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching master roles:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/master-roles", async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Role name is required" });
+      }
+      const result = await storage.createMasterRole(name);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error creating master role:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/master-roles/:id", async (req, res) => {
+    try {
+      const roleId = parseInt(req.params.id);
+      const { name } = req.body;
+      if (isNaN(roleId) || !name) {
+        return res.status(400).json({ error: "Invalid role ID or missing name" });
+      }
+      const result = await storage.updateMasterRole(roleId, name);
+      if (!result) {
+        return res.status(404).json({ error: "Role not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating master role:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/master-roles/:id", async (req, res) => {
+    try {
+      const roleId = parseInt(req.params.id);
+      if (isNaN(roleId)) {
+        return res.status(400).json({ error: "Invalid role ID" });
+      }
+      const success = await storage.deleteMasterRole(roleId);
+      if (!success) {
+        return res.status(404).json({ error: "Role not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting master role:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Master cities routes
+  app.get("/api/master-cities", async (req, res) => {
+    try {
+      const result = await storage.getMasterCities();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching master cities:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/master-cities", async (req, res) => {
+    try {
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "City name is required" });
+      }
+      const result = await storage.createMasterCity(name);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error creating master city:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/master-cities/:id", async (req, res) => {
+    try {
+      const cityId = parseInt(req.params.id);
+      const { name } = req.body;
+      if (isNaN(cityId) || !name) {
+        return res.status(400).json({ error: "Invalid city ID or missing name" });
+      }
+      const result = await storage.updateMasterCity(cityId, name);
+      if (!result) {
+        return res.status(404).json({ error: "City not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating master city:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/master-cities/:id", async (req, res) => {
+    try {
+      const cityId = parseInt(req.params.id);
+      if (isNaN(cityId)) {
+        return res.status(400).json({ error: "Invalid city ID" });
+      }
+      const success = await storage.deleteMasterCity(cityId);
+      if (!success) {
+        return res.status(404).json({ error: "City not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting master city:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Master clusters routes
+  app.get("/api/master-clusters", async (req, res) => {
+    try {
+      const result = await storage.getMasterClusters();
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching master clusters:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/master-clusters", async (req, res) => {
+    try {
+      const { name, cityId } = req.body;
+      if (!name || !cityId) {
+        return res.status(400).json({ error: "Cluster name and city ID are required" });
+      }
+      const result = await storage.createMasterCluster(name, cityId);
+      res.status(201).json(result);
+    } catch (error) {
+      console.error("Error creating master cluster:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.put("/api/master-clusters/:id", async (req, res) => {
+    try {
+      const clusterId = parseInt(req.params.id);
+      const { name, cityId } = req.body;
+      if (isNaN(clusterId) || !name || !cityId) {
+        return res.status(400).json({ error: "Invalid cluster ID or missing data" });
+      }
+      const result = await storage.updateMasterCluster(clusterId, name, cityId);
+      if (!result) {
+        return res.status(404).json({ error: "Cluster not found" });
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error updating master cluster:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/master-clusters/:id", async (req, res) => {
+    try {
+      const clusterId = parseInt(req.params.id);
+      if (isNaN(clusterId)) {
+        return res.status(400).json({ error: "Invalid cluster ID" });
+      }
+      const success = await storage.deleteMasterCluster(clusterId);
+      if (!success) {
+        return res.status(404).json({ error: "Cluster not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting master cluster:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Seed data route (for development/demo)
   app.post("/api/seed-data", async (req, res) => {
     try {
