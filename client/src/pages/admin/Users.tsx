@@ -569,10 +569,10 @@ const AdminUsers = () => {
               </Dialog>
             </div>
             
-            <div className="mt-4 p-4 bg-yellow-50 rounded-lg max-w-lg mx-auto">
-              <p className="text-sm font-medium text-yellow-700">Troubleshooting Tips:</p>
-              <ul className="mt-2 text-sm text-yellow-600 list-disc pl-5 space-y-1">
-                <li>Check that Supabase connection is working</li>
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg max-w-lg mx-auto">
+              <p className="text-sm font-medium text-blue-700">Troubleshooting Tips:</p>
+              <ul className="mt-2 text-sm text-blue-600 list-disc pl-5 space-y-1">
+                <li>Check that PostgreSQL database connection is working</li>
                 <li>Verify 'employees' table exists and has data</li>
                 <li>Check console logs for errors</li>
               </ul>

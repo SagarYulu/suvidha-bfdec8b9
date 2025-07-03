@@ -46,7 +46,7 @@ class ApiClient {
       url: endpoint,
       ...config,
     });
-    return response.data;
+    return response as T;
   }
 
   // Employee methods
