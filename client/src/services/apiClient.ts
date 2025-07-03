@@ -1,23 +1,52 @@
 // API client to replace Supabase calls with server API calls
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
 class ApiClient {
-  private baseUrl = '/api';
+  private axiosInstance: AxiosInstance;
 
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
+  constructor() {
+    this.axiosInstance = axios.create({
+      baseURL: '/api',
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
-        ...options?.headers,
       },
-      ...options,
     });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
-    }
+    // Request interceptor
+    this.axiosInstance.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
+      }
+    );
 
-    return response.json();
+    // Response interceptor
+    this.axiosInstance.interceptors.response.use(
+      (response) => response.data,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
+        return Promise.reject(error.response?.data || error);
+      }
+    );
+  }
+
+  private async request<T>(endpoint: string, config?: AxiosRequestConfig): Promise<T> {
+    const response = await this.axiosInstance.request<T>({
+      url: endpoint,
+      ...config,
+    });
+    return response.data;
   }
 
   // Employee methods
@@ -32,14 +61,14 @@ class ApiClient {
   async createEmployee(employee: any) {
     return this.request('/employees', {
       method: 'POST',
-      body: JSON.stringify(employee),
+      data: employee,
     });
   }
 
   async updateEmployee(id: string, updates: any) {
     return this.request(`/employees/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(updates),
+      data: updates,
     });
   }
 
@@ -61,14 +90,14 @@ class ApiClient {
   async createDashboardUser(user: any) {
     return this.request('/dashboard-users', {
       method: 'POST',
-      body: JSON.stringify(user),
+      data: user,
     });
   }
 
   async updateDashboardUser(id: string, updates: any) {
     return this.request(`/dashboard-users/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(updates),
+      data: updates,
     });
   }
 
@@ -99,14 +128,14 @@ class ApiClient {
   async createIssue(issue: any) {
     return this.request('/issues', {
       method: 'POST',
-      body: JSON.stringify(issue),
+      data: issue,
     });
   }
 
   async updateIssue(id: string, updates: any) {
     return this.request(`/issues/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(updates),
+      data: updates,
     });
   }
 
@@ -118,7 +147,7 @@ class ApiClient {
   async createIssueComment(issueId: string, comment: any) {
     return this.request(`/issues/${issueId}/comments`, {
       method: 'POST',
-      body: JSON.stringify(comment),
+      data: comment,
     });
   }
 
@@ -131,7 +160,7 @@ class ApiClient {
   async createTicketFeedback(feedback: any) {
     return this.request('/ticket-feedback', {
       method: 'POST',
-      body: JSON.stringify(feedback),
+      data: feedback,
     });
   }
 
@@ -139,7 +168,7 @@ class ApiClient {
   async login(email: string, password: string) {
     return this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      data: { email, password },
     });
   }
 
@@ -147,7 +176,7 @@ class ApiClient {
   async analyzeSentiment(feedback: string) {
     return this.request('/analyze-sentiment', {
       method: 'POST',
-      body: JSON.stringify({ feedback }),
+      data: { feedback },
     });
   }
 

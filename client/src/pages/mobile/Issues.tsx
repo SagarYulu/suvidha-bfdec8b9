@@ -12,6 +12,7 @@ import { Clock, Search, User as UserIcon, CreditCard, MessageSquare } from "luci
 import { Input } from "@/components/ui/input";
 import { formatShortDate } from "@/utils/formatUtils";
 import { toast } from "@/hooks/use-toast";
+import { apiClient } from "@/services/apiClient";
 
 import FeedbackDialog from "@/components/mobile/issues/FeedbackDialog";
 import { checkFeedbackExists } from "@/services/ticketFeedbackService";
@@ -46,13 +47,13 @@ const MobileIssues = () => {
         setIsEmployeeLoading(true);
         
         // Look for employee by matching either id or user_id field to handle different ID formats
-        const { data: employees, error } = await supabase
-          .from('employees')
-          .select('*')
-          .or(`user_id.eq.${authState.user.id},id.eq.${authState.user.id}`);
-          
-        if (error) {
-          console.error("Error fetching employee details:", error);
+        const allEmployees = await apiClient.getEmployees() as any[];
+        const employees = allEmployees.filter((emp: any) => 
+          emp.user_id === authState.user!.id || String(emp.id) === authState.user!.id
+        );
+        
+        if (!employees || employees.length === 0) {
+          console.log("No matching employee found");
           setLoadError("Could not load employee details. Please try again.");
           return;
         }

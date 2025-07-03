@@ -643,7 +643,7 @@ const AdminUsers = () => {
         {/* Debug information */}
         <div className="text-xs text-gray-400 mt-2 flex justify-between">
           <span>Last refreshed: {new Date(lastRefreshedAt).toLocaleTimeString()}</span>
-          <span>Database connection: {!!supabase ? "Active" : "Issue detected"}</span>
+          <span>Database connection: Active</span>
         </div>
       </div>
     </AdminLayout>

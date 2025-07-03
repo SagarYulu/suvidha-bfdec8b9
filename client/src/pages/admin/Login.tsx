@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { apiClient } from '@/services/apiClient';
 
 
 interface LocationState {
@@ -75,13 +76,10 @@ const Login = () => {
         console.log("Demo credential detected, checking for actual user record");
         
         try {
-          const { data: dashboardUser, error } = await supabase
-            .from('dashboard_users')
-            .select('*')
-            .eq('email', email.toLowerCase())
-            .maybeSingle();
+          const dashboardUsers = await apiClient.getDashboardUsers() as any[];
+          const dashboardUser = dashboardUsers.find((u: any) => u.email === email.toLowerCase());
           
-          if (!error && dashboardUser) {
+          if (dashboardUser) {
             console.log("Found actual dashboard user record:", dashboardUser.id);
             // We'll let the login process continue, and the auth service will handle this
           } else {

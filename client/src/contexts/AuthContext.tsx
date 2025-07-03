@@ -114,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // Try actual API login
-      const response = await apiClient.login(email, password);
+      const response = await apiClient.login(email, password) as any;
       if (response.success) {
         setAuthState({
           isAuthenticated: true,

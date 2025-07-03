@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { apiClient } from "@/services/apiClient";
 import {
   Table,
   TableBody,
@@ -87,15 +88,7 @@ const AccessControl = () => {
   const loadDashboardUsers = async () => {
     setLoading(true);
     try {
-      const { data: users, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        throw error;
-      }
-
+      const users = await apiClient.getDashboardUsers() as any[];
       setDashboardUsers(users || []);
       
       // Check each user's role
@@ -153,16 +146,13 @@ const AccessControl = () => {
       console.log("Current user role:", authState.role);
       
       // First, update the dashboard_users table
-      const { error: dashboardUpdateError } = await supabase
-        .from('dashboard_users')
-        .update({ 
+      try {
+        await apiClient.updateDashboardUser(selectedUser.id, {
           role: selectedRole,
           last_updated_by: authState.user?.id
-        })
-        .eq('id', selectedUser.id);
-      
-      if (dashboardUpdateError) {
-        console.error("Supabase dashboard_users update error:", dashboardUpdateError);
+        });
+      } catch (dashboardUpdateError) {
+        console.error("Dashboard users update error:", dashboardUpdateError);
         throw dashboardUpdateError;
       }
       
