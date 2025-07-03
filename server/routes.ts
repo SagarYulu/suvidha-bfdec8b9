@@ -690,6 +690,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Migration routes
+  app.post("/api/migrate-master-data", async (req, res) => {
+    try {
+      const { migrateMasterDataReferences, populateMasterDataFromExisting } = await import("./migrateMasterData");
+      
+      // First populate any missing master data
+      const populateResult = await populateMasterDataFromExisting();
+      if (!populateResult.success) {
+        return res.status(500).json({ error: populateResult.error });
+      }
+      
+      // Then migrate the foreign key references
+      const migrateResult = await migrateMasterDataReferences();
+      if (!migrateResult.success) {
+        return res.status(500).json({ error: migrateResult.error });
+      }
+      
+      res.json({ 
+        message: "Master data migration completed successfully",
+        details: {
+          populate: populateResult.message,
+          migrate: migrateResult.message
+        }
+      });
+    } catch (error) {
+      console.error("Error during master data migration:", error);
+      res.status(500).json({ error: "Failed to migrate master data" });
+    }
+  });
+
   // Seed data route (for development/demo)
   app.post("/api/seed-data", async (req, res) => {
     try {

@@ -39,8 +39,8 @@ export const dashboardUsers = pgTable("dashboard_users", {
   userId: text("user_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  createdBy: text("created_by"),
-  lastUpdatedBy: text("last_updated_by"),
+  createdBy: integer("created_by"),
+  lastUpdatedBy: integer("last_updated_by"),
 });
 
 // Issues table
