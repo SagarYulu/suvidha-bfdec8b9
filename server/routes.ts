@@ -1063,5 +1063,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Add WebSocket support for real-time chat
+  const { WebSocketServer, WebSocket } = await import('ws');
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Extend WebSocket type for custom properties
+  interface ExtendedWebSocket extends InstanceType<typeof WebSocket> {
+    issueId?: string;
+    userId?: string;
+  }
+  
+  // Store active connections by user
+  const activeConnections = new Map<string, ExtendedWebSocket>();
+  
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection established');
+    const extendedWs = ws as ExtendedWebSocket;
+    
+    extendedWs.on('message', async (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        switch (data.type) {
+          case 'authenticate':
+            // Authenticate user and store connection
+            const { token, userId } = data;
+            if (token && userId) {
+              activeConnections.set(userId, extendedWs);
+              extendedWs.userId = userId;
+              extendedWs.send(JSON.stringify({ type: 'authenticated', userId }));
+              console.log(`User ${userId} authenticated and connected`);
+            }
+            break;
+            
+          case 'join_issue':
+            // User joins an issue chat room
+            const { issueId } = data;
+            extendedWs.issueId = issueId;
+            console.log(`User joined issue ${issueId} chat`);
+            break;
+            
+          case 'new_comment':
+            // Broadcast new comment to all users in the issue
+            const { comment, issueId: commentIssueId } = data;
+            broadcastToIssue(commentIssueId, {
+              type: 'comment_added',
+              comment,
+              timestamp: new Date()
+            });
+            break;
+            
+          case 'status_change':
+            // Broadcast status change to all users in the issue
+            const { status, issueId: statusIssueId } = data;
+            broadcastToIssue(statusIssueId, {
+              type: 'status_updated',
+              status,
+              timestamp: new Date()
+            });
+            break;
+            
+          case 'typing':
+            // Broadcast typing indicator
+            const { isTyping, userName, typingIssueId } = data;
+            broadcastToIssue(typingIssueId, {
+              type: 'typing_indicator',
+              isTyping,
+              userName,
+              timestamp: new Date()
+            }, extendedWs); // Exclude sender
+            break;
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+    
+    extendedWs.on('close', () => {
+      // Remove connection from active connections
+      activeConnections.forEach((connection, userId) => {
+        if (connection === extendedWs) {
+          activeConnections.delete(userId);
+          console.log(`User ${userId} disconnected`);
+        }
+      });
+    });
+    
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+  
+  // Helper function to broadcast to all users in an issue
+  function broadcastToIssue(issueId: string, message: any, excludeWs?: ExtendedWebSocket) {
+    wss.clients.forEach((client) => {
+      const extendedClient = client as ExtendedWebSocket;
+      if (extendedClient.readyState === WebSocket.OPEN && 
+          extendedClient.issueId === issueId && 
+          extendedClient !== excludeWs) {
+        extendedClient.send(JSON.stringify(message));
+      }
+    });
+  }
+  
   return httpServer;
 }

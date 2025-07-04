@@ -1,11 +1,17 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageSquare, AlertTriangle } from "lucide-react";
+import { Loader2, MessageSquare, AlertTriangle, Wifi, WifiOff } from "lucide-react";
 import { Issue, IssueComment } from "@/types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import TypingIndicator from "./TypingIndicator";
+
+interface TypingUser {
+  userName: string;
+  timestamp: Date;
+}
 
 interface CommentSectionProps {
   issue: Issue;
@@ -17,6 +23,11 @@ interface CommentSectionProps {
   formatDate: (date: string) => string;
   currentUser: string;
   canReplyToEmployee?: boolean;
+  // Real-time props
+  typingUsers?: TypingUser[];
+  isConnected?: boolean;
+  sendTyping?: (isTyping: boolean, userName: string) => void;
+  notifyNewComment?: (comment: any) => void;
 }
 
 const CommentSection = ({
@@ -28,9 +39,16 @@ const CommentSection = ({
   commenterNames,
   formatDate,
   currentUser,
-  canReplyToEmployee = true
+  canReplyToEmployee = true,
+  typingUsers = [],
+  isConnected = false,
+  sendTyping,
+  notifyNewComment
 }: CommentSectionProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentUserName = commenterNames[currentUser] || "Current User";
 
   // Is ticket closed or resolved?
   const isClosedOrResolved = issue.status === "closed" || issue.status === "resolved";
@@ -43,6 +61,57 @@ const CommentSection = ({
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  // Handle typing detection for real-time updates
+  const handleTypingStart = () => {
+    if (!isTyping && sendTyping) {
+      setIsTyping(true);
+      sendTyping(true, currentUserName);
+    }
+    
+    // Reset typing timer
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Stop typing after 3 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      if (sendTyping) {
+        sendTyping(false, currentUserName);
+      }
+    }, 3000);
+  };
+
+  // Enhanced comment change handler with typing detection
+  const handleCommentChange = (value: string) => {
+    setNewComment(value);
+    if (value.trim() && sendTyping) {
+      handleTypingStart();
+    }
+  };
+
+  // Enhanced comment submission with real-time notification
+  const handleEnhancedAddComment = async () => {
+    // Stop typing indicator
+    if (isTyping && sendTyping) {
+      setIsTyping(false);
+      sendTyping(false, currentUserName);
+    }
+    
+    // Call original handler
+    await handleAddComment();
+    
+    // Notify other users of new comment if connected
+    if (notifyNewComment && isConnected) {
+      const newCommentData = {
+        content: newComment,
+        authorName: currentUserName,
+        timestamp: new Date()
+      };
+      notifyNewComment(newCommentData);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -150,14 +219,36 @@ const CommentSection = ({
                 <Textarea
                   placeholder="Add a comment visible to the employee..."
                   value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
+                  onChange={(e) => handleCommentChange(e.target.value)}
                   onKeyDown={handleKeyDown}
                   className="min-h-[100px] resize-none"
                   disabled={isSubmittingComment || !canReplyToEmployee}
                 />
-                <div className="text-xs text-gray-500">
-                  <strong>Note:</strong> This comment will be visible to the employee.
-                  Press Ctrl+Enter to submit quickly.
+                
+                {/* Real-time typing indicator */}
+                {typingUsers.length > 0 && (
+                  <TypingIndicator typingUsers={typingUsers} className="mb-3" />
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-500">
+                    <strong>Note:</strong> This comment will be visible to the employee.
+                    Press Ctrl+Enter to submit quickly.
+                  </div>
+                  {/* Connection status indicator */}
+                  <div className="flex items-center space-x-1 text-xs">
+                    {isConnected ? (
+                      <>
+                        <Wifi className="h-3 w-3 text-green-500" />
+                        <span className="text-green-600">Connected</span>
+                      </>
+                    ) : (
+                      <>
+                        <WifiOff className="h-3 w-3 text-gray-400" />
+                        <span className="text-gray-500">Offline</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </>
             )}
@@ -172,7 +263,7 @@ const CommentSection = ({
       {!isClosedOrResolved && canReplyToEmployee && (
         <CardFooter className="border-t pt-3">
           <Button
-            onClick={handleAddComment}
+            onClick={handleEnhancedAddComment}
             disabled={
               !newComment.trim() ||
               isSubmittingComment ||

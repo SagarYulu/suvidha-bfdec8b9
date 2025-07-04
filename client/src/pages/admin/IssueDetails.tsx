@@ -17,6 +17,7 @@ import IssueMappingSection from "@/components/admin/issues/IssueMappingSection";
 import InternalCommentSection from "@/components/admin/issues/InternalCommentSection";
 import EscalationPanel from "@/components/admin/issues/EscalationPanel";
 import { useRBAC } from "@/contexts/RBACContext";
+import { useRealTimeIssue } from "@/hooks/useRealTimeIssue";
 
 const AdminIssueDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,6 +57,15 @@ const AdminIssueDetails = () => {
     canViewInternalComments,
     canAddInternalComments,
   } = useAdminIssue(id);
+
+  // Add real-time WebSocket functionality
+  const {
+    typingUsers,
+    isConnected,
+    sendTyping,
+    notifyNewComment,
+    notifyStatusChange
+  } = useRealTimeIssue(id, issue, setIssue);
 
   // Check if current user can reply to the employee (only HR Admin or Super Admin)
   const canReplyToEmployee = hasPermission("manage:issues") && (
@@ -104,7 +114,7 @@ const AdminIssueDetails = () => {
             
             {/* Add Internal Comment Section */}
             <InternalCommentSection
-              issueId={issue.id}
+              issueId={issue.id.toString()}
               internalComments={internalComments}
               newInternalComment={newInternalComment}
               setNewInternalComment={setNewInternalComment}
@@ -128,6 +138,10 @@ const AdminIssueDetails = () => {
               formatDate={formatDate}
               currentUser={currentUserId}
               canReplyToEmployee={canReplyToEmployee}
+              typingUsers={typingUsers}
+              isConnected={isConnected}
+              sendTyping={sendTyping}
+              notifyNewComment={notifyNewComment}
             />
           </div>
           
@@ -146,7 +160,7 @@ const AdminIssueDetails = () => {
 
             {/* Add Escalation Panel */}
             <EscalationPanel
-              issueId={issue.id}
+              issueId={issue.id.toString()}
               currentStatus={issue.status}
               currentLevel={issue.escalation_level || 0}
               escalatedAt={issue.escalated_at}
