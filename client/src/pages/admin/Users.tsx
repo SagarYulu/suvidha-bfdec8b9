@@ -372,6 +372,35 @@ Jane Smith,jane.smith@yulu.bike,9876543211,EMP998,Mumbai,Andheri,Manager Name,Pi
       errors.push('Phone must be 10 digits');
     }
     
+    // City validation using master data
+    if (row.city) {
+      const validCity = masterCities.find(c => c.name.toLowerCase() === row.city.toLowerCase());
+      if (!validCity) {
+        errors.push(`Invalid city: ${row.city}. Valid options are: ${masterCities.map(c => c.name).join(', ')}`);
+      }
+    }
+    
+    // Cluster validation using master data 
+    if (row.city && row.cluster) {
+      const validCity = masterCities.find(c => c.name.toLowerCase() === row.city.toLowerCase());
+      if (validCity) {
+        const validClusters = masterClusters.filter(cluster => cluster.cityId === validCity.id);
+        const isValidCluster = validClusters.some(cluster => cluster.name.toLowerCase() === row.cluster.toLowerCase());
+        if (!isValidCluster) {
+          const availableClusters = validClusters.map(cluster => cluster.name);
+          errors.push(`Invalid cluster: ${row.cluster} for city: ${row.city}. Valid options are: ${availableClusters.join(', ')}`);
+        }
+      }
+    }
+    
+    // Role validation using master data
+    if (row.role) {
+      const validRole = masterRoles.find(r => r.name.toLowerCase() === row.role.toLowerCase());
+      if (!validRole) {
+        errors.push(`Invalid role: ${row.role}. Valid options are: ${masterRoles.map(r => r.name).join(', ')}`);
+      }
+    }
+    
     return { isValid: errors.length === 0, errors };
   };
 
