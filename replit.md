@@ -185,9 +185,14 @@ This is a full-stack web application for managing employee issues and feedback i
     - Built real-time data validation with detailed error reporting for each row
     - Created inline editing capability for correcting data before upload
     - Added comprehensive disclaimer with authorization checklist before processing
-    - Implemented efficient bulk API endpoint with batch processing and error handling
+    - Implemented efficient bulk API endpoints with batch processing and error handling:
+      * `/api/employees/bulk` - Employee bulk onboarding (✅ tested with curl)
+      * `/api/dashboard-users/bulk` - Dashboard user bulk onboarding (✅ tested with curl)
     - Added proper success/failure reporting with detailed statistics and error messages
-    - System processes employees in batches with individual validation and rollback protection
+    - System processes users in batches with individual validation and rollback protection
+    - Fixed route ordering issue where bulk routes were being intercepted by parameterized routes
+    - Created matching UI design for dashboard user bulk upload following screenshot specifications
+    - Successfully validated both endpoints handle duplicate detection and error reporting correctly
 
 ## User Preferences
 

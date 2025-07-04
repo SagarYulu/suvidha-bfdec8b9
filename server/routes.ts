@@ -134,6 +134,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/dashboard-users", async (req, res) => {
+    try {
+      const validatedData = insertDashboardUserSchema.parse(req.body);
+      const user = await storage.createDashboardUser(validatedData);
+      res.status(201).json(user);
+    } catch (error) {
+      console.error("Error creating dashboard user:", error);
+      res.status(400).json({ error: "Invalid dashboard user data" });
+    }
+  });
+
+  app.post("/api/dashboard-users/bulk", async (req, res) => {
+    try {
+      const { users } = req.body;
+      
+      if (!Array.isArray(users)) {
+        return res.status(400).json({ error: "users must be an array" });
+      }
+      
+      if (users.length === 0) {
+        return res.status(400).json({ error: "No users provided" });
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+      
+      // Process each user individually for better error handling
+      for (let i = 0; i < users.length; i++) {
+        try {
+          const validatedData = insertDashboardUserSchema.parse(users[i]);
+          await storage.createDashboardUser(validatedData);
+          successCount++;
+        } catch (error: any) {
+          errorCount++;
+          errors.push(`Row ${i + 1}: ${error.message || 'Invalid dashboard user data'}`);
+          console.error(`Error creating dashboard user ${i + 1}:`, error);
+        }
+      }
+      
+      res.status(201).json({
+        successCount,
+        errorCount,
+        totalProcessed: users.length,
+        errors: errors.slice(0, 10), // Limit errors to first 10 for response size
+      });
+    } catch (error) {
+      console.error("Error in bulk dashboard user creation:", error);
+      res.status(500).json({ error: "Internal server error during bulk creation" });
+    }
+  });
+
   app.get("/api/dashboard-users/:id", async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
@@ -148,17 +200,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching dashboard user:", error);
       res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  app.post("/api/dashboard-users", async (req, res) => {
-    try {
-      const validatedData = insertDashboardUserSchema.parse(req.body);
-      const user = await storage.createDashboardUser(validatedData);
-      res.status(201).json(user);
-    } catch (error) {
-      console.error("Error creating dashboard user:", error);
-      res.status(400).json({ error: "Invalid dashboard user data" });
     }
   });
 

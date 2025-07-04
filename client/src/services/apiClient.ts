@@ -114,6 +114,13 @@ class ApiClient {
     });
   }
 
+  async bulkCreateDashboardUsers(users: any[]) {
+    return this.request('/dashboard-users/bulk', {
+      method: 'POST',
+      data: { users },
+    });
+  }
+
   // Issue methods
   async getIssues(filters?: any) {
     const params = new URLSearchParams();
