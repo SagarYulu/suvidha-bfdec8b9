@@ -17,8 +17,8 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
       try {
         // Fetch assignee information if issue has one
         if (issue?.assignedTo) {
-          setCurrentAssigneeId(issue.assignedTo);
-          const assigneeName = await getEmployeeNameByUuid(issue.assignedTo);
+          setCurrentAssigneeId(String(issue.assignedTo));
+          const assigneeName = await getEmployeeNameByUuid(String(issue.assignedTo));
           setCurrentAssigneeName(assigneeName || "Unknown");
         }
         
@@ -38,9 +38,16 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
   const handleAssignIssue = async () => {
     if (!issue?.id || !selectedAssignee || !currentUserId) return;
     
+    // Ensure issue.id is a valid number/string
+    const issueId = typeof issue.id === 'number' ? issue.id.toString() : String(issue.id);
+    if (!issueId || issueId === 'undefined' || issueId === 'null') {
+      console.error('Invalid issue ID:', issue.id);
+      return;
+    }
+    
     setIsAssigning(true);
     try {
-      const updatedIssue = await assignIssueToUser(issue.id, selectedAssignee, currentUserId);
+      const updatedIssue = await assignIssueToUser(issueId, selectedAssignee, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
         setCurrentAssigneeId(selectedAssignee);

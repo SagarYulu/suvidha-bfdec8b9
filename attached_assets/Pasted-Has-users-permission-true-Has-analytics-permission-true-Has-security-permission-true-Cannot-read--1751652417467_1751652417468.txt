@@ -1,0 +1,34 @@
+Has users permission: true
+Has analytics permission: true
+Has security permission: true
+Cannot read properties of undefined (reading 'includes')
+Cannot read properties of undefined (reading 'includes')
+The above error occurred in the <IssueActivity> component:
+
+    at IssueActivity (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/components/admin/issues/IssueActivity.tsx:45:26)
+    at div
+    at div
+    at div
+    at main
+    at div
+    at div
+    at BaseLayout (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/components/layouts/BaseLayout.tsx:20:3)
+    at AdminLayout (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/components/AdminLayout.tsx:25:3)
+    at AdminIssueDetails (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/pages/admin/IssueDetails.tsx?t=1751652037887:37:18)
+    at RenderedRoute (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=1048c3c6:5455:26)
+    at Routes (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=1048c3c6:6188:3)
+    at RBACProvider (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/contexts/RBACContext.tsx:21:32)
+    at AuthProvider (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/src/contexts/AuthContext.tsx:21:32)
+    at Router (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=1048c3c6:6131:13)
+    at BrowserRouter (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=1048c3c6:9149:3)
+    at Provider (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=1048c3c6:38:15)
+    at TooltipProvider (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=1048c3c6:62:5)
+    at QueryClientProvider (https://fff8bebb-a098-4be3-aea7-a1cd198cbdfe-00-2ijsknletv36k.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=1048c3c6:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Cannot read properties of undefined (reading 'includes')
+Issue not found
+Error in getAvailableAssignees: 
+TypeError {}

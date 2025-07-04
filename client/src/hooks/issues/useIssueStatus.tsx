@@ -17,9 +17,16 @@ export const useIssueStatus = (
   const handleStatusChange = async (newStatus: Issue["status"]) => {
     if (!issueId || !issue || status === newStatus) return;
     
+    // Ensure issueId is a valid string
+    const validIssueId = String(issueId);
+    if (!validIssueId || validIssueId === 'undefined' || validIssueId === 'null') {
+      console.error('Invalid issue ID:', issueId);
+      return;
+    }
+    
     setIsUpdatingStatus(true);
     try {
-      const updatedIssue = await updateIssueStatus(issueId, newStatus, currentUserId);
+      const updatedIssue = await updateIssueStatus(validIssueId, newStatus, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
         setStatus(newStatus);

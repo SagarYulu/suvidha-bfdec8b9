@@ -55,6 +55,13 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     const fetchActivityLogs = async () => {
       setIsLoading(true);
       try {
+        // Add safety check for issue object
+        if (!issue || !issue.id) {
+          console.log('Issue not found');
+          setIsLoading(false);
+          return;
+        }
+        
         const logs = await getAuditTrail(issue.id.toString());
         
         // Filter out duplicate logs - prioritize logs with performer info
@@ -112,8 +119,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         
         setEmployeeNames(names);
         
-        // Check for feedback
-        if (issue.status === "closed" || issue.status === "resolved") {
+        // Check for feedback - add safety check for status
+        if (issue.status && (issue.status === "closed" || issue.status === "resolved")) {
           const feedbackExists = await getFeedbackStatus(issue.id.toString());
           setHasFeedback(feedbackExists);
           
