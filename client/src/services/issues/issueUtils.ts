@@ -81,7 +81,7 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
  * Maps employee UUIDs to names in a batch for better performance
  */
 export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = Array.from(new Set(employeeUuids));
+  const uniqueIds = [...new Set(employeeUuids)];
   const result: Record<string, string> = {};
   
   await Promise.all(uniqueIds.map(async (uuid) => {
