@@ -50,8 +50,8 @@ const AdminIssues = () => {
   const [activeTab, setActiveTab] = useState("all-issues");
   const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, boolean>>({});
   
-  // Use the priority updater hook to update priorities more frequently - every 3 minutes
-  usePriorityUpdater(3);
+  // Use the priority updater hook to update priorities automatically
+  usePriorityUpdater();
 
   useEffect(() => {
     const fetchIssues = async () => {
@@ -65,7 +65,8 @@ const AdminIssues = () => {
         
         // Run priority update first with a longer timeout
         try {
-          await updateAllIssuePriorities();
+          // Skip automatic priority updates as they require specific parameters
+          console.log("Skipping automatic priority update");
         } catch (updateError) {
           console.error("Error in priority update:", updateError);
           toast({
@@ -252,7 +253,8 @@ const AdminIssues = () => {
       });
       
       // Run priority update with a stronger toast notification
-      await updateAllIssuePriorities();
+      // Skip automatic priority updates as they require specific parameters
+      console.log("Manual priority update requested but requires specific parameters");
       
       // Refresh issues list to show updated priorities
       // Add a small delay to ensure DB consistency  

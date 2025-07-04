@@ -140,7 +140,7 @@ const FeedbackDialog: React.FC<FeedbackDialogProps> = ({
     
     const feedback: TicketFeedback = {
       issue_id: issueId,
-      employee_uuid: employeeUuid,
+      employee_id: Number(employeeUuid),
       sentiment,
       feedback_option: selectedOption, // The internal identifier code
       feedback_text: selectedFeedbackOption.label, // The full English text to be stored

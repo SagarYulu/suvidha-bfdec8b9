@@ -35,7 +35,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       if (recentIssues.length === 0) return;
       
       // Get unique employee IDs
-      const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid || issue.employeeId))];
+      const uniqueEmployeeIds = Array.from(new Set(recentIssues.map(issue => issue.employeeId)));
       
       // Fetch names for each unique employee ID
       const names: Record<string, string> = {};
@@ -47,23 +47,26 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
             continue;
           }
 
-          // Special handling for system users
-          if (employeeId === "system" || employeeId === "admin-fallback") {
-            names[employeeId] = employeeId === "system" ? "System" : "Admin";
+          // Convert to string for legacy string-based checks
+          const employeeIdStr = employeeId.toString();
+          
+          // Special handling for system users (legacy support)
+          if (employeeIdStr === "system" || employeeIdStr === "admin-fallback") {
+            names[employeeIdStr] = employeeIdStr === "system" ? "System" : "Admin";
             continue;
           }
 
-          const user = await getUserById(employeeId);
+          const user = await getUserById(employeeIdStr);
           if (user) {
-            names[employeeId] = user.name;
+            names[employeeIdStr] = user.name;
           } else {
             // Handle special cases with more descriptive names
-            if (employeeId === "1") {
-              names[employeeId] = "Admin";
-            } else if (employeeId.startsWith("security-user")) {
-              names[employeeId] = "Security Team";
+            if (employeeIdStr === "1") {
+              names[employeeIdStr] = "Admin";
+            } else if (employeeIdStr.startsWith("security-user")) {
+              names[employeeIdStr] = "Security Team";
             } else {
-              names[employeeId] = "Unknown User";
+              names[employeeIdStr] = "Unknown User";
             }
           }
         } catch (error) {
@@ -78,8 +81,8 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     const fetchFeedbackStatuses = async () => {
       if (recentIssues.length === 0) return;
       
-      // Get all issue IDs
-      const issueIds = recentIssues.map(issue => issue.id);
+      // Get all issue IDs - convert to strings for API compatibility
+      const issueIds = recentIssues.map(issue => issue.id.toString());
       
       // Fetch feedback statuses
       const statuses = await getMultipleFeedbackStatuses(issueIds);
@@ -301,7 +304,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       </TableCell>
                       <TableCell>
                         {(issue.status === "closed" || issue.status === "resolved") ? 
-                          getFeedbackStatusBadge(issue.id) : 
+                          getFeedbackStatusBadge(issue.id.toString()) : 
                           <span className="text-xs text-gray-500">N/A</span>
                         }
                       </TableCell>
@@ -316,7 +319,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                           variant="ghost" 
                           size="sm" 
                           className="h-8 w-8 p-0"
-                          onClick={() => handleViewIssue(issue.id)}
+                          onClick={() => handleViewIssue(issue.id.toString())}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

@@ -96,45 +96,45 @@ const InternalCommentSection: React.FC<InternalCommentSectionProps> = ({
               <div 
                 key={comment.id}
                 className={`flex gap-3 ${
-                  comment.employeeUuid === currentUserId
+                  comment.employeeId === Number(currentUserId)
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
-                {comment.employeeUuid !== currentUserId && (
+                {comment.employeeId !== Number(currentUserId) && (
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-blue-100 text-blue-800 text-xs">
-                      {getInitials(commentersNames[comment.employeeUuid] || "UN")}
+                      {getInitials(commentersNames[comment.employeeId] || "UN")}
                     </AvatarFallback>
                   </Avatar>
                 )}
                 <div 
                   className={`max-w-[80%] rounded-lg p-3 ${
-                    comment.employeeUuid === currentUserId
+                    comment.employeeId === Number(currentUserId)
                       ? "bg-blue-500 text-white"
                       : "bg-gray-100"
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1 text-xs">
                     <span className={`font-medium ${
-                      comment.employeeUuid === currentUserId ? "text-blue-100" : "text-gray-600"
+                      comment.employeeId === Number(currentUserId) ? "text-blue-100" : "text-gray-600"
                     }`}>
-                      {comment.employeeUuid === currentUserId
+                      {comment.employeeId === Number(currentUserId)
                         ? "You"
-                        : commentersNames[comment.employeeUuid] || "Unknown"}
+                        : commentersNames[comment.employeeId] || "Unknown"}
                     </span>
                     <span className={`ml-2 ${
-                      comment.employeeUuid === currentUserId ? "text-blue-100" : "text-gray-500"
+                      comment.employeeId === Number(currentUserId) ? "text-blue-100" : "text-gray-500"
                     }`}>
                       {formatDate(comment.createdAt)}
                     </span>
                   </div>
                   <p className="whitespace-pre-wrap text-sm">{comment.content}</p>
                 </div>
-                {comment.employeeUuid === currentUserId && (
+                {comment.employeeId === Number(currentUserId) && (
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-blue-600 text-white text-xs">
-                      {getInitials(commentersNames[comment.employeeUuid] || "ME")}
+                      {getInitials(commentersNames[comment.employeeId] || "ME")}
                     </AvatarFallback>
                   </Avatar>
                 )}

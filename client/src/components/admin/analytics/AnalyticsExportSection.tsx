@@ -24,9 +24,9 @@ const AnalyticsExportSection: React.FC<AnalyticsExportSectionProps> = ({
   const formatIssueForExport = (issue: any) => {
     return {
       'Issue ID': issue.id,
-      'Employee UUID': issue.employee_uuid || issue.employeeUuid,
-      'Type ID': issue.type_id || issue.typeId,
-      'Sub Type ID': issue.sub_type_id || issue.subTypeId,
+      'Employee ID': issue.employeeId,
+      'Type ID': issue.typeId,
+      'Sub Type ID': issue.subTypeId,
       'Description': issue.description,
       'Status': issue.status,
       'Priority': issue.priority,

@@ -55,7 +55,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     const fetchActivityLogs = async () => {
       setIsLoading(true);
       try {
-        const logs = await getAuditTrail(issue.id.toString(), 20);
+        const logs = await getAuditTrail(issue.id.toString());
         
         // Filter out duplicate logs - prioritize logs with performer info
         const uniqueLogsByAction = new Map();
@@ -77,7 +77,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
           // Create a key that identifies the action and approximate time (within 1 second)
           const timestamp = new Date(log.created_at).getTime();
           const roundedTime = Math.floor(timestamp / 1000) * 1000; // Round to nearest second
-          const key = `${log.action}_${roundedTime}_${log.employee_uuid}`;
+          const key = `${log.action}_${roundedTime}_${log.employeeId}`;
           
           if (!uniqueLogsByAction.has(key)) {
             uniqueLogsByAction.set(key, log);
@@ -93,13 +93,13 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         
         setActivityLogs(dedupedLogs);
         
-        // Gather all unique employee UUIDs that don't have performer info
+        // Gather all unique employee IDs that don't have performer info
         const employeeIdsNeedingNames = dedupedLogs
           .filter(log => {
             const performer = getPerformerFromJson(log.details);
-            return !performer && log.employee_uuid;
+            return !performer && log.employeeId;
           })
-          .map(log => log.employee_uuid);
+          .map(log => log.employeeId);
 
         const uniqueEmployeeIds = Array.from(new Set(employeeIdsNeedingNames));
         
@@ -122,7 +122,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
             const feedbackLog = {
               id: 'feedback-' + issue.id,
               action: 'feedback_submitted',
-              employee_uuid: issue.employeeUuid,
+              employeeId: issue.employeeId,
               created_at: new Date().toISOString(),
               details: null
             };
@@ -185,8 +185,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     }
     
     // Fall back to our fetched names
-    if (employeeNames[log.employee_uuid]) {
-      return employeeNames[log.employee_uuid];
+    if (employeeNames[log.employee_id]) {
+      return employeeNames[log.employee_id];
     }
     
     // Last resort

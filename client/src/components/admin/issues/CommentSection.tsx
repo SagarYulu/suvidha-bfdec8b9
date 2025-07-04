@@ -91,14 +91,14 @@ const CommentSection = ({
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-gray-200">
                     {getInitials(
-                      commenterNames[comment.employeeUuid] || "UN"
+                      commenterNames[comment.employeeId] || "UN"
                     )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-medium">
-                      {commenterNames[comment.employeeUuid] ||
+                      {commenterNames[comment.employeeId] ||
                         "Unknown User"}
                     </span>
                     <span className="text-xs text-gray-500">

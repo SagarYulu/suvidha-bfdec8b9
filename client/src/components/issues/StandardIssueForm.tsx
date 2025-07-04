@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { submitIssue, uploadBankProof, uploadMultipleFiles } from "@/services/issueSubmitService";
+import { submitIssue, uploadBankProof } from "@/services/issueSubmitService";
 import { Paperclip, Upload } from "lucide-react";
 
 type StandardIssueFormProps = {
-  employeeUuid: string;
+  employeeId: number;
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
@@ -16,7 +16,7 @@ type StandardIssueFormProps = {
 };
 
 const StandardIssueForm = ({
-  employeeUuid,
+  employeeId,
   selectedType,
   selectedSubType,
   onSuccess,
@@ -88,7 +88,7 @@ const StandardIssueForm = ({
   const handleStandardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!employeeUuid) {
+    if (!employeeId) {
       toast({
         title: "Authentication error",
         description: "You need to be logged in to submit a ticket.",
@@ -137,10 +137,10 @@ const StandardIssueForm = ({
       // Upload regular attachment if selected
       if (selectedFile) {
         setIsUploading(true);
-        fileUrl = await uploadBankProof(selectedFile, employeeUuid);
+        const uploadResult = await uploadBankProof(selectedFile, employeeId);
         setIsUploading(false);
         
-        if (!fileUrl) {
+        if (!uploadResult.success || !uploadResult.url) {
           toast({
             title: "File upload failed",
             description: "Failed to upload your attachment. Please try again.",
@@ -150,17 +150,19 @@ const StandardIssueForm = ({
           return;
         }
         
-        allAttachments.push(fileUrl);
+        if (uploadResult.url) {
+          allAttachments.push(uploadResult.url);
+        }
       }
 
       // Upload Aadhaar attachments for ESI tickets
       if (isESITicket && !skipTypeValidation) {
         if (aadharFrontFile) {
           setIsUploadingAadharFront(true);
-          aadharFrontUrl = await uploadBankProof(aadharFrontFile, employeeUuid);
+          const aadharFrontResult = await uploadBankProof(aadharFrontFile, employeeId);
           setIsUploadingAadharFront(false);
           
-          if (!aadharFrontUrl) {
+          if (!aadharFrontResult.success || !aadharFrontResult.url) {
             toast({
               title: "File upload failed",
               description: "Failed to upload Aadhaar card front. Please try again.",
@@ -170,15 +172,16 @@ const StandardIssueForm = ({
             return;
           }
           
-          allAttachments.push(aadharFrontUrl);
+          aadharFrontUrl = aadharFrontResult.url;
+          allAttachments.push(aadharFrontResult.url);
         }
         
         if (aadharBackFile) {
           setIsUploadingAadharBack(true);
-          aadharBackUrl = await uploadBankProof(aadharBackFile, employeeUuid);
+          const aadharBackResult = await uploadBankProof(aadharBackFile, employeeId);
           setIsUploadingAadharBack(false);
           
-          if (!aadharBackUrl) {
+          if (!aadharBackResult.success || !aadharBackResult.url) {
             toast({
               title: "File upload failed",
               description: "Failed to upload Aadhaar card back. Please try again.",
@@ -188,7 +191,8 @@ const StandardIssueForm = ({
             return;
           }
           
-          allAttachments.push(aadharBackUrl);
+          aadharBackUrl = aadharBackResult.url;
+          allAttachments.push(aadharBackResult.url);
         }
       }
 
@@ -209,7 +213,7 @@ const StandardIssueForm = ({
 
       // Submit the issue with optional attachment URL and attachments array
       const result = await submitIssue({
-        employeeUuid,
+        employeeId,
         typeId: selectedType,
         subTypeId: selectedSubType,
         description: `${description.trim()}${attachmentDetails}`,

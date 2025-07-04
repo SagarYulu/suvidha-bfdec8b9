@@ -7,7 +7,7 @@ export type FeedbackSentiment = 'happy' | 'neutral' | 'sad';
 export interface FeedbackItem {
   id: string;
   issue_id: string;
-  employee_uuid: string;
+  employee_id: number;
   sentiment: FeedbackSentiment;
   feedback_option: string;
   created_at: string;
@@ -148,7 +148,7 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
       return {
         id: String(item.id || ''),
         issue_id: String(item.issue_id || ''),
-        employee_uuid: String(item.employee_uuid || ''),
+        employee_id: Number(item.employee_id || 0),
         sentiment: validSentiment,
         feedback_option: String(item.feedback_option || ''),
         created_at: String(item.created_at || ''),

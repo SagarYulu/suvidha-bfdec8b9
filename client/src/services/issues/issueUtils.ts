@@ -68,18 +68,32 @@ export const mapEmployeeIdsToNames = async (employeeIds: number[]): Promise<Reco
   return result;
 };
 
+// Cache for employee names to avoid repeated API calls
+let employeeNameCache: Record<number, string> = {};
+let cacheLastUpdated = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
  * Gets the employee name from their integer ID
- * Provides caching to reduce API calls
+ * Uses caching to avoid individual API calls - PERFORMANCE OPTIMIZED
  */
 export const getEmployeeNameById = async (employeeId: number): Promise<string> => {
   try {
-    // Import authenticatedAxios for JWT authenticated requests
-    const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
+    const now = Date.now();
     
-    // Fetch specific employee by ID
-    const response = await authenticatedAxios.get(`/api/employees/${employeeId}`);
-    return response.data?.name || "Unknown Employee";
+    // Check if cache is fresh and contains the employee
+    if (now - cacheLastUpdated < CACHE_DURATION && employeeNameCache[employeeId]) {
+      return employeeNameCache[employeeId];
+    }
+    
+    // Refresh cache by fetching all employees in one batch call
+    const employeeMap = await mapEmployeeIdsToNames([employeeId]);
+    
+    // Update cache with all fetched employees
+    employeeNameCache = { ...employeeNameCache, ...employeeMap };
+    cacheLastUpdated = now;
+    
+    return employeeMap[employeeId] || "Unknown Employee";
   } catch (error) {
     console.error(`Error fetching employee name for ID ${employeeId}:`, error);
     return "Unknown Employee";

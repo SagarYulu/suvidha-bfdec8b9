@@ -54,7 +54,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
       return {
         'Feedback ID': item.id,
         'Issue ID': item.issue_id,
-        'Employee ID': item.employee_uuid,
+        'Employee ID': item.employee_id,
         'Date': formattedDate,
         'Sentiment': item.sentiment,
         'Feedback Option': item.feedback_option,
@@ -126,7 +126,7 @@ const FeedbackAnalyticsPage: React.FC = () => {
         <FeedbackMetricsOverview 
           metrics={metrics} 
           comparisonMetrics={isComparisonEnabled ? comparisonMetrics : null}
-          comparisonMode={isComparisonEnabled ? filters.comparisonMode : 'none'}
+          comparisonMode={isComparisonEnabled ? (filters.comparisonMode || 'none') : 'none'}
         />
         
         {/* Feedback Hierarchy Chart */}

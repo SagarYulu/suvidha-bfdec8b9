@@ -9,7 +9,7 @@ import { submitIssue, uploadBankProof } from "@/services/issueSubmitService";
 import { Paperclip } from "lucide-react";
 
 type BankAccountChangeFormProps = {
-  employeeUuid: string;
+  employeeId: number;
   selectedType: string;
   selectedSubType: string;
   onSuccess: () => void;
@@ -17,7 +17,7 @@ type BankAccountChangeFormProps = {
 };
 
 const BankAccountChangeForm = ({
-  employeeUuid,
+  employeeId,
   selectedType,
   selectedSubType,
   onSuccess,
@@ -66,9 +66,9 @@ const BankAccountChangeForm = ({
 
     try {
       // Upload bank proof document
-      const fileUrl = await uploadBankProof(selectedFile, employeeUuid);
+      const uploadResult = await uploadBankProof(selectedFile, employeeId);
       
-      if (!fileUrl) {
+      if (!uploadResult.success || !uploadResult.url) {
         toast({
           title: "Upload failed",
           description: "Failed to upload bank proof document",
@@ -89,13 +89,13 @@ Reason: ${data.reason}`;
 
       // Submit the issue
       await submitIssue({
-        employeeUuid,
+        employeeId,
         typeId: selectedType,
         subTypeId: selectedSubType,
         description,
         status: "open",
         priority: "medium",
-        attachmentUrl: fileUrl,
+        attachmentUrl: uploadResult.url,
       });
 
       toast({
