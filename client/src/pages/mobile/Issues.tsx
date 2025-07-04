@@ -205,7 +205,7 @@ const MobileIssues = () => {
 
   return (
     <MobileLayout title="Home / होम">
-      <div className="space-y-4 pb-16">
+      <div className="space-y-4 pb-20">
         {/* Employee Details Card */}
         {isEmployeeLoading ? (
           <div className="bg-white rounded-lg p-4">
