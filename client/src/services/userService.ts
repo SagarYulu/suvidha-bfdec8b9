@@ -29,7 +29,8 @@ const mapEmployeeToUser = (employee: any): User => {
 // Initialize: Load users from API
 const initializeUsers = async (): Promise<void> => {
   try {
-    const employees = await apiClient.getEmployees();
+    const employeesResponse = await apiClient.getEmployees();
+    const employees = Array.isArray(employeesResponse) ? employeesResponse : [];
     
     if (employees && employees.length > 0) {
       users = employees.map(mapEmployeeToUser);
@@ -51,7 +52,8 @@ export const getUsers = async (): Promise<User[]> => {
   try {
     console.log("Fetching users from API...");
     
-    const employees = await apiClient.getEmployees();
+    const employeesResponse = await apiClient.getEmployees();
+    const employees = Array.isArray(employeesResponse) ? employeesResponse : [];
     
     if (employees && employees.length > 0) {
       console.log(`Successfully fetched ${employees.length} users from database:`, employees);

@@ -16,21 +16,22 @@ export const generateUUID = (): string => {
 // Function to map database issue to app Issue type
 export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
   return {
-    id: dbIssue.id,
-    employeeUuid: dbIssue.employee_uuid,
-    typeId: dbIssue.type_id,
-    subTypeId: dbIssue.sub_type_id,
+    id: Number(dbIssue.id),
+    employeeId: Number(dbIssue.employeeId || dbIssue.employee_id),
+    employeeUuid: dbIssue.employee_uuid, // Keep for backward compatibility
+    typeId: dbIssue.typeId || dbIssue.type_id,
+    subTypeId: dbIssue.subTypeId || dbIssue.sub_type_id,
     description: dbIssue.description,
     status: dbIssue.status as Issue["status"],
     priority: dbIssue.priority as Issue["priority"],
-    createdAt: dbIssue.created_at,
-    updatedAt: dbIssue.updated_at,
-    closedAt: dbIssue.closed_at,
-    assignedTo: dbIssue.assigned_to,
+    createdAt: dbIssue.createdAt || dbIssue.created_at,
+    updatedAt: dbIssue.updatedAt || dbIssue.updated_at,
+    closedAt: dbIssue.closedAt || dbIssue.closed_at,
+    assignedTo: dbIssue.assignedTo ? Number(dbIssue.assignedTo) : undefined,
     comments: comments,
-    lastStatusChangeAt: dbIssue.last_status_change_at,
-    reopenableUntil: dbIssue.reopenable_until,
-    previouslyClosedAt: dbIssue.previously_closed_at
+    lastStatusChangeAt: dbIssue.lastStatusChangeAt || dbIssue.last_status_change_at,
+    reopenableUntil: dbIssue.reopenableUntil || dbIssue.reopenable_until,
+    previouslyClosedAt: dbIssue.previouslyClosedAt || dbIssue.previously_closed_at
   };
 };
 

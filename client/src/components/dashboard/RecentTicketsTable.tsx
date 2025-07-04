@@ -35,7 +35,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
       if (recentIssues.length === 0) return;
       
       // Get unique employee IDs
-      const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid))];
+      const uniqueEmployeeIds = [...new Set(recentIssues.map(issue => issue.employeeUuid || issue.employeeId))];
       
       // Fetch names for each unique employee ID
       const names: Record<string, string> = {};
@@ -247,7 +247,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
                       <TableCell className="font-mono text-xs">{issue.id}</TableCell>
-                      <TableCell>{employeeNames[issue.employeeUuid] || "Loading..."}</TableCell>
+                      <TableCell>{employeeNames[issue.employeeId] || "Loading..."}</TableCell>
                       <TableCell>
                         <div>
                           <div>{getIssueTypeLabel(issue.typeId)}</div>

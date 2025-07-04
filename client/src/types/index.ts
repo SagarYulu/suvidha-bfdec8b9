@@ -19,31 +19,32 @@ export interface User {
 }
 
 export interface Issue {
-  id: string;
-  employeeUuid: string; // Changed from userId to employeeUuid
+  id: number;
+  employeeId: number; // Updated to use integer employee ID
+  employeeUuid?: string; // Keep for backward compatibility during transition
   typeId: string;
   subTypeId: string;
   description: string;
   status: "open" | "in_progress" | "resolved" | "closed";
-  priority: "low" | "medium" | "high" | "critical"; // Updated to include "critical"
+  priority: "low" | "medium" | "high" | "critical";
   createdAt: string;
   updatedAt: string;
   closedAt?: string;
-  assignedTo?: string;
+  assignedTo?: number; // Updated to use integer ID
   comments: IssueComment[];
-  lastStatusChangeAt?: string; // New field to track when status last changed
-  reopenableUntil?: string; // New field to track until when ticket can be reopened
-  previouslyClosedAt?: string[]; // Track history of closures for reopened tickets
-  attachmentUrl?: string | null; // Field to store primary attachment URL
-  attachments?: string[] | null; // Array of all attachment URLs
+  lastStatusChangeAt?: string;
+  reopenableUntil?: string;
+  previouslyClosedAt?: string[];
+  attachmentUrl?: string | null;
+  attachments?: string[] | null;
   // Add mapped fields
-  mappedTypeId?: string; // Field to store mapped type
-  mappedSubTypeId?: string; // Field to store mapped subtype
-  mappedAt?: string; // When the issue was mapped
-  mappedBy?: string; // Who mapped the issue
+  mappedTypeId?: string;
+  mappedSubTypeId?: string;
+  mappedAt?: string;
+  mappedBy?: number; // Updated to use integer ID
   // Add escalation fields
-  escalation_level?: number; // Escalation level (0 = not escalated, 1+ = escalated)
-  escalated_at?: string; // When the issue was escalated
+  escalation_level?: number;
+  escalated_at?: string;
 }
 
 export interface IssueComment {
