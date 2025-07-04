@@ -1,593 +1,540 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import AdminLayout from '@/components/AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, RotateCcw, X } from 'lucide-react';
-import AdminLayout from '@/components/AdminLayout';
+import { Plus, User, UserCheck, Users as UsersIcon } from 'lucide-react';
 
-// Types for our data
+// Form schemas
+const employeeSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  empId: z.string().min(1, 'Employee ID is required'),
+  city: z.string().min(1, 'City is required'),
+  cluster: z.string().min(1, 'Cluster is required'),
+  role: z.string().min(1, 'Role is required'),
+  manager: z.string().min(1, 'Manager is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+const dashboardUserSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email'),
+  username: z.string().min(3, 'Username must be at least 3 characters'),
+  role: z.string().min(1, 'Role is required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
 interface Employee {
   id: number;
   name: string;
   email: string;
   phone: string;
-  employeeId: string;
+  empId: string;
   city: string;
   cluster: string;
-  manager: string;
   role: string;
-  dateOfJoining: string;
-  dateOfBirth: string;
-  bloodGroup: string;
-  accountNumber: string;
-  ifscCode: string;
+  manager: string;
+  createdAt: string;
 }
 
-// Form schema for adding new users
-const addUserSchema = z.object({
-  userId: z.string().min(1, 'User ID is required'),
-  employeeId: z.string().min(1, 'Employee ID is required'),
-  name: z.string().min(1, 'Name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Phone number must be at least 10 digits'),
-  city: z.string().min(1, 'City is required'),
-  cluster: z.string().min(1, 'Cluster is required'),
-  manager: z.string().min(1, 'Manager is required'),
-  role: z.string().min(1, 'Role is required'),
-  dateOfJoining: z.string().min(1, 'Date of joining is required'),
-  dateOfBirth: z.string().min(1, 'Date of birth is required'),
-  bloodGroup: z.string().optional(),
-  accountNumber: z.string().optional(),
-  ifscCode: z.string().optional(),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-});
+interface DashboardUser {
+  id: number;
+  name: string;
+  email: string;
+  username: string;
+  role: string;
+  createdAt: string;
+}
 
-type AddUserFormData = z.infer<typeof addUserSchema>;
-
-const Users = () => {
+export default function Users() {
   const { toast } = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [dashboardUsers, setDashboardUsers] = useState<DashboardUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
+  const [isDashboardUserDialogOpen, setIsDashboardUserDialogOpen] = useState(false);
 
-  const form = useForm<AddUserFormData>({
-    resolver: zodResolver(addUserSchema),
+  const employeeForm = useForm({
+    resolver: zodResolver(employeeSchema),
     defaultValues: {
-      userId: '',
-      employeeId: '',
       name: '',
       email: '',
       phone: '',
+      empId: '',
       city: '',
       cluster: '',
-      manager: '',
       role: '',
-      dateOfJoining: '',
-      dateOfBirth: '',
-      bloodGroup: '',
-      accountNumber: '',
-      ifscCode: '',
+      manager: '',
       password: '',
     },
   });
 
-  // Fetch employees data
-  const fetchEmployees = async () => {
+  const dashboardUserForm = useForm({
+    resolver: zodResolver(dashboardUserSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      username: '',
+      role: '',
+      password: '',
+    },
+  });
+
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/employees');
-      const employeeData = response.data.map((emp: any) => ({
-        id: emp.id,
-        name: emp.name,
-        email: emp.email,
-        phone: emp.phone || '',
-        employeeId: emp.employeeId || `EMP${emp.id.toString().padStart(3, '0')}`,
-        city: emp.city || '',
-        cluster: emp.cluster || '',
-        manager: emp.manager || '',
-        role: emp.role || '',
-        dateOfJoining: emp.dateOfJoining || '',
-        dateOfBirth: emp.dateOfBirth || '',
-        bloodGroup: emp.bloodGroup || '',
-        accountNumber: emp.accountNumber || '',
-        ifscCode: emp.ifscCode || '',
-      }));
-      setEmployees(employeeData);
-      setFilteredEmployees(employeeData);
+      const [employeesData, dashboardUsersData] = await Promise.all([
+        apiClient.getEmployees(),
+        apiClient.getDashboardUsers()
+      ]);
+      
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
+      setDashboardUsers(Array.isArray(dashboardUsersData) ? dashboardUsersData : []);
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      console.error('Error fetching users:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to fetch employee data',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter employees based on search term
   useEffect(() => {
-    if (searchTerm) {
-      const filtered = employees.filter(emp =>
-        emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.phone.includes(searchTerm)
-      );
-      setFilteredEmployees(filtered);
-    } else {
-      setFilteredEmployees(employees);
-    }
-  }, [searchTerm, employees]);
-
-  // Handle form submission
-  const onSubmit = async (data: AddUserFormData) => {
-    try {
-      await apiClient.post('/api/employees', {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        employeeId: data.employeeId,
-        city: data.city,
-        cluster: data.cluster,
-        manager: data.manager,
-        role: data.role,
-        dateOfJoining: data.dateOfJoining,
-        dateOfBirth: data.dateOfBirth,
-        bloodGroup: data.bloodGroup,
-        accountNumber: data.accountNumber,
-        ifscCode: data.ifscCode,
-        password: data.password,
-      });
-
-      toast({
-        title: 'Success',
-        description: 'User added successfully',
-      });
-
-      setIsAddUserModalOpen(false);
-      form.reset();
-      fetchEmployees();
-    } catch (error) {
-      console.error('Error adding user:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add user',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Generate UUID for display (simplified version)
-  const generateDisplayUUID = (id: number) => {
-    return `${id.toString().padStart(8, '0')}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 12)}`;
-  };
-
-  useEffect(() => {
-    fetchEmployees();
+    fetchData();
   }, []);
 
+  const handleCreateEmployee = async (data: any) => {
+    try {
+      await apiClient.createEmployee(data);
+      toast({
+        title: "Success",
+        description: "Employee created successfully",
+      });
+      setIsEmployeeDialogOpen(false);
+      employeeForm.reset();
+      fetchData();
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create employee",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateDashboardUser = async (data: any) => {
+    try {
+      await apiClient.createDashboardUser(data);
+      toast({
+        title: "Success",
+        description: "Dashboard user created successfully",
+      });
+      setIsDashboardUserDialogOpen(false);
+      dashboardUserForm.reset();
+      fetchData();
+    } catch (error) {
+      console.error('Error creating dashboard user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create dashboard user",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <AdminLayout title="Users" requiredPermission="manage:users">
-      <div className="space-y-4">
-        {/* Header with search and actions */}
-        <div className="flex items-center justify-between">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              onClick={fetchEmployees}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Refresh Users
-            </Button>
-            <Button
-              onClick={() => setIsAddUserModalOpen(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4" />
-              Add User
-            </Button>
-          </div>
+    <AdminLayout title="User Management" requiredPermission="manage:users">
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold">User Management</h1>
         </div>
 
-        {/* Users Table */}
-        <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>UUID</TableHead>
-                <TableHead>User ID</TableHead>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>City</TableHead>
-                <TableHead>Cluster</TableHead>
-                <TableHead>Manager</TableHead>
-                <TableHead>Role</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
-                    Loading users...
-                  </TableCell>
-                </TableRow>
-              ) : filteredEmployees.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
-                    No users found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredEmployees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell className="font-mono text-xs">
-                      {generateDisplayUUID(employee.id)}
-                    </TableCell>
-                    <TableCell>{employee.id}</TableCell>
-                    <TableCell>{employee.employeeId}</TableCell>
-                    <TableCell>{employee.name}</TableCell>
-                    <TableCell>{employee.email}</TableCell>
-                    <TableCell>{employee.phone}</TableCell>
-                    <TableCell>{employee.city}</TableCell>
-                    <TableCell>{employee.cluster}</TableCell>
-                    <TableCell>{employee.manager}</TableCell>
-                    <TableCell>{employee.role}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+        <Tabs defaultValue="employees" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="employees" className="flex items-center gap-2">
+              <UsersIcon className="h-4 w-4" />
+              Employees ({employees.length})
+            </TabsTrigger>
+            <TabsTrigger value="dashboard-users" className="flex items-center gap-2">
+              <UserCheck className="h-4 w-4" />
+              Dashboard Users ({dashboardUsers.length})
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Add User Modal */}
-        <Dialog open={isAddUserModalOpen} onOpenChange={setIsAddUserModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <div className="flex items-center justify-between">
-                <DialogTitle>Add New User</DialogTitle>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsAddUserModalOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </DialogHeader>
+          <TabsContent value="employees" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Employees</CardTitle>
+                <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Employee
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Employee</DialogTitle>
+                    </DialogHeader>
+                    <Form {...employeeForm}>
+                      <form onSubmit={employeeForm.handleSubmit(handleCreateEmployee)} className="space-y-4">
+                        <FormField
+                          control={employeeForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="empId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Employee ID</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select city" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Bangalore">Bangalore</SelectItem>
+                                    <SelectItem value="Mumbai">Mumbai</SelectItem>
+                                    <SelectItem value="Delhi">Delhi</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="cluster"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cluster</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="role"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Role</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select role" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Delivery Executive">Delivery Executive</SelectItem>
+                                    <SelectItem value="Pilot">Pilot</SelectItem>
+                                    <SelectItem value="Mechanic">Mechanic</SelectItem>
+                                    <SelectItem value="Marshal">Marshal</SelectItem>
+                                    <SelectItem value="Operator">Operator</SelectItem>
+                                    <SelectItem value="Bike Captain">Bike Captain</SelectItem>
+                                    <SelectItem value="Yulu Captain">Yulu Captain</SelectItem>
+                                    <SelectItem value="Zone Screener">Zone Screener</SelectItem>
+                                    <SelectItem value="Bike Fitter">Bike Fitter</SelectItem>
+                                    <SelectItem value="Cleaning Associate">Cleaning Associate</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="manager"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Manager</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={employeeForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => setIsEmployeeDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit">Create Employee</Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Employee ID</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Manager</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center">Loading...</TableCell>
+                      </TableRow>
+                    ) : employees.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center">No employees found</TableCell>
+                      </TableRow>
+                    ) : (
+                      employees.map((employee) => (
+                        <TableRow key={employee.id}>
+                          <TableCell className="font-medium">{employee.name}</TableCell>
+                          <TableCell>{employee.email}</TableCell>
+                          <TableCell>{employee.empId}</TableCell>
+                          <TableCell>{employee.city}</TableCell>
+                          <TableCell>{employee.cluster}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{employee.role}</Badge>
+                          </TableCell>
+                          <TableCell>{employee.manager}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-            <Tabs defaultValue="manual" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="manual">Manual Entry</TabsTrigger>
-                <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="manual" className="space-y-4">
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* User ID */}
-                      <FormField
-                        control={form.control}
-                        name="userId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>User ID *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Numeric User ID (e.g. 1001)" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Employee ID */}
-                      <FormField
-                        control={form.control}
-                        name="employeeId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Employee ID *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Employee ID (e.g. YL001)" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Name */}
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Name *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Full Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Email */}
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="email@example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Phone */}
-                      <FormField
-                        control={form.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="9876543210" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* City */}
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select city" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Bangalore">Bangalore</SelectItem>
-                                  <SelectItem value="Delhi">Delhi</SelectItem>
-                                  <SelectItem value="Mumbai">Mumbai</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Cluster */}
-                      <FormField
-                        control={form.control}
-                        name="cluster"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cluster</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select a city first" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Indiranagar">Indiranagar</SelectItem>
-                                  <SelectItem value="Whitefield">Whitefield</SelectItem>
-                                  <SelectItem value="Central Delhi">Central Delhi</SelectItem>
-                                  <SelectItem value="South Delhi">South Delhi</SelectItem>
-                                  <SelectItem value="Noida">Noida</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Manager */}
-                      <FormField
-                        control={form.control}
-                        name="manager"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Manager</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Manager name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Role */}
-                      <FormField
-                        control={form.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role *</FormLabel>
-                            <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="Delivery Executive">Delivery Executive</SelectItem>
-                                  <SelectItem value="Pilot">Pilot</SelectItem>
-                                  <SelectItem value="Mechanic">Mechanic</SelectItem>
-                                  <SelectItem value="Marshal">Marshal</SelectItem>
-                                  <SelectItem value="Operator">Operator</SelectItem>
-                                  <SelectItem value="Bike Captain">Bike Captain</SelectItem>
-                                  <SelectItem value="Yulu Captain">Yulu Captain</SelectItem>
-                                  <SelectItem value="Zone Screener">Zone Screener</SelectItem>
-                                  <SelectItem value="Bike Fitter">Bike Fitter</SelectItem>
-                                  <SelectItem value="Cleaning Associate">Cleaning Associate</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Date of Joining */}
-                      <FormField
-                        control={form.control}
-                        name="dateOfJoining"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date of Joining</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Date of Birth */}
-                      <FormField
-                        control={form.control}
-                        name="dateOfBirth"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date of Birth</FormLabel>
-                            <FormControl>
-                              <Input type="date" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Blood Group */}
-                      <FormField
-                        control={form.control}
-                        name="bloodGroup"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Blood Group</FormLabel>
-                            <FormControl>
-                              <Input placeholder="A+, B-, O+, etc." {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Account Number */}
-                      <FormField
-                        control={form.control}
-                        name="accountNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Account Number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* IFSC Code */}
-                      <FormField
-                        control={form.control}
-                        name="ifscCode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>IFSC Code</FormLabel>
-                            <FormControl>
-                              <Input placeholder="IFSC Code" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Password */}
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem className="col-span-2">
-                            <FormLabel>Password *</FormLabel>
-                            <FormControl>
-                              <Input type="password" placeholder="Password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsAddUserModalOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                        Add User
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </TabsContent>
-
-              <TabsContent value="bulk" className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Bulk upload functionality coming soon...</p>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </DialogContent>
-        </Dialog>
+          <TabsContent value="dashboard-users" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Dashboard Users</CardTitle>
+                <Dialog open={isDashboardUserDialogOpen} onOpenChange={setIsDashboardUserDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Dashboard User
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add New Dashboard User</DialogTitle>
+                    </DialogHeader>
+                    <Form {...dashboardUserForm}>
+                      <form onSubmit={dashboardUserForm.handleSubmit(handleCreateDashboardUser)} className="space-y-4">
+                        <FormField
+                          control={dashboardUserForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={dashboardUserForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={dashboardUserForm.control}
+                          name="username"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Username</FormLabel>
+                              <FormControl>
+                                <Input {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={dashboardUserForm.control}
+                          name="role"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Role</FormLabel>
+                              <FormControl>
+                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select role" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="hr_admin">HR Admin</SelectItem>
+                                    <SelectItem value="city_head">City Head</SelectItem>
+                                    <SelectItem value="security_admin">Security Admin</SelectItem>
+                                    <SelectItem value="user">User</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={dashboardUserForm.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Password</FormLabel>
+                              <FormControl>
+                                <Input type="password" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button type="button" variant="outline" onClick={() => setIsDashboardUserDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit">Create User</Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Username</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                      </TableRow>
+                    ) : dashboardUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center">No dashboard users found</TableCell>
+                      </TableRow>
+                    ) : (
+                      dashboardUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.username}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{user.role}</Badge>
+                          </TableCell>
+                          <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </AdminLayout>
   );
-};
-
-export default Users;
+}
