@@ -40,6 +40,22 @@ interface Employee {
   ifscCode: string;
 }
 
+interface MasterCity {
+  id: number;
+  name: string;
+}
+
+interface MasterCluster {
+  id: number;
+  name: string;
+  cityId: number;
+}
+
+interface MasterRole {
+  id: number;
+  name: string;
+}
+
 // Form schema for adding new users
 const addUserSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -68,6 +84,13 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  
+  // Master data states
+  const [masterCities, setMasterCities] = useState<MasterCity[]>([]);
+  const [masterClusters, setMasterClusters] = useState<MasterCluster[]>([]);
+  const [masterRoles, setMasterRoles] = useState<MasterRole[]>([]);
+  const [filteredClusters, setFilteredClusters] = useState<MasterCluster[]>([]);
+  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
   const form = useForm<AddUserFormData>({
     resolver: zodResolver(addUserSchema),
@@ -94,8 +117,8 @@ const Users = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/employees');
-      const employeeData = response.data.map((emp: any) => ({
+      const response: any = await apiClient.getEmployees();
+      const employeeData = response.map((emp: any) => ({
         id: emp.id,
         name: emp.name,
         email: emp.email,
@@ -125,6 +148,28 @@ const Users = () => {
     }
   };
 
+  // Fetch master data
+  const fetchMasterData = async () => {
+    try {
+      const [citiesResponse, clustersResponse, rolesResponse]: any[] = await Promise.all([
+        apiClient.getMasterCities(),
+        apiClient.getMasterClusters(),
+        apiClient.getMasterRoles(),
+      ]);
+      
+      setMasterCities(citiesResponse);
+      setMasterClusters(clustersResponse);
+      setMasterRoles(rolesResponse);
+    } catch (error) {
+      console.error('Error fetching master data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch master data',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Filter employees based on search term
   useEffect(() => {
     if (searchTerm) {
@@ -140,10 +185,22 @@ const Users = () => {
     }
   }, [searchTerm, employees]);
 
+  // Handle city change and filter clusters
+  const handleCityChange = (cityName: string) => {
+    const selectedCity = masterCities.find(city => city.name === cityName);
+    if (selectedCity) {
+      setSelectedCityId(selectedCity.id);
+      const filtered = masterClusters.filter(cluster => cluster.cityId === selectedCity.id);
+      setFilteredClusters(filtered);
+      // Reset cluster value in form
+      form.setValue('cluster', '');
+    }
+  };
+
   // Handle form submission
   const onSubmit = async (data: AddUserFormData) => {
     try {
-      await apiClient.post('/api/employees', {
+      await apiClient.createEmployee({
         name: data.name,
         email: data.email,
         phone: data.phone,
@@ -185,6 +242,7 @@ const Users = () => {
 
   useEffect(() => {
     fetchEmployees();
+    fetchMasterData();
   }, []);
 
   return (
@@ -382,14 +440,22 @@ const Users = () => {
                           <FormItem>
                             <FormLabel>City</FormLabel>
                             <FormControl>
-                              <Select onValueChange={field.onChange} value={field.value}>
+                              <Select 
+                                onValueChange={(value) => {
+                                  field.onChange(value);
+                                  handleCityChange(value);
+                                }}
+                                value={field.value}
+                              >
                                 <SelectTrigger>
                                   <SelectValue placeholder="Select city" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Bangalore">Bangalore</SelectItem>
-                                  <SelectItem value="Delhi">Delhi</SelectItem>
-                                  <SelectItem value="Mumbai">Mumbai</SelectItem>
+                                  {masterCities.map((city) => (
+                                    <SelectItem key={city.id} value={city.name}>
+                                      {city.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </FormControl>
@@ -408,14 +474,17 @@ const Users = () => {
                             <FormControl>
                               <Select onValueChange={field.onChange} value={field.value}>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Select a city first" />
+                                  <SelectValue placeholder={selectedCityId ? "Select cluster" : "Select a city first"} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Indiranagar">Indiranagar</SelectItem>
-                                  <SelectItem value="Whitefield">Whitefield</SelectItem>
-                                  <SelectItem value="Central Delhi">Central Delhi</SelectItem>
-                                  <SelectItem value="South Delhi">South Delhi</SelectItem>
-                                  <SelectItem value="Noida">Noida</SelectItem>
+                                  {filteredClusters.map((cluster) => (
+                                    <SelectItem key={cluster.id} value={cluster.name}>
+                                      {cluster.name}
+                                    </SelectItem>
+                                  ))}
+                                  {filteredClusters.length === 0 && selectedCityId && (
+                                    <SelectItem value="" disabled>No clusters available for this city</SelectItem>
+                                  )}
                                 </SelectContent>
                               </Select>
                             </FormControl>
@@ -452,16 +521,11 @@ const Users = () => {
                                   <SelectValue placeholder="Select role" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="Delivery Executive">Delivery Executive</SelectItem>
-                                  <SelectItem value="Pilot">Pilot</SelectItem>
-                                  <SelectItem value="Mechanic">Mechanic</SelectItem>
-                                  <SelectItem value="Marshal">Marshal</SelectItem>
-                                  <SelectItem value="Operator">Operator</SelectItem>
-                                  <SelectItem value="Bike Captain">Bike Captain</SelectItem>
-                                  <SelectItem value="Yulu Captain">Yulu Captain</SelectItem>
-                                  <SelectItem value="Zone Screener">Zone Screener</SelectItem>
-                                  <SelectItem value="Bike Fitter">Bike Fitter</SelectItem>
-                                  <SelectItem value="Cleaning Associate">Cleaning Associate</SelectItem>
+                                  {masterRoles.map((role) => (
+                                    <SelectItem key={role.id} value={role.name}>
+                                      {role.name}
+                                    </SelectItem>
+                                  ))}
                                 </SelectContent>
                               </Select>
                             </FormControl>

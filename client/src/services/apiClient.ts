@@ -180,6 +180,19 @@ class ApiClient {
     });
   }
 
+  // Master data methods
+  async getMasterCities() {
+    return this.request('/master-cities');
+  }
+
+  async getMasterClusters() {
+    return this.request('/master-clusters');
+  }
+
+  async getMasterRoles() {
+    return this.request('/master-roles');
+  }
+
   // Seed data method (for development)
   async seedData() {
     return this.request('/seed-data', {
