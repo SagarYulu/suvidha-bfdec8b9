@@ -53,15 +53,26 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     if (closedIssues.length > 0) {
       let totalResolutionTime = 0;
+      let validResolutionCount = 0;
+      
       closedIssues.forEach(issue => {
-        if (issue.closedAt) {
-          const resolutionTime = calculateWorkingHours(issue.createdAt, issue.closedAt);
-          totalResolutionTime += resolutionTime;
+        try {
+          if (issue.closedAt && issue.createdAt) {
+            const resolutionTime = calculateWorkingHours(issue.createdAt, issue.closedAt);
+            if (!isNaN(resolutionTime) && resolutionTime >= 0) {
+              totalResolutionTime += resolutionTime;
+              validResolutionCount++;
+            }
+          }
+        } catch (error) {
+          console.error(`Error calculating resolution time for issue ${issue.id}:`, error);
         }
       });
       
-      avgResolutionTime = totalResolutionTime / closedIssues.length;
-      console.log(`Average resolution time: ${avgResolutionTime.toFixed(2)} working hours across ${closedIssues.length} issues`);
+      if (validResolutionCount > 0) {
+        avgResolutionTime = totalResolutionTime / validResolutionCount;
+        console.log(`Average resolution time: ${avgResolutionTime.toFixed(2)} working hours across ${validResolutionCount} valid issues`);
+      }
     }
     
     // Calculate First Response Time (FRT) with improved working-hours logic
@@ -72,7 +83,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       console.log("Calculating FRT based on first comments");
       
       // Group issues by ID for FRT calculation
-      const issueComments: Record<string, any[]> = {};
+      const issueComments: Record<number, any[]> = {};
       
       // Get first comment for each issue to calculate FRT
       for (const issue of issues) {
@@ -92,23 +103,29 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       let issuesWithFRT = 0;
       
       issues.forEach(issue => {
-        if (issueComments[issue.id] && issueComments[issue.id].length > 0) {
-          // Sort comments by creation time
-          const sortedComments = issueComments[issue.id].sort(
-            (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          
-          // First comment is the first response
-          const firstComment = sortedComments[0];
-          
-          if (firstComment) {
-            const frt = calculateFirstResponseTime(issue.createdAt, firstComment.createdAt);
-            console.log(`Issue ${issue.id} - FRT: ${frt.toFixed(2)} working hours`);
-            if (frt > 0) {
-              totalFRT += frt;
-              issuesWithFRT++;
+        try {
+          if (issueComments[issue.id] && issueComments[issue.id].length > 0) {
+            // Sort comments by creation time
+            const sortedComments = issueComments[issue.id].sort(
+              (a: any, b: any) => {
+                return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+              }
+            );
+            
+            // First comment is the first response
+            const firstComment = sortedComments[0];
+            
+            if (firstComment && issue.createdAt && firstComment.createdAt) {
+              const frt = calculateFirstResponseTime(issue.createdAt, firstComment.createdAt);
+              console.log(`Issue ${issue.id} - FRT: ${frt.toFixed(2)} working hours`);
+              if (frt > 0) {
+                totalFRT += frt;
+                issuesWithFRT++;
+              }
             }
           }
+        } catch (issueError) {
+          console.error(`Error processing FRT for issue ${issue.id}:`, issueError);
         }
       });
       
@@ -247,11 +264,26 @@ export const getResolutionTimeHistory = async () => {
       
       let avgTime = 0;
       if (dayIssues.length > 0) {
-        const totalTime = dayIssues.reduce((sum: number, issue: any) => {
-          const resolutionTime = calculateWorkingHours(issue.createdAt, issue.closedAt);
-          return sum + resolutionTime;
-        }, 0);
-        avgTime = totalTime / dayIssues.length;
+        let totalTime = 0;
+        let validCount = 0;
+        
+        dayIssues.forEach((issue: any) => {
+          try {
+            if (issue.createdAt && issue.closedAt) {
+              const resolutionTime = calculateWorkingHours(issue.createdAt, issue.closedAt);
+              if (!isNaN(resolutionTime) && resolutionTime >= 0) {
+                totalTime += resolutionTime;
+                validCount++;
+              }
+            }
+          } catch (error) {
+            console.error(`Error calculating historical resolution time for issue ${issue.id}:`, error);
+          }
+        });
+        
+        if (validCount > 0) {
+          avgTime = totalTime / validCount;
+        }
       }
       
       result.push({
