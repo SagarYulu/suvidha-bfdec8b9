@@ -28,7 +28,8 @@ interface Employee {
   name: string;
   email: string;
   phone: string;
-  employeeId: string;
+  empId: string;          // Employee ID like EMP001
+  userId: number;         // Internal User ID (numeric)
   city: string;
   cluster: string;
   manager: string;
@@ -176,7 +177,7 @@ const Users = () => {
       const filtered = employees.filter(emp =>
         emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.empId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         emp.phone.includes(searchTerm)
       );
       setFilteredEmployees(filtered);
@@ -204,7 +205,8 @@ const Users = () => {
         name: data.name,
         email: data.email,
         phone: data.phone,
-        employeeId: data.employeeId,
+        empId: data.employeeId,  // Map employeeId to empId for backend schema
+        userId: parseInt(data.userId), // Include userId field as integer
         city: data.city,
         cluster: data.cluster,
         manager: data.manager,
@@ -331,8 +333,8 @@ const Users = () => {
               ) : (
                 filteredEmployees.map((employee) => (
                   <TableRow key={employee.id}>
-                    <TableCell>{employee.id}</TableCell>
-                    <TableCell>{employee.employeeId}</TableCell>
+                    <TableCell>{employee.userId}</TableCell>
+                    <TableCell>{employee.empId}</TableCell>
                     <TableCell>{employee.name}</TableCell>
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>{employee.phone}</TableCell>
