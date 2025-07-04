@@ -34,8 +34,11 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
     const fetchEmployeeNames = async () => {
       if (recentIssues.length === 0) return;
       
+      console.log("Starting to fetch employee names for issues:", recentIssues);
+      
       // Get unique employee IDs
       const uniqueEmployeeIds = Array.from(new Set(recentIssues.map(issue => issue.employeeId)));
+      console.log("Unique employee IDs to fetch:", uniqueEmployeeIds);
       
       // Fetch names for each unique employee ID
       const names: Record<string, string> = {};

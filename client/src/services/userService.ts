@@ -7,17 +7,17 @@ let users: User[] = [];
 // Function to map API employee to User type
 const mapEmployeeToUser = (employee: any): User => {
   return {
-    id: String(employee.id), // UUID - auto-generated, ensure it's a string
-    userId: employee.userId || "", // User ID - manual numeric ID
+    id: employee.id, // Integer ID from PostgreSQL serial
+    userId: employee.userId || 0, // Manual numeric ID for internal use
     name: employee.name,
     email: employee.email,
     phone: employee.phone || "",
-    employeeId: employee.empId,
+    employeeId: employee.empId || "",
     city: employee.city || "",
     cluster: employee.cluster || "",
     manager: employee.manager || "",
     role: employee.role || "",
-    password: employee.password,
+    password: employee.password || "",
     dateOfJoining: employee.dateOfJoining || "",
     bloodGroup: employee.bloodGroup || "",
     dateOfBirth: employee.dateOfBirth || "",
@@ -77,12 +77,23 @@ export const getUsers = async (): Promise<User[]> => {
 
 export const getUserById = async (id: string): Promise<User | undefined> => {
   try {
+    console.log(`Getting employee by ID: ${id}`);
     const employee = await apiClient.getEmployeeById(id);
-    return employee ? mapEmployeeToUser(employee) : undefined;
+    console.log(`Employee data received:`, employee);
+    
+    if (employee) {
+      const mappedUser = mapEmployeeToUser(employee);
+      console.log(`Mapped user:`, mappedUser);
+      return mappedUser;
+    }
+    
+    return undefined;
   } catch (error) {
     console.error("Error in getUserById:", error);
-    // Fall back to local cache
-    return users.find(user => user.id === id);
+    console.error("Error details:", error);
+    // Fall back to local cache - convert string id to number for comparison
+    const numericId = parseInt(id);
+    return users.find(user => user.id === numericId);
   }
 };
 
@@ -148,8 +159,9 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     const updatedUser = mapEmployeeToUser(employee);
     
     // Update local cache
+    const numericId = parseInt(id);
     users = users.map(user => {
-      if (user.id === id) {
+      if (user.id === numericId) {
         return updatedUser;
       }
       return user;
@@ -160,14 +172,15 @@ export const updateUser = async (id: string, userData: Partial<User>): Promise<U
     console.error("Error in updateUser:", error);
     
     // Fall back to in-memory update
+    const numericId = parseInt(id);
     users = users.map(user => {
-      if (user.id === id) {
+      if (user.id === numericId) {
         return { ...user, ...userData };
       }
       return user;
     });
     
-    return users.find(user => user.id === id);
+    return users.find(user => user.id === numericId);
   }
 };
 
