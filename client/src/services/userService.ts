@@ -45,8 +45,7 @@ const initializeUsers = async (): Promise<void> => {
   }
 };
 
-// Initialize users on service load (but don't block)
-initializeUsers();
+// Note: Users will be initialized when needed after authentication
 
 export const getUsers = async (): Promise<User[]> => {
   try {

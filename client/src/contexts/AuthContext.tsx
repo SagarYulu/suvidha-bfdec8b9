@@ -49,12 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [authState, setAuthState] = useState(initialAuthState);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Create a mock admin user for development
-  const mockAdminUser = {
-    id: "admin-uuid-1",
-    email: "admin@yulu.com",
-    name: "Admin User"
-  };
+
 
   // Update localStorage whenever authState changes
   useEffect(() => {
@@ -68,16 +63,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log("Initializing auth from stored state...");
         
-        // Check if we have a stored auth state, but don't auto-login
+        // Check if we have a JWT token
+        const token = localStorage.getItem('authToken');
         const savedState = localStorage.getItem('authState');
-        if (savedState) {
+        
+        if (token && savedState) {
           try {
             const parsed = JSON.parse(savedState);
             if (parsed.isAuthenticated && parsed.user) {
               console.log("Restoring auth state for user:", parsed.user.email);
               setAuthState(parsed);
             } else {
-              console.log("No valid stored auth state found");
+              console.log("No valid stored auth state found, clearing");
+              localStorage.removeItem('authState');
+              localStorage.removeItem('authToken');
               setAuthState({
                 isAuthenticated: false,
                 user: null,
@@ -88,6 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } catch (e) {
             console.log("Invalid stored auth state, clearing");
             localStorage.removeItem('authState');
+            localStorage.removeItem('authToken');
             setAuthState({
               isAuthenticated: false,
               user: null,
@@ -96,7 +96,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } else {
-          console.log("No stored auth state, starting fresh");
+          console.log("No valid auth tokens found, clearing all stored auth");
+          localStorage.removeItem('authState');
+          localStorage.removeItem('authToken');
           setAuthState({
             isAuthenticated: false,
             user: null,
@@ -106,6 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
+        localStorage.removeItem('authState');
+        localStorage.removeItem('authToken');
         setAuthState({
           isAuthenticated: false,
           user: null,
@@ -125,26 +129,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
       
-      // Mock authentication for development
-      if (email === "admin@yulu.com" && password === "admin123") {
-        const user = mockAdminUser;
-        setAuthState({
-          isAuthenticated: true,
-          user: user,
-          session: { user: user },
-          role: "admin"
-        });
-        return true;
-      }
-      
-      // Try actual API login
+      // Use actual API login with JWT tokens
       const response = await apiClient.login(email, password) as any;
-      if (response.success) {
+      if (response.success && response.token) {
+        // Store JWT token
+        localStorage.setItem('authToken', response.token);
+        
+        // Update auth state
         setAuthState({
           isAuthenticated: true,
           user: response.user,
           session: { user: response.user },
-          role: response.role || "user"
+          role: response.user.role || "user"
         });
         return true;
       }
@@ -180,7 +176,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         session: null,
         role: null
       });
+      // Clear both auth state and JWT token
       localStorage.removeItem('authState');
+      localStorage.removeItem('authToken');
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

@@ -3,14 +3,95 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { seedDatabase } from "./seedData";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import { 
   insertEmployeeSchema, insertDashboardUserSchema, insertIssueSchema, 
   insertIssueCommentSchema, insertTicketFeedbackSchema 
 } from "@shared/schema";
+import { authenticateToken, requireDashboardUser, requireEmployee } from "./middleware/auth";
+
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Employee routes
-  app.get("/api/employees", async (req, res) => {
+  // Authentication routes (public - no auth required)
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      // Check if it's an employee login
+      const employee = await storage.getEmployeeByEmail(email);
+      if (employee) {
+        const isValidPassword = await bcrypt.compare(password, employee.password);
+        if (isValidPassword) {
+          const token = jwt.sign(
+            { 
+              userId: employee.id, 
+              userType: 'employee',
+              email: employee.email 
+            },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '24h' }
+          );
+          
+          return res.json({
+            token,
+            user: {
+              id: employee.id,
+              email: employee.email,
+              name: employee.name,
+              role: employee.role,
+              userType: 'employee'
+            }
+          });
+        }
+      }
+
+      // Check if it's a dashboard user login
+      const dashboardUser = await storage.getDashboardUserByEmail(email);
+      if (dashboardUser) {
+        const isValidPassword = await bcrypt.compare(password, dashboardUser.password);
+        if (isValidPassword) {
+          const token = jwt.sign(
+            { 
+              userId: dashboardUser.id, 
+              userType: 'dashboard_user',
+              email: dashboardUser.email 
+            },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '24h' }
+          );
+          
+          return res.json({
+            token,
+            user: {
+              id: dashboardUser.id,
+              email: dashboardUser.email,
+              name: dashboardUser.name,
+              role: dashboardUser.role,
+              userType: 'dashboard_user'
+            }
+          });
+        }
+      }
+
+      return res.status(401).json({ error: "Invalid credentials" });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    // Since JWT is stateless, logout is handled on the client side
+    res.json({ message: "Logged out successfully" });
+  });
+
+  // Employee routes (protected)
+  app.get("/api/employees", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const employees = await storage.getEmployees();
       res.json(employees);
@@ -20,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/employees/:id", async (req, res) => {
+  app.get("/api/employees/:id", authenticateToken, async (req, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       if (isNaN(employeeId)) {
@@ -37,7 +118,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees", async (req, res) => {
+  app.post("/api/employees", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const validatedData = insertEmployeeSchema.parse(req.body);
       const employee = await storage.createEmployee(validatedData);
@@ -48,7 +129,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/employees/bulk", async (req, res) => {
+  app.post("/api/employees/bulk", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { employees } = req.body;
       
@@ -89,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/employees/:id", async (req, res) => {
+  app.put("/api/employees/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       if (isNaN(employeeId)) {
@@ -106,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/employees/:id", async (req, res) => {
+  app.delete("/api/employees/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const employeeId = parseInt(req.params.id);
       if (isNaN(employeeId)) {
@@ -123,8 +204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Dashboard user routes
-  app.get("/api/dashboard-users", async (req, res) => {
+  // Dashboard user routes (protected)
+  app.get("/api/dashboard-users", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const users = await storage.getDashboardUsers();
       res.json(users);
@@ -134,7 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/dashboard-users", async (req, res) => {
+  app.post("/api/dashboard-users", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const validatedData = insertDashboardUserSchema.parse(req.body);
       const user = await storage.createDashboardUser(validatedData);
@@ -145,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/dashboard-users/bulk", async (req, res) => {
+  app.post("/api/dashboard-users/bulk", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { users } = req.body;
       
@@ -186,7 +267,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/dashboard-users/:id", async (req, res) => {
+  app.get("/api/dashboard-users/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
@@ -203,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/dashboard-users/:id", async (req, res) => {
+  app.put("/api/dashboard-users/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
@@ -220,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/dashboard-users/:id", async (req, res) => {
+  app.delete("/api/dashboard-users/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const userId = parseInt(req.params.id);
       if (isNaN(userId)) {
@@ -237,8 +318,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Issue routes
-  app.get("/api/issues", async (req, res) => {
+  // Issue routes (protected)
+  app.get("/api/issues", authenticateToken, async (req, res) => {
     try {
       const filters = {
         status: req.query.status as string,
@@ -264,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/issues/count", async (req, res) => {
+  app.get("/api/issues/count", authenticateToken, async (req, res) => {
     try {
       const filters = {
         status: req.query.status as string,
@@ -290,7 +371,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/issues/:id", async (req, res) => {
+  app.get("/api/issues/:id", authenticateToken, async (req, res) => {
     try {
       const issueId = parseInt(req.params.id);
       if (isNaN(issueId)) {
@@ -307,7 +388,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/issues", async (req, res) => {
+  app.post("/api/issues", authenticateToken, async (req, res) => {
     try {
       const validatedData = insertIssueSchema.parse(req.body);
       const issue = await storage.createIssue(validatedData);
@@ -318,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/issues/:id", async (req, res) => {
+  app.put("/api/issues/:id", authenticateToken, async (req, res) => {
     try {
       const issueId = parseInt(req.params.id);
       if (isNaN(issueId)) {
@@ -335,8 +416,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Issue comment routes
-  app.get("/api/issues/:issueId/comments", async (req, res) => {
+  // Issue comment routes (protected)
+  app.get("/api/issues/:issueId/comments", authenticateToken, async (req, res) => {
     try {
       const issueId = parseInt(req.params.issueId);
       if (isNaN(issueId)) {
@@ -350,7 +431,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/issues/:issueId/comments", async (req, res) => {
+  app.post("/api/issues/:issueId/comments", authenticateToken, async (req, res) => {
     try {
       const issueId = parseInt(req.params.issueId);
       if (isNaN(issueId)) {
@@ -368,8 +449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Ticket feedback routes
-  app.get("/api/ticket-feedback", async (req, res) => {
+  // Ticket feedback routes (protected)
+  app.get("/api/ticket-feedback", authenticateToken, async (req, res) => {
     try {
       const issueIdParam = req.query.issueId as string;
       const issueId = issueIdParam ? parseInt(issueIdParam) : undefined;
@@ -432,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ticket-feedback", async (req, res) => {
+  app.post("/api/ticket-feedback", authenticateToken, async (req, res) => {
     try {
       const validatedData = insertTicketFeedbackSchema.parse(req.body);
       const feedback = await storage.createTicketFeedback(validatedData);
@@ -443,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/ticket-feedback/bulk", async (req, res) => {
+  app.post("/api/ticket-feedback/bulk", authenticateToken, async (req, res) => {
     try {
       const { issueIds } = req.body;
       if (!Array.isArray(issueIds)) {
@@ -463,66 +544,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      console.log("Login attempt for email:", email);
-      
-      // Check dashboard users first
-      const dashboardUser = await storage.getDashboardUserByEmail(email);
-      if (dashboardUser) {
-        console.log("Found dashboard user:", dashboardUser.email);
-        const isPasswordValid = await bcrypt.compare(password, dashboardUser.password);
-        console.log("Dashboard user password valid:", isPasswordValid);
-        if (isPasswordValid) {
-          res.json({
-            user: {
-              id: dashboardUser.id,
-              email: dashboardUser.email,
-              name: dashboardUser.name,
-              role: dashboardUser.role
-            },
-            success: true
-          });
-          return;
-        }
-      }
 
-      // Check employees
-      const employee = await storage.getEmployeeByEmail(email);
-      if (employee) {
-        console.log("Found employee:", employee.email, "empId:", employee.empId);
-        console.log("Employee password hash:", employee.password);
-        console.log("Trying to compare with password:", password);
-        const isPasswordValid = await bcrypt.compare(password, employee.password);
-        console.log("Employee password valid:", isPasswordValid);
-        if (isPasswordValid) {
-          res.json({
-            user: {
-              id: employee.id,
-              email: employee.email,
-              name: employee.name,
-              role: employee.role || "employee"
-            },
-            success: true
-          });
-          return;
-        }
-      } else {
-        console.log("No employee found with email:", email);
-      }
 
-      console.log("Authentication failed for email:", email);
-      res.status(401).json({ error: "Invalid credentials" });
-    } catch (error) {
-      console.error("Error during login:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
-
-  // Sentiment analysis route (replacing Supabase Edge Function)
-  app.post("/api/analyze-sentiment", async (req, res) => {
+  // Sentiment analysis route (protected)
+  app.post("/api/analyze-sentiment", authenticateToken, async (req, res) => {
     try {
       const { feedback } = req.body;
       
@@ -606,10 +631,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Master data routes
+  // Master data routes (protected)
   
   // Master roles routes
-  app.get("/api/master-roles", async (req, res) => {
+  app.get("/api/master-roles", authenticateToken, async (req, res) => {
     try {
       const result = await storage.getMasterRoles();
       res.json(result);
@@ -619,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/master-roles", async (req, res) => {
+  app.post("/api/master-roles", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { name } = req.body;
       if (!name) {
@@ -633,7 +658,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/master-roles/:id", async (req, res) => {
+  app.put("/api/master-roles/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const roleId = parseInt(req.params.id);
       const { name } = req.body;
@@ -651,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/master-roles/:id", async (req, res) => {
+  app.delete("/api/master-roles/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const roleId = parseInt(req.params.id);
       if (isNaN(roleId)) {
@@ -669,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Master cities routes
-  app.get("/api/master-cities", async (req, res) => {
+  app.get("/api/master-cities", authenticateToken, async (req, res) => {
     try {
       const result = await storage.getMasterCities();
       res.json(result);
@@ -679,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/master-cities", async (req, res) => {
+  app.post("/api/master-cities", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { name } = req.body;
       if (!name) {
@@ -693,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/master-cities/:id", async (req, res) => {
+  app.put("/api/master-cities/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const cityId = parseInt(req.params.id);
       const { name } = req.body;
@@ -711,7 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/master-cities/:id", async (req, res) => {
+  app.delete("/api/master-cities/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const cityId = parseInt(req.params.id);
       if (isNaN(cityId)) {
@@ -729,7 +754,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Master clusters routes
-  app.get("/api/master-clusters", async (req, res) => {
+  app.get("/api/master-clusters", authenticateToken, async (req, res) => {
     try {
       const result = await storage.getMasterClusters();
       res.json(result);
@@ -739,7 +764,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/master-clusters", async (req, res) => {
+  app.post("/api/master-clusters", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { name, cityId } = req.body;
       if (!name || !cityId) {
@@ -753,7 +778,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/master-clusters/:id", async (req, res) => {
+  app.put("/api/master-clusters/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const clusterId = parseInt(req.params.id);
       const { name, cityId } = req.body;
@@ -771,7 +796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/master-clusters/:id", async (req, res) => {
+  app.delete("/api/master-clusters/:id", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const clusterId = parseInt(req.params.id);
       if (isNaN(clusterId)) {
@@ -788,8 +813,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Audit logs routes
-  app.get("/api/audit-logs", async (req, res) => {
+  // Audit logs routes (protected)
+  app.get("/api/audit-logs", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       // For now, return empty array since audit logs aren't fully implemented
       res.json([]);
@@ -799,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/audit-logs", async (req, res) => {
+  app.post("/api/audit-logs", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       // For now, just acknowledge the request since audit logs aren't fully implemented
       res.json({ success: true });
@@ -809,8 +834,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Migration routes
-  app.post("/api/migrate-master-data", async (req, res) => {
+  // Migration routes (protected)
+  app.post("/api/migrate-master-data", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const { migrateMasterDataReferences, populateMasterDataFromExisting } = await import("./migrateMasterData");
       
@@ -839,8 +864,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Seed data route (for development/demo)
-  app.post("/api/seed-data", async (req, res) => {
+  // Seed data route (protected - for development/demo)
+  app.post("/api/seed-data", authenticateToken, requireDashboardUser, async (req, res) => {
     try {
       const result = await seedDatabase();
       res.json({ 
