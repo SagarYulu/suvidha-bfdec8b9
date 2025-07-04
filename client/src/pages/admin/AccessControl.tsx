@@ -94,8 +94,8 @@ const AccessControl = () => {
       // Check each user's role
       const adminIds = new Set<string>();
       for (const user of users || []) {
-        // Determine the ID to use for role checking - prefer user_id if it's a valid UUID
-        const idToCheck = (user.user_id && isValidUuid(user.user_id)) ? user.user_id : user.id;
+        // Use the integer ID directly 
+        const idToCheck = user.id;
         
         if (await checkUserRole(idToCheck, "Super Admin")) {
           adminIds.add(user.id);
@@ -121,9 +121,9 @@ const AccessControl = () => {
     setDialogOpen(true);
   };
 
-  const isValidUuid = (id: string): boolean => {
-    // UUID validation pattern
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  // Integer ID validation - always valid if it's a number
+  const isValidId = (id: string | number): boolean => {
+    return !isNaN(Number(id)) && Number(id) > 0;
   };
 
   const handleConfirmRoleChange = async () => {
@@ -157,31 +157,28 @@ const AccessControl = () => {
       }
       
       // Determine which ID to use for RBAC role assignment:
-      // 1. If user.user_id exists and is a valid UUID, use that
-      // 2. Otherwise use the user.id if it's a valid UUID
-      const userIdForRoles = (selectedUser.user_id && isValidUuid(selectedUser.user_id)) 
-        ? selectedUser.user_id 
-        : (isValidUuid(selectedUser.id) ? selectedUser.id : null);
+      // Use the integer ID directly since we're using integer IDs now
+      const userIdForRoles = selectedUser.id;
       
       console.log("Using ID for role assignment:", userIdForRoles);
       
-      // Only try RBAC role assignment if we have a valid UUID
-      if (userIdForRoles) {
+      // Only try RBAC role assignment if we have a valid ID
+      if (userIdForRoles && isValidId(userIdForRoles)) {
         // Remove all existing roles first (clean slate)
         if (selectedUser.role) {
-          const removeResult = await removeRole(userIdForRoles, selectedUser.role);
+          const removeResult = await removeRole(Number(userIdForRoles), selectedUser.role);
           console.log("Remove role result:", removeResult);
         }
         
         // Assign new role
-        const assignResult = await assignRole(userIdForRoles, selectedRole);
+        const assignResult = await assignRole(Number(userIdForRoles), selectedRole);
         console.log("Assign role result:", assignResult);
         
         if (!assignResult) {
           console.warn("RBAC role assignment may have failed, but dashboard user was updated");
         }
       } else {
-        console.log("No valid UUID for role assignment in RBAC system - skipping RBAC update");
+        console.log("No valid ID for role assignment in RBAC system - skipping RBAC update");
       }
       
       // Update the local state regardless of RBAC result

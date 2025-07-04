@@ -4,7 +4,7 @@ import authenticatedAxios from './authenticatedAxios';
 export type TicketFeedback = {
   id?: string;
   issue_id: string;
-  employee_uuid: string;
+  employee_id: number;
   sentiment: 'happy' | 'neutral' | 'sad';
   feedback_option: string;
   feedback_text?: string; // This is used internally but not stored directly
@@ -83,7 +83,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     console.log("Submitting feedback:", feedback);
     
     // Check if feedback already exists
-    const feedbackExists = await checkFeedbackExists(feedback.issue_id, feedback.employee_uuid);
+    const feedbackExists = await checkFeedbackExists(feedback.issue_id, String(feedback.employee_id));
     
     if (feedbackExists) {
       console.log("Feedback already exists for this ticket");
@@ -139,7 +139,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Prepare feedback data with additional information
     const feedbackData = {
       issueId: feedback.issue_id,
-      employeeUuid: feedback.employee_uuid,
+      employeeId: feedback.employee_id,
       sentiment: feedback.sentiment,
       feedbackOption: feedback.feedback_text || feedback.feedback_option,
       city,

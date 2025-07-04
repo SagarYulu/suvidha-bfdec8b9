@@ -18,7 +18,7 @@ interface Issue {
   created_at: string;
   updated_at: string;
   assigned_to?: string;
-  employee_uuid: string;
+  employee_id: number;
   escalation_level?: number; // Add escalation fields
   escalated_at?: string;
 }
@@ -27,7 +27,7 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
-  employee_uuid: string;
+  employee_id: number;
   author_name?: string;
 }
 
