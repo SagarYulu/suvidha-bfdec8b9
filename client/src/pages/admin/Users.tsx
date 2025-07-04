@@ -235,10 +235,7 @@ const Users = () => {
     }
   };
 
-  // Generate UUID for display (simplified version)
-  const generateDisplayUUID = (id: number) => {
-    return `${id.toString().padStart(8, '0')}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 4)}-${Math.random().toString(36).substr(2, 12)}`;
-  };
+
 
   useEffect(() => {
     fetchEmployees();
@@ -284,7 +281,6 @@ const Users = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>UUID</TableHead>
                 <TableHead>User ID</TableHead>
                 <TableHead>Employee ID</TableHead>
                 <TableHead>Name</TableHead>
@@ -299,22 +295,19 @@ const Users = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     Loading users...
                   </TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredEmployees.map((employee) => (
                   <TableRow key={employee.id}>
-                    <TableCell className="font-mono text-xs">
-                      {generateDisplayUUID(employee.id)}
-                    </TableCell>
                     <TableCell>{employee.id}</TableCell>
                     <TableCell>{employee.employeeId}</TableCell>
                     <TableCell>{employee.name}</TableCell>
