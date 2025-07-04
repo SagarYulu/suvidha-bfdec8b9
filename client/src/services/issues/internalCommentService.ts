@@ -14,12 +14,7 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
   try {
     const response = await authenticatedAxios.get(`/api/issues/${issueId}/internal-comments`);
     
-    if (!response.ok) {
-      console.error('Error fetching internal comments:', response.statusText);
-      return [];
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     
     // Map the database response to our InternalComment interface
     return data.map((comment: any) => ({
