@@ -1,26 +1,10 @@
 import { Role, City, Cluster, AuditLog } from "@/types/admin";
-import axios from 'axios';
-
-// Helper function to get JWT token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('authToken');
-};
-
-// Helper function to get axios config with JWT token
-const getAxiosConfig = () => {
-  const token = getAuthToken();
-  return {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  };
-};
+import authenticatedAxios from './authenticatedAxios';
 
 // -------------------- Role Management --------------------
 export const getRoles = async (): Promise<Role[]> => {
   try {
-    const response = await axios.get('/api/master-roles', getAxiosConfig());
+    const response = await authenticatedAxios.get('/master-roles');
     return response.data.map((role: any) => ({
       id: role.id,
       name: role.name,
@@ -35,7 +19,7 @@ export const getRoles = async (): Promise<Role[]> => {
 
 export const createRole = async (name: string, userId: string): Promise<Role | null> => {
   try {
-    const response = await axios.post('/api/master-roles', { name }, getAxiosConfig());
+    const response = await authenticatedAxios.post('/master-roles', { name });
     const data = response.data;
     
     // Log audit entry
@@ -61,7 +45,7 @@ export const createRole = async (name: string, userId: string): Promise<Role | n
 
 export const updateRole = async (id: string, name: string, userId: string): Promise<Role | null> => {
   try {
-    const response = await axios.put(`/api/master-roles/${id}`, { name }, getAxiosConfig());
+    const response = await authenticatedAxios.put(`/master-roles/${id}`, { name });
     const data = response.data;
     
     // Log audit entry
@@ -87,7 +71,7 @@ export const updateRole = async (id: string, name: string, userId: string): Prom
 
 export const deleteRole = async (id: string, userId: string): Promise<boolean> => {
   try {
-    await axios.delete(`/api/master-roles/${id}`, getAxiosConfig());
+    await authenticatedAxios.delete(`/master-roles/${id}`);
     
     // Log audit entry
     await createAuditLog({
@@ -108,7 +92,7 @@ export const deleteRole = async (id: string, userId: string): Promise<boolean> =
 // -------------------- City Management --------------------
 export const getCities = async (): Promise<City[]> => {
   try {
-    const response = await axios.get('/api/master-cities', getAxiosConfig());
+    const response = await authenticatedAxios.get('/master-cities');
     return response.data.map((city: any) => ({
       id: city.id,
       name: city.name,
@@ -123,7 +107,7 @@ export const getCities = async (): Promise<City[]> => {
 
 export const createCity = async (name: string, userId: string): Promise<City | null> => {
   try {
-    const response = await axios.post('/api/master-cities', { name }, getAxiosConfig());
+    const response = await authenticatedAxios.post('/master-cities', { name });
     const data = response.data;
     
     // Log audit entry
@@ -149,7 +133,7 @@ export const createCity = async (name: string, userId: string): Promise<City | n
 
 export const updateCity = async (id: string, name: string, userId: string): Promise<City | null> => {
   try {
-    const response = await axios.put(`/api/master-cities/${id}`, { name }, getAxiosConfig());
+    const response = await authenticatedAxios.put(`/master-cities/${id}`, { name });
     const data = response.data;
     
     // Log audit entry
@@ -175,7 +159,7 @@ export const updateCity = async (id: string, name: string, userId: string): Prom
 
 export const deleteCity = async (id: string, userId: string): Promise<boolean> => {
   try {
-    await axios.delete(`/api/master-cities/${id}`, getAxiosConfig());
+    await authenticatedAxios.delete(`/master-cities/${id}`);
     
     // Log audit entry
     await createAuditLog({
@@ -196,12 +180,11 @@ export const deleteCity = async (id: string, userId: string): Promise<boolean> =
 // -------------------- Cluster Management --------------------
 export const getClusters = async (): Promise<Cluster[]> => {
   try {
-    const response = await axios.get('/api/master-clusters', getAxiosConfig());
+    const response = await authenticatedAxios.get('/master-clusters');
     return response.data.map((cluster: any) => ({
       id: cluster.id,
       name: cluster.name,
       cityId: cluster.cityId,
-      city: cluster.city,
       createdAt: cluster.createdAt,
       updatedAt: cluster.updatedAt
     })) || [];
@@ -213,7 +196,7 @@ export const getClusters = async (): Promise<Cluster[]> => {
 
 export const createCluster = async (name: string, cityId: string, userId: string): Promise<Cluster | null> => {
   try {
-    const response = await axios.post('/api/master-clusters', { name, cityId }, getAxiosConfig());
+    const response = await authenticatedAxios.post('/master-clusters', { name, cityId });
     const data = response.data;
     
     // Log audit entry
@@ -229,7 +212,6 @@ export const createCluster = async (name: string, cityId: string, userId: string
       id: data.id,
       name: data.name,
       cityId: data.cityId,
-      city: data.city,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt
     };
@@ -241,7 +223,7 @@ export const createCluster = async (name: string, cityId: string, userId: string
 
 export const updateCluster = async (id: string, name: string, cityId: string, userId: string): Promise<Cluster | null> => {
   try {
-    const response = await axios.put(`/api/master-clusters/${id}`, { name, cityId }, getAxiosConfig());
+    const response = await authenticatedAxios.put(`/master-clusters/${id}`, { name, cityId });
     const data = response.data;
     
     // Log audit entry
@@ -257,7 +239,6 @@ export const updateCluster = async (id: string, name: string, cityId: string, us
       id: data.id,
       name: data.name,
       cityId: data.cityId,
-      city: data.city,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt
     };
@@ -269,7 +250,7 @@ export const updateCluster = async (id: string, name: string, cityId: string, us
 
 export const deleteCluster = async (id: string, userId: string): Promise<boolean> => {
   try {
-    await axios.delete(`/api/master-clusters/${id}`, getAxiosConfig());
+    await authenticatedAxios.delete(`/master-clusters/${id}`);
     
     // Log audit entry
     await createAuditLog({
