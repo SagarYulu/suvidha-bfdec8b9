@@ -73,15 +73,14 @@ const useSecurityManagement = () => {
   const fetchDashboardUsers = async () => {
     try {
       console.log("Fetching dashboard users...");
-      const { data, error } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .order('name');
+      const response = await fetch('/api/dashboard-users');
       
-      if (error) {
-        console.error("Error fetching dashboard users:", error);
+      if (!response.ok) {
+        console.error("Error fetching dashboard users:", response.statusText);
         throw new Error("Failed to fetch dashboard users");
       }
+      
+      const data = await response.json();
       
       console.log("Dashboard users fetched:", data?.length || 0);
       return data;
@@ -94,16 +93,14 @@ const useSecurityManagement = () => {
   // Fetch audit logs
   const fetchAuditLogs = async () => {
     try {
-      const { data, error } = await supabase
-        .from('dashboard_user_audit_logs')
-        .select('*')
-        .order('performed_at', { ascending: false })
-        .limit(50);
+      const response = await fetch('/api/audit-logs?limit=50');
       
-      if (error) {
-        console.error("Error fetching audit logs:", error);
+      if (!response.ok) {
+        console.error("Error fetching audit logs:", response.statusText);
         throw new Error("Failed to fetch audit logs");
       }
+      
+      const data = await response.json();
       
       return data;
     } catch (error) {

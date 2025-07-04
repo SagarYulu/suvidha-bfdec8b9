@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 
 export type TicketFeedback = {
@@ -25,19 +24,15 @@ interface EmployeeData {
 export const checkFeedbackExists = async (issueId: string, employeeUuid: string): Promise<boolean> => {
   try {
     console.log(`Checking feedback for issue: ${issueId}, employee: ${employeeUuid}`);
-    const { data, error } = await supabase
-      .from('ticket_feedback')
-      .select('id')
-      .eq('issue_id', issueId)
-      .eq('employee_uuid', employeeUuid)
-      .single();
+    const response = await fetch(`/api/ticket-feedback?issueId=${issueId}&employeeUuid=${employeeUuid}`);
     
-    if (error && error.code !== 'PGRST116') { // PGRST116 is the "row not found" error
-      console.error("Error checking if feedback exists:", error);
+    if (!response.ok) {
+      console.error("Error checking if feedback exists:", response.statusText);
       return false;
     }
     
-    return !!data;
+    const data = await response.json();
+    return data.exists || false;
   } catch (error) {
     console.error("Error checking if feedback exists:", error);
     return false;
@@ -47,18 +42,15 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 // Get feedback status for a ticket
 export const getFeedbackStatus = async (issueId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('ticket_feedback')
-      .select('id')
-      .eq('issue_id', issueId)
-      .single();
+    const response = await fetch(`/api/ticket-feedback?issueId=${issueId}`);
     
-    if (error && error.code !== 'PGRST116') { // PGRST116 is the "row not found" error
-      console.error("Error checking feedback status:", error);
+    if (!response.ok) {
+      console.error("Error checking feedback status:", response.statusText);
       return false;
     }
     
-    return !!data;
+    const data = await response.json();
+    return data.exists || false;
   } catch (error) {
     console.error("Error checking feedback status:", error);
     return false;
@@ -70,15 +62,20 @@ export const getMultipleFeedbackStatuses = async (issueIds: string[]): Promise<R
   try {
     if (!issueIds.length) return {};
     
-    const { data, error } = await supabase
-      .from('ticket_feedback')
-      .select('issue_id')
-      .in('issue_id', issueIds);
+    const response = await fetch('/api/ticket-feedback/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ issueIds }),
+    });
     
-    if (error) {
-      console.error("Error checking multiple feedback statuses:", error);
+    if (!response.ok) {
+      console.error("Error checking multiple feedback statuses:", response.statusText);
       return {};
     }
+    
+    const data = await response.json();
     
     // Create a map of issue_id -> has feedback
     const feedbackMap: Record<string, boolean> = {};
@@ -89,9 +86,9 @@ export const getMultipleFeedbackStatuses = async (issueIds: string[]): Promise<R
     });
     
     // Update the ones that do have feedback
-    if (data) {
-      data.forEach(feedback => {
-        feedbackMap[feedback.issue_id] = true;
+    if (data.feedbacks) {
+      data.feedbacks.forEach((feedback: any) => {
+        feedbackMap[feedback.issueId] = true;
       });
     }
     
@@ -120,20 +117,14 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     }
     
     // Get the issue details to capture city, cluster, and agent information
-    const { data: issueData, error: issueError } = await supabase
-      .from('issues')
-      .select(`
-        *,
-        employees!issues_employee_uuid_fkey (
-          city,
-          cluster
-        )
-      `)
-      .eq('id', feedback.issue_id)
-      .single();
-    
-    if (issueError) {
-      console.error("Error fetching issue data:", issueError);
+    let issueData: any = null;
+    try {
+      const issueResponse = await fetch(`/api/issues/${feedback.issue_id}`);
+      if (issueResponse.ok) {
+        issueData = await issueResponse.json();
+      }
+    } catch (error) {
+      console.error("Error fetching issue data:", error);
     }
     
     // Extract city, cluster, agent ID and agent name information
@@ -143,70 +134,71 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     let agentName = feedback.agent_name || undefined;
     
     // Use data from the issue if available
-    if (issueData && !issueError) {
-      // Safely access and extract employee data
-      const employees = issueData.employees as EmployeeData | null;
-      
-      if (employees !== null && employees !== undefined) {
-        // Safe access to city
-        if (employees.city !== null && employees.city !== undefined) {
-          city = city || String(employees.city);
+    if (issueData) {
+      // Get employee data to extract city and cluster
+      try {
+        const employeeResponse = await fetch(`/api/employees/${issueData.employeeId}`);
+        if (employeeResponse.ok) {
+          const employeeData = await employeeResponse.json();
+          city = city || employeeData.city;
+          cluster = cluster || employeeData.cluster;
         }
-        
-        // Safe access to cluster
-        if (employees.cluster !== null && employees.cluster !== undefined) {
-          cluster = cluster || String(employees.cluster);
-        }
+      } catch (error) {
+        console.error("Error fetching employee data:", error);
       }
       
-      // This should be safe as it's directly on the issue
-      agentId = issueData.assigned_to || agentId;
+      // Get agent information
+      agentId = issueData.assignedTo || agentId;
       
       // If we have an agent ID but no name, try to get the name from dashboard_users
       if (agentId && !agentName) {
-        const { data: agentData, error: agentError } = await supabase
-          .from('dashboard_users')
-          .select('name')
-          .eq('id', agentId)
-          .single();
-          
-        if (!agentError && agentData) {
-          agentName = agentData.name;
+        try {
+          const agentResponse = await fetch(`/api/dashboard-users/${agentId}`);
+          if (agentResponse.ok) {
+            const agentData = await agentResponse.json();
+            agentName = agentData.name;
+          }
+        } catch (error) {
+          console.error("Error fetching agent data:", error);
         }
       }
     }
     
     // Prepare feedback data with additional information
     const feedbackData = {
-      issue_id: feedback.issue_id,
-      employee_uuid: feedback.employee_uuid,
+      issueId: feedback.issue_id,
+      employeeUuid: feedback.employee_uuid,
       sentiment: feedback.sentiment,
-      feedback_option: feedback.feedback_text || feedback.feedback_option, // Store the full text here
+      feedbackOption: feedback.feedback_text || feedback.feedback_option,
       city,
       cluster,
-      agent_id: agentId,
-      agent_name: agentName
+      agentId,
+      agentName
     };
     
     console.log("Submitting enriched feedback data:", feedbackData);
     
-    // According to the database schema, we store the full text in the feedback_option field
-    const { data, error } = await supabase
-      .from('ticket_feedback')
-      .insert(feedbackData)
-      .select();
+    const response = await fetch('/api/ticket-feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(feedbackData),
+    });
     
-    if (error) {
-      console.error("Error submitting feedback:", error);
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error submitting feedback:", errorData);
       
       toast({
         title: "Error",
-        description: `Failed to submit feedback: ${error.message}. Please try again.`,
+        description: `Failed to submit feedback: ${errorData.message || 'Unknown error'}. Please try again.`,
         variant: "destructive",
       });
       return false;
     }
     
+    const data = await response.json();
     console.log("Feedback submitted successfully:", data);
     toast({
       title: "Success",

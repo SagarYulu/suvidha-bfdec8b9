@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { parseCSVDashboardUsers } from '@/utils/csvDashboardUsersParser';
 import { CSVDashboardUserData, DashboardUserRowData } from '@/types/dashboardUsers';
-import { Json } from '@/integrations/supabase/types';
+// Removed Supabase import - using PostgreSQL API
 
 type ValidationResults = {
   validUsers: CSVDashboardUserData[];
@@ -57,14 +57,20 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
   };
 
   const insertDashboardUsers = async (users: any[]) => {
-    // Use RPC to bypass RLS policies for audit log entries
-    const { data, error } = await supabase
-      .rpc('insert_dashboard_users_with_audit', {
-        users_json: users as unknown as Json
-      });
+    // Use bulk insert API endpoint
+    const response = await fetch('/api/dashboard-users/bulk', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ users }),
+    });
 
-    if (error) throw new Error(`Error inserting dashboard users: ${error.message}`);
-    return data;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Error inserting dashboard users: ${errorData.error}`);
+    }
+    return await response.json();
   };
 
   const handleUploadEditedRows = async () => {

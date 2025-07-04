@@ -46,28 +46,24 @@ export const useInternalComments = (issueId: string | undefined, assigneeId: str
         const names: Record<string, string> = {};
         for (const commenterId of uniqueCommenterIds) {
           try {
-            // Enhanced fetch for user names
-            const { data: dashboardUser } = await supabase
-              .from('dashboard_users')
-              .select('name')
-              .eq('id', commenterId)
-              .single();
-            
-            if (dashboardUser && dashboardUser.name) {
-              names[commenterId] = dashboardUser.name;
-              continue;
+            // Try dashboard users first
+            const dashboardUserResponse = await fetch(`/api/dashboard-users/${commenterId}`);
+            if (dashboardUserResponse.ok) {
+              const dashboardUser = await dashboardUserResponse.json();
+              if (dashboardUser && dashboardUser.name) {
+                names[commenterId] = dashboardUser.name;
+                continue;
+              }
             }
             
             // Try employees table if not found in dashboard users
-            const { data: employee } = await supabase
-              .from('employees')
-              .select('name')
-              .eq('id', commenterId)
-              .single();
-            
-            if (employee && employee.name) {
-              names[commenterId] = employee.name;
-              continue;
+            const employeeResponse = await fetch(`/api/employees/${commenterId}`);
+            if (employeeResponse.ok) {
+              const employee = await employeeResponse.json();
+              if (employee && employee.name) {
+                names[commenterId] = employee.name;
+                continue;
+              }
             }
             
             // Fallback to our utility function

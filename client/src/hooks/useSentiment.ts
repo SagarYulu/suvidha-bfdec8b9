@@ -93,8 +93,10 @@ export const useSentiment = () => {
     if (emotionBasedTags.length > 0) {
       setSuggestedTags(prev => {
         // Combine AI suggested tags with emotion-based tags
-        const combined = [...new Set([...prev, ...emotionBasedTags])];
-        return combined;
+        const uniqueTags = new Set<string>();
+        prev.forEach(tag => uniqueTags.add(tag));
+        emotionBasedTags.forEach(tag => uniqueTags.add(tag));
+        return Array.from(uniqueTags);
       });
     }
   };
@@ -159,13 +161,19 @@ export const useSentiment = () => {
           const emotionTags = getEmotionBasedTags(rating);
           
           // Combine all suggested tags without duplicates
-          return [...new Set([...emotionTags, ...result.suggested_tags])];
+          const uniqueTags = new Set<string>();
+          emotionTags.forEach(tag => uniqueTags.add(tag));
+          result.suggested_tags.forEach(tag => uniqueTags.add(tag));
+          return Array.from(uniqueTags);
         });
         
         // Auto-select suggested tags
         setSelectedTags(prev => {
           // Keep existing selections and add new ones without duplication
-          return [...new Set([...prev, ...result.suggested_tags])];
+          const uniqueTags = new Set<string>();
+          prev.forEach(tag => uniqueTags.add(tag));
+          result.suggested_tags.forEach(tag => uniqueTags.add(tag));
+          return Array.from(uniqueTags);
         });
       }
       
@@ -364,13 +372,13 @@ export const useSentiment = () => {
   // Helper function to fetch employee data when city/cluster is not available
   const fetchEmployeeData = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('employees')
-        .select('city, cluster, role')
-        .eq('id', userId)
-        .single();
+      const response = await fetch(`/api/employees/${userId}`);
+      if (!response.ok) {
+        return { data: null, error: { message: response.statusText } };
+      }
       
-      return { data, error };
+      const data = await response.json();
+      return { data, error: null };
     } catch (error) {
       console.error("Error in fetchEmployeeData:", error);
       return { data: null, error };

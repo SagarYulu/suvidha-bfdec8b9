@@ -121,8 +121,8 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       if (validation.isValid) {
         correctedEmployees.push({
           ...employeeData as CSVEmployeeData,
-          date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining),
-          date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth),
+          date_of_joining: formatDateToYYYYMMDD(employeeData.date_of_joining || null),
+          date_of_birth: formatDateToYYYYMMDD(employeeData.date_of_birth || null),
           password: employeeData.password || 'changeme123'
         });
       } else {
@@ -173,18 +173,19 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       console.log("Checking for duplicate employee IDs:", empIdsToCheck);
       
       // Check for existing employee IDs to avoid constraint violations
-      const { data: existingEmps, error: checkError } = await supabase
-        .from('employees')
-        .select('emp_id')
-        .in('emp_id', empIdsToCheck);
-      
-      if (checkError) {
+      let existingEmpIds: string[] = [];
+      try {
+        const response = await fetch('/api/employees');
+        if (response.ok) {
+          const allEmployees = await response.json();
+          existingEmpIds = allEmployees
+            .filter((emp: any) => empIdsToCheck.includes(emp.empId))
+            .map((emp: any) => emp.empId);
+        }
+      } catch (checkError) {
         console.error('Error checking existing employee IDs:', checkError);
         throw new Error('Failed to check for existing employees');
       }
-      
-      // Extract the list of existing employee IDs
-      const existingEmpIds = existingEmps?.map(emp => emp.emp_id) || [];
       console.log("Found existing employee IDs:", existingEmpIds);
       
       // Filter out employees with duplicate emp_ids
@@ -234,22 +235,27 @@ export const useBulkUpload = (onUploadSuccess?: () => void) => {
       
       console.log("Inserting employees with data:", employeesData);
       
-      // Use the insert method - UUID will be auto-generated
-      const { data, error } = await supabase
-        .from('employees')
-        .insert(employeesData)
-        .select(); // Add select to return the inserted data
+      // Use the bulk insert API endpoint
+      const response = await fetch('/api/employees/bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ employees: employeesData }),
+      });
 
-      if (error) {
-        console.error('Upload to database error:', error);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Upload to database error:', errorData);
         toast({
           variant: "destructive",
           title: "Database Upload Failed",
-          description: `Error: ${error.message}`,
+          description: `Error: ${errorData.error || 'Unknown error'}`,
         });
-        throw error;
+        throw new Error(errorData.error || 'Upload failed');
       }
 
+      const data = await response.json();
       console.log('Upload successful. Inserted data:', data);
       
       const duplicateMessage = duplicateEmployees.length > 0 

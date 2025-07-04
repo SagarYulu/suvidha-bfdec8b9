@@ -7,7 +7,7 @@ import { getEmployeeNameByUuid } from "@/services/issues/issueUtils";
 import { Activity, Clock, AlertCircle, UserPlus, MessageSquare, Lock, CheckSquare } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Json } from "@/integrations/supabase/types";
+// Removed Supabase import - using PostgreSQL API
 
 interface IssueActivityProps {
   issue: Issue;
@@ -19,20 +19,20 @@ interface PerformerInfo {
   id: string;
 }
 
-// Helper function to safely access performer data from Json type
-const getPerformerFromJson = (details: Json | null): PerformerInfo | null => {
+// Helper function to safely access performer data from any type
+const getPerformerFromJson = (details: any): PerformerInfo | null => {
   if (!details || typeof details !== 'object' || Array.isArray(details)) {
     return null;
   }
 
-  const detailsObj = details as Record<string, Json>;
+  const detailsObj = details as Record<string, any>;
   const performer = detailsObj.performer;
   
   if (!performer || typeof performer !== 'object' || Array.isArray(performer)) {
     return null;
   }
   
-  const performerObj = performer as Record<string, Json>;
+  const performerObj = performer as Record<string, any>;
   
   if (typeof performerObj.name !== 'string' || !performerObj.name) {
     return null;
@@ -55,7 +55,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     const fetchActivityLogs = async () => {
       setIsLoading(true);
       try {
-        const logs = await getAuditTrail(issue.id, 20);
+        const logs = await getAuditTrail(issue.id.toString(), 20);
         
         // Filter out duplicate logs - prioritize logs with performer info
         const uniqueLogsByAction = new Map();
@@ -114,7 +114,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         
         // Check for feedback
         if (issue.status === "closed" || issue.status === "resolved") {
-          const feedbackExists = await getFeedbackStatus(issue.id);
+          const feedbackExists = await getFeedbackStatus(issue.id.toString());
           setHasFeedback(feedbackExists);
           
           // Add a feedback activity log if feedback was submitted
@@ -226,7 +226,7 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
         let assigneeName = "an agent";
         
         if (log.details && typeof log.details === 'object' && !Array.isArray(log.details)) {
-          const detailsObj = log.details as Record<string, Json>;
+          const detailsObj = log.details as Record<string, any>;
           assigneeName = typeof detailsObj.assigneeName === 'string' 
             ? detailsObj.assigneeName 
             : assigneeName;

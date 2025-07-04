@@ -360,6 +360,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/ticket-feedback/bulk", async (req, res) => {
+    try {
+      const { issueIds } = req.body;
+      if (!Array.isArray(issueIds)) {
+        return res.status(400).json({ error: "issueIds must be an array" });
+      }
+
+      // Get all feedback for the provided issue IDs
+      const allFeedback = await storage.getTicketFeedback();
+      const feedbacks = allFeedback.filter((feedback: any) => 
+        issueIds.includes(String(feedback.issueId))
+      );
+
+      res.json({ feedbacks });
+    } catch (error) {
+      console.error("Error fetching bulk ticket feedback:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {

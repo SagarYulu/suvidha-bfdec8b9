@@ -19,11 +19,15 @@ export const useIssueComments = (
     setIsSubmittingComment(true);
     try {
       // Get current user info for better audit logs
-      const { data: userData } = await supabase
-        .from('dashboard_users')
-        .select('name, role, email')
-        .eq('id', currentUserId)
-        .single();
+      let userData = null;
+      try {
+        const response = await fetch(`/api/dashboard-users/${currentUserId}`);
+        if (response.ok) {
+          userData = await response.json();
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
       
       const userName = userData?.name || "Unknown User";
       const userRole = userData?.role;

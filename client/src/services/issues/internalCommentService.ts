@@ -1,4 +1,3 @@
-
 import { createAuditLog } from "@/services/issues/issueAuditService";
 
 export interface InternalComment {
@@ -12,24 +11,22 @@ export interface InternalComment {
 // Fetch internal comments for a ticket
 export const getInternalComments = async (issueId: string): Promise<InternalComment[]> => {
   try {
-    const { data, error } = await supabase
-      .from('issue_internal_comments')
-      .select('*')
-      .eq('issue_id', issueId)
-      .order('created_at', { ascending: true });
+    const response = await fetch(`/api/issues/${issueId}/internal-comments`);
     
-    if (error) {
-      console.error('Error fetching internal comments:', error);
+    if (!response.ok) {
+      console.error('Error fetching internal comments:', response.statusText);
       return [];
     }
     
+    const data = await response.json();
+    
     // Map the database response to our InternalComment interface
-    return data.map(comment => ({
+    return data.map((comment: any) => ({
       id: comment.id,
-      issueId: comment.issue_id,
-      employeeUuid: comment.employee_uuid,
+      issueId: comment.issueId || comment.issue_id,
+      employeeUuid: comment.employeeUuid || comment.employee_uuid,
       content: comment.content,
-      createdAt: comment.created_at
+      createdAt: comment.createdAt || comment.created_at
     }));
   } catch (error) {
     console.error('Error in getInternalComments:', error);
@@ -40,36 +37,40 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
 // Get user info for audit logs
 async function getUserInfo(userUuid: string) {
   try {
-    // Check dashboard users first with more comprehensive query
-    const { data: dashboardUser, error: dashboardError } = await supabase
-      .from('dashboard_users')
-      .select('id, name, role, email')
-      .eq('id', userUuid)
-      .single();
-    
-    if (dashboardUser && dashboardUser.name) {
-      return {
-        name: dashboardUser.name,
-        role: dashboardUser.role,
-        id: userUuid,
-        email: dashboardUser.email
-      };
+    // Check dashboard users first
+    try {
+      const dashboardResponse = await fetch(`/api/dashboard-users/${userUuid}`);
+      if (dashboardResponse.ok) {
+        const dashboardUser = await dashboardResponse.json();
+        if (dashboardUser && dashboardUser.name) {
+          return {
+            name: dashboardUser.name,
+            role: dashboardUser.role,
+            id: userUuid,
+            email: dashboardUser.email
+          };
+        }
+      }
+    } catch (error) {
+      // Continue to check employees
     }
 
-    // Then check employees with more comprehensive query
-    const { data: employee, error: employeeError } = await supabase
-      .from('employees')
-      .select('id, name, role, email')
-      .eq('id', userUuid)
-      .single();
-    
-    if (employee && employee.name) {
-      return {
-        name: employee.name,
-        role: employee.role,
-        id: userUuid,
-        email: employee.email
-      };
+    // Then check employees
+    try {
+      const employeeResponse = await fetch(`/api/employees/${userUuid}`);
+      if (employeeResponse.ok) {
+        const employee = await employeeResponse.json();
+        if (employee && employee.name) {
+          return {
+            name: employee.name,
+            role: employee.role,
+            id: userUuid,
+            email: employee.email
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching employee info:', error);
     }
 
     console.log(`Could not find user info for UUID: ${userUuid}`);
@@ -90,26 +91,23 @@ export const addInternalComment = async (
     // Ensure we have valid user information
     const userInfo = await getUserInfo(employeeUuid);
     
-    // Generate UUID for the comment
-    const commentId = crypto.randomUUID();
+    const response = await fetch(`/api/issues/${issueId}/internal-comments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        employeeUuid,
+        content
+      }),
+    });
     
-    const { data, error } = await supabase
-      .from('issue_internal_comments')
-      .insert([
-        { 
-          id: commentId,
-          issue_id: issueId, 
-          employee_uuid: employeeUuid, 
-          content 
-        }
-      ])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error adding internal comment:', error);
+    if (!response.ok) {
+      console.error('Error adding internal comment:', response.statusText);
       return null;
     }
+    
+    const data = await response.json();
     
     console.log(`Added internal comment by ${userInfo.name} (${employeeUuid})`);
     
@@ -131,10 +129,10 @@ export const addInternalComment = async (
     // Map the database response to our InternalComment interface
     return {
       id: data.id,
-      issueId: data.issue_id,
-      employeeUuid: data.employee_uuid,
+      issueId: data.issueId || data.issue_id,
+      employeeUuid: data.employeeUuid || data.employee_uuid,
       content: data.content,
-      createdAt: data.created_at
+      createdAt: data.createdAt || data.created_at
     };
   } catch (error) {
     console.error('Error in addInternalComment:', error);
@@ -146,37 +144,42 @@ export const addInternalComment = async (
 async function createNotificationForAssignee(issueId: string, commenterId: string, commenterName: string) {
   try {
     // First, get the issue to find the assignee
-    const { data: issue, error: issueError } = await supabase
-      .from('issues')
-      .select('assigned_to')
-      .eq('id', issueId)
-      .single();
+    const issueResponse = await fetch(`/api/issues/${issueId}`);
+    if (!issueResponse.ok) {
+      console.log('No issue found for notification');
+      return;
+    }
     
-    if (issueError || !issue || !issue.assigned_to) {
+    const issue = await issueResponse.json();
+    if (!issue || !issue.assignedTo) {
       console.log('No assignee found for notification');
       return;
     }
     
     // Don't notify if the commenter is the same as the assignee
-    if (issue.assigned_to === commenterId) {
+    if (issue.assignedTo === commenterId) {
       console.log('Commenter is the assignee, no notification needed');
       return;
     }
     
     // Create notification for the assignee
-    const { error: notifError } = await supabase
-      .from('issue_notifications')
-      .insert({
-        user_id: issue.assigned_to,
-        issue_id: issueId,
+    const notificationResponse = await fetch('/api/issue-notifications', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: issue.assignedTo,
+        issueId,
         content: `${commenterName} added an internal comment to a ticket assigned to you.`,
-        is_read: false
-      });
+        isRead: false
+      }),
+    });
     
-    if (notifError) {
-      console.error('Error creating notification:', notifError);
+    if (!notificationResponse.ok) {
+      console.error('Error creating notification:', notificationResponse.statusText);
     } else {
-      console.log(`Notification created for assignee ${issue.assigned_to}`);
+      console.log(`Notification created for assignee ${issue.assignedTo}`);
     }
   } catch (error) {
     console.error('Error creating notification:', error);
