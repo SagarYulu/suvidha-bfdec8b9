@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Users as UsersIcon, UserCheck } from 'lucide-react';
+import { Plus, User, UserCheck } from 'lucide-react';
 
 // Form schemas
 const employeeSchema = z.object({
@@ -169,7 +169,7 @@ export default function Users() {
         <Tabs defaultValue="employees" className="space-y-4">
           <TabsList>
             <TabsTrigger value="employees" className="flex items-center gap-2">
-              <UsersIcon className="h-4 w-4" />
+              <Users className="h-4 w-4" />
               Employees ({employees.length})
             </TabsTrigger>
             <TabsTrigger value="dashboard-users" className="flex items-center gap-2">
@@ -460,9 +460,10 @@ export default function Users() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="City Head">City Head</SelectItem>
-                                    <SelectItem value="HR Admin">HR Admin</SelectItem>
-                                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                                    <SelectItem value="hr_admin">HR Admin</SelectItem>
+                                    <SelectItem value="city_head">City Head</SelectItem>
+                                    <SelectItem value="security_admin">Security Admin</SelectItem>
+                                    <SelectItem value="user">User</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </FormControl>
@@ -487,7 +488,7 @@ export default function Users() {
                           <Button type="button" variant="outline" onClick={() => setIsDashboardUserDialogOpen(false)}>
                             Cancel
                           </Button>
-                          <Button type="submit">Create Dashboard User</Button>
+                          <Button type="submit">Create User</Button>
                         </div>
                       </form>
                     </Form>
@@ -502,7 +503,7 @@ export default function Users() {
                       <TableHead>Email</TableHead>
                       <TableHead>Username</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Created At</TableHead>
+                      <TableHead>Created</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -521,7 +522,7 @@ export default function Users() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">{user.role}</Badge>
+                            <Badge variant="secondary">{user.role}</Badge>
                           </TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                         </TableRow>
