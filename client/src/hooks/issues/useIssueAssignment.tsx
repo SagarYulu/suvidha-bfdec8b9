@@ -7,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 
 export const useIssueAssignment = (issue: Issue | null, currentUserId: string, setIssue: (issue: Issue) => void) => {
   const [availableAssignees, setAvailableAssignees] = useState<{ value: string; label: string }[]>([]);
-  const [currentAssigneeId, setCurrentAssigneeId] = useState<string | null>(null);
+  const [currentAssigneeId, setCurrentAssigneeId] = useState<number | null>(null);
   const [currentAssigneeName, setCurrentAssigneeName] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
@@ -17,7 +17,7 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
       try {
         // Fetch assignee information if issue has one
         if (issue?.assignedTo) {
-          setCurrentAssigneeId(String(issue.assignedTo));
+          setCurrentAssigneeId(issue.assignedTo);
           const assigneeName = await getEmployeeNameByUuid(String(issue.assignedTo));
           setCurrentAssigneeName(assigneeName || "Unknown");
         }
@@ -50,7 +50,7 @@ export const useIssueAssignment = (issue: Issue | null, currentUserId: string, s
       const updatedIssue = await assignIssueToUser(issueId, selectedAssignee, currentUserId);
       if (updatedIssue) {
         setIssue(updatedIssue);
-        setCurrentAssigneeId(selectedAssignee);
+        setCurrentAssigneeId(Number(selectedAssignee));
         
         const assigneeName = await getEmployeeNameByUuid(selectedAssignee);
         setCurrentAssigneeName(assigneeName || "Unknown");

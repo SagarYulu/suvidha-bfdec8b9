@@ -99,11 +99,29 @@ export const getAllIssues = async (filters?: any): Promise<Issue[]> => {
  */
 export const getAssignedIssues = async (userId: string | number): Promise<Issue[]> => {
   try {
-    const response = await authenticatedAxios.get(`/api/issues?assignedTo=${userId}`);
-    const dbIssues = response.data || [];
+    // Simple fetch call instead of complex authenticated axios
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`/api/issues?assignedTo=${userId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const dbIssues = await response.json() || [];
+    
+    // Ensure dbIssues is an array
+    if (!Array.isArray(dbIssues)) {
+      console.error('Expected array but got:', typeof dbIssues, dbIssues);
+      return [];
+    }
     
     // Convert and process issues
-    const issues = dbIssues.map(mapDbIssueToAppIssue);
+    const issues = dbIssues.map((dbIssue: any) => mapDbIssueToAppIssue(dbIssue, []));
     return await processIssues(issues);
   } catch (error) {
     console.error('Error in getAssignedIssues:', error);

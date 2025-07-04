@@ -150,7 +150,7 @@ const AdminIssueDetails = () => {
             
             <TicketAssignment 
               availableAssignees={availableAssignees}
-              currentAssigneeId={currentAssigneeId}
+              currentAssigneeId={currentAssigneeId ? String(currentAssigneeId) : null}
               currentAssigneeName={currentAssigneeName}
               selectedAssigneeId={selectedAssignee}
               isAssigning={isAssigning}
