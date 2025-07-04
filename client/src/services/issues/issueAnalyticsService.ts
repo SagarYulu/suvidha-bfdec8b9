@@ -5,6 +5,7 @@ import { getAuditTrail } from "./issueAuditService";
 import { calculateFirstResponseTime, calculateWorkingHours } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
 import { format, subDays, subWeeks, subMonths, subQuarters, startOfWeek, startOfMonth, startOfQuarter, endOfWeek, endOfMonth, endOfQuarter, differenceInDays, parseISO, addDays } from "date-fns";
+import { apiClient } from "@/services/apiClient";
 
 /**
  * Issue analytics service - provides analytics data for issues
@@ -121,13 +122,14 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       console.error("Error calculating FRT:", frtError);
     }
     
-    // Fetch employee data directly from the employees table
-    const { data: employees, error: employeesError } = await supabase
-      .from('employees')
-      .select('*');
-      
-    if (employeesError) {
-      console.error('Error fetching employees for analytics:', employeesError);
+    // Fetch employee data from API
+    let employees: any[] = [];
+    try {
+      const employeesResponse = await apiClient.getEmployees();
+      employees = Array.isArray(employeesResponse) ? employeesResponse : [];
+      console.log(`Fetched ${employees.length} employees for analytics`);
+    } catch (error) {
+      console.error('Error fetching employees for analytics:', error);
     }
     
     // City-wise issues
@@ -141,8 +143,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
     
     // Process each issue and map it to the correct employee data
     for (const issue of issues) {
-      // Find the employee who created this issue
-      const employee = employees?.find(emp => emp.id === issue.employeeUuid);
+      // Find the employee who created this issue using integer ID
+      const employee = employees?.find((emp: any) => emp.id === issue.employeeId);
       
       if (employee) {
         // Use actual employee data for analytics
