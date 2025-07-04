@@ -81,7 +81,7 @@ export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<strin
  * Maps employee UUIDs to names in a batch for better performance
  */
 export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = [...new Set(employeeUuids)];
+  const uniqueIds = Array.from(new Set(employeeUuids));
   const result: Record<string, string> = {};
   
   await Promise.all(uniqueIds.map(async (uuid) => {
@@ -92,25 +92,64 @@ export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<
 };
 
 /**
+ * Maps employee integer IDs to names in a batch for better performance
+ * This works with the PostgreSQL integer ID schema
+ */
+export const mapEmployeeIdsToNames = async (employeeIds: number[]): Promise<Record<number, string>> => {
+  const uniqueIds = Array.from(new Set(employeeIds));
+  const result: Record<number, string> = {};
+  
+  try {
+    // Import authenticatedAxios for JWT authenticated requests
+    const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
+    
+    // Fetch all employees in one API call for better performance
+    const response = await authenticatedAxios.get('/api/employees');
+    const employees = response.data;
+    
+    // Create mapping from employee ID to name
+    const employeeMap = employees.reduce((acc: Record<number, string>, emp: any) => {
+      acc[emp.id] = emp.name;
+      return acc;
+    }, {});
+    
+    // Map requested IDs to names
+    uniqueIds.forEach(id => {
+      result[id] = employeeMap[id] || "Unknown Employee";
+    });
+    
+  } catch (error) {
+    console.error('Error fetching employee names:', error);
+    // Fallback: mark all as unknown
+    uniqueIds.forEach(id => {
+      result[id] = "Unknown Employee";
+    });
+  }
+  
+  return result;
+};
+
+/**
  * Get available assignees for ticket assignment
  * Returns a formatted list for dropdown selection
  */
 export const getAvailableAssignees = async (): Promise<{ value: string; label: string }[]> => {
   try {
-    // Get users with admin or support roles from the database
-    const { data, error } = await supabase
-      .from('dashboard_users')
-      .select('id, name, role')
-      .in('role', ['Admin', 'Support Agent', 'HR Admin', 'Super Admin']);
+    // Import authenticatedAxios for JWT authenticated requests
+    const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
     
-    if (error) {
-      console.error('Error fetching available assignees:', error);
-      return [];
-    }
+    // Get users with admin or support roles from the database
+    const response = await authenticatedAxios.get('/api/dashboard-users');
+    const allUsers = response.data;
+    
+    // Filter users with admin or support roles
+    const adminUsers = allUsers.filter((user: any) => 
+      ['Admin', 'Support Agent', 'HR Admin', 'Super Admin'].includes(user.role)
+    );
     
     // Map to the format needed for the dropdown
-    return (data || []).map(user => ({
-      value: user.id,
+    return adminUsers.map((user: any) => ({
+      value: user.id.toString(),
       label: `${user.name} (${user.role})`
     }));
   } catch (error) {

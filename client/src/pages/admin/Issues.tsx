@@ -5,7 +5,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames } from "@/services/issues/issueUtils";
+import { mapEmployeeUuidsToNames, mapEmployeeIdsToNames } from "@/services/issues/issueUtils";
 import { updateAllIssuePriorities, usePriorityUpdater } from "@/services/issues/priorityUpdateService";
 import { getMultipleFeedbackStatuses } from "@/services/ticketFeedbackService";
 import { Issue } from "@/types";
@@ -84,13 +84,13 @@ const AdminIssues = () => {
         setIssues(fetchedIssues);
         setFilteredIssues(fetchedIssues);
         
-        // Use the utility to map employee UUIDs to names
-        const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid).filter((uuid): uuid is string => uuid !== undefined);
-        const names = await mapEmployeeUuidsToNames(employeeUuids);
+        // Use the utility to map employee IDs to names
+        const employeeIds = fetchedIssues.map(issue => issue.employeeId).filter((id): id is number => id !== undefined);
+        const names = await mapEmployeeIdsToNames(employeeIds);
         
         // Add current admin user to the names list for future comments
         if (authState.user && authState.user.id) {
-          names[authState.user.id] = authState.user.name;
+          names[Number(authState.user.id)] = authState.user.name;
         }
         
         setUserNames(names);
@@ -155,7 +155,7 @@ const AdminIssues = () => {
         const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
-        const userName = issue.employeeUuid && userNames[issue.employeeUuid] ? userNames[issue.employeeUuid].toLowerCase() : "";
+        const userName = issue.employeeId && userNames[issue.employeeId] ? userNames[issue.employeeId].toLowerCase() : "";
         
         return (
           typeLabel.includes(searchLower) ||
@@ -181,7 +181,7 @@ const AdminIssues = () => {
         const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
-        const userName = issue.employeeUuid && userNames[issue.employeeUuid] ? userNames[issue.employeeUuid].toLowerCase() : "";
+        const userName = issue.employeeId && userNames[issue.employeeId] ? userNames[issue.employeeId].toLowerCase() : "";
         
         return (
           typeLabel.includes(searchLower) ||
@@ -404,7 +404,7 @@ const AdminIssues = () => {
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
                       <TableCell className="font-mono text-xs">{String(issue.id).substring(0, 8)}</TableCell>
-                      <TableCell>{issue.employeeUuid ? userNames[issue.employeeUuid] || "Unknown" : "Unknown"}</TableCell>
+                      <TableCell>{issue.employeeId ? userNames[issue.employeeId] || "Unknown" : "Unknown"}</TableCell>
                       <TableCell>
                         <div>
                           <div>{getIssueTypeLabel(issue.typeId)}</div>
