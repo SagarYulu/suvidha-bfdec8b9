@@ -14,8 +14,7 @@ import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, User, UserCheck, Upload, Users as UsersIcon } from 'lucide-react';
-import BulkUserUpload from '@/components/BulkUserUpload';
+import { Plus, Users as UsersIcon, UserCheck } from 'lucide-react';
 
 // Form schemas
 const employeeSchema = z.object({
@@ -67,7 +66,6 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [isEmployeeDialogOpen, setIsEmployeeDialogOpen] = useState(false);
   const [isDashboardUserDialogOpen, setIsDashboardUserDialogOpen] = useState(false);
-  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
 
   const employeeForm = useForm({
     resolver: zodResolver(employeeSchema),
@@ -184,14 +182,13 @@ export default function Users() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Employees</CardTitle>
-                <div className="flex gap-2">
-                  <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Employee
-                      </Button>
-                    </DialogTrigger>
+                <Dialog open={isEmployeeDialogOpen} onOpenChange={setIsEmployeeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Employee
+                    </Button>
+                  </DialogTrigger>
                   <DialogContent className="max-w-md">
                     <DialogHeader>
                       <DialogTitle>Add New Employee</DialogTitle>
@@ -350,11 +347,6 @@ export default function Users() {
                     </Form>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" onClick={() => setShowBulkUploadDialog(true)}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Bulk Upload
-                </Button>
-                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -397,18 +389,6 @@ export default function Users() {
                 </Table>
               </CardContent>
             </Card>
-            
-            <Dialog open={showBulkUploadDialog} onOpenChange={setShowBulkUploadDialog}>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>Bulk Upload Employees</DialogTitle>
-                </DialogHeader>
-                <BulkUserUpload onUploadSuccess={() => {
-                  setShowBulkUploadDialog(false);
-                  fetchData();
-                }} />
-              </DialogContent>
-            </Dialog>
           </TabsContent>
 
           <TabsContent value="dashboard-users" className="space-y-4">
@@ -480,10 +460,9 @@ export default function Users() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="hr_admin">HR Admin</SelectItem>
-                                    <SelectItem value="city_head">City Head</SelectItem>
-                                    <SelectItem value="security_admin">Security Admin</SelectItem>
-                                    <SelectItem value="user">User</SelectItem>
+                                    <SelectItem value="City Head">City Head</SelectItem>
+                                    <SelectItem value="HR Admin">HR Admin</SelectItem>
+                                    <SelectItem value="Super Admin">Super Admin</SelectItem>
                                   </SelectContent>
                                 </Select>
                               </FormControl>
@@ -508,7 +487,7 @@ export default function Users() {
                           <Button type="button" variant="outline" onClick={() => setIsDashboardUserDialogOpen(false)}>
                             Cancel
                           </Button>
-                          <Button type="submit">Create User</Button>
+                          <Button type="submit">Create Dashboard User</Button>
                         </div>
                       </form>
                     </Form>
@@ -523,7 +502,7 @@ export default function Users() {
                       <TableHead>Email</TableHead>
                       <TableHead>Username</TableHead>
                       <TableHead>Role</TableHead>
-                      <TableHead>Created</TableHead>
+                      <TableHead>Created At</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -542,7 +521,7 @@ export default function Users() {
                           <TableCell>{user.email}</TableCell>
                           <TableCell>{user.username}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{user.role}</Badge>
+                            <Badge variant="outline">{user.role}</Badge>
                           </TableCell>
                           <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                         </TableRow>
