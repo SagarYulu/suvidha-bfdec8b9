@@ -38,6 +38,7 @@ class WebSocketService {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       
+      console.log('Connecting to WebSocket:', wsUrl);
       this.ws = new WebSocket(wsUrl) as ExtendedWebSocket;
       
       this.ws.onopen = () => {
