@@ -79,7 +79,11 @@ const ChartSection = memo(({ typePieData, cityBarData, isLoading }: ChartSection
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="value" name="Tickets" fill="#1E40AF" />
+                <Bar dataKey="value" name="Tickets">
+                  {cityBarData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : (
