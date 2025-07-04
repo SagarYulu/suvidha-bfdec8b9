@@ -185,8 +185,8 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
     }
     
     // Fall back to our fetched names
-    if (employeeNames[log.employee_id]) {
-      return employeeNames[log.employee_id];
+    if (log.employee_id && employeeNames[log.employee_id.toString()]) {
+      return employeeNames[log.employee_id.toString()];
     }
     
     // Last resort

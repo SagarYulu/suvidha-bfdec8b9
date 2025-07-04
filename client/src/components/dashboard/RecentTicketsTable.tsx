@@ -47,7 +47,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
             continue;
           }
 
-          // Convert to string for legacy string-based checks
+          // Convert to string for consistent key handling
           const employeeIdStr = employeeId.toString();
           
           // Special handling for system users (legacy support)
@@ -71,7 +71,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
           }
         } catch (error) {
           console.error(`Error fetching name for employee ${employeeId}:`, error);
-          names[employeeId] = "Unknown";
+          names[employeeId.toString()] = "Unknown";
         }
       }
       
@@ -250,7 +250,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
                       <TableCell className="font-mono text-xs">{issue.id}</TableCell>
-                      <TableCell>{employeeNames[issue.employeeId] || "Loading..."}</TableCell>
+                      <TableCell>{employeeNames[issue.employeeId.toString()] || "Unknown Employee"}</TableCell>
                       <TableCell>
                         <div>
                           <div>{getIssueTypeLabel(issue.typeId)}</div>
