@@ -122,7 +122,7 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     }
     
     // Make API call to get feedback data
-    const response = await authenticatedAxios.get(`/api/ticket-feedback?${queryParams.toString()}`);
+    const response = await authenticatedAxios.get(`/ticket-feedback?${queryParams.toString()}`);
     
     const data = response.data;
     
@@ -247,7 +247,7 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     });
     
     // Now fetch feedback data
-    const feedbackResponse = await authenticatedAxios.get(`/api/ticket-feedback`);
+    const feedbackResponse = await authenticatedAxios.get(`/ticket-feedback`);
     
     const feedbackData = feedbackResponse.data;
     
@@ -267,7 +267,7 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     const missingNameAgents = agentIds.filter(id => !agentFeedbacks[id] || !agentFeedbacks[id].name);
     
     if (missingNameAgents.length > 0) {
-      const agentResponse = await authenticatedAxios.get(`/api/dashboard-users`);
+      const agentResponse = await authenticatedAxios.get(`/dashboard-users`);
       
       const agentData = agentResponse.data;
       agentData.forEach((agent: any) => {

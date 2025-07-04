@@ -129,7 +129,7 @@ export const getAvailableAssignees = async (): Promise<{ value: string; label: s
     const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
     
     // Get users with admin or support roles from the database
-    const response = await authenticatedAxios.get('/api/dashboard-users');
+    const response = await authenticatedAxios.get('/dashboard-users');
     const allUsers = response.data;
     
     // Filter users with admin or support roles

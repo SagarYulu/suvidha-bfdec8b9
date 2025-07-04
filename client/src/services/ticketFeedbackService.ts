@@ -25,7 +25,7 @@ interface EmployeeData {
 export const checkFeedbackExists = async (issueId: string, employeeUuid: string): Promise<boolean> => {
   try {
     console.log(`Checking feedback for issue: ${issueId}, employee: ${employeeUuid}`);
-    const response = await authenticatedAxios.get(`/api/ticket-feedback?issueId=${issueId}&employeeUuid=${employeeUuid}`);
+    const response = await authenticatedAxios.get(`/ticket-feedback?issueId=${issueId}&employeeUuid=${employeeUuid}`);
     
     return response.data.exists || false;
   } catch (error) {
@@ -37,7 +37,7 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 // Get feedback status for a ticket
 export const getFeedbackStatus = async (issueId: string): Promise<boolean> => {
   try {
-    const response = await authenticatedAxios.get(`/api/ticket-feedback?issueId=${issueId}`);
+    const response = await authenticatedAxios.get(`/ticket-feedback?issueId=${issueId}`);
     
     return response.data.exists || false;
   } catch (error) {
@@ -51,7 +51,7 @@ export const getMultipleFeedbackStatuses = async (issueIds: string[]): Promise<R
   try {
     if (!issueIds.length) return {};
     
-    const response = await authenticatedAxios.post('/api/ticket-feedback/bulk', { issueIds });
+    const response = await authenticatedAxios.post('/ticket-feedback/bulk', { issueIds });
     
     const data = response.data;
     
@@ -150,7 +150,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     console.log("Submitting enriched feedback data:", feedbackData);
     
-    const response = await authenticatedAxios.post('/api/ticket-feedback', feedbackData);
+    const response = await authenticatedAxios.post('/ticket-feedback', feedbackData);
     
     const data = response.data;
     console.log("Feedback submitted successfully:", data);
