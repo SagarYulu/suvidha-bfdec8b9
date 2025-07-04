@@ -3,7 +3,7 @@ import React, { memo, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Issue } from "@/types";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issueService";
-import { getUserById } from "@/services/userService";
+// Removed API client dependency - using fetch directly
 import { getMultipleFeedbackStatuses } from "@/services/ticketFeedbackService";
 import {
   Table,
@@ -59,18 +59,27 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
             continue;
           }
 
-          const user = await getUserById(employeeIdStr);
-          if (user) {
-            names[employeeIdStr] = user.name;
-          } else {
-            // Handle special cases with more descriptive names
-            if (employeeIdStr === "1") {
-              names[employeeIdStr] = "Admin";
-            } else if (employeeIdStr.startsWith("security-user")) {
-              names[employeeIdStr] = "Security Team";
+          // Simple fetch call instead of complex API client
+          try {
+            const token = localStorage.getItem('authToken');
+            const response = await fetch(`/api/employees/${employeeIdStr}`, {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (response.ok) {
+              const employee = await response.json();
+              names[employeeIdStr] = employee.name;
+              console.log(`Fetched employee ${employeeIdStr}: ${employee.name}`);
             } else {
-              names[employeeIdStr] = "Unknown User";
+              names[employeeIdStr] = "Unknown Employee";
+              console.log(`Failed to fetch employee ${employeeIdStr}:`, response.status);
             }
+          } catch (fetchError) {
+            console.error(`Fetch error for employee ${employeeIdStr}:`, fetchError);
+            names[employeeIdStr] = "Unknown Employee";
           }
         } catch (error) {
           console.error(`Error fetching name for employee ${employeeId}:`, error);
