@@ -1,62 +1,41 @@
-
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
-import { createAuditLog } from "./issueAuditService";
+import { logAuditTrail } from "./issueAuditService";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Create a new issue
  */
 export const createIssue = async (issueData: Partial<Issue>): Promise<Issue | null> => {
   try {
-    // Generate a UUID for the issue - this is required by the database schema
-    const issueId = crypto.randomUUID();
-    
-    // Map from our Issue type property names to the database column names
-    const dbIssueData = {
-      id: issueId,
-      employee_uuid: issueData.employeeUuid,
-      type_id: issueData.typeId,
-      sub_type_id: issueData.subTypeId,
+    // Create the issue using our API
+    const response = await authenticatedAxios.post('/api/issues', {
+      employeeId: issueData.employeeId,
+      typeId: issueData.typeId,
+      subTypeId: issueData.subTypeId,
       description: issueData.description,
       status: issueData.status || 'open',
       priority: issueData.priority || 'low',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      attachment_url: issueData.attachmentUrl || null,
-      attachments: issueData.attachments || null,
-    };
-
-    // Check for required fields
-    if (!dbIssueData.employee_uuid || !dbIssueData.type_id || !dbIssueData.sub_type_id || !dbIssueData.description) {
-      console.error('Missing required fields for issue creation');
-      return null;
-    }
-
-    // Use insert([data]) with array syntax
-    const { data, error } = await supabase
-      .from('issues')
-      .insert([dbIssueData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating issue:', error);
-      throw error;
-    }
+      attachmentUrl: issueData.attachmentUrl || null,
+      attachments: issueData.attachments || null
+    });
+    
+    const createdIssue = response.data;
 
     // Create audit log for issue creation
-    if (data && data.id && dbIssueData.employee_uuid) {
-      await createAuditLog(
-        data.id,
-        dbIssueData.employee_uuid,
+    if (createdIssue && createdIssue.id && issueData.employeeId) {
+      await logAuditTrail(
+        createdIssue.id,
+        issueData.employeeId,
         'create',
-        { initialData: issueData },
-        'Issue created'
+        undefined,
+        undefined,
+        { initialData: issueData }
       );
     }
     
     // Return the created issue
-    return data ? await getIssueById(data.id) : null;
+    return createdIssue ? await getIssueById(createdIssue.id) || null : null;
   } catch (error) {
     console.error('Error in createIssue:', error);
     return null;

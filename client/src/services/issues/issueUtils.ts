@@ -1,16 +1,12 @@
-
 import { Issue } from "@/types";
 
 /**
  * Issue utility functions - helpers for processing issue data
  */
 
-// Function to generate a UUID
-export const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+// Function to generate a unique ID (using timestamp + random)
+export const generateUniqueId = (): string => {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
 };
 
 // Function to map database issue to app Issue type
@@ -18,7 +14,6 @@ export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
   return {
     id: Number(dbIssue.id),
     employeeId: Number(dbIssue.employeeId || dbIssue.employee_id),
-    employeeUuid: dbIssue.employee_uuid, // Keep for backward compatibility
     typeId: dbIssue.typeId || dbIssue.type_id,
     subTypeId: dbIssue.subTypeId || dbIssue.sub_type_id,
     description: dbIssue.description,
@@ -33,62 +28,6 @@ export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
     reopenableUntil: dbIssue.reopenableUntil || dbIssue.reopenable_until,
     previouslyClosedAt: dbIssue.previouslyClosedAt || dbIssue.previously_closed_at
   };
-};
-
-import { getUserById } from "@/services/userService";
-
-// Cache for user names to reduce duplicate API calls
-const userNameCache: Record<string, string> = {};
-
-/**
- * Gets the employee name from their UUID
- * Provides caching to reduce API calls
- */
-export const getEmployeeNameByUuid = async (employeeUuid: string): Promise<string> => {
-  // Return from cache if available
-  if (userNameCache[employeeUuid]) {
-    return userNameCache[employeeUuid];
-  }
-  
-  // Special case for known system IDs
-  if (employeeUuid === "1") {
-    userNameCache[employeeUuid] = "Admin";
-    return "Admin";
-  }
-  
-  // Handle security-user IDs - including when they have numbers after
-  if (employeeUuid.startsWith("security-user")) {
-    userNameCache[employeeUuid] = "Security Team";
-    return "Security Team";
-  }
-  
-  try {
-    const user = await getUserById(employeeUuid);
-    if (user) {
-      // Store in cache for future use
-      userNameCache[employeeUuid] = user.name;
-      return user.name;
-    }
-  } catch (error) {
-    console.error(`Error fetching user name for UUID ${employeeUuid}:`, error);
-  }
-  
-  // Fallback if user not found
-  return "Unknown Employee";
-};
-
-/**
- * Maps employee UUIDs to names in a batch for better performance
- */
-export const mapEmployeeUuidsToNames = async (employeeUuids: string[]): Promise<Record<string, string>> => {
-  const uniqueIds = [...new Set(employeeUuids)];
-  const result: Record<string, string> = {};
-  
-  await Promise.all(uniqueIds.map(async (uuid) => {
-    result[uuid] = await getEmployeeNameByUuid(uuid);
-  }));
-  
-  return result;
 };
 
 /**
@@ -127,6 +66,35 @@ export const mapEmployeeIdsToNames = async (employeeIds: number[]): Promise<Reco
   }
   
   return result;
+};
+
+/**
+ * Gets the employee name from their integer ID
+ * Provides caching to reduce API calls
+ */
+export const getEmployeeNameById = async (employeeId: number): Promise<string> => {
+  try {
+    // Import authenticatedAxios for JWT authenticated requests
+    const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
+    
+    // Fetch specific employee by ID
+    const response = await authenticatedAxios.get(`/api/employees/${employeeId}`);
+    return response.data?.name || "Unknown Employee";
+  } catch (error) {
+    console.error(`Error fetching employee name for ID ${employeeId}:`, error);
+    return "Unknown Employee";
+  }
+};
+
+/**
+ * Legacy function for compatibility - converts string ID to number and calls getEmployeeNameById
+ */
+export const getEmployeeNameByUuid = async (employeeId: string | number): Promise<string> => {
+  const id = typeof employeeId === 'string' ? parseInt(employeeId, 10) : employeeId;
+  if (isNaN(id)) {
+    return "Unknown Employee";
+  }
+  return getEmployeeNameById(id);
 };
 
 /**

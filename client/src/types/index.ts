@@ -21,7 +21,6 @@ export interface User {
 export interface Issue {
   id: number;
   employeeId: number; // Updated to use integer employee ID
-  employeeUuid?: string; // Keep for backward compatibility during transition
   typeId: string;
   subTypeId: string;
   description: string;
@@ -49,7 +48,8 @@ export interface Issue {
 
 export interface IssueComment {
   id: number;
-  employeeUuid: string; 
+  issueId: number;
+  employeeId: number;
   content: string;
   createdAt: string;
 }

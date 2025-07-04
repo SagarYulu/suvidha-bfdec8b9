@@ -1,16 +1,16 @@
-import { createAuditLog } from "@/services/issues/issueAuditService";
+import { logAuditTrail } from "@/services/issues/issueAuditService";
 import authenticatedAxios from '@/services/authenticatedAxios';
 
 export interface InternalComment {
-  id: string;
-  issueId: string;
-  employeeUuid: string;
+  id: number;
+  issueId: number;
+  employeeId: number;
   content: string;
   createdAt: string;
 }
 
 // Fetch internal comments for a ticket
-export const getInternalComments = async (issueId: string): Promise<InternalComment[]> => {
+export const getInternalComments = async (issueId: string | number): Promise<InternalComment[]> => {
   try {
     const response = await authenticatedAxios.get(`/api/issues/${issueId}/internal-comments`);
     
@@ -19,8 +19,8 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
     // Map the database response to our InternalComment interface
     return data.map((comment: any) => ({
       id: comment.id,
-      issueId: comment.issueId || comment.issue_id,
-      employeeUuid: comment.employeeUuid || comment.employee_uuid,
+      issueId: Number(comment.issueId || comment.issue_id),
+      employeeId: Number(comment.employeeId || comment.employee_id),
       content: comment.content,
       createdAt: comment.createdAt || comment.created_at
     }));
@@ -31,17 +31,17 @@ export const getInternalComments = async (issueId: string): Promise<InternalComm
 };
 
 // Get user info for audit logs
-async function getUserInfo(userUuid: string) {
+async function getUserInfo(employeeId: number) {
   try {
     // Check dashboard users first
     try {
-      const dashboardResponse = await authenticatedAxios.get(`/api/dashboard-users/${userUuid}`);
+      const dashboardResponse = await authenticatedAxios.get(`/api/dashboard-users/${employeeId}`);
       const dashboardUser = dashboardResponse.data;
       if (dashboardUser && dashboardUser.name) {
         return {
           name: dashboardUser.name,
           role: dashboardUser.role,
-          id: userUuid,
+          id: employeeId,
           email: dashboardUser.email
         };
       }
@@ -51,13 +51,13 @@ async function getUserInfo(userUuid: string) {
 
     // Then check employees
     try {
-      const employeeResponse = await authenticatedAxios.get(`/api/employees/${userUuid}`);
+      const employeeResponse = await authenticatedAxios.get(`/api/employees/${employeeId}`);
       const employee = employeeResponse.data;
       if (employee && employee.name) {
         return {
           name: employee.name,
           role: employee.role,
-          id: userUuid,
+          id: employeeId,
           email: employee.email
         };
       }
@@ -65,64 +65,51 @@ async function getUserInfo(userUuid: string) {
       console.error('Error fetching employee info:', error);
     }
 
-    console.log(`Could not find user info for UUID: ${userUuid}`);
-    return { name: "Unknown User", id: userUuid };
+    console.log(`Could not find user info for ID: ${employeeId}`);
+    return { name: "Unknown User", id: employeeId };
   } catch (error) {
     console.error('Error getting user info:', error);
-    return { name: "Unknown User", id: userUuid };
+    return { name: "Unknown User", id: employeeId };
   }
 }
 
 // Add a new internal comment to a ticket
 export const addInternalComment = async (
-  issueId: string, 
-  employeeUuid: string, 
+  issueId: string | number, 
+  employeeId: number, 
   content: string
 ): Promise<InternalComment | null> => {
   try {
     // Ensure we have valid user information
-    const userInfo = await getUserInfo(employeeUuid);
+    const userInfo = await getUserInfo(employeeId);
     
-    const response = await fetch(`/api/issues/${issueId}/internal-comments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        employeeUuid,
-        content
-      }),
+    const response = await authenticatedAxios.post(`/api/issues/${issueId}/internal-comments`, {
+      employeeId,
+      content
     });
     
-    if (!response.ok) {
-      console.error('Error adding internal comment:', response.statusText);
-      return null;
-    }
+    const data = response.data;
     
-    const data = await response.json();
-    
-    console.log(`Added internal comment by ${userInfo.name} (${employeeUuid})`);
+    console.log(`Added internal comment by ${userInfo.name} (${employeeId})`);
     
     // Create audit log entry with detailed performer info
-    await createAuditLog(
+    await logAuditTrail(
       issueId,
-      employeeUuid,
+      employeeId,
       'internal_comment_added',
+      undefined,
+      undefined,
       { 
         commentId: data.id,
         performer: userInfo
-      },
-      `Internal comment added by ${userInfo.name}`
+      }
     );
-    
-    // Create notification for the assignee
-    await createNotificationForAssignee(issueId, employeeUuid, userInfo.name);
     
     // Map the database response to our InternalComment interface
     return {
       id: data.id,
       issueId: data.issueId || data.issue_id,
-      employeeUuid: data.employeeUuid || data.employee_uuid,
+      employeeId: data.employeeId || data.employee_id,
       content: data.content,
       createdAt: data.createdAt || data.created_at
     };

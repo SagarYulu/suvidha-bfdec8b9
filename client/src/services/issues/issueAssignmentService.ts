@@ -1,72 +1,71 @@
-
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
-import { createAuditLog } from "./issueAuditService";
+import { logAuditTrail } from "./issueAuditService";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Assign an issue to a user
  */
-export const assignIssueToUser = async (
+export const assignIssue = async (
   issueId: string,
   assigneeId: string,
   currentUserId: string
 ): Promise<Issue | null> => {
   try {
     // Get assignee info for better audit logs
-    const { data: assigneeData } = await supabase
-      .from('dashboard_users')
-      .select('name, role')
-      .eq('id', assigneeId)
-      .single();
-    
-    const assigneeName = assigneeData?.name || "Unknown User";
+    let assigneeName = "Unknown User";
+    try {
+      const assigneeResponse = await authenticatedAxios.get(`/api/dashboard-users/${assigneeId}`);
+      assigneeName = assigneeResponse.data?.name || "Unknown User";
+    } catch (error) {
+      console.log('Assignee not found in dashboard users');
+    }
     
     // Get performer info (the person doing the assignment)
-    const { data: performerData } = await supabase
-      .from('dashboard_users')
-      .select('name, role')
-      .eq('id', currentUserId)
-      .single();
+    let performerInfo = { name: "Unknown User", role: "Unknown" };
+    try {
+      const performerResponse = await authenticatedAxios.get(`/api/dashboard-users/${currentUserId}`);
+      performerInfo = {
+        name: performerResponse.data?.name || "Unknown User",
+        role: performerResponse.data?.role || "Unknown"
+      };
+    } catch (error) {
+      console.log('Performer not found in dashboard users');
+    }
     
-    const performerInfo = {
-      name: performerData?.name || "Unknown User",
-      role: performerData?.role,
-      id: currentUserId
-    };
-
-    const { data, error } = await supabase
-      .from('issues')
-      .update({
-        assigned_to: assigneeId,
-        updated_at: new Date().toISOString(),
-        // If ticket was unassigned, set to in_progress automatically
+    // Update the issue assignment
+    try {
+      await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+        assignedTo: Number(assigneeId),
         status: 'in_progress'
-      })
-      .eq('id', issueId)
-      .select();
-      
-    if (error) {
+      });
+    } catch (error) {
       console.error('Error assigning issue:', error);
       throw error;
     }
     
     // Create audit log entry for assignment
-    await createAuditLog(
+    await logAuditTrail(
       issueId,
-      currentUserId,
+      Number(currentUserId),
       'assignment',
+      undefined,
+      undefined,
       { 
-        assigneeId,
+        assigneeId: Number(assigneeId),
         assigneeName,
         performer: performerInfo
-      },
-      'Issue assigned to user'
+      }
     );
     
     // Return the complete updated issue
-    return await getIssueById(issueId);
+    const updatedIssue = await getIssueById(issueId);
+    return updatedIssue || null;
   } catch (error) {
     console.error('Error assigning issue:', error);
     throw error;
   }
 };
+
+// Export alias for backward compatibility
+export const assignIssueToUser = assignIssue;

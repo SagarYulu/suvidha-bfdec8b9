@@ -1,7 +1,7 @@
 
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
-import { createAuditLog } from "./issueAuditService";
+import { logAuditTrail } from "./issueAuditService";
 
 /**
  * Reopen a closed or resolved ticket
@@ -45,12 +45,13 @@ export const reopenTicket = async (
     }
     
     // Create audit log entry
-    await createAuditLog(
+    await logAuditTrail(
       issueId,
-      userId,
+      Number(userId),
       'reopen',
-      { reason: reopenReason },
-      'Issue reopened'
+      undefined,
+      undefined,
+      { reason: reopenReason }
     );
     
     // Return the complete updated issue

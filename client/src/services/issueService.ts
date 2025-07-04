@@ -40,7 +40,7 @@ export {
 
 export {
   getEmployeeNameByUuid,
-  mapEmployeeUuidsToNames
+  mapEmployeeIdsToNames
 } from "./issues/issueUtils";
 
 // Re-export the formatting utilities

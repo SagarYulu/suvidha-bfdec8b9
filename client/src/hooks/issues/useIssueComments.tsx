@@ -33,14 +33,8 @@ export const useIssueComments = (
       
       console.log(`Adding comment as user: ${userName} (${currentUserId})`);
       
-      // Create a comment object with the right structure
-      const commentData = {
-        employeeUuid: currentUserId,
-        content: newComment
-      };
-      
       // Pass the correct arguments to addComment (based on its signature)
-      await addComment(issueId, commentData);
+      await addComment(issueId, Number(currentUserId), newComment, false);
       
       // Fetch the updated issue with the new comment
       const updatedIssue = await getIssueById(issueId);

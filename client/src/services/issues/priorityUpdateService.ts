@@ -3,6 +3,7 @@ import { determinePriority, shouldSendNotification, getNotificationRecipients } 
 import { Issue } from "@/types";
 import { toast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Updates the priority of a single ticket based on its current state
@@ -49,22 +50,12 @@ export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> =
     const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
     
     // Update the issue in the database
-    const { data, error } = await supabase
-      .from('issues')
-      .update({ 
-        priority: validPriority,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', issue.id)
-      .select()
-      .single();
-    
-    if (error) {
+    try {
+      await authenticatedAxios.patch(`/api/issues/${issue.id}`, {
+        priority: validPriority
+      });
+    } catch (error) {
       console.error(`Error updating priority for issue ${issue.id}:`, error);
-      // If we hit a constraint error, log it but don't fail
-      if (error.code === '23514') {
-        console.warn(`Priority "${validPriority}" not allowed by constraint. This should not happen as the database has been updated.`);
-      }
       return issue;
     }
     

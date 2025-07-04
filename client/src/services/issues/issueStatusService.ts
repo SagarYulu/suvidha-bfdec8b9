@@ -1,7 +1,7 @@
 
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
-import { createAuditLog } from "./issueAuditService";
+import { logAuditTrail } from "./issueAuditService";
 
 /**
  * Update the status of an issue
@@ -57,16 +57,15 @@ export const updateIssueStatus = async (
     }
     
     // Create audit log entry with performer info
-    await createAuditLog(
+    await logAuditTrail(
       issueId,
-      userId,
+      Number(userId),
       'status_change',
+      previousStatus,
+      newStatus,
       { 
-        newStatus,
-        previous_status: previousStatus,
         performer: performerInfo
-      },
-      'Issue status updated'
+      }
     );
     
     // Get the complete updated issue

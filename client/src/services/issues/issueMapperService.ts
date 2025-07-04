@@ -1,6 +1,6 @@
 
 import { Issue } from "@/types";
-import { createAuditLog } from "./issueAuditService";
+import { logAuditTrail } from "./issueAuditService";
 import { toast } from "@/hooks/use-toast";
 
 /**
@@ -48,10 +48,12 @@ export const mapIssueType = async (
     }
 
     // Create audit log for the mapping action
-    await createAuditLog(
+    await logAuditTrail(
       issueId,
-      currentUserId,
+      Number(currentUserId),
       "issue_mapped",
+      undefined,
+      undefined,
       {
         previous: {
           type_id: currentIssue.type_id,
@@ -61,8 +63,7 @@ export const mapIssueType = async (
           type_id: newTypeId,
           sub_type_id: newSubTypeId
         }
-      },
-      `Issue mapped from 'Others' to ${newTypeId}`
+      }
     );
 
     // If we have data, properly convert it to an Issue object

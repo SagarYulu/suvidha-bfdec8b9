@@ -5,7 +5,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { getIssues } from "@/services/issues/issueFilters";
 import { getAssignedIssues } from "@/services/issues/issueCore";
 import { getIssueTypeLabel, getIssueSubTypeLabel } from "@/services/issues/issueTypeHelpers";
-import { mapEmployeeUuidsToNames, mapEmployeeIdsToNames } from "@/services/issues/issueUtils";
+import { mapEmployeeIdsToNames } from "@/services/issues/issueUtils";
 import { updateAllIssuePriorities, usePriorityUpdater } from "@/services/issues/priorityUpdateService";
 import { getMultipleFeedbackStatuses } from "@/services/ticketFeedbackService";
 import { Issue } from "@/types";
