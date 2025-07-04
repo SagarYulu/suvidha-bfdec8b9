@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Use actual API login with JWT tokens
       const response = await apiClient.login(email, password) as any;
-      if (response.success && response.token) {
+      if (response.token && response.user) {
         // Store JWT token
         localStorage.setItem('authToken', response.token);
         
