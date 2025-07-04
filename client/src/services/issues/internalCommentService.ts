@@ -12,7 +12,7 @@ export interface InternalComment {
 // Fetch internal comments for a ticket
 export const getInternalComments = async (issueId: string): Promise<InternalComment[]> => {
   try {
-    const response = await fetch(`/api/issues/${issueId}/internal-comments`);
+    const response = await authenticatedAxios.get(`/api/issues/${issueId}/internal-comments`);
     
     if (!response.ok) {
       console.error('Error fetching internal comments:', response.statusText);
