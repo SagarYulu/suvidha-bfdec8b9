@@ -24,27 +24,31 @@ export async function processIssues(dbIssues: any[]): Promise<Issue[]> {
   
   if (issueIds.length > 0) {
     try {
-      // Get comments from API
-      const dbComments = await apiClient.getIssueComments();
+      // Get comments for each issue
+      const commentPromises = issueIds.map(async issueId => {
+        try {
+          const dbComments = await apiClient.getIssueComments(issueId.toString());
+          return { issueId, comments: dbComments || [] };
+        } catch (error) {
+          console.error(`Error fetching comments for issue ${issueId}:`, error);
+          return { issueId, comments: [] };
+        }
+      });
       
-      // Filter comments for our specific issues and group by issue_id
-      if (dbComments && Array.isArray(dbComments)) {
-        dbComments
-          .filter(comment => issueIds.includes(comment.issueId))
-          .forEach(comment => {
-            const issueId = comment.issueId;
-            if (!commentsByIssueId[issueId]) {
-              commentsByIssueId[issueId] = [];
-            }
-            
-            commentsByIssueId[issueId].push({
-              id: comment.id,
-              employeeUuid: comment.employeeId,
-              content: comment.content,
-              createdAt: comment.createdAt
-            });
-          });
-      }
+      const commentResults = await Promise.all(commentPromises);
+      
+      // Group comments by issue_id
+      commentResults.forEach(result => {
+        const { issueId, comments } = result;
+        if (comments && Array.isArray(comments)) {
+          commentsByIssueId[issueId] = comments.map(comment => ({
+            id: comment.id,
+            employeeUuid: comment.employeeId,
+            content: comment.content,
+            createdAt: comment.createdAt
+          }));
+        }
+      });
     } catch (commentsError) {
       console.error('Error fetching comments:', commentsError);
     }

@@ -246,7 +246,7 @@ const RecentTicketsTable = memo(({ recentIssues, isLoading }: RecentTicketsTable
                       key={issue.id}
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
-                      <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
+                      <TableCell className="font-mono text-xs">{issue.id}</TableCell>
                       <TableCell>{employeeNames[issue.employeeUuid] || "Loading..."}</TableCell>
                       <TableCell>
                         <div>
