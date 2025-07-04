@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { seedDatabase } from "./seedData";
+import bcrypt from "bcryptjs";
 import { 
   insertEmployeeSchema, insertDashboardUserSchema, insertIssueSchema, 
   insertIssueCommentSchema, insertTicketFeedbackSchema 
@@ -384,37 +385,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", async (req, res) => {
     try {
       const { email, password } = req.body;
+      console.log("Login attempt for email:", email);
       
       // Check dashboard users first
       const dashboardUser = await storage.getDashboardUserByEmail(email);
-      if (dashboardUser && dashboardUser.password === password) {
-        res.json({
-          user: {
-            id: dashboardUser.id,
-            email: dashboardUser.email,
-            name: dashboardUser.name,
-            role: dashboardUser.role
-          },
-          success: true
-        });
-        return;
+      if (dashboardUser) {
+        console.log("Found dashboard user:", dashboardUser.email);
+        const isPasswordValid = await bcrypt.compare(password, dashboardUser.password);
+        console.log("Dashboard user password valid:", isPasswordValid);
+        if (isPasswordValid) {
+          res.json({
+            user: {
+              id: dashboardUser.id,
+              email: dashboardUser.email,
+              name: dashboardUser.name,
+              role: dashboardUser.role
+            },
+            success: true
+          });
+          return;
+        }
       }
 
       // Check employees
       const employee = await storage.getEmployeeByEmail(email);
-      if (employee && employee.password === password) {
-        res.json({
-          user: {
-            id: employee.id,
-            email: employee.email,
-            name: employee.name,
-            role: employee.role || "employee"
-          },
-          success: true
-        });
-        return;
+      if (employee) {
+        console.log("Found employee:", employee.email, "empId:", employee.empId);
+        console.log("Employee password hash:", employee.password);
+        console.log("Trying to compare with password:", password);
+        const isPasswordValid = await bcrypt.compare(password, employee.password);
+        console.log("Employee password valid:", isPasswordValid);
+        if (isPasswordValid) {
+          res.json({
+            user: {
+              id: employee.id,
+              email: employee.email,
+              name: employee.name,
+              role: employee.role || "employee"
+            },
+            success: true
+          });
+          return;
+        }
+      } else {
+        console.log("No employee found with email:", email);
       }
 
+      console.log("Authentication failed for email:", email);
       res.status(401).json({ error: "Invalid credentials" });
     } catch (error) {
       console.error("Error during login:", error);
