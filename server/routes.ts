@@ -12,6 +12,18 @@ import { authenticateToken, requireDashboardUser, requireEmployee } from "./midd
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-here";
 
+// Helper function to validate password (handles both bcrypt and plaintext)
+async function validatePassword(inputPassword: string, storedPassword: string): Promise<boolean> {
+  // Check if stored password looks like a bcrypt hash
+  if (storedPassword.startsWith('$2b$') || storedPassword.startsWith('$2a$') || storedPassword.startsWith('$2y$')) {
+    // It's a bcrypt hash, use bcrypt.compare
+    return await bcrypt.compare(inputPassword, storedPassword);
+  } else {
+    // It's plaintext, use direct comparison
+    return inputPassword === storedPassword;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes (public - no auth required)
   app.post("/api/auth/login", async (req, res) => {
@@ -25,7 +37,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if it's an employee login
       const employee = await storage.getEmployeeByEmail(email);
       if (employee) {
-        const isValidPassword = await bcrypt.compare(password, employee.password);
+        const isValidPassword = await validatePassword(password, employee.password);
         if (isValidPassword) {
           const token = jwt.sign(
             { 
@@ -53,7 +65,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if it's a dashboard user login
       const dashboardUser = await storage.getDashboardUserByEmail(email);
       if (dashboardUser) {
-        const isValidPassword = await bcrypt.compare(password, dashboardUser.password);
+        const isValidPassword = await validatePassword(password, dashboardUser.password);
         if (isValidPassword) {
           const token = jwt.sign(
             { 
