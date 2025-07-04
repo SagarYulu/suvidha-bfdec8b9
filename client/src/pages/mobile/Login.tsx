@@ -42,26 +42,30 @@ const MobileLogin = () => {
           // Check if user email is explicitly restricted
           if (restrictedEmails.includes(authState.user.email)) {
             console.log("Restricted email detected:", authState.user.email);
-            toast({
-              title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
-              variant: "destructive",
-            });
+            console.log("Logging out admin user to allow employee login");
+            // Force clear all auth data
+            localStorage.removeItem('authState');
+            localStorage.removeItem('authToken');
             logout();
-            setPageLoading(false);
+            // Force a page refresh to ensure clean state
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
             return;
           }
           
           // Check if user has a dashboard role
           if (authState.role && dashboardUserRoles.includes(authState.role)) {
             console.log("Dashboard role detected:", authState.role);
-            toast({
-              title: "Access Denied",
-              description: "You don't have access to the mobile app. Please use the admin dashboard.",
-              variant: "destructive",
-            });
+            console.log("Logging out dashboard user to allow employee login");
+            // Force clear all auth data
+            localStorage.removeItem('authState');
+            localStorage.removeItem('authToken');
             logout();
-            setPageLoading(false);
+            // Force a page refresh to ensure clean state
+            setTimeout(() => {
+              window.location.reload();
+            }, 100);
             return;
           }
           
