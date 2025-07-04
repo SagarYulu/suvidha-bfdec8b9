@@ -19,7 +19,7 @@ import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, RotateCcw, X } from 'lucide-react';
+import { Plus, Search, RotateCcw, X, Trash2 } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 
 // Types for our data
@@ -235,6 +235,28 @@ const Users = () => {
     }
   };
 
+  const handleDeleteUser = async (userId: number, userName: string) => {
+    if (window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      try {
+        await apiClient.deleteEmployee(userId.toString());
+        
+        // Delete successful (204 status)
+        setEmployees(employees.filter(emp => emp.id !== userId));
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+        });
+      } catch (error: any) {
+        console.error('Error deleting user:', error);
+        toast({
+          title: "Error",
+          description: error.error || "Failed to delete user",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
 
 
   useEffect(() => {
@@ -290,18 +312,19 @@ const Users = () => {
                 <TableHead>Cluster</TableHead>
                 <TableHead>Manager</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     Loading users...
                   </TableCell>
                 </TableRow>
               ) : filteredEmployees.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -317,6 +340,16 @@ const Users = () => {
                     <TableCell>{employee.cluster}</TableCell>
                     <TableCell>{employee.manager}</TableCell>
                     <TableCell>{employee.role}</TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteUser(employee.id, employee.name)}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
