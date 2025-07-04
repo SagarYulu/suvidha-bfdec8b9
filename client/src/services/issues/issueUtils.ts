@@ -32,19 +32,27 @@ export const mapDbIssueToAppIssue = (dbIssue: any, comments: any[]): Issue => {
 
 /**
  * Maps employee integer IDs to names in a batch for better performance
- * This works with the PostgreSQL integer ID schema
+ * This works with the PostgreSQL integer ID schema - using simple fetch
  */
 export const mapEmployeeIdsToNames = async (employeeIds: number[]): Promise<Record<number, string>> => {
   const uniqueIds = Array.from(new Set(employeeIds));
   const result: Record<number, string> = {};
   
   try {
-    // Import authenticatedAxios for JWT authenticated requests
-    const { default: authenticatedAxios } = await import('@/services/authenticatedAxios');
+    // Simple fetch call instead of complex authenticated axios
+    const token = localStorage.getItem('authToken');
+    const response = await fetch('/api/employees', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    // Fetch all employees in one API call for better performance
-    const response = await authenticatedAxios.get('/api/employees');
-    const employees = response.data;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const employees = await response.json();
     
     // Create mapping from employee ID to name
     const employeeMap = employees.reduce((acc: Record<number, string>, emp: any) => {

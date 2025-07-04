@@ -4,7 +4,6 @@ import { Issue } from "@/types";
 import { addComment } from "@/services/issueService";
 import { getIssueById } from "@/services/issues/issueFetchService";
 import { toast } from "@/hooks/use-toast";
-import authenticatedAxios from '@/services/authenticatedAxios';
 
 export const useIssueComments = (
   issueId: string | undefined,
@@ -22,8 +21,17 @@ export const useIssueComments = (
       // Get current user info for better audit logs
       let userData = null;
       try {
-        const response = await authenticatedAxios.get(`/api/dashboard-users/${currentUserId}`);
-        userData = response.data;
+        const token = localStorage.getItem('authToken');
+        const response = await fetch(`/api/dashboard-users/${currentUserId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          userData = await response.json();
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
       }

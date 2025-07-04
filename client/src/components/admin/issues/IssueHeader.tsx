@@ -12,6 +12,11 @@ interface IssueHeaderProps {
 const IssueHeader = ({ issue }: IssueHeaderProps) => {
   const navigate = useNavigate();
 
+  // Safety check - return null if issue data isn't loaded yet
+  if (!issue || !issue.status) {
+    return null;
+  }
+
   const getStatusBadgeColor = (statusValue: Issue["status"]) => {
     switch (statusValue) {
       case "open":

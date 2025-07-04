@@ -8,20 +8,35 @@ import authenticatedAxios from '@/services/authenticatedAxios';
  */
 export const getIssueById = async (id: string | number): Promise<Issue | undefined> => {
   try {
-    // Get the issue from the database
-    const response = await authenticatedAxios.get(`/api/issues/${id}`);
-    const dbIssue = response.data;
+    // Simple fetch call instead of complex authenticated axios
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(`/api/issues/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    if (!dbIssue) {
+    if (!response.ok) {
       console.error('Issue not found');
       return undefined;
     }
     
+    const dbIssue = await response.json();
+    
     // Get comments for this issue
     let comments = [];
     try {
-      const commentsResponse = await authenticatedAxios.get(`/api/issues/${id}/comments`);
-      comments = commentsResponse.data || [];
+      const commentsResponse = await fetch(`/api/issues/${id}/comments`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (commentsResponse.ok) {
+        comments = await commentsResponse.json() || [];
+      }
     } catch (commentsError) {
       console.error('Error fetching comments:', commentsError);
       comments = [];
@@ -55,8 +70,20 @@ export const getAllIssues = async (filters?: any): Promise<Issue[]> => {
     const queryString = params.toString();
     const url = queryString ? `/api/issues?${queryString}` : '/api/issues';
     
-    const response = await authenticatedAxios.get(url);
-    const dbIssues = response.data || [];
+    // Simple fetch call instead of complex authenticated axios
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const dbIssues = await response.json() || [];
     
     // Convert and process issues
     const issues = dbIssues.map(mapDbIssueToAppIssue);
