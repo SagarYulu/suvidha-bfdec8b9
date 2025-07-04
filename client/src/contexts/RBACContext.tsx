@@ -182,6 +182,18 @@ export const RBACProvider: React.FC<RBACProviderProps> = ({ children }) => {
           console.log('Management role detected - granting dashboard access');
           cache['view:dashboard'] = true;
           cache['manage:issues'] = true;
+        } else if (authState.role === 'Delivery Executive' || 
+                   authState.role === 'Pilot' || 
+                   authState.role === 'Mechanic' || 
+                   authState.role === 'Marshal' || 
+                   authState.role === 'Zone Screener' || 
+                   authState.role === 'Yulu Captain' || 
+                   authState.role === 'employee') {
+          console.log('Employee role detected - granting mobile app permissions');
+          // Employees get basic permissions for mobile app functionality
+          cache['view:issues'] = true;
+          cache['create:issues'] = true;
+          cache['submit:feedback'] = true;
         }
       }
       

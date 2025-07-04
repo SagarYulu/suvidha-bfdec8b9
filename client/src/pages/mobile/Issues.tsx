@@ -46,11 +46,14 @@ const MobileIssues = () => {
         console.log("Fetching employee details for:", authState.user.id);
         setIsEmployeeLoading(true);
         
-        // Look for employee by matching either id or user_id field to handle different ID formats
+        // Look for employee by matching the ID from authentication
         const allEmployees = await apiClient.getEmployees() as any[];
-        const employees = allEmployees.filter((emp: any) => 
-          emp.user_id === authState.user!.id || String(emp.id) === authState.user!.id
-        );
+        const employees = allEmployees.filter((emp: any) => {
+          // Convert both to numbers for comparison since auth ID is number and database ID is number
+          const empId = Number(emp.id);
+          const authId = Number(authState.user!.id);
+          return empId === authId;
+        });
         
         if (!employees || employees.length === 0) {
           console.log("No matching employee found");
@@ -113,8 +116,8 @@ const MobileIssues = () => {
           if (closedTickets.length > 0) {
             const feedbackChecks = await Promise.all(
               closedTickets.map(async (issue) => {
-                const hasFeedback = await checkFeedbackExists(issue.id, authState.user?.id || "");
-                return { issueId: issue.id, hasFeedback };
+                const hasFeedback = await checkFeedbackExists(String(issue.id), String(authState.user?.id || ""));
+                return { issueId: String(issue.id), hasFeedback };
               })
             );
             
@@ -174,11 +177,15 @@ const MobileIssues = () => {
     // Force refetch by causing the useEffect to run again
     if (authState.user?.id) {
       // We're just triggering the useEffect by updating a dependency it relies on
-      const tempId = authState.user.id;
-      authState.user.id = "";
-      setTimeout(() => {
-        authState.user.id = tempId;
-      }, 100);
+      if (authState.user) {
+        const tempId = authState.user.id;
+        authState.user.id = "";
+        setTimeout(() => {
+          if (authState.user) {
+            authState.user.id = tempId;
+          }
+        }, 100);
+      }
     }
   };
 
@@ -404,7 +411,7 @@ const MobileIssues = () => {
                           <Button
                             variant="outline"
                             className="w-full animate-pulse border-2 border-amber-500 bg-gradient-to-r from-amber-500 to-yellow-400 text-black font-medium hover:from-amber-600 hover:to-yellow-500 flex items-center justify-center transition-all shadow-md"
-                            onClick={() => openFeedbackDialog(issue.id)}
+                            onClick={() => openFeedbackDialog(String(issue.id))}
                           >
                             <MessageSquare className="h-5 w-5 mr-2" />
                             <span className="font-bold">Share Feedback / अपनी प्रतिक्रिया साझा करें</span>
