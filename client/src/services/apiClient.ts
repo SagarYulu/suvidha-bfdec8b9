@@ -32,9 +32,20 @@ class ApiClient {
       (response) => response.data,
       (error) => {
         if (error.response?.status === 401) {
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
+          // Don't auto-redirect during login attempts
+          if (!error.config?.url?.includes('/auth/login')) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            
+            // Redirect to appropriate login page based on current location
+            if (window.location.pathname.includes('/admin')) {
+              window.location.href = '/admin/login';
+            } else if (window.location.pathname.includes('/mobile')) {
+              window.location.href = '/mobile/login';
+            } else {
+              window.location.href = '/';
+            }
+          }
         }
         return Promise.reject(error.response?.data || error);
       }
