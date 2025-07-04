@@ -66,20 +66,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       setIsLoading(true);
       try {
-        console.log("Refreshing auth session...");
+        console.log("Initializing auth from stored state...");
         
-        // For development, always set admin user as authenticated
-        const user = mockAdminUser;
-        console.log("User is authenticated:", user);
-        
-        setAuthState({
-          isAuthenticated: true,
-          user: user,
-          session: { user: user },
-          role: "admin"
-        });
-        
-        console.log("Default admin account detected - granting all permissions");
+        // Check if we have a stored auth state, but don't auto-login
+        const savedState = localStorage.getItem('authState');
+        if (savedState) {
+          try {
+            const parsed = JSON.parse(savedState);
+            if (parsed.isAuthenticated && parsed.user) {
+              console.log("Restoring auth state for user:", parsed.user.email);
+              setAuthState(parsed);
+            } else {
+              console.log("No valid stored auth state found");
+              setAuthState({
+                isAuthenticated: false,
+                user: null,
+                session: null,
+                role: null
+              });
+            }
+          } catch (e) {
+            console.log("Invalid stored auth state, clearing");
+            localStorage.removeItem('authState');
+            setAuthState({
+              isAuthenticated: false,
+              user: null,
+              session: null,
+              role: null
+            });
+          }
+        } else {
+          console.log("No stored auth state, starting fresh");
+          setAuthState({
+            isAuthenticated: false,
+            user: null,
+            session: null,
+            role: null
+          });
+        }
       } catch (error) {
         console.error("Error initializing auth:", error);
         setAuthState({
@@ -90,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
       } finally {
         setIsLoading(false);
-        console.log("Setting up auth change listener...");
+        console.log("Auth initialization complete");
       }
     };
 

@@ -24,64 +24,38 @@ const MobileLogin = () => {
   // Restricted emails that should never access mobile app
   const restrictedEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
 
-  // Check auth only once on component mount with improved loading state
+  // Mobile login should be independent - clear any admin sessions on mount
   useEffect(() => {
     if (initialCheckDone.current) {
       return; // Skip if we've already checked
     }
     
-    // Add a short timeout to allow UI to render before checking auth
-    const timer = setTimeout(() => {
-      // Mark that we've done the initial check
-      initialCheckDone.current = true;
-      
-      const checkExistingAuth = () => {
-        if (authState && authState.isAuthenticated && authState.user) {
-          console.log("User already authenticated, checking access rights");
-          
-          // Check if user email is explicitly restricted
-          if (restrictedEmails.includes(authState.user.email)) {
-            console.log("Restricted email detected:", authState.user.email);
-            console.log("Logging out admin user to allow employee login");
-            // Force clear all auth data
-            localStorage.removeItem('authState');
-            localStorage.removeItem('authToken');
-            logout();
-            // Force a page refresh to ensure clean state
-            setTimeout(() => {
-              window.location.reload();
-            }, 100);
-            return;
-          }
-          
-          // Check if user has a dashboard role
-          if (authState.role && dashboardUserRoles.includes(authState.role)) {
-            console.log("Dashboard role detected:", authState.role);
-            console.log("Logging out dashboard user to allow employee login");
-            // Force clear all auth data
-            localStorage.removeItem('authState');
-            localStorage.removeItem('authToken');
-            logout();
-            // Force a page refresh to ensure clean state
-            setTimeout(() => {
-              window.location.reload();
-            }, 100);
-            return;
-          }
-          
-          // If no restrictions, redirect to mobile issues
-          navigate("/mobile/issues", { replace: true });
-        } else {
-          // Not authenticated, just show login form
-          setPageLoading(false);
-        }
-      };
-      
-      checkExistingAuth();
-    }, 300); // Small delay for better UI experience
+    // Mark that we've done the initial check
+    initialCheckDone.current = true;
     
-    return () => clearTimeout(timer);
-  }, [authState, navigate, logout]);
+    // Clear any existing admin sessions when accessing mobile login
+    console.log("Mobile login accessed - clearing any existing admin sessions");
+    localStorage.removeItem('authState');
+    localStorage.removeItem('authToken');
+    
+    // Force logout to ensure clean state
+    logout();
+    
+    // Check if we have an authenticated employee (not admin)
+    if (authState && authState.isAuthenticated && authState.user) {
+      // Only allow access if it's an employee role (not admin/dashboard roles)
+      const isEmployee = authState.role && !dashboardUserRoles.includes(authState.role) && !restrictedEmails.includes(authState.user.email);
+      
+      if (isEmployee) {
+        console.log("Employee already authenticated, redirecting to issues");
+        navigate("/mobile/issues", { replace: true });
+        return;
+      }
+    }
+    
+    // Show login form for all other cases
+    setPageLoading(false);
+  }, []);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
