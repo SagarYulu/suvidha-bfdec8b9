@@ -48,6 +48,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/employees/bulk", async (req, res) => {
+    try {
+      const { employees } = req.body;
+      
+      if (!Array.isArray(employees)) {
+        return res.status(400).json({ error: "employees must be an array" });
+      }
+      
+      if (employees.length === 0) {
+        return res.status(400).json({ error: "No employees provided" });
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+      const errors: string[] = [];
+      
+      // Process each employee individually for better error handling
+      for (let i = 0; i < employees.length; i++) {
+        try {
+          const validatedData = insertEmployeeSchema.parse(employees[i]);
+          await storage.createEmployee(validatedData);
+          successCount++;
+        } catch (error: any) {
+          errorCount++;
+          errors.push(`Row ${i + 1}: ${error.message || 'Invalid employee data'}`);
+          console.error(`Error creating employee ${i + 1}:`, error);
+        }
+      }
+      
+      res.status(201).json({
+        successCount,
+        errorCount,
+        totalProcessed: employees.length,
+        errors: errors.slice(0, 10), // Limit errors to first 10 for response size
+      });
+    } catch (error) {
+      console.error("Error in bulk employee creation:", error);
+      res.status(500).json({ error: "Internal server error during bulk creation" });
+    }
+  });
+
   app.put("/api/employees/:id", async (req, res) => {
     try {
       const employeeId = parseInt(req.params.id);

@@ -78,6 +78,13 @@ class ApiClient {
     });
   }
 
+  async bulkCreateEmployees(employees: any[]) {
+    return this.request('/employees/bulk', {
+      method: 'POST',
+      data: { employees },
+    });
+  }
+
   // Dashboard user methods
   async getDashboardUsers() {
     return this.request('/dashboard-users');

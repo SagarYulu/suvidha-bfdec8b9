@@ -19,7 +19,9 @@ import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, RotateCcw, X, Trash2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Search, RotateCcw, X, Trash2, Upload, Download, Edit, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import AdminLayout from '@/components/AdminLayout';
 
 // Types for our data
@@ -57,6 +59,33 @@ interface MasterRole {
   name: string;
 }
 
+// Bulk upload interfaces
+interface BulkUploadRow {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  empId: string;
+  city: string;
+  cluster: string;
+  manager: string;
+  role: string;
+  dateOfJoining: string;
+  dateOfBirth: string;
+  bloodGroup: string;
+  accountNumber: string;
+  ifscCode: string;
+  password: string;
+  isValid: boolean;
+  errors: string[];
+  isEditing: boolean;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
 // Form schema for adding new users
 const addUserSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -92,6 +121,14 @@ const Users = () => {
   const [masterRoles, setMasterRoles] = useState<MasterRole[]>([]);
   const [filteredClusters, setFilteredClusters] = useState<MasterCluster[]>([]);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  
+  // Bulk upload state
+  const [bulkUploadData, setBulkUploadData] = useState<BulkUploadRow[]>([]);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [uploadStep, setUploadStep] = useState<'file' | 'validate' | 'edit' | 'confirm'>('file');
+  const [bulkUploadLoading, setBulkUploadLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
 
   const form = useForm<AddUserFormData>({
     resolver: zodResolver(addUserSchema),
@@ -260,7 +297,223 @@ const Users = () => {
     }
   };
 
+  // Bulk upload functions
+  const downloadTemplate = () => {
+    const csvTemplate = `name,email,phone,empId,city,cluster,manager,role,dateOfJoining,dateOfBirth,bloodGroup,accountNumber,ifscCode,password
+John Doe,john.doe@yulu.bike,9876543210,EMP999,Bangalore,Koramangala,Manager Name,Mechanic,2024-01-15,1990-05-20,O+,1234567890,SBIN0001234,password123
+Jane Smith,jane.smith@yulu.bike,9876543211,EMP998,Mumbai,Andheri,Manager Name,Pilot,2024-01-20,1992-08-15,A+,9876543210,HDFC0001234,password456`;
+    
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'employee_template.csv';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
 
+  const parseCSV = (csvText: string): BulkUploadRow[] => {
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    const rows: BulkUploadRow[] = [];
+    
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      const row: BulkUploadRow = {
+        id: `row-${i}`,
+        name: values[0] || '',
+        email: values[1] || '',
+        phone: values[2] || '',
+        empId: values[3] || '',
+        city: values[4] || '',
+        cluster: values[5] || '',
+        manager: values[6] || '',
+        role: values[7] || '',
+        dateOfJoining: values[8] || '',
+        dateOfBirth: values[9] || '',
+        bloodGroup: values[10] || '',
+        accountNumber: values[11] || '',
+        ifscCode: values[12] || '',
+        password: values[13] || '',
+        isValid: true,
+        errors: [],
+        isEditing: false,
+      };
+      
+      rows.push(row);
+    }
+    
+    return rows;
+  };
+
+  const validateRow = (row: BulkUploadRow): ValidationResult => {
+    const errors: string[] = [];
+    
+    if (!row.name) errors.push('Name is required');
+    if (!row.email) errors.push('Email is required');
+    if (!row.phone) errors.push('Phone is required');
+    if (!row.empId) errors.push('Employee ID is required');
+    if (!row.city) errors.push('City is required');
+    if (!row.cluster) errors.push('Cluster is required');
+    if (!row.manager) errors.push('Manager is required');
+    if (!row.role) errors.push('Role is required');
+    if (!row.dateOfJoining) errors.push('Date of joining is required');
+    if (!row.dateOfBirth) errors.push('Date of birth is required');
+    if (!row.password) errors.push('Password is required');
+    
+    // Email validation
+    if (row.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.email)) {
+      errors.push('Invalid email format');
+    }
+    
+    // Phone validation
+    if (row.phone && !/^\d{10}$/.test(row.phone)) {
+      errors.push('Phone must be 10 digits');
+    }
+    
+    return { isValid: errors.length === 0, errors };
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    if (file.type !== 'text/csv') {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please upload a CSV file',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvText = e.target?.result as string;
+      const parsedData = parseCSV(csvText);
+      
+      // Validate all rows
+      const validatedData = parsedData.map(row => {
+        const validation = validateRow(row);
+        return {
+          ...row,
+          isValid: validation.isValid,
+          errors: validation.errors,
+        };
+      });
+      
+      setBulkUploadData(validatedData);
+      setUploadStep('validate');
+    };
+    reader.readAsText(file);
+  };
+
+  const updateRowField = (rowId: string, field: keyof BulkUploadRow, value: string) => {
+    setBulkUploadData(prevData => 
+      prevData.map(row => {
+        if (row.id === rowId) {
+          const updatedRow = { ...row, [field]: value };
+          const validation = validateRow(updatedRow);
+          return {
+            ...updatedRow,
+            isValid: validation.isValid,
+            errors: validation.errors,
+          };
+        }
+        return row;
+      })
+    );
+  };
+
+  const toggleRowEdit = (rowId: string) => {
+    setBulkUploadData(prevData => 
+      prevData.map(row => 
+        row.id === rowId 
+          ? { ...row, isEditing: !row.isEditing }
+          : row
+      )
+    );
+  };
+
+  const handleBulkUpload = async () => {
+    if (!acceptedDisclaimer) {
+      toast({
+        title: 'Please accept the disclaimer',
+        description: 'You must accept the disclaimer before uploading',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const validRows = bulkUploadData.filter(row => row.isValid);
+    if (validRows.length === 0) {
+      toast({
+        title: 'No valid rows',
+        description: 'Please fix all validation errors before uploading',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setBulkUploadLoading(true);
+    
+    try {
+      const employeesData = validRows.map(row => ({
+        name: row.name,
+        email: row.email,
+        phone: row.phone,
+        empId: row.empId,
+        city: row.city,
+        cluster: row.cluster,
+        manager: row.manager,
+        role: row.role,
+        dateOfJoining: row.dateOfJoining,
+        dateOfBirth: row.dateOfBirth,
+        bloodGroup: row.bloodGroup,
+        accountNumber: row.accountNumber,
+        ifscCode: row.ifscCode,
+        password: row.password,
+      }));
+      
+      const response = await apiClient.bulkCreateEmployees(employeesData);
+      const result = response as any;
+      
+      setBulkUploadLoading(false);
+      
+      toast({
+        title: 'Upload completed',
+        description: `${result.successCount || 0} employees created successfully${result.errorCount > 0 ? `, ${result.errorCount} failed` : ''}`,
+      });
+      
+      // Reset bulk upload state
+      setBulkUploadData([]);
+      setCsvFile(null);
+      setUploadStep('file');
+      setAcceptedDisclaimer(false);
+      
+      // Refresh employees list
+      fetchEmployees();
+      
+    } catch (error: any) {
+      setBulkUploadLoading(false);
+      console.error('Error in bulk upload:', error);
+      toast({
+        title: 'Upload failed',
+        description: error.message || 'Failed to upload employees. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const resetBulkUpload = () => {
+    setBulkUploadData([]);
+    setCsvFile(null);
+    setUploadStep('file');
+    setAcceptedDisclaimer(false);
+    setValidationErrors([]);
+  };
 
   useEffect(() => {
     fetchEmployees();
@@ -671,9 +924,260 @@ const Users = () => {
               </TabsContent>
 
               <TabsContent value="bulk" className="space-y-4">
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Bulk upload functionality coming soon...</p>
-                </div>
+                {/* Step 1: File Upload */}
+                {uploadStep === 'file' && (
+                  <div className="space-y-4">
+                    <div className="text-center">
+                      <h3 className="text-lg font-semibold mb-2">Upload Employee Data</h3>
+                      <p className="text-gray-600 mb-4">
+                        Upload a CSV file with employee information to add multiple users at once.
+                      </p>
+                    </div>
+                    
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>Important:</strong> Please download the template file first to ensure proper formatting.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="flex flex-col items-center space-y-4">
+                      <Button 
+                        onClick={downloadTemplate} 
+                        variant="outline" 
+                        className="flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download CSV Template
+                      </Button>
+                      
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                        <Upload className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                        <p className="text-gray-600 mb-4">
+                          Drop your CSV file here or click to browse
+                        </p>
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                          id="csv-upload"
+                        />
+                        <label
+                          htmlFor="csv-upload"
+                          className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 inline-block"
+                        >
+                          Choose CSV File
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 2: Validation Results */}
+                {uploadStep === 'validate' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Validation Results</h3>
+                      <Button
+                        onClick={resetBulkUpload}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Start Over
+                      </Button>
+                    </div>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <span className="text-sm font-medium">
+                          Total Rows: {bulkUploadData.length}
+                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-green-600 flex items-center gap-1">
+                            <CheckCircle className="h-4 w-4" />
+                            Valid: {bulkUploadData.filter(row => row.isValid).length}
+                          </span>
+                          <span className="text-sm text-red-600 flex items-center gap-1">
+                            <XCircle className="h-4 w-4" />
+                            Invalid: {bulkUploadData.filter(row => !row.isValid).length}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="border rounded-lg max-h-96 overflow-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Phone</TableHead>
+                            <TableHead>Employee ID</TableHead>
+                            <TableHead>City</TableHead>
+                            <TableHead>Cluster</TableHead>
+                            <TableHead>Errors</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {bulkUploadData.map((row) => (
+                            <TableRow key={row.id} className={row.isValid ? 'bg-green-50' : 'bg-red-50'}>
+                              <TableCell>
+                                {row.isValid ? (
+                                  <CheckCircle className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-red-600" />
+                                )}
+                              </TableCell>
+                              <TableCell>{row.name}</TableCell>
+                              <TableCell>{row.email}</TableCell>
+                              <TableCell>{row.phone}</TableCell>
+                              <TableCell>{row.empId}</TableCell>
+                              <TableCell>{row.city}</TableCell>
+                              <TableCell>{row.cluster}</TableCell>
+                              <TableCell>
+                                {row.errors.length > 0 && (
+                                  <ul className="text-sm text-red-600">
+                                    {row.errors.map((error, index) => (
+                                      <li key={index}>• {error}</li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  onClick={() => toggleRowEdit(row.id)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="flex items-center gap-1"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                  Edit
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button
+                        onClick={() => setUploadStep('file')}
+                        variant="outline"
+                      >
+                        Back to Upload
+                      </Button>
+                      <Button
+                        onClick={() => setUploadStep('confirm')}
+                        disabled={bulkUploadData.filter(row => row.isValid).length === 0}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Continue to Upload ({bulkUploadData.filter(row => row.isValid).length} valid rows)
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Confirmation and Disclaimer */}
+                {uploadStep === 'confirm' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">Confirm Upload</h3>
+                      <Button
+                        onClick={resetBulkUpload}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <X className="h-4 w-4" />
+                        Cancel
+                      </Button>
+                    </div>
+                    
+                    <Alert>
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        <strong>IMPORTANT DISCLAIMER:</strong>
+                        <br />
+                        You are about to add {bulkUploadData.filter(row => row.isValid).length} new employees to the system.
+                        <br />
+                        <br />
+                        Please confirm that:
+                        <ul className="list-disc ml-6 mt-2 space-y-1">
+                          <li>All employee data has been verified and is accurate</li>
+                          <li>You have proper authorization to add these employees</li>
+                          <li>The uploaded data complies with company policies</li>
+                          <li>Email addresses are valid and belong to the respective employees</li>
+                          <li>Employee IDs are unique and follow company naming conventions</li>
+                        </ul>
+                        <br />
+                        <strong>This action cannot be undone.</strong> Once uploaded, these employees will be added to the system and will be able to access the mobile application.
+                      </AlertDescription>
+                    </Alert>
+                    
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-medium mb-2">Summary:</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Total Valid Rows:</span> {bulkUploadData.filter(row => row.isValid).length}
+                        </div>
+                        <div>
+                          <span className="font-medium">Total Invalid Rows:</span> {bulkUploadData.filter(row => !row.isValid).length} (will be skipped)
+                        </div>
+                        <div>
+                          <span className="font-medium">Cities:</span> {
+                            bulkUploadData
+                              .filter(row => row.isValid)
+                              .map(row => row.city)
+                              .filter((city, index, array) => array.indexOf(city) === index)
+                              .join(', ')
+                          }
+                        </div>
+                        <div>
+                          <span className="font-medium">Roles:</span> {
+                            bulkUploadData
+                              .filter(row => row.isValid)
+                              .map(row => row.role)
+                              .filter((role, index, array) => array.indexOf(role) === index)
+                              .join(', ')
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="disclaimer"
+                        checked={acceptedDisclaimer}
+                        onCheckedChange={(checked) => setAcceptedDisclaimer(checked as boolean)}
+                      />
+                      <label htmlFor="disclaimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        I have read and accept the disclaimer above. I confirm that I have the authority to add these employees.
+                      </label>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <Button
+                        onClick={() => setUploadStep('validate')}
+                        variant="outline"
+                      >
+                        Back to Review
+                      </Button>
+                      <Button
+                        onClick={handleBulkUpload}
+                        disabled={!acceptedDisclaimer || bulkUploadLoading}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        {bulkUploadLoading ? 'Uploading...' : 'Upload Employees'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           </DialogContent>
