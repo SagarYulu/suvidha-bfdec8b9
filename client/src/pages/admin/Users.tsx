@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { apiClient } from '@/services/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, User, UserCheck } from 'lucide-react';
+import { Plus, User, UserCheck, Users as UsersIcon } from 'lucide-react';
 
 // Form schemas
 const employeeSchema = z.object({
@@ -169,7 +169,7 @@ export default function Users() {
         <Tabs defaultValue="employees" className="space-y-4">
           <TabsList>
             <TabsTrigger value="employees" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+              <UsersIcon className="h-4 w-4" />
               Employees ({employees.length})
             </TabsTrigger>
             <TabsTrigger value="dashboard-users" className="flex items-center gap-2">
