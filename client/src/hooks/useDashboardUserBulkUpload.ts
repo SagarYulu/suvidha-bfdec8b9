@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { parseCSVDashboardUsers } from '@/utils/csvDashboardUsersParser';
 import { CSVDashboardUserData, DashboardUserRowData } from '@/types/dashboardUsers';
+import authenticatedAxios from '@/services/authenticatedAxios';
 // Removed Supabase import - using PostgreSQL API
 
 type ValidationResults = {
@@ -58,19 +59,8 @@ const useDashboardUserBulkUpload = (onUploadSuccess?: () => void) => {
 
   const insertDashboardUsers = async (users: any[]) => {
     // Use bulk insert API endpoint
-    const response = await fetch('/api/dashboard-users/bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ users }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`Error inserting dashboard users: ${errorData.error}`);
-    }
-    return await response.json();
+    const response = await authenticatedAxios.post('/api/dashboard-users/bulk', { users });
+    return response.data;
   };
 
   const handleUploadEditedRows = async () => {

@@ -1,5 +1,6 @@
 import { format, subDays, subWeeks, subMonths, subQuarters, subYears } from "date-fns";
 import { ComparisonMode } from "@/components/admin/sentiment/ComparisonModeDropdown";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 export type FeedbackSentiment = 'happy' | 'neutral' | 'sad';
 
@@ -121,13 +122,9 @@ export const fetchFeedbackData = async (filters: FeedbackFilters): Promise<Feedb
     }
     
     // Make API call to get feedback data
-    const response = await fetch(`/api/ticket-feedback?${queryParams.toString()}`);
+    const response = await authenticatedAxios.get(`/api/ticket-feedback?${queryParams.toString()}`);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch feedback data: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     
     if (!data || data.length === 0) {
       console.log("No feedback data found for the given filters");
@@ -195,13 +192,9 @@ export const fetchClosedTicketsCount = async (filters: FeedbackFilters): Promise
     }
     
     // Make API call to get issues count
-    const response = await fetch(`/api/issues/count?${queryParams.toString()}`);
+    const response = await authenticatedAxios.get(`/api/issues/count?${queryParams.toString()}`);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch closed tickets count: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     
     return data.count || 0;
   } catch (err) {
@@ -234,13 +227,9 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     }
     
     // First, fetch all agents who have closed tickets in the selected period
-    const response = await fetch(`/api/issues?${queryParams.toString()}`);
+    const response = await authenticatedAxios.get(`/api/issues?${queryParams.toString()}`);
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch agent closed tickets: ${response.statusText}`);
-    }
-    
-    const closedTicketsData = await response.json();
+    const closedTicketsData = response.data;
     
     if (!closedTicketsData || closedTicketsData.length === 0) {
       return [];
@@ -258,13 +247,9 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     });
     
     // Now fetch feedback data
-    const feedbackResponse = await fetch(`/api/ticket-feedback`);
+    const feedbackResponse = await authenticatedAxios.get(`/api/ticket-feedback`);
     
-    if (!feedbackResponse.ok) {
-      throw new Error(`Failed to fetch feedback data: ${feedbackResponse.statusText}`);
-    }
-    
-    const feedbackData = await feedbackResponse.json();
+    const feedbackData = feedbackResponse.data;
     
     // Group feedback by agent
     const agentFeedbacks: Record<string, { count: number, name: string }> = {};
@@ -282,20 +267,18 @@ export const fetchAgentFeedbackStats = async (filters: FeedbackFilters): Promise
     const missingNameAgents = agentIds.filter(id => !agentFeedbacks[id] || !agentFeedbacks[id].name);
     
     if (missingNameAgents.length > 0) {
-      const agentResponse = await fetch(`/api/dashboard-users`);
+      const agentResponse = await authenticatedAxios.get(`/api/dashboard-users`);
       
-      if (agentResponse.ok) {
-        const agentData = await agentResponse.json();
-        agentData.forEach((agent: any) => {
-          if (missingNameAgents.includes(String(agent.id))) {
-            if (!agentFeedbacks[String(agent.id)]) {
-              agentFeedbacks[String(agent.id)] = { count: 0, name: agent.name };
-            } else if (!agentFeedbacks[String(agent.id)].name) {
-              agentFeedbacks[String(agent.id)].name = agent.name;
-            }
+      const agentData = agentResponse.data;
+      agentData.forEach((agent: any) => {
+        if (missingNameAgents.includes(String(agent.id))) {
+          if (!agentFeedbacks[String(agent.id)]) {
+            agentFeedbacks[String(agent.id)] = { count: 0, name: agent.name };
+          } else if (!agentFeedbacks[String(agent.id)].name) {
+            agentFeedbacks[String(agent.id)].name = agent.name;
           }
-        });
-      }
+        }
+      });
     }
     
     // Combine the data

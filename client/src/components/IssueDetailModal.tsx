@@ -8,6 +8,7 @@ import { FeedbackWidget } from './FeedbackWidget';
 import { MessageCircle, Clock, User, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import EscalationPanel from '@/components/admin/issues/EscalationPanel';
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 interface Issue {
   id: string;
@@ -56,19 +57,10 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
   const fetchIssueDetails = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIssue(data.issue);
-        setComments(data.comments || []);
-      } else {
-        toast.error('Failed to fetch issue details');
-      }
+      const response = await authenticatedAxios.get(`/api/issues/${issueId}`);
+      const data = response.data;
+      setIssue(data.issue);
+      setComments(data.comments || []);
     } catch (error) {
       console.error('Error fetching issue details:', error);
       toast.error('Failed to fetch issue details');
@@ -82,25 +74,14 @@ export const IssueDetailModal: React.FC<IssueDetailModalProps> = ({
 
     setIsSubmittingComment(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          content: newComment
-        })
+      const response = await authenticatedAxios.post(`/api/issues/${issueId}/comments`, {
+        content: newComment
       });
 
-      if (response.ok) {
-        const newCommentData = await response.json();
-        setComments(prev => [...prev, newCommentData]);
-        setNewComment('');
-        toast.success('Comment added successfully');
-      } else {
-        toast.error('Failed to add comment');
-      }
+      const newCommentData = response.data;
+      setComments(prev => [...prev, newCommentData]);
+      setNewComment('');
+      toast.success('Comment added successfully');
     } catch (error) {
       console.error('Error adding comment:', error);
       toast.error('Failed to add comment');

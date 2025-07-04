@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Download, FileText, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 interface ExportDialogProps {
   isOpen: boolean;
@@ -41,16 +42,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
         ...(priority && { priority })
       });
 
-      const response = await fetch(`/api/export/${exportType}?${params}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Export failed');
-      }
+      const response = await authenticatedAxios.get(`/api/export/${exportType}?${params}`);
 
       // Get filename from response headers or create default
       const contentDisposition = response.headers.get('content-disposition');

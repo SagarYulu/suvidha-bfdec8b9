@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { AlertTriangle, Clock, ArrowUp, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 interface EscalationHistory {
   id: string;
@@ -76,28 +77,12 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
     setIsLoading(true);
     try {
       // Fetch escalation history
-      const historyResponse = await fetch(`/api/escalations/${issueId}/history`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (historyResponse.ok) {
-        const history = await historyResponse.json();
-        setEscalationHistory(history.data || []);
-      }
+      const historyResponse = await authenticatedAxios.get(`/api/escalations/${issueId}/history`);
+      setEscalationHistory(historyResponse.data.data || []);
 
       // Fetch escalation rules
-      const rulesResponse = await fetch('/api/escalations/rules', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (rulesResponse.ok) {
-        const rules = await rulesResponse.json();
-        setEscalationRules(rules.data || []);
-      }
+      const rulesResponse = await authenticatedAxios.get('/api/escalations/rules');
+      setEscalationRules(rulesResponse.data.data || []);
     } catch (error) {
       console.error('Error fetching escalation data:', error);
       toast.error('Failed to load escalation data');
@@ -140,29 +125,17 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
 
     setIsEscalating(true);
     try {
-      const response = await fetch(`/api/escalations/${issueId}/escalate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          escalation_rule_id: selectedRule,
-          reason: escalationReason,
-          escalate_to: 'manual'
-        })
+      const response = await authenticatedAxios.post(`/api/escalations/${issueId}/escalate`, {
+        escalation_rule_id: selectedRule,
+        reason: escalationReason,
+        escalate_to: 'manual'
       });
-
-      if (response.ok) {
-        toast.success('Issue escalated successfully');
-        setEscalationReason('');
-        setSelectedRule('');
-        fetchEscalationData();
-        onEscalationChange?.();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to escalate issue');
-      }
+      
+      toast.success('Issue escalated successfully');
+      setEscalationReason('');
+      setSelectedRule('');
+      fetchEscalationData();
+      onEscalationChange?.();
     } catch (error) {
       console.error('Error escalating issue:', error);
       toast.error('Failed to escalate issue');
@@ -173,25 +146,13 @@ export const EscalationPanel: React.FC<EscalationPanelProps> = ({
 
   const handleDeEscalation = async () => {
     try {
-      const response = await fetch(`/api/escalations/${issueId}/de-escalate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          reason: 'Manual de-escalation'
-        })
+      const response = await authenticatedAxios.post(`/api/escalations/${issueId}/de-escalate`, {
+        reason: 'Manual de-escalation'
       });
 
-      if (response.ok) {
-        toast.success('Issue de-escalated successfully');
-        fetchEscalationData();
-        onEscalationChange?.();
-      } else {
-        const error = await response.json();
-        toast.error(error.error || 'Failed to de-escalate issue');
-      }
+      toast.success('Issue de-escalated successfully');
+      fetchEscalationData();
+      onEscalationChange?.();
     } catch (error) {
       console.error('Error de-escalating issue:', error);
       toast.error('Failed to de-escalate issue');

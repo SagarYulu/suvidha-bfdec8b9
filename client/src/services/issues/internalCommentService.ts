@@ -35,17 +35,15 @@ async function getUserInfo(userUuid: string) {
   try {
     // Check dashboard users first
     try {
-      const dashboardResponse = await fetch(`/api/dashboard-users/${userUuid}`);
-      if (dashboardResponse.ok) {
-        const dashboardUser = await dashboardResponse.json();
-        if (dashboardUser && dashboardUser.name) {
-          return {
-            name: dashboardUser.name,
-            role: dashboardUser.role,
-            id: userUuid,
-            email: dashboardUser.email
-          };
-        }
+      const dashboardResponse = await authenticatedAxios.get(`/api/dashboard-users/${userUuid}`);
+      const dashboardUser = dashboardResponse.data;
+      if (dashboardUser && dashboardUser.name) {
+        return {
+          name: dashboardUser.name,
+          role: dashboardUser.role,
+          id: userUuid,
+          email: dashboardUser.email
+        };
       }
     } catch (error) {
       // Continue to check employees
@@ -53,17 +51,15 @@ async function getUserInfo(userUuid: string) {
 
     // Then check employees
     try {
-      const employeeResponse = await fetch(`/api/employees/${userUuid}`);
-      if (employeeResponse.ok) {
-        const employee = await employeeResponse.json();
-        if (employee && employee.name) {
-          return {
-            name: employee.name,
-            role: employee.role,
-            id: userUuid,
-            email: employee.email
-          };
-        }
+      const employeeResponse = await authenticatedAxios.get(`/api/employees/${userUuid}`);
+      const employee = employeeResponse.data;
+      if (employee && employee.name) {
+        return {
+          name: employee.name,
+          role: employee.role,
+          id: userUuid,
+          email: employee.email
+        };
       }
     } catch (error) {
       console.error('Error fetching employee info:', error);

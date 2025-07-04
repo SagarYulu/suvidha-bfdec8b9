@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { User, Clock, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 interface User {
   id: string;
@@ -40,18 +41,8 @@ export const AssignmentFlow: React.FC<AssignmentFlowProps> = ({
   const fetchAvailableUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/users/available-for-assignment?priority=${priority}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const users = await response.json();
-        setAvailableUsers(users);
-      } else {
-        toast.error('Failed to fetch available users');
-      }
+      const response = await authenticatedAxios.get(`/api/users/available-for-assignment?priority=${priority}`);
+      setAvailableUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch available users');
@@ -68,23 +59,12 @@ export const AssignmentFlow: React.FC<AssignmentFlowProps> = ({
 
     setIsAssigning(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}/assign`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          assigned_to: selectedAssignee
-        })
+      const response = await authenticatedAxios.post(`/api/issues/${issueId}/assign`, {
+        assigned_to: selectedAssignee
       });
 
-      if (response.ok) {
-        toast.success('Issue assigned successfully');
-        onAssignmentChange?.(selectedAssignee);
-      } else {
-        toast.error('Failed to assign issue');
-      }
+      toast.success('Issue assigned successfully');
+      onAssignmentChange?.(selectedAssignee);
     } catch (error) {
       console.error('Error assigning issue:', error);
       toast.error('Failed to assign issue');
@@ -96,24 +76,15 @@ export const AssignmentFlow: React.FC<AssignmentFlowProps> = ({
   const handleAutoAssign = async () => {
     setIsAssigning(true);
     try {
-      const response = await fetch(`/api/issues/${issueId}/auto-assign`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.assignee) {
-          setSelectedAssignee(result.assignee.id);
-          toast.success(`Auto-assigned to ${result.assignee.name}`);
-          onAssignmentChange?.(result.assignee.id);
-        } else {
-          toast.error('No suitable assignee found for auto-assignment');
-        }
+      const response = await authenticatedAxios.post(`/api/issues/${issueId}/auto-assign`);
+      
+      const result = response.data;
+      if (result.assignee) {
+        setSelectedAssignee(result.assignee.id);
+        toast.success(`Auto-assigned to ${result.assignee.name}`);
+        onAssignmentChange?.(result.assignee.id);
       } else {
-        toast.error('Failed to auto-assign issue');
+        toast.error('No suitable assignee found for auto-assignment');
       }
     } catch (error) {
       console.error('Error auto-assigning issue:', error);

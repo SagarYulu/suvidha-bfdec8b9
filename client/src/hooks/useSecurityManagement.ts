@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardUser } from '@/types/dashboardUsers';
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 const useSecurityManagement = () => {
   const { authState } = useAuth();
@@ -73,14 +74,9 @@ const useSecurityManagement = () => {
   const fetchDashboardUsers = async () => {
     try {
       console.log("Fetching dashboard users...");
-      const response = await fetch('/api/dashboard-users');
+      const response = await authenticatedAxios.get('/api/dashboard-users');
       
-      if (!response.ok) {
-        console.error("Error fetching dashboard users:", response.statusText);
-        throw new Error("Failed to fetch dashboard users");
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       
       console.log("Dashboard users fetched:", data?.length || 0);
       return data;
@@ -93,14 +89,9 @@ const useSecurityManagement = () => {
   // Fetch audit logs
   const fetchAuditLogs = async () => {
     try {
-      const response = await fetch('/api/audit-logs?limit=50');
+      const response = await authenticatedAxios.get('/api/audit-logs?limit=50');
       
-      if (!response.ok) {
-        console.error("Error fetching audit logs:", response.statusText);
-        throw new Error("Failed to fetch audit logs");
-      }
-      
-      const data = await response.json();
+      const data = response.data;
       
       return data;
     } catch (error) {

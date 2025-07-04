@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import authenticatedAxios from '@/services/authenticatedAxios';
 import { 
   analyzeSentiment, 
   submitSentiment, 
@@ -372,13 +373,9 @@ export const useSentiment = () => {
   // Helper function to fetch employee data when city/cluster is not available
   const fetchEmployeeData = async (userId: string) => {
     try {
-      const response = await fetch(`/api/employees/${userId}`);
-      if (!response.ok) {
-        return { data: null, error: { message: response.statusText } };
-      }
+      const response = await authenticatedAxios.get(`/api/employees/${userId}`);
       
-      const data = await response.json();
-      return { data, error: null };
+      return { data: response.data, error: null };
     } catch (error) {
       console.error("Error in fetchEmployeeData:", error);
       return { data: null, error };

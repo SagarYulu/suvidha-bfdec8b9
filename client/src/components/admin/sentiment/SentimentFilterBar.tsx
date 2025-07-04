@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { CalendarIcon, ChevronDown, X } from 'lucide-react';
+import authenticatedAxios from '@/services/authenticatedAxios';
 import {
   Popover,
   PopoverContent,
@@ -46,11 +47,8 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   const { data: cities, isLoading: loadingCities } = useQuery({
     queryKey: ['cities'],
     queryFn: async () => {
-      const response = await fetch('/api/master-cities');
-      if (!response.ok) {
-        throw new Error('Failed to fetch cities');
-      }
-      return await response.json();
+      const response = await authenticatedAxios.get('/api/master-cities');
+      return response.data;
     }
   });
 
@@ -60,11 +58,8 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
     queryFn: async () => {
       if (!city || city === 'all-cities') return [];
       
-      const response = await fetch(`/api/master-clusters?city_id=${city}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch clusters');
-      }
-      return await response.json();
+      const response = await authenticatedAxios.get(`/api/master-clusters?city_id=${city}`);
+      return response.data;
     },
     enabled: !!city && city !== 'all-cities'
   });
@@ -73,11 +68,8 @@ const SentimentFilterBar: React.FC<SentimentFilterBarProps> = ({ onFilterChange 
   const { data: roles, isLoading: loadingRoles } = useQuery({
     queryKey: ['roles'],
     queryFn: async () => {
-      const response = await fetch('/api/master-roles');
-      if (!response.ok) {
-        throw new Error('Failed to fetch roles');
-      }
-      return await response.json();
+      const response = await authenticatedAxios.get('/api/master-roles');
+      return response.data;
     }
   });
 

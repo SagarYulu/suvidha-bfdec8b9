@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, ChevronDown, BarChartHorizontalBig, BarChart3, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import ComparisonModeDropdown from '../sentiment/ComparisonModeDropdown';
+import authenticatedAxios from '@/services/authenticatedAxios';
 import { ComparisonMode } from '../sentiment/ComparisonModeDropdown';
 import { CITY_OPTIONS, CLUSTER_OPTIONS } from "@/data/formOptions";
 
@@ -46,12 +47,9 @@ const FeedbackFiltersPanel: React.FC<FeedbackFiltersPanelProps> = ({
   useEffect(() => {
     const fetchAgents = async () => {
       try {
-        const response = await fetch('/api/dashboard-users');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch agents: ${response.statusText}`);
-        }
+        const response = await authenticatedAxios.get('/api/dashboard-users');
         
-        const data = await response.json();
+        const data = response.data;
         const formattedAgents = data.map((user: any) => ({
           id: String(user.id),
           name: user.name
