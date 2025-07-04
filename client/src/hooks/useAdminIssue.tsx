@@ -56,7 +56,7 @@ export const useAdminIssue = (issueId?: string) => {
     handleAddInternalComment,
     canViewInternalComments,
     canAddInternalComments
-  } = useInternalComments(issueId, currentAssigneeId ? String(currentAssigneeId) : undefined);
+  } = useInternalComments(issueId, currentAssigneeId ? String(currentAssigneeId) : null);
   
   // Handle issue reopening
   const {

@@ -19,7 +19,7 @@ export const updateIssueStatus = async (
     // Get performer info (the person updating the status)
     let performerInfo = { name: "Unknown User", role: "Unknown" };
     try {
-      const performerResponse = await authenticatedAxios.get(`/api/dashboard-users/${userId}`);
+      const performerResponse = await authenticatedAxios.get(`/dashboard-users/${userId}`);
       performerInfo = {
         name: performerResponse.data?.name || "Unknown User",
         role: performerResponse.data?.role || "Unknown"
@@ -30,7 +30,7 @@ export const updateIssueStatus = async (
 
     // Update the issue status
     try {
-      await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+      await authenticatedAxios.patch(`/issues/${issueId}`, {
         status: newStatus,
         closedAt: newStatus === 'closed' || newStatus === 'resolved' ? new Date().toISOString() : null,
         lastStatusChangeAt: new Date().toISOString()

@@ -26,7 +26,7 @@ export const logAuditTrail = async (
     const userInfo = await getUserInfoForAudit(numericEmployeeId);
 
     // Insert the audit trail entry
-    const response = await authenticatedAxios.post('/api/issue-audit-trail', {
+    const response = await authenticatedAxios.post('/issue-audit-trail', {
       issueId: numericIssueId,
       employeeId: numericEmployeeId,
       action,
@@ -99,7 +99,7 @@ async function getUserInfoForAudit(employeeId: number): Promise<{name: string, r
 export const getAuditTrail = async (issueId: string | number) => {
   try {
     const numericIssueId = Number(issueId);
-    const response = await authenticatedAxios.get(`/api/issues/${numericIssueId}/audit-trail`);
+    const response = await authenticatedAxios.get(`/issues/${numericIssueId}/audit-trail`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching audit trail:', error);

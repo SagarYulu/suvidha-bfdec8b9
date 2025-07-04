@@ -27,7 +27,7 @@ export interface UserRole {
 // Get all roles
 export const getRoles = async (): Promise<Role[]> => {
   try {
-    const response = await authenticatedAxios.get('/api/rbac/roles');
+    const response = await authenticatedAxios.get('/rbac/roles');
     return response.data || [];
   } catch (error) {
     console.error('Error fetching roles:', error);
@@ -38,7 +38,7 @@ export const getRoles = async (): Promise<Role[]> => {
 // Get all permissions
 export const getPermissions = async (): Promise<Permission[]> => {
   try {
-    const response = await authenticatedAxios.get('/api/rbac/permissions');
+    const response = await authenticatedAxios.get('/rbac/permissions');
     return response.data || [];
   } catch (error) {
     console.error('Error fetching permissions:', error);
@@ -49,7 +49,7 @@ export const getPermissions = async (): Promise<Permission[]> => {
 // Get role permissions
 export const getRolePermissions = async (roleId: number): Promise<Permission[]> => {
   try {
-    const response = await authenticatedAxios.get(`/api/rbac/roles/${roleId}/permissions`);
+    const response = await authenticatedAxios.get(`/rbac/roles/${roleId}/permissions`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching role permissions:', error);
@@ -60,7 +60,7 @@ export const getRolePermissions = async (roleId: number): Promise<Permission[]> 
 // Get user roles
 export const getUserRoles = async (userId: number): Promise<Role[]> => {
   try {
-    const response = await authenticatedAxios.get(`/api/rbac/users/${userId}/roles`);
+    const response = await authenticatedAxios.get(`/rbac/users/${userId}/roles`);
     return response.data || [];
   } catch (error) {
     console.error('Error fetching user roles:', error);
