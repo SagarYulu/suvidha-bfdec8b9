@@ -68,27 +68,8 @@ const Login = () => {
     try {
       console.log("Attempting to login to admin dashboard with:", email);
       
-      // Before attempting to login, check if these are demo credentials
-      // and try to get the actual UUID from the database
-      if (email === 'admin@yulu.com' && password === 'admin123') {
-        
-        // Look up actual user in dashboard_users table
-        console.log("Demo credential detected, checking for actual user record");
-        
-        try {
-          const dashboardUsers = await apiClient.getDashboardUsers() as any[];
-          const dashboardUser = dashboardUsers.find((u: any) => u.email === email.toLowerCase());
-          
-          if (dashboardUser) {
-            console.log("Found actual dashboard user record:", dashboardUser.id);
-            // We'll let the login process continue, and the auth service will handle this
-          } else {
-            console.log("No matching dashboard user found in database");
-          }
-        } catch (e) {
-          console.error("Error checking dashboard users:", e);
-        }
-      }
+      // Direct login without pre-validation - JWT API will handle authentication
+      console.log("Proceeding with JWT login");
       
       // Try login through authContext
       const success = await signIn(email, password);
