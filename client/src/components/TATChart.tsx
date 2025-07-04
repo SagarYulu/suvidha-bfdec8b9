@@ -47,19 +47,8 @@ export const TATChart: React.FC<TATChartProps> = ({ filters = {} }) => {
       if (filters.city) queryParams.append('city', filters.city);
       if (filters.cluster) queryParams.append('cluster', filters.cluster);
 
-      const response = await fetch(`/api/analytics/tat-metrics?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const tatData = await response.json();
-        setData(tatData);
-      } else {
-        console.error('Failed to fetch TAT data');
-        toast.error('Failed to load TAT analytics');
-      }
+      const response = await authenticatedAxios.get(`/api/analytics/tat-metrics?${queryParams.toString()}`);
+      setData(response.data);
     } catch (error) {
       console.error('Error fetching TAT data:', error);
       toast.error('Failed to load TAT analytics');

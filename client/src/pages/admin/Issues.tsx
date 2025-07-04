@@ -85,7 +85,7 @@ const AdminIssues = () => {
         setFilteredIssues(fetchedIssues);
         
         // Use the utility to map employee UUIDs to names
-        const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid);
+        const employeeUuids = fetchedIssues.map(issue => issue.employeeUuid).filter((uuid): uuid is string => uuid !== undefined);
         const names = await mapEmployeeUuidsToNames(employeeUuids);
         
         // Add current admin user to the names list for future comments
@@ -96,7 +96,7 @@ const AdminIssues = () => {
         setUserNames(names);
         
         // Fetch feedback statuses for all issues
-        const issueIds = fetchedIssues.map(issue => issue.id);
+        const issueIds = fetchedIssues.map(issue => issue.id.toString());
         const feedbackStatus = await getMultipleFeedbackStatuses(issueIds);
         setFeedbackStatuses(feedbackStatus);
         
@@ -122,7 +122,7 @@ const AdminIssues = () => {
         setFilteredAssignedIssues(fetchedAssignedIssues);
         
         // Fetch feedback statuses for assigned issues
-        const assignedIssueIds = fetchedAssignedIssues.map(issue => issue.id);
+        const assignedIssueIds = fetchedAssignedIssues.map(issue => issue.id.toString());
         const assignedFeedbackStatus = await getMultipleFeedbackStatuses(assignedIssueIds);
         setFeedbackStatuses(prevStatuses => ({ ...prevStatuses, ...assignedFeedbackStatus }));
         
@@ -155,14 +155,14 @@ const AdminIssues = () => {
         const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
-        const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
+        const userName = issue.employeeUuid && userNames[issue.employeeUuid] ? userNames[issue.employeeUuid].toLowerCase() : "";
         
         return (
           typeLabel.includes(searchLower) ||
           subTypeLabel.includes(searchLower) ||
           description.includes(searchLower) ||
           userName.includes(searchLower) ||
-          issue.id.includes(searchLower)
+          issue.id.toString().includes(searchLower)
         );
       });
     }
@@ -181,14 +181,14 @@ const AdminIssues = () => {
         const typeLabel = getIssueTypeLabel(issue.typeId).toLowerCase();
         const subTypeLabel = getIssueSubTypeLabel(issue.typeId, issue.subTypeId).toLowerCase();
         const description = issue.description.toLowerCase();
-        const userName = userNames[issue.employeeUuid]?.toLowerCase() || "";
+        const userName = issue.employeeUuid && userNames[issue.employeeUuid] ? userNames[issue.employeeUuid].toLowerCase() : "";
         
         return (
           typeLabel.includes(searchLower) ||
           subTypeLabel.includes(searchLower) ||
           description.includes(searchLower) ||
           userName.includes(searchLower) ||
-          issue.id.includes(searchLower)
+          issue.id.toString().includes(searchLower)
         );
       });
     }
@@ -404,7 +404,7 @@ const AdminIssues = () => {
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
                       <TableCell className="font-mono text-xs">{String(issue.id).substring(0, 8)}</TableCell>
-                      <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
+                      <TableCell>{issue.employeeUuid ? userNames[issue.employeeUuid] || "Unknown" : "Unknown"}</TableCell>
                       <TableCell>
                         <div>
                           <div>{getIssueTypeLabel(issue.typeId)}</div>
@@ -464,7 +464,7 @@ const AdminIssues = () => {
                       </TableCell>
                       <TableCell>
                         {(issue.status === "closed" || issue.status === "resolved") ? 
-                          getFeedbackStatusBadge(issue.id) : 
+                          getFeedbackStatusBadge(issue.id.toString()) : 
                           <span className="text-xs text-gray-500">N/A</span>
                         }
                       </TableCell>
@@ -475,7 +475,7 @@ const AdminIssues = () => {
                           variant="ghost" 
                           size="sm" 
                           className="h-8 w-8 p-0"
-                          onClick={() => handleViewIssue(issue.id)}
+                          onClick={() => handleViewIssue(issue.id.toString())}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>

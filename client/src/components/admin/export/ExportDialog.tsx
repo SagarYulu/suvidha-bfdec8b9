@@ -42,10 +42,12 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
         ...(priority && { priority })
       });
 
-      const response = await authenticatedAxios.get(`/api/export/${exportType}?${params}`);
+      const response = await authenticatedAxios.get(`/api/export/${exportType}?${params}`, {
+        responseType: 'blob'
+      });
 
       // Get filename from response headers or create default
-      const contentDisposition = response.headers.get('content-disposition');
+      const contentDisposition = response.headers['content-disposition'];
       let filename = `${exportType}-export-${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'csv'}`;
       
       if (contentDisposition) {
@@ -56,7 +58,7 @@ const ExportDialog: React.FC<ExportDialogProps> = ({
       }
 
       // Create download link
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
