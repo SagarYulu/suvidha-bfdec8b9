@@ -13,7 +13,7 @@ export const reopenIssue = async (
 ): Promise<Issue | null> => {
   try {
     // Update the issue status to open
-    await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+    await authenticatedAxios.patch(`/issues/${issueId}`, {
       status: 'open',
       reopenableUntil: null,
       previouslyClosedAt: null

@@ -277,6 +277,9 @@ const IssueActivity = ({ issue }: IssueActivityProps) => {
   
   // Helper to get simple action type for badge display
   const getSimpleActionType = (action: string): string => {
+    if (!action || typeof action !== 'string') {
+      return 'unknown action';
+    }
     if (action.includes('status')) return 'status change';
     if (action.includes('assign')) return 'assignment';
     if (action.includes('internal_comment')) return 'internal comment added';

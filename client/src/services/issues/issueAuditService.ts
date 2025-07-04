@@ -11,14 +11,20 @@ export const logAuditTrail = async (
 ) => {
   try {
     // Make sure we have a valid issue ID
-    if (!issueId) {
-      console.error('Error: issueId is required for audit trail');
+    if (!issueId || typeof issueId === 'object') {
+      console.error('Error: Invalid issueId provided for audit trail:', issueId);
       return;
     }
 
-    // Convert IDs to appropriate types
+    // Convert IDs to appropriate types with validation
     const numericIssueId = Number(issueId);
     const numericEmployeeId = Number(employeeId);
+    
+    // Check for NaN values
+    if (isNaN(numericIssueId) || isNaN(numericEmployeeId)) {
+      console.error('Error: Invalid ID values - issueId:', issueId, 'employeeId:', employeeId);
+      return { id: null };
+    }
     
     console.log(`Logging audit trail for issue ${numericIssueId} by employee ${numericEmployeeId}`);
     

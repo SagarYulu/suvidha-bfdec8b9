@@ -8,6 +8,12 @@ import authenticatedAxios from '@/services/authenticatedAxios';
  */
 export const getIssueById = async (id: string | number): Promise<Issue | undefined> => {
   try {
+    // Validate the ID
+    if (!id || typeof id === 'object') {
+      console.error('Invalid issue ID provided:', id);
+      return undefined;
+    }
+    
     // Simple fetch call instead of complex authenticated axios
     const token = localStorage.getItem('authToken');
     const response = await fetch(`/api/issues/${id}`, {

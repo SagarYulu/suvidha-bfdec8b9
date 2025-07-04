@@ -26,7 +26,7 @@ export const mapIssue = async (
 
     // Update the issue with new type and subtype
     try {
-      await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+      await authenticatedAxios.patch(`/issues/${issueId}`, {
         typeId: newTypeId,
         subTypeId: newSubTypeId,
         mappedTypeId: newTypeId,
