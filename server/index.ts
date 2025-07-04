@@ -48,10 +48,7 @@ app.use((req, res, next) => {
       console.error("Express error handler:", err);
     });
 
-    // Skip Vite setup in development for now and use fallback
-    console.log("Using fallback development server setup...");
-    
-    // Fallback development page
+    // Serve a simple development page while we fix the Vite setup
     app.get("*", (req, res) => {
       if (req.path.startsWith("/api")) {
         return; // Don't interfere with API routes
@@ -64,25 +61,117 @@ app.use((req, res, next) => {
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>Yulu Employee Management System</title>
             <style>
-              body { font-family: Arial, sans-serif; margin: 40px; background-color: #f5f5f5; }
-              .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-              .header { color: #2c3e50; margin-bottom: 20px; }
-              .status { color: #27ae60; font-weight: bold; }
-              .api-link { color: #0066cc; text-decoration: none; padding: 8px 12px; display: inline-block; margin: 4px 0; border-radius: 4px; background: #f8f9fa; }
-              .api-link:hover { background: #e9ecef; text-decoration: underline; }
-              .section { margin: 20px 0; }
-              .note { background: #fff3cd; padding: 15px; border-radius: 4px; border-left: 4px solid #ffc107; }
+              body { 
+                font-family: Arial, sans-serif; 
+                margin: 0; 
+                padding: 20px; 
+                background-color: #f5f5f5; 
+              }
+              .container { 
+                max-width: 800px; 
+                margin: 0 auto; 
+                background: white; 
+                padding: 30px; 
+                border-radius: 8px; 
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+              }
+              .header { 
+                color: #2c3e50; 
+                margin-bottom: 20px; 
+                text-align: center;
+              }
+              .status { 
+                color: #27ae60; 
+                font-weight: bold; 
+                text-align: center;
+                margin: 20px 0;
+              }
+              .login-form {
+                max-width: 400px;
+                margin: 30px auto;
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+              }
+              .form-group {
+                margin-bottom: 15px;
+              }
+              label {
+                display: block;
+                margin-bottom: 5px;
+                font-weight: bold;
+              }
+              input[type="email"], input[type="password"] {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 16px;
+              }
+              button {
+                width: 100%;
+                padding: 12px;
+                background: #3498db;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                font-size: 16px;
+                cursor: pointer;
+              }
+              button:hover {
+                background: #2980b9;
+              }
+              .api-link { 
+                color: #0066cc; 
+                text-decoration: none; 
+                padding: 8px 12px; 
+                display: inline-block; 
+                margin: 4px; 
+                border-radius: 4px; 
+                background: #f8f9fa; 
+              }
+              .api-link:hover { 
+                background: #e9ecef; 
+                text-decoration: underline; 
+              }
+              .section { 
+                margin: 20px 0; 
+                text-align: center;
+              }
+              .api-links {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 10px;
+              }
             </style>
           </head>
           <body>
             <div class="container">
               <h1 class="header">🚲 Yulu Employee Management System</h1>
-              <p class="status">✅ Development server is running successfully!</p>
+              <p class="status">✅ Server is running successfully!</p>
+              
+              <div class="login-form">
+                <h2>Quick Login Test</h2>
+                <p>Test the authentication system:</p>
+                <form id="loginForm">
+                  <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" value="admin@yulu.com" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" value="password" required>
+                  </div>
+                  <button type="submit">Login</button>
+                </form>
+                <div id="loginResult"></div>
+              </div>
               
               <div class="section">
                 <h2>API Endpoints</h2>
-                <p>The backend API is fully functional. Test the following endpoints:</p>
-                <div>
+                <p>Test the following API endpoints:</p>
+                <div class="api-links">
                   <a href="/api/employees" class="api-link">GET /api/employees</a>
                   <a href="/api/dashboard-users" class="api-link">GET /api/dashboard-users</a>
                   <a href="/api/issues" class="api-link">GET /api/issues</a>
@@ -91,21 +180,36 @@ app.use((req, res, next) => {
                   <a href="/api/master-clusters" class="api-link">GET /api/master-clusters</a>
                 </div>
               </div>
-              
-              <div class="section">
-                <h2>Authentication</h2>
-                <p>Test login with:</p>
-                <pre>POST /api/auth/login
-{
-  "email": "admin@yulu.com",
-  "password": "password"
-}</pre>
-              </div>
-              
-              <div class="note">
-                <strong>Note:</strong> The React frontend is temporarily unavailable due to Vite configuration issues. The API backend is fully functional and ready for testing.
-              </div>
             </div>
+            
+            <script>
+              document.getElementById('loginForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const resultDiv = document.getElementById('loginResult');
+                
+                try {
+                  const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password }),
+                  });
+                  
+                  const data = await response.json();
+                  
+                  if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ Login successful! ' + JSON.stringify(data) + '</p>';
+                  } else {
+                    resultDiv.innerHTML = '<p style="color: red;">❌ Login failed: ' + data.message + '</p>';
+                  }
+                } catch (error) {
+                  resultDiv.innerHTML = '<p style="color: red;">❌ Error: ' + error.message + '</p>';
+                }
+              });
+            </script>
           </body>
         </html>
       `);
