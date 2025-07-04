@@ -1,48 +1,40 @@
-
 import { Issue } from "@/types";
 import { logAuditTrail } from "./issueAuditService";
 import { toast } from "@/hooks/use-toast";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Maps an "Others" ticket to a different ticket type and subtype
  */
-export const mapIssueType = async (
+export const mapIssue = async (
   issueId: string,
   newTypeId: string,
   newSubTypeId: string,
   currentUserId: string
 ): Promise<Issue | null> => {
   try {
-    if (!issueId || !newTypeId || !newSubTypeId) {
-      console.error("Missing required parameters for mapping issue type");
+    console.log(`Mapping issue ${issueId} to type ${newTypeId}, subtype ${newSubTypeId}`);
+    
+    // Get current issue details for audit trail
+    const currentIssueResponse = await authenticatedAxios.get(`/api/issues/${issueId}`);
+    const currentIssue = currentIssueResponse.data;
+    
+    if (!currentIssue) {
+      console.error("Error fetching current issue for mapping");
       return null;
     }
 
-    // Get the current issue to verify it exists and get its current values
-    const { data: currentIssue, error: fetchError } = await supabase
-      .from("issues")
-      .select("*")
-      .eq("id", issueId)
-      .single();
-
-    if (fetchError || !currentIssue) {
-      console.error("Error fetching current issue:", fetchError);
-      return null;
-    }
-
-    // Update the issue with mapped type values
-    const { data, error } = await supabase
-      .from("issues")
-      .update({
-        mapped_type_id: newTypeId,
-        mapped_sub_type_id: newSubTypeId,
-        mapped_at: new Date().toISOString(),
-        mapped_by: currentUserId
-      })
-      .eq("id", issueId)
-      .select();
-
-    if (error) {
+    // Update the issue with new type and subtype
+    try {
+      await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+        typeId: newTypeId,
+        subTypeId: newSubTypeId,
+        mappedTypeId: newTypeId,
+        mappedSubTypeId: newSubTypeId,
+        mappedAt: new Date().toISOString(),
+        mappedBy: Number(currentUserId)
+      });
+    } catch (error) {
       console.error("Error mapping issue type:", error);
       return null;
     }
@@ -56,8 +48,8 @@ export const mapIssueType = async (
       undefined,
       {
         previous: {
-          type_id: currentIssue.type_id,
-          sub_type_id: currentIssue.sub_type_id
+          type_id: currentIssue.typeId,
+          sub_type_id: currentIssue.subTypeId
         },
         new: {
           type_id: newTypeId,
@@ -66,47 +58,30 @@ export const mapIssueType = async (
       }
     );
 
-    // If we have data, properly convert it to an Issue object
-    if (data && data[0]) {
-      const dbIssue = data[0];
-      
-      // Map database fields to Issue type fields
-      const issue: Issue = {
-        id: dbIssue.id,
-        employeeUuid: dbIssue.employee_uuid,
-        typeId: dbIssue.type_id,
-        subTypeId: dbIssue.sub_type_id,
-        description: dbIssue.description,
-        status: dbIssue.status as "open" | "in_progress" | "resolved" | "closed",
-        priority: dbIssue.priority as "low" | "medium" | "high" | "critical",
-        createdAt: dbIssue.created_at,
-        updatedAt: dbIssue.updated_at,
-        closedAt: dbIssue.closed_at,
-        assignedTo: dbIssue.assigned_to,
-        attachmentUrl: dbIssue.attachment_url,
-        attachments: dbIssue.attachments,
-        comments: [], // Comments will be populated separately
-        // Add mapped fields
-        mappedTypeId: dbIssue.mapped_type_id,
-        mappedSubTypeId: dbIssue.mapped_sub_type_id,
-        mappedAt: dbIssue.mapped_at,
-        mappedBy: dbIssue.mapped_by
-      };
+    toast({
+      title: "Success",
+      description: "Issue mapped successfully",
+    });
 
-      return issue;
-    }
-
-    return null;
+    // Return the updated issue
+    const updatedIssueResponse = await authenticatedAxios.get(`/api/issues/${issueId}`);
+    return updatedIssueResponse.data || null;
   } catch (error) {
-    console.error("Error in mapIssueType:", error);
+    console.error("Error in mapIssue:", error);
+    toast({
+      title: "Error",
+      description: "Failed to map issue",
+      variant: "destructive",
+    });
     return null;
   }
 };
 
-/**
- * Check if an issue is eligible for mapping (is an 'Others' type ticket)
- */
-export const isIssueMappable = (issue: Issue | null): boolean => {
-  if (!issue) return false;
-  return issue.typeId === "others";
+// Export aliases for backward compatibility
+export const mapIssueType = mapIssue;
+
+// Check if an issue can be mapped (used for UI logic)
+export const isIssueMappable = (issue: Issue): boolean => {
+  // Only allow mapping if the issue type is "other" or "others"
+  return issue.typeId?.toLowerCase() === 'other' || issue.typeId?.toLowerCase() === 'others';
 };

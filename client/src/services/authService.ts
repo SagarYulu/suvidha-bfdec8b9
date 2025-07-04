@@ -1,155 +1,149 @@
-
 import { User } from "@/types";
-import { MOCK_USERS } from "@/data/mockData";
+import axios from 'axios';
 
-// Admin user credentials - hardcoded for demonstration purposes
-export const DEFAULT_ADMIN_USER: User = {
-  id: "admin-uuid-1",
-  userId: "admin-001",
-  name: "Admin User",
-  email: "admin@yulu.com",
-  phone: "1234567890",
-  employeeId: "ADMIN001",
-  city: "System",
-  cluster: "System",
-  manager: "",
-  role: "admin",
-  password: "admin123",
-  dateOfJoining: "2023-01-01",
-  bloodGroup: "",
-  dateOfBirth: "",
-  accountNumber: "",
-  ifscCode: ""
-};
+const API_BASE_URL = '/api';
 
 export const login = async (email: string, password: string): Promise<User | null> => {
   console.log('Login attempt:', { email });
 
   try {
-    // Step 1: Check if it's the default admin user
-    if (email.toLowerCase() === DEFAULT_ADMIN_USER.email.toLowerCase() && 
-        password === DEFAULT_ADMIN_USER.password) {
-      console.log('Default admin login successful');
-      
-      // Try to fetch actual user from dashboard_users table
-      try {
-        const { data: dashboardUser, error } = await supabase
-          .from('dashboard_users')
-          .select('*')
-          .eq('email', email.toLowerCase())
-          .maybeSingle(); // Use maybeSingle() instead of single()
-          
-        if (!error && dashboardUser) {
-          console.log('Found matching dashboard user:', dashboardUser);
-          return {
-            ...DEFAULT_ADMIN_USER,
-            id: dashboardUser.id,
-          };
-        }
-      } catch (error) {
-        console.log('Error fetching dashboard user:', error);
-      }
-      
-      return DEFAULT_ADMIN_USER;
-    }
-    
-    // Step 2: Check mock users (for demo accounts)
-    const mockUser = MOCK_USERS.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase() && 
-      (u.password === password || u.employeeId === password)
-    );
-
-    if (mockUser) {
-      console.log('User found in mock data:', mockUser);
-      return mockUser;
-    }
-
-    // Step 3: Check dashboard_users table (prioritize over employees)
-    console.log('User not found in mock data, checking dashboard_users table...');
+    // First try dashboard user login
     try {
-      const { data: dashboardUsers, error: dashboardError } = await supabase
-        .from('dashboard_users')
-        .select('*')
-        .eq('email', email.toLowerCase());
-      
-      if (!dashboardError && dashboardUsers && dashboardUsers.length > 0) {
-        // Check if any user matches the password or employee_id
-        const matchingUser = dashboardUsers.find(user => 
-          user.password === password || user.employee_id === password
-        );
+      const dashboardResponse = await axios.post(`${API_BASE_URL}/auth/dashboard-login`, {
+        email,
+        password
+      });
+
+      if (dashboardResponse.data.success) {
+        const { user, token } = dashboardResponse.data;
         
-        if (matchingUser) {
-          console.log('User found in dashboard_users:', matchingUser);
-          
-          return {
-            id: matchingUser.id,
-            userId: matchingUser.user_id || "",
-            name: matchingUser.name,
-            email: matchingUser.email,
-            phone: matchingUser.phone || "",
-            employeeId: matchingUser.employee_id || "",
-            city: matchingUser.city || "",
-            cluster: matchingUser.cluster || "",
-            manager: matchingUser.manager || "",
-            role: matchingUser.role || "employee",
-            password: matchingUser.password,
-            dateOfJoining: "",
-            bloodGroup: "",
-            dateOfBirth: "",
-            accountNumber: "",
-            ifscCode: ""
-          };
-        }
+        // Store the JWT token for future requests
+        localStorage.setItem('authToken', token);
+        
+        console.log('Dashboard user login successful:', user);
+        return {
+          id: user.id.toString(),
+          userId: user.id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          employeeId: `DASH-${user.id}`,
+          city: user.city || 'System',
+          cluster: user.cluster || 'System',
+          manager: user.manager || '',
+          role: user.role,
+          password: '', // Don't store password
+          dateOfJoining: user.dateOfJoining || '2023-01-01',
+          bloodGroup: user.bloodGroup || '',
+          dateOfBirth: user.dateOfBirth || '',
+          accountNumber: user.accountNumber || '',
+          ifscCode: user.ifscCode || ''
+        };
       }
-    } catch (error) {
-      console.log('Error querying dashboard_users:', error);
+    } catch (dashboardError) {
+      console.log('Dashboard user login failed, trying employee login');
     }
 
-    // Step 4: Check employees table
-    console.log('User not found in dashboard_users, checking employees table...');
+    // If dashboard login fails, try employee login
     try {
-      const { data: employees, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', email.toLowerCase());
+      const employeeResponse = await axios.post(`${API_BASE_URL}/auth/employee-login`, {
+        email,
+        password
+      });
 
-      if (!error && employees && employees.length > 0) {
-        // Check if any employee matches the password or emp_id
-        const matchingEmployee = employees.find(emp => 
-          emp.password === password || emp.emp_id === password
-        );
+      if (employeeResponse.data.success) {
+        const { user, token } = employeeResponse.data;
         
-        if (matchingEmployee) {
-          console.log('Employee found in database:', matchingEmployee);
-          
-          return {
-            id: matchingEmployee.id,
-            userId: matchingEmployee.user_id || "",
-            name: matchingEmployee.name,
-            email: matchingEmployee.email,
-            phone: matchingEmployee.phone || "",
-            employeeId: matchingEmployee.emp_id,
-            city: matchingEmployee.city || "",
-            cluster: matchingEmployee.cluster || "",
-            manager: matchingEmployee.manager || "",
-            role: matchingEmployee.role || "employee",
-            password: matchingEmployee.password,
-            dateOfJoining: matchingEmployee.date_of_joining || "",
-            bloodGroup: matchingEmployee.blood_group || "",
-            dateOfBirth: matchingEmployee.date_of_birth || "",
-            accountNumber: matchingEmployee.account_number || "",
-            ifscCode: matchingEmployee.ifsc_code || ""
-          };
-        }
+        // Store the JWT token for future requests
+        localStorage.setItem('authToken', token);
+        
+        console.log('Employee login successful:', user);
+        return {
+          id: user.id.toString(),
+          userId: user.id.toString(),
+          name: user.name,
+          email: user.email,
+          phone: user.phone || '',
+          employeeId: user.empId || `EMP-${user.id}`,
+          city: user.city || '',
+          cluster: user.cluster || '',
+          manager: user.manager || '',
+          role: user.role || 'employee',
+          password: '', // Don't store password
+          dateOfJoining: user.dateOfJoining || '',
+          bloodGroup: user.bloodGroup || '',
+          dateOfBirth: user.dateOfBirth || '',
+          accountNumber: user.accountNumber || '',
+          ifscCode: user.ifscCode || ''
+        };
       }
-    } catch (error) {
-      console.log('Error querying employees table:', error);
+    } catch (employeeError) {
+      console.log('Employee login failed');
     }
-    
-    console.log('No matching user found in any database');
+
+    console.log('Both login attempts failed');
     return null;
   } catch (error) {
-    console.error("Login error:", error);
+    console.error('Login error:', error);
     return null;
   }
+};
+
+export const logout = async (): Promise<void> => {
+  try {
+    // Clear the JWT token
+    localStorage.removeItem('authToken');
+    console.log('Logout successful');
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+};
+
+export const getCurrentUser = async (): Promise<User | null> => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      return null;
+    }
+
+    // Verify the token with the backend
+    const response = await axios.get(`${API_BASE_URL}/auth/verify`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (response.data.success) {
+      const user = response.data.user;
+      return {
+        id: user.id.toString(),
+        userId: user.id.toString(),
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        employeeId: user.empId || user.employeeId || `USER-${user.id}`,
+        city: user.city || '',
+        cluster: user.cluster || '',
+        manager: user.manager || '',
+        role: user.role || 'user',
+        password: '', // Don't store password
+        dateOfJoining: user.dateOfJoining || '',
+        bloodGroup: user.bloodGroup || '',
+        dateOfBirth: user.dateOfBirth || '',
+        accountNumber: user.accountNumber || '',
+        ifscCode: user.ifscCode || ''
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting current user:', error);
+    // Clear invalid token
+    localStorage.removeItem('authToken');
+    return null;
+  }
+};
+
+export const isAuthenticated = (): boolean => {
+  return !!localStorage.getItem('authToken');
 };

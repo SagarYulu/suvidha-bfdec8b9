@@ -1,237 +1,131 @@
-
+import authenticatedAxios from './authenticatedAxios';
 
 export interface Role {
-  id: string;
+  id: number;
   name: string;
   description: string | null;
 }
 
 export interface Permission {
-  id: string;
+  id: number;
   name: string;
   description: string | null;
 }
 
 export interface RolePermission {
-  id: string;
-  role_id: string;
-  permission_id: string;
+  id: number;
+  roleId: number;
+  permissionId: number;
 }
 
 export interface UserRole {
-  id: string;
-  user_id: string;
-  role_id: string;
+  id: number;
+  userId: number;
+  roleId: number;
 }
 
 // Get all roles
 export const getRoles = async (): Promise<Role[]> => {
-  const { data, error } = await supabase
-    .from('rbac_roles')
-    .select('*')
-    .order('name');
-  
-  if (error) {
+  try {
+    const response = await authenticatedAxios.get('/api/rbac/roles');
+    return response.data || [];
+  } catch (error) {
     console.error('Error fetching roles:', error);
     throw error;
   }
-  
-  return data || [];
 };
 
 // Get all permissions
 export const getPermissions = async (): Promise<Permission[]> => {
-  const { data, error } = await supabase
-    .from('rbac_permissions')
-    .select('*')
-    .order('name');
-  
-  if (error) {
+  try {
+    const response = await authenticatedAxios.get('/api/rbac/permissions');
+    return response.data || [];
+  } catch (error) {
     console.error('Error fetching permissions:', error);
     throw error;
   }
-  
-  return data || [];
 };
 
-// Get permissions for a specific role
-export const getPermissionsForRole = async (roleId: string): Promise<Permission[]> => {
-  const { data, error } = await supabase
-    .from('rbac_role_permissions')
-    .select('permission_id')
-    .eq('role_id', roleId);
-  
-  if (error) {
+// Get role permissions
+export const getRolePermissions = async (roleId: number): Promise<Permission[]> => {
+  try {
+    const response = await authenticatedAxios.get(`/api/rbac/roles/${roleId}/permissions`);
+    return response.data || [];
+  } catch (error) {
     console.error('Error fetching role permissions:', error);
     throw error;
   }
-  
-  if (!data || data.length === 0) {
-    return [];
-  }
-  
-  const permissionIds = data.map(rp => rp.permission_id);
-  
-  const { data: permissions, error: permError } = await supabase
-    .from('rbac_permissions')
-    .select('*')
-    .in('id', permissionIds);
-  
-  if (permError) {
-    console.error('Error fetching permissions by IDs:', permError);
-    throw permError;
-  }
-  
-  return permissions || [];
 };
 
-// Get roles for a specific user
-export const getRolesForUser = async (userId: string): Promise<Role[]> => {
-  const { data, error } = await supabase
-    .from('rbac_user_roles')
-    .select('role_id')
-    .eq('user_id', userId);
-  
-  if (error) {
+// Get user roles
+export const getUserRoles = async (userId: number): Promise<Role[]> => {
+  try {
+    const response = await authenticatedAxios.get(`/api/rbac/users/${userId}/roles`);
+    return response.data || [];
+  } catch (error) {
     console.error('Error fetching user roles:', error);
     throw error;
   }
-  
-  if (!data || data.length === 0) {
-    return [];
-  }
-  
-  const roleIds = data.map(ur => ur.role_id);
-  
-  const { data: roles, error: roleError } = await supabase
-    .from('rbac_roles')
-    .select('*')
-    .in('id', roleIds);
-  
-  if (roleError) {
-    console.error('Error fetching roles by IDs:', roleError);
-    throw roleError;
-  }
-  
-  return roles || [];
 };
 
-// Check if user has a specific permission
-export const checkUserPermission = async (userId: string, permissionName: string): Promise<boolean> => {
+// Assign role to user
+export const assignRoleToUser = async (userId: number, roleId: number): Promise<UserRole> => {
   try {
-    const { data, error } = await supabase.rpc('has_permission', {
-      user_id: userId,
-      permission_name: permissionName
+    const response = await authenticatedAxios.post('/api/rbac/user-roles', {
+      userId,
+      roleId
     });
-    
-    if (error) {
-      console.error('Error checking permission:', error);
-      return false;
-    }
-    
-    return data === true;
+    return response.data;
   } catch (error) {
-    console.error('Error in checkUserPermission:', error);
+    console.error('Error assigning role to user:', error);
+    throw error;
+  }
+};
+
+// Remove role from user
+export const removeRoleFromUser = async (userId: number, roleId: number): Promise<void> => {
+  try {
+    await authenticatedAxios.delete(`/api/rbac/users/${userId}/roles/${roleId}`);
+  } catch (error) {
+    console.error('Error removing role from user:', error);
+    throw error;
+  }
+};
+
+// Assign permission to role
+export const assignPermissionToRole = async (roleId: number, permissionId: number): Promise<RolePermission> => {
+  try {
+    const response = await authenticatedAxios.post('/api/rbac/role-permissions', {
+      roleId,
+      permissionId
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning permission to role:', error);
+    throw error;
+  }
+};
+
+// Remove permission from role
+export const removePermissionFromRole = async (roleId: number, permissionId: number): Promise<void> => {
+  try {
+    await authenticatedAxios.delete(`/api/rbac/roles/${roleId}/permissions/${permissionId}`);
+  } catch (error) {
+    console.error('Error removing permission from role:', error);
+    throw error;
+  }
+};
+
+// Check if user has permission
+export const userHasPermission = async (userId: number, permissionName: string): Promise<boolean> => {
+  try {
+    const response = await authenticatedAxios.get(`/api/rbac/users/${userId}/permissions/${permissionName}`);
+    return response.data?.hasPermission || false;
+  } catch (error) {
+    console.error('Error checking user permission:', error);
     return false;
   }
 };
 
-// Assign a permission to a role
-export const assignPermissionToRole = async (roleName: string, permissionName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('assign_permission_to_role', {
-      role_name: roleName,
-      permission_name: permissionName
-    });
-    
-    if (error) {
-      console.error('Error assigning permission to role:', error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error('Error in assignPermissionToRole:', error);
-    return false;
-  }
-};
-
-// Remove a permission from a role
-export const removePermissionFromRole = async (roleName: string, permissionName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('remove_permission_from_role', {
-      role_name: roleName,
-      permission_name: permissionName
-    });
-    
-    if (error) {
-      console.error('Error removing permission from role:', error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error('Error in removePermissionFromRole:', error);
-    return false;
-  }
-};
-
-// Assign a role to a user
-export const assignRoleToUser = async (userId: string, roleName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('assign_role', {
-      target_user_id: userId,
-      role_name: roleName
-    });
-    
-    if (error) {
-      console.error('Error assigning role to user:', error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error('Error in assignRoleToUser:', error);
-    return false;
-  }
-};
-
-// Remove a role from a user
-export const removeRoleFromUser = async (userId: string, roleName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('remove_role', {
-      target_user_id: userId,
-      role_name: roleName
-    });
-    
-    if (error) {
-      console.error('Error removing role from user:', error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error('Error in removeRoleFromUser:', error);
-    return false;
-  }
-};
-
-// Check if a user has a specific role
-export const checkUserRole = async (userId: string, roleName: string): Promise<boolean> => {
-  try {
-    const { data, error } = await supabase.rpc('has_role', {
-      user_id: userId,
-      role_name: roleName
-    });
-    
-    if (error) {
-      console.error('Error checking user role:', error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error('Error in checkUserRole:', error);
-    return false;
-  }
-};
+// Export alias for backward compatibility
+export const getPermissionsForRole = getRolePermissions;

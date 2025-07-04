@@ -1,253 +1,153 @@
-
-import { determinePriority, shouldSendNotification, getNotificationRecipients } from "@/utils/workingTimeUtils";
 import { Issue } from "@/types";
+import { getIssueById } from "./issueFetchService";
+import { logAuditTrail } from "./issueAuditService";
 import { toast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
- * Updates the priority of a single ticket based on its current state
+ * Update the priority of an issue
  */
-export const updateIssuePriority = async (issue: Issue): Promise<Issue | null> => {
+export const updateIssuePriority = async (
+  issueId: string,
+  newPriority: string,
+  userId: string
+): Promise<Issue | null> => {
   try {
-    // Skip closed or resolved issues
-    if (issue.status === 'closed' || issue.status === 'resolved') {
-      return issue;
-    }
-    
-    // Validate that the issue ID exists
-    if (!issue.id) {
-      console.error('Cannot update priority: Missing issue ID');
-      return issue;
-    }
-    
-    // Determine the new priority based on working time calculations
-    // Using the updated rules: Medium (16h), High (24h), Critical (40h)
-    const newPriority = determinePriority(
-      issue.createdAt,
-      issue.updatedAt,
-      issue.status,
-      issue.typeId,
-      issue.assignedTo
-    );
-    
-    // Ensure the priority is one of the allowed values - Now including 'critical'
-    const validPriorities: Issue["priority"][] = ['low', 'medium', 'high', 'critical'];
-    const validPriority = validPriorities.includes(newPriority as Issue["priority"]) 
-      ? newPriority as Issue["priority"] 
-      : 'high';
-    
-    console.log(`Calculated priority for issue ${issue.id}: ${validPriority} (current: ${issue.priority})`);
-    
-    // If priority hasn't changed, return the original issue
-    if (validPriority === issue.priority) {
-      return issue;
-    }
-    
-    console.log(`Updating priority for issue ${issue.id} from ${issue.priority} to ${validPriority}`);
-    
-    // Check if this is an escalation to critical due to the 40-hour rule
-    const isCriticalEscalation = validPriority === 'critical' && issue.priority !== 'critical';
-    
-    // Update the issue in the database
+    // Get current issue for previous priority
+    const currentIssue = await getIssueById(issueId);
+    const previousPriority = currentIssue?.priority;
+
+    // Get performer info (the person updating the priority)
+    let performerInfo = { name: "Unknown User", role: "Unknown" };
     try {
-      await authenticatedAxios.patch(`/api/issues/${issue.id}`, {
-        priority: validPriority
+      const performerResponse = await authenticatedAxios.get(`/api/dashboard-users/${userId}`);
+      performerInfo = {
+        name: performerResponse.data?.name || "Unknown User",
+        role: performerResponse.data?.role || "Unknown"
+      };
+    } catch (error) {
+      console.log('Performer not found in dashboard users');
+    }
+
+    // Update the issue priority
+    try {
+      await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+        priority: newPriority,
+        lastUpdatedAt: new Date().toISOString()
       });
     } catch (error) {
-      console.error(`Error updating priority for issue ${issue.id}:`, error);
-      return issue;
+      console.error('Error updating issue priority:', error);
+      throw error;
     }
-    
-    console.log(`Successfully updated priority for issue ${issue.id} to ${validPriority}`);
-    
-    // Check if notifications should be sent
-    if (shouldSendNotification(issue.priority, validPriority)) {
-      const recipients = getNotificationRecipients(validPriority, issue.assignedTo);
-      
-      // For 40-hour critical escalation, add additional notification content
-      const notificationContent = isCriticalEscalation 
-        ? `URGENT: Ticket priority escalated to CRITICAL - Unresolved for 40+ working hours`
-        : `Ticket priority escalated to ${validPriority.toUpperCase()}`;
-      
-      // Create notifications for each recipient
-      for (const recipient of recipients) {
-        await createIssueNotification(
-          issue.id,
-          recipient,
-          notificationContent
-        );
-      }
-    }
-    
-    // Return the updated issue with the new priority
-    return {
-      ...issue,
-      priority: validPriority,
-      updatedAt: new Date().toISOString()
-    };
-  } catch (error) {
-    console.error('Error in updateIssuePriority:', error);
-    return issue;
-  }
-};
 
-/**
- * Creates a notification for a ticket
- */
-const createIssueNotification = async (
-  issueId: string,
-  userId: string,
-  content: string
-): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from('issue_notifications')
-      .insert({
-        issue_id: issueId,
-        user_id: userId,
-        content,
-        is_read: false
-      });
-    
-    if (error) {
-      console.error('Error creating issue notification:', error);
-    }
-  } catch (error) {
-    console.error('Error in createIssueNotification:', error);
-  }
-};
-
-/**
- * Updates priorities for all active issues
- */
-export const updateAllIssuePriorities = async (): Promise<void> => {
-  try {
-    console.log("Starting updateAllIssuePriorities()");
-    
-    // Fetch all active issues (not closed or resolved)
-    const { data: issues, error } = await supabase
-      .from('issues')
-      .select('*')
-      .in('status', ['open', 'in_progress']);
-    
-    if (error) {
-      console.error('Error fetching issues for priority update:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch tickets for priority update",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!issues || issues.length === 0) {
-      console.log('No active issues found to update priorities');
-      toast({
-        title: "Success",
-        description: "All tickets are already at the correct priority",
-      });
-      return;
-    }
-    
-    console.log(`Found ${issues.length} active issues to check for priority updates`);
-    
-    // Add a small delay to ensure DB consistency
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    let successCount = 0;
-    let failedIssues = [];
-    
-    // Process each issue
-    for (const dbIssue of issues) {
-      // Convert to app Issue format
-      const issue: Issue = {
-        id: dbIssue.id,
-        employeeUuid: dbIssue.employee_uuid,
-        typeId: dbIssue.type_id,
-        subTypeId: dbIssue.sub_type_id,
-        description: dbIssue.description,
-        status: dbIssue.status as Issue["status"],
-        priority: dbIssue.priority as Issue["priority"],
-        createdAt: dbIssue.created_at,
-        updatedAt: dbIssue.updated_at || dbIssue.created_at, // Use created_at if updated_at is null
-        closedAt: dbIssue.closed_at,
-        assignedTo: dbIssue.assigned_to,
-        comments: [] // Comments not needed for priority calculation
-      };
-      
-      // Update the priority
-      try {
-        const result = await updateIssuePriority(issue);
-        if (result && result.priority !== issue.priority) {
-          successCount++;
-          console.log(`Successfully updated priority for issue ${issue.id} to ${result.priority}`);
-        }
-      } catch (err) {
-        console.error(`Error updating priority for issue ${issue.id}:`, err);
-        failedIssues.push(issue.id);
+    // Create audit log entry with performer info
+    await logAuditTrail(
+      issueId,
+      Number(userId),
+      'priority_change',
+      previousPriority,
+      newPriority,
+      { 
+        performer: performerInfo
       }
-      
-      // Add a small delay between updates to avoid overwhelming the database
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
+    );
+
+    toast({
+      title: "Success",
+      description: "Issue priority updated successfully",
+    });
     
-    console.log(`Completed updateAllIssuePriorities(): ${successCount} updated, ${failedIssues.length} errors`);
-    
-    // Show toast based on results
-    if (failedIssues.length > 0) {
-      toast({
-        title: failedIssues.length === issues.length ? "Error" : "Partial Success",
-        description: failedIssues.length === issues.length
-          ? `Failed to update ticket priorities`
-          : `Updated ${successCount} tickets, encountered ${failedIssues.length} errors`,
-        variant: "destructive",
-      });
-    } else if (successCount > 0) {
-      toast({
-        title: "Success",
-        description: `Ticket priorities have been updated (${successCount} changed)`,
-      });
-    } else {
-      toast({
-        title: "Success",
-        description: "All tickets are already at the correct priority",
-      });
-    }
+    // Get the complete updated issue
+    const updatedIssue = await getIssueById(issueId);
+    return updatedIssue || null;
   } catch (error) {
-    console.error('Error in updateAllIssuePriorities:', error);
+    console.error('Error updating issue priority:', error);
     toast({
       title: "Error",
-      description: "Failed to update ticket priorities",
+      description: "Failed to update issue priority",
       variant: "destructive",
     });
+    throw error;
   }
 };
 
 /**
- * Hook to initialize priority checking on client-side
- * This would typically be called from a component that's always mounted
+ * Bulk update priority for multiple issues
  */
-export const usePriorityUpdater = (intervalMinutes: number = 15) => {
-  useEffect(() => {
-    // Initial update with a delay to ensure component is fully mounted
-    console.log('Initializing priority updater');
+export const bulkUpdatePriority = async (
+  issueIds: string[],
+  newPriority: string,
+  userId: string
+): Promise<Issue[]> => {
+  try {
+    const updatedIssues: Issue[] = [];
     
-    // Use setTimeout to delay the initial update to ensure components are mounted
-    const initialTimeoutId = setTimeout(() => {
-      updateAllIssuePriorities();
-    }, 7000); // Increased delay to 7 seconds
-    
-    // Set interval for periodic updates
-    const intervalId = setInterval(() => {
-      console.log('Running scheduled priority update');
-      updateAllIssuePriorities();
-    }, intervalMinutes * 60 * 1000);
-    
-    // Clean up on unmount
-    return () => {
-      clearTimeout(initialTimeoutId);
-      clearInterval(intervalId);
-    };
-  }, [intervalMinutes]);
+    // Get performer info once
+    let performerInfo = { name: "Unknown User", role: "Unknown" };
+    try {
+      const performerResponse = await authenticatedAxios.get(`/api/dashboard-users/${userId}`);
+      performerInfo = {
+        name: performerResponse.data?.name || "Unknown User",
+        role: performerResponse.data?.role || "Unknown"
+      };
+    } catch (error) {
+      console.log('Performer not found in dashboard users');
+    }
+
+    // Process each issue
+    for (const issueId of issueIds) {
+      try {
+        // Get current issue for previous priority
+        const currentIssue = await getIssueById(issueId);
+        const previousPriority = currentIssue?.priority;
+
+        // Update the issue priority
+        await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+          priority: newPriority,
+          lastUpdatedAt: new Date().toISOString()
+        });
+
+        // Create audit log entry
+        await logAuditTrail(
+          issueId,
+          Number(userId),
+          'priority_change',
+          previousPriority,
+          newPriority,
+          { 
+            performer: performerInfo,
+            bulkUpdate: true
+          }
+        );
+
+        // Get the updated issue
+        const updatedIssue = await getIssueById(issueId);
+        if (updatedIssue) {
+          updatedIssues.push(updatedIssue);
+        }
+      } catch (error) {
+        console.error(`Error updating priority for issue ${issueId}:`, error);
+        // Continue with other issues even if one fails
+      }
+    }
+
+    toast({
+      title: "Success",
+      description: `Priority updated for ${updatedIssues.length} issues`,
+    });
+
+    return updatedIssues;
+  } catch (error) {
+    console.error('Error in bulk priority update:', error);
+    toast({
+      title: "Error",
+      description: "Failed to update issue priorities",
+      variant: "destructive",
+    });
+    throw error;
+  }
 };
+
+// Export aliases for backward compatibility
+export const updateAllIssuePriorities = bulkUpdatePriority;
+export const usePriorityUpdater = () => ({ updateIssuePriority, bulkUpdatePriority });

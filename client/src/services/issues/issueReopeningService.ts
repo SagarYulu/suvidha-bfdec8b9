@@ -1,46 +1,33 @@
-
 import { Issue } from "@/types";
 import { getIssueById } from "./issueFetchService";
 import { logAuditTrail } from "./issueAuditService";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Reopen a closed or resolved ticket
  */
-export const reopenTicket = async (
-  issueId: string, 
-  reopenReason: string,
-  userId: string
+export const reopenIssue = async (
+  issueId: string,
+  userId: string,
+  reopenReason: string
 ): Promise<Issue | null> => {
   try {
-    // Update the issue to open status and add reopen reason
-    const { data, error } = await supabase
-      .from('issues')
-      .update({
-        status: 'open',
-        closed_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', issueId)
-      .select();
-      
-    if (error) {
-      console.error('Error reopening ticket:', error);
-      throw error;
-    }
-    
-    // Create a comment with the reopen reason
-    const reopenComment = {
-      issue_id: issueId,
-      employee_uuid: userId,
-      content: `Ticket reopened. Reason: ${reopenReason}`,
-      created_at: new Date().toISOString()
-    };
-    
-    const { error: commentError } = await supabase
-      .from('issue_comments')
-      .insert([reopenComment]);
-    
-    if (commentError) {
+    // Update the issue status to open
+    await authenticatedAxios.patch(`/api/issues/${issueId}`, {
+      status: 'open',
+      reopenableUntil: null,
+      previouslyClosedAt: null
+    });
+
+    // Add a comment about the reopen reason
+    try {
+      await authenticatedAxios.post('/api/issue-comments', {
+        issueId: Number(issueId),
+        employeeId: Number(userId),
+        content: `Issue reopened. Reason: ${reopenReason}`,
+        isInternal: false
+      });
+    } catch (commentError) {
       console.error('Error adding reopen comment:', commentError);
     }
     
@@ -55,9 +42,13 @@ export const reopenTicket = async (
     );
     
     // Return the complete updated issue
-    return await getIssueById(issueId);
+    const updatedIssue = await getIssueById(issueId);
+    return updatedIssue || null;
   } catch (error) {
     console.error('Error reopening ticket:', error);
     throw error;
   }
 };
+
+// Export alias for backward compatibility
+export const reopenTicket = reopenIssue;

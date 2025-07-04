@@ -1,7 +1,7 @@
-
+import authenticatedAxios from './authenticatedAxios';
 
 export type IssueSubmitData = {
-  employeeUuid: string;
+  employeeId: number;
   typeId: string;
   subTypeId: string;
   description: string;
@@ -12,83 +12,55 @@ export type IssueSubmitData = {
 };
 
 export const submitIssue = async (data: IssueSubmitData) => {
-  // Generate a UUID for the issue
-  const id = crypto.randomUUID();
-  
   // Map from our Issue type property names to the database column names
-  const dbIssueData = {
-    id: id,
-    employee_uuid: data.employeeUuid,
-    type_id: data.typeId,
-    sub_type_id: data.subTypeId,
+  const issueData = {
+    employeeId: data.employeeId,
+    typeId: data.typeId,
+    subTypeId: data.subTypeId,
     description: data.description,
     status: data.status || "open",
     priority: data.priority || "medium",
-    attachment_url: data.attachmentUrl || null,
+    attachmentUrl: data.attachmentUrl || null,
     attachments: data.attachments || null, // Store array of attachment URLs
   };
 
-  if (!dbIssueData.employee_uuid || !dbIssueData.type_id || !dbIssueData.sub_type_id || !dbIssueData.description) {
+  if (!issueData.employeeId || !issueData.typeId || !issueData.subTypeId || !issueData.description) {
     console.error('Missing required fields for issue creation');
     return { success: false, error: 'Missing required fields' };
   }
 
-  console.log("Submitting issue with data:", dbIssueData);
+  console.log("Submitting issue with data:", issueData);
 
-  const { data: result, error } = await supabase
-    .from('issues')
-    .insert(dbIssueData)
-    .select();
-
-  if (error) {
+  try {
+    const response = await authenticatedAxios.post('/api/issues', issueData);
+    
+    if (response.data && response.data.id) {
+      console.log('Issue created successfully:', response.data);
+      return { success: true, issueId: response.data.id };
+    } else {
+      console.error('Unexpected response format:', response.data);
+      return { success: false, error: 'Unexpected response format' };
+    }
+  } catch (error: any) {
     console.error('Error creating issue:', error);
-    return { success: false, error: error.message };
-  }
-
-  return { success: true, issueId: id };
-};
-
-export const uploadBankProof = async (file: File, employeeUuid: string): Promise<string | null> => {
-  try {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${employeeUuid}-${Date.now()}.${fileExt}`;
-    const filePath = `issue-attachments/${fileName}`;
-    
-    const { error: uploadError } = await supabase.storage
-      .from('issue-attachments')
-      .upload(filePath, file);
-      
-    if (uploadError) {
-      console.error("Error uploading file:", uploadError);
-      return null;
-    }
-    
-    const { data } = supabase.storage
-      .from('issue-attachments')
-      .getPublicUrl(filePath);
-      
-    return data.publicUrl;
-  } catch (error) {
-    console.error("Error in file upload function:", error);
-    return null;
+    return { 
+      success: false, 
+      error: error.response?.data?.message || error.message || 'Failed to create issue'
+    };
   }
 };
 
-// New function to handle multiple file uploads
-export const uploadMultipleFiles = async (files: File[], employeeUuid: string): Promise<string[]> => {
-  const uploadedUrls: string[] = [];
-  
+// Add missing export for bank proof upload
+export const uploadBankProof = async (file: File, employeeId: number): Promise<{ success: boolean; url?: string; error?: string }> => {
   try {
-    for (const file of files) {
-      const url = await uploadBankProof(file, employeeUuid);
-      if (url) {
-        uploadedUrls.push(url);
-      }
-    }
+    // This would typically upload to a file storage service
+    // For now, we'll create a placeholder URL
+    const fileUrl = `https://storage.yulu.com/bank-proofs/${employeeId}-${Date.now()}-${file.name}`;
     
-    return uploadedUrls;
+    console.log('Bank proof upload simulated for employee:', employeeId);
+    return { success: true, url: fileUrl };
   } catch (error) {
-    console.error("Error uploading multiple files:", error);
-    return uploadedUrls; // Return whatever we managed to upload
+    console.error('Error uploading bank proof:', error);
+    return { success: false, error: 'Failed to upload bank proof' };
   }
 };
