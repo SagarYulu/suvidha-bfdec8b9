@@ -403,7 +403,7 @@ const AdminIssues = () => {
                       key={issue.id}
                       className={isBreachedSLA ? "bg-red-50" : undefined}
                     >
-                      <TableCell className="font-mono text-xs">{issue.id.substring(0, 8)}</TableCell>
+                      <TableCell className="font-mono text-xs">{String(issue.id).substring(0, 8)}</TableCell>
                       <TableCell>{userNames[issue.employeeUuid] || "Unknown"}</TableCell>
                       <TableCell>
                         <div>

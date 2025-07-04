@@ -1,4 +1,5 @@
 import { createAuditLog } from "@/services/issues/issueAuditService";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 export interface InternalComment {
   id: string;

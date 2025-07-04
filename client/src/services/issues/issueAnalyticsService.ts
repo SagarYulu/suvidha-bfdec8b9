@@ -6,6 +6,7 @@ import { calculateFirstResponseTime, calculateWorkingHours } from "@/utils/worki
 import { Issue } from "@/types";
 import { format, subDays, subWeeks, subMonths, subQuarters, startOfWeek, startOfMonth, startOfQuarter, endOfWeek, endOfMonth, endOfQuarter, differenceInDays, parseISO, addDays } from "date-fns";
 import { apiClient } from "@/services/apiClient";
+import authenticatedAxios from '@/services/authenticatedAxios';
 
 /**
  * Issue analytics service - provides analytics data for issues
@@ -76,8 +77,8 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       // Get first comment for each issue to calculate FRT
       for (const issue of issues) {
         try {
-          const response = await fetch(`/api/issues/${issue.id}/comments`);
-          const comments = await response.json();
+          const response = await authenticatedAxios.get(`/api/issues/${issue.id}/comments`);
+          const comments = response.data;
           if (comments && comments.length > 0) {
             issueComments[issue.id] = comments;
           }
@@ -216,8 +217,8 @@ export const getResolutionTimeHistory = async () => {
     // Fetch closed issues from the last 7 days that have closedAt data
     let closedIssues: any[] = [];
     try {
-      const response = await fetch('/api/issues');
-      const allIssues = await response.json();
+      const response = await authenticatedAxios.get('/api/issues');
+      const allIssues = response.data;
       
       // Filter closed issues from last 7 days
       const sevenDaysAgo = format(subDays(today, 7), 'yyyy-MM-dd');

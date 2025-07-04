@@ -1,4 +1,5 @@
 import { toast } from "@/hooks/use-toast";
+import authenticatedAxios from './authenticatedAxios';
 
 export type TicketFeedback = {
   id?: string;
@@ -24,15 +25,9 @@ interface EmployeeData {
 export const checkFeedbackExists = async (issueId: string, employeeUuid: string): Promise<boolean> => {
   try {
     console.log(`Checking feedback for issue: ${issueId}, employee: ${employeeUuid}`);
-    const response = await fetch(`/api/ticket-feedback?issueId=${issueId}&employeeUuid=${employeeUuid}`);
+    const response = await authenticatedAxios.get(`/api/ticket-feedback?issueId=${issueId}&employeeUuid=${employeeUuid}`);
     
-    if (!response.ok) {
-      console.error("Error checking if feedback exists:", response.statusText);
-      return false;
-    }
-    
-    const data = await response.json();
-    return data.exists || false;
+    return response.data.exists || false;
   } catch (error) {
     console.error("Error checking if feedback exists:", error);
     return false;
@@ -42,15 +37,9 @@ export const checkFeedbackExists = async (issueId: string, employeeUuid: string)
 // Get feedback status for a ticket
 export const getFeedbackStatus = async (issueId: string): Promise<boolean> => {
   try {
-    const response = await fetch(`/api/ticket-feedback?issueId=${issueId}`);
+    const response = await authenticatedAxios.get(`/api/ticket-feedback?issueId=${issueId}`);
     
-    if (!response.ok) {
-      console.error("Error checking feedback status:", response.statusText);
-      return false;
-    }
-    
-    const data = await response.json();
-    return data.exists || false;
+    return response.data.exists || false;
   } catch (error) {
     console.error("Error checking feedback status:", error);
     return false;
@@ -62,20 +51,9 @@ export const getMultipleFeedbackStatuses = async (issueIds: string[]): Promise<R
   try {
     if (!issueIds.length) return {};
     
-    const response = await fetch('/api/ticket-feedback/bulk', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ issueIds }),
-    });
+    const response = await authenticatedAxios.post('/api/ticket-feedback/bulk', { issueIds });
     
-    if (!response.ok) {
-      console.error("Error checking multiple feedback statuses:", response.statusText);
-      return {};
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     
     // Create a map of issue_id -> has feedback
     const feedbackMap: Record<string, boolean> = {};
@@ -119,10 +97,8 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Get the issue details to capture city, cluster, and agent information
     let issueData: any = null;
     try {
-      const issueResponse = await fetch(`/api/issues/${feedback.issue_id}`);
-      if (issueResponse.ok) {
-        issueData = await issueResponse.json();
-      }
+      const issueResponse = await authenticatedAxios.get(`/api/issues/${feedback.issue_id}`);
+      issueData = issueResponse.data;
     } catch (error) {
       console.error("Error fetching issue data:", error);
     }
@@ -137,12 +113,10 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     if (issueData) {
       // Get employee data to extract city and cluster
       try {
-        const employeeResponse = await fetch(`/api/employees/${issueData.employeeId}`);
-        if (employeeResponse.ok) {
-          const employeeData = await employeeResponse.json();
-          city = city || employeeData.city;
-          cluster = cluster || employeeData.cluster;
-        }
+        const employeeResponse = await authenticatedAxios.get(`/api/employees/${issueData.employeeId}`);
+        const employeeData = employeeResponse.data;
+        city = city || employeeData.city;
+        cluster = cluster || employeeData.cluster;
       } catch (error) {
         console.error("Error fetching employee data:", error);
       }
@@ -153,11 +127,9 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
       // If we have an agent ID but no name, try to get the name from dashboard_users
       if (agentId && !agentName) {
         try {
-          const agentResponse = await fetch(`/api/dashboard-users/${agentId}`);
-          if (agentResponse.ok) {
-            const agentData = await agentResponse.json();
-            agentName = agentData.name;
-          }
+          const agentResponse = await authenticatedAxios.get(`/api/dashboard-users/${agentId}`);
+          const agentData = agentResponse.data;
+          agentName = agentData.name;
         } catch (error) {
           console.error("Error fetching agent data:", error);
         }
@@ -178,27 +150,9 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     
     console.log("Submitting enriched feedback data:", feedbackData);
     
-    const response = await fetch('/api/ticket-feedback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(feedbackData),
-    });
+    const response = await authenticatedAxios.post('/api/ticket-feedback', feedbackData);
     
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error submitting feedback:", errorData);
-      
-      toast({
-        title: "Error",
-        description: `Failed to submit feedback: ${errorData.message || 'Unknown error'}. Please try again.`,
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    const data = await response.json();
+    const data = response.data;
     console.log("Feedback submitted successfully:", data);
     toast({
       title: "Success",
