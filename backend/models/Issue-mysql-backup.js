@@ -1,4 +1,4 @@
-const { pool } = require('../config/db-postgres');
+const { pool } = require('../config/db');
 
 class Issue {
   // Create a new issue
