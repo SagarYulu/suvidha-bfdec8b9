@@ -140,7 +140,7 @@ export const getAssignedIssues = async (userId: string | number): Promise<Issue[
  */
 export const getIssuesByUserId = async (userId: string | number): Promise<Issue[]> => {
   try {
-    const response = await authenticatedAxios.get(`/api/issues?employeeId=${userId}`);
+    const response = await authenticatedAxios.get(`/issues?employeeId=${userId}`);
     const dbIssues = response.data || [];
     
     // Convert and process issues

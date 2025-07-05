@@ -5,7 +5,7 @@ import authenticatedAxios from '@/services/authenticatedAxios';
 export const getCommentsForIssue = async (issueId: string | number): Promise<IssueComment[]> => {
   try {
     const numericIssueId = Number(issueId);
-    const response = await authenticatedAxios.get(`/api/issues/${numericIssueId}/comments`);
+    const response = await authenticatedAxios.get(`/issues/${numericIssueId}/comments`);
     
     return response.data.map((dbComment: any) => ({
       id: dbComment.id,

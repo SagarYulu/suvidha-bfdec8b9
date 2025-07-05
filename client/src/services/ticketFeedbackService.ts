@@ -97,7 +97,7 @@ export const submitTicketFeedback = async (feedback: TicketFeedback): Promise<bo
     // Get the issue details to capture city, cluster, and agent information
     let issueData: any = null;
     try {
-      const issueResponse = await authenticatedAxios.get(`/api/issues/${feedback.issue_id}`);
+      const issueResponse = await authenticatedAxios.get(`/issues/${feedback.issue_id}`);
       issueData = issueResponse.data;
     } catch (error) {
       console.error("Error fetching issue data:", error);

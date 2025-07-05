@@ -88,7 +88,7 @@ export const getAnalytics = async (filters?: IssueFilters) => {
       // Get first comment for each issue to calculate FRT
       for (const issue of issues) {
         try {
-          const response = await authenticatedAxios.get(`/api/issues/${issue.id}/comments`);
+          const response = await authenticatedAxios.get(`/issues/${issue.id}/comments`);
           const comments = response.data;
           if (comments && comments.length > 0) {
             issueComments[issue.id] = comments;
