@@ -1,128 +1,80 @@
+
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const compression = require('compression');
-const rateLimit = require('express-rate-limit');
-require('dotenv').config();
+const http = require('http');
+const path = require('path');
+const fs = require('fs');
+const { connectDB } = require('./config/database');
+const errorHandler = require('./middlewares/errorHandler');
+const logger = require('./middlewares/logger');
+const WebSocketService = require('./services/websocketService');
 
-const { testConnection, initializeDatabase } = require('./config/db');
-const { errorHandler, notFound } = require('./middlewares/errorHandler');
-
-// Import routes
-const authRoutes = require('./routes/auth');
-const employeeRoutes = require('./routes/employees');
-const issueRoutes = require('./routes/issues');
+// Import consolidated routes
+const apiRoutes = require('./routes');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
-
-// Security middleware
-app.use(helmet());
-app.use(compression());
+const server = http.createServer(app);
+const PORT = process.env.PORT || 3001;
 
 // CORS configuration
-const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] // Add your production domain
-    : ['http://localhost:3000', 'http://localhost:5173'], // React dev servers
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true,
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: {
-    success: false,
-    message: 'Too many requests from this IP, please try again later.'
-  }
-});
-app.use('/api', limiter);
-
-// Body parsing middleware
+// Middlewares
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(logger);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
-});
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
-// API Routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/employees', employeeRoutes);
-app.use('/api/v1/issues', issueRoutes);
+// Serve static files from uploads directory
+app.use('/uploads', express.static(uploadsDir));
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Yulu Employee Issue Management API',
-    version: '1.0.0',
-    endpoints: {
-      auth: '/api/v1/auth',
-      employees: '/api/v1/employees',
-      issues: '/api/v1/issues',
-      health: '/health'
-    }
-  });
-});
+// Mount API routes
+app.use('/api', apiRoutes);
 
-// 404 handler
-app.use(notFound);
-
-// Global error handler
+// Error handling middleware
 app.use(errorHandler);
+
+// Global WebSocket service instance
+let wsService;
 
 // Start server
 const startServer = async () => {
   try {
-    // Test database connection
-    await testConnection();
+    await connectDB();
     
-    // Initialize database schema
-    await initializeDatabase();
+    // Initialize WebSocket service
+    wsService = new WebSocketService(server);
     
-    app.listen(PORT, '0.0.0.0', () => {
+    // Make WebSocket service available globally
+    app.set('wsService', wsService);
+    
+    server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📋 API Documentation: http://localhost:${PORT}`);
-      console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
-      console.log(`🔒 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📡 API Base URL: http://localhost:${PORT}/api`);
+      console.log(`🔌 WebSocket URL: ws://localhost:${PORT}?token=<JWT_TOKEN>`);
+      console.log(`🌐 CORS enabled for: ${process.env.FRONTEND_URL || 'http://localhost:5173'}`);
+      console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`📁 File uploads: ${uploadsDir}`);
+      console.log(`✨ Features enabled: WebSocket, File Upload, Bulk Upload, Analytics`);
+      console.log(`📅 Database: ${process.env.DB_NAME || 'yulu_suvidha'}`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error.message);
+    console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 };
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Promise Rejection:', err);
-  process.exit(1);
-});
-
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err);
-  process.exit(1);
-});
-
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received. Shutting down gracefully...');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT received. Shutting down gracefully...');
-  process.exit(0);
-});
-
 startServer();
+
+module.exports = { app, server, wsService };

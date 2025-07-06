@@ -1,211 +1,200 @@
+
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Employee = require('../models/Employee');
-const { generateToken } = require('../utils/jwt');
-const Joi = require('joi');
+const { HTTP_STATUS, JWT } = require('../config/constants');
+const AuthService = require('../services/authService');
 
-// Validation schemas
-const registerSchema = Joi.object({
-  username: Joi.string().alphanum().min(3).max(30).required(),
-  password: Joi.string().min(6).required(),
-  role: Joi.string().valid('admin', 'user', 'employee').default('user')
-});
-
-const loginSchema = Joi.object({
-  username: Joi.string().required(),
-  password: Joi.string().required()
-});
-
-// Register new user
-const register = async (req, res, next) => {
-  try {
-    const { error, value } = registerSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.details[0].message
-      });
-    }
-
-    const { username, password, role } = value;
-
-    // Check if user already exists
-    const existingUser = await User.findByUsername(username);
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'Username already exists'
-      });
-    }
-
-    // Create new user
-    const user = await User.create({ username, password, role });
-
-    // Generate JWT token
-    const token = generateToken({ userId: user.id, role: user.role });
-
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role
-        },
-        token
+class AuthController {
+  async login(req, res) {
+    try {
+      const { email, password } = req.body;
+      
+      const result = await AuthService.login(email, password);
+      
+      // Add role validation to prevent cross-platform access
+      const user = result.user;
+      const adminRoles = ['City Head', 'Revenue and Ops Head', 'CRM', 'Cluster Head', 'Payroll Ops', 'HR Admin', 'Super Admin', 'security-admin', 'admin'];
+      const adminEmails = ['sagar.km@yulu.bike', 'admin@yulu.com'];
+      
+      // Check if this is an admin login request (from admin dashboard)
+      const isAdminRequest = req.headers['x-admin-login'] === 'true' || req.path.includes('admin');
+      
+      if (isAdminRequest) {
+        // Admin dashboard login - only allow admin roles/emails
+        const isAdminRole = adminRoles.includes(user.role);
+        const isAdminEmail = adminEmails.includes(user.email);
+        
+        if (!isAdminRole && !isAdminEmail) {
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            error: 'Access denied',
+            message: 'Admin dashboard access restricted to authorized personnel only. Please use the employee mobile app.'
+          });
+        }
+      } else {
+        // Mobile app login - prevent admin users from accessing
+        const isAdminRole = adminRoles.includes(user.role);
+        const isAdminEmail = adminEmails.includes(user.email);
+        
+        if (isAdminRole || isAdminEmail) {
+          return res.status(HTTP_STATUS.FORBIDDEN).json({
+            success: false,
+            error: 'Access denied',
+            message: 'Admin users cannot access the mobile app. Please use the admin dashboard.'
+          });
+        }
       }
-    });
-  } catch (error) {
-    next(error);
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Login successful',
+        data: result
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Login failed',
+        message: error.message
+      });
+    }
   }
-};
 
-// Login user
-const login = async (req, res, next) => {
-  try {
-    const { error, value } = loginSchema.validate(req.body);
-    if (error) {
-      return res.status(400).json({
+  async register(req, res) {
+    try {
+      const userData = req.body;
+      
+      const user = await AuthService.createUser(userData);
+      
+      res.status(HTTP_STATUS.CREATED).json({
+        success: true,
+        message: 'User created successfully',
+        data: user
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
         success: false,
-        message: error.details[0].message
+        error: 'Registration failed',
+        message: error.message
       });
     }
-
-    const { username, password } = value;
-
-    // Find user by username
-    const user = await User.findByUsername(username);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Verify password
-    const isValidPassword = await User.verifyPassword(password, user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Generate JWT token
-    const token = generateToken({ userId: user.id, role: user.role });
-
-    // Get additional user details if employee
-    let employeeDetails = null;
-    if (user.role === 'employee') {
-      employeeDetails = await Employee.findById(user.id);
-    }
-
-    res.json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user.id,
-          username: user.username,
-          role: user.role,
-          employee: employeeDetails
-        },
-        token
-      }
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-// Employee login (using email/emp_id and password)
-const employeeLogin = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
+  async getCurrentUser(req, res) {
+    try {
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'User retrieved successfully',
+        data: req.user
+      });
+    } catch (error) {
+      console.error('Get current user error:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
         success: false,
-        message: 'Email and password are required'
+        error: 'Failed to get user',
+        message: error.message
       });
     }
-
-    // Find employee by email
-    const employee = await Employee.findByEmail(email);
-    if (!employee) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // For simplicity, we'll compare plain text passwords
-    // In production, you should hash employee passwords too
-    if (employee.password !== password) {
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid credentials'
-      });
-    }
-
-    // Generate JWT token
-    const token = generateToken({ 
-      userId: employee.id, 
-      role: 'employee',
-      employeeId: employee.emp_id 
-    });
-
-    res.json({
-      success: true,
-      message: 'Employee login successful',
-      data: {
-        user: {
-          id: employee.id,
-          name: employee.name,
-          email: employee.email,
-          emp_id: employee.emp_id,
-          role: 'employee'
-        },
-        token
-      }
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-// Get current user profile
-const getProfile = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({
+  async refreshToken(req, res) {
+    try {
+      const { refreshToken } = req.body;
+      
+      const result = await AuthService.refreshToken(refreshToken);
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Token refreshed successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Refresh token error:', error);
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({
         success: false,
-        message: 'User not found'
+        error: 'Token refresh failed',
+        message: error.message
       });
     }
-
-    res.json({
-      success: true,
-      data: { user }
-    });
-  } catch (error) {
-    next(error);
   }
-};
 
-// Logout (for completeness, though JWT is stateless)
-const logout = async (req, res) => {
-  res.json({
-    success: true,
-    message: 'Logged out successfully'
-  });
-};
+  async changePassword(req, res) {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.id;
+      
+      await AuthService.changePassword(userId, currentPassword, newPassword);
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Password change failed',
+        message: error.message
+      });
+    }
+  }
 
-module.exports = {
-  register,
-  login,
-  employeeLogin,
-  getProfile,
-  logout
-};
+  async logout(req, res) {
+    try {
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Logout successful'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Logout failed',
+        message: error.message
+      });
+    }
+  }
+
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      
+      // Implement forgot password logic here
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Password reset email sent'
+      });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Failed to send reset email',
+        message: error.message
+      });
+    }
+  }
+
+  async resetPassword(req, res) {
+    try {
+      const { token, newPassword } = req.body;
+      
+      // Implement reset password logic here
+      
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Password reset successful'
+      });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        success: false,
+        error: 'Password reset failed',
+        message: error.message
+      });
+    }
+  }
+}
+
+module.exports = new AuthController();

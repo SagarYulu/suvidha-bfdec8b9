@@ -1,332 +1,230 @@
-const { pool } = require('../config/db');
+
+const { getPool } = require('../config/database');
+const { v4: uuidv4 } = require('uuid');
 
 class Issue {
-  // Create a new issue
   static async create(issueData) {
-    const client = await pool.connect();
-    try {
-      const {
-        description, status = 'open', priority = 'medium', type_id, sub_type_id,
-        employee_id, assigned_to, attachment_url, attachments
-      } = issueData;
-
-      const result = await client.query(
-        `INSERT INTO issues (
-          description, status, priority, type_id, sub_type_id, employee_id,
-          assigned_to, attachment_url, attachments
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-        [
-          description, status, priority, type_id, sub_type_id, employee_id,
-          assigned_to, attachment_url, JSON.stringify(attachments)
-        ]
-      );
-
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating issue:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+    const pool = getPool();
+    const {
+      title,
+      description,
+      issue_type,
+      issue_subtype,
+      priority = 'medium',
+      status = 'open',
+      employee_id,
+      created_by,
+      assigned_to,
+      additional_details,
+      attachment_urls
+    } = issueData;
+    
+    const issueId = uuidv4();
+    
+    const [result] = await pool.execute(
+      `INSERT INTO issues 
+       (id, title, description, issue_type, issue_subtype, priority, status, 
+        employee_id, created_by, assigned_to, additional_details, attachment_urls, created_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [issueId, title, description, issue_type, issue_subtype, priority, status,
+       employee_id, created_by, assigned_to, 
+       additional_details ? JSON.stringify(additional_details) : null,
+       attachment_urls ? JSON.stringify(attachment_urls) : null]
+    );
+    
+    return this.findById(issueId);
   }
 
-  // Find issue by ID
   static async findById(id) {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(
-        `SELECT i.*, e.name as employee_name, e.email as employee_email,
-                da.name as assigned_to_name
-         FROM issues i 
-         LEFT JOIN employees e ON i.employee_id = e.id
-         LEFT JOIN dashboard_users da ON i.assigned_to = da.id
-         WHERE i.id = $1`,
-        [id]
-      );
-      
-      if (result.rows[0] && result.rows[0].attachments) {
-        result.rows[0].attachments = JSON.parse(result.rows[0].attachments);
+    const pool = getPool();
+    const [rows] = await pool.execute(
+      `SELECT i.*, 
+              e.emp_name, e.emp_email, e.emp_code, e.cluster as cluster_name, e.city as city_name,
+              u1.full_name as created_by_name,
+              u2.full_name as assigned_to_name
+       FROM issues i 
+       LEFT JOIN employees e ON i.employee_id = e.id
+       LEFT JOIN dashboard_users u1 ON i.created_by = u1.id
+       LEFT JOIN dashboard_users u2 ON i.assigned_to = u2.id
+       WHERE i.id = ?`,
+      [id]
+    );
+    
+    if (rows[0]) {
+      const issue = rows[0];
+      if (issue.additional_details) {
+        issue.additional_details = JSON.parse(issue.additional_details);
       }
-      
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('Error finding issue by ID:', error);
-      throw error;
-    } finally {
-      client.release();
+      if (issue.attachment_urls) {
+        issue.attachment_urls = JSON.parse(issue.attachment_urls);
+      }
     }
+    
+    return rows[0] || null;
   }
 
-  // Get all issues with optional filters
   static async findAll(filters = {}) {
-    const client = await pool.connect();
-    try {
-      let query = `
-        SELECT i.*, e.name as employee_name, e.email as employee_email, e.city, e.cluster,
-               da.name as assigned_to_name
-        FROM issues i 
-        LEFT JOIN employees e ON i.employee_id = e.id
-        LEFT JOIN dashboard_users da ON i.assigned_to = da.id
-        WHERE 1=1
-      `;
-      
-      const values = [];
-      let paramCount = 1;
-      
-      if (filters.status) {
-        query += ` AND i.status = $${paramCount}`;
-        values.push(filters.status);
-        paramCount++;
-      }
-      
-      if (filters.priority) {
-        query += ` AND i.priority = $${paramCount}`;
-        values.push(filters.priority);
-        paramCount++;
-      }
-      
-      if (filters.assigned_to) {
-        query += ` AND i.assigned_to = $${paramCount}`;
-        values.push(filters.assigned_to);
-        paramCount++;
-      }
-      
-      if (filters.employee_id) {
-        query += ` AND i.employee_id = $${paramCount}`;
-        values.push(filters.employee_id);
-        paramCount++;
-      }
-      
-      if (filters.city) {
-        query += ` AND e.city = $${paramCount}`;
-        values.push(filters.city);
-        paramCount++;
-      }
-      
-      if (filters.cluster) {
-        query += ` AND e.cluster = $${paramCount}`;
-        values.push(filters.cluster);
-        paramCount++;
-      }
-      
-      if (filters.type_id) {
-        query += ` AND i.type_id = $${paramCount}`;
-        values.push(filters.type_id);
-        paramCount++;
-      }
-      
-      if (filters.startDate) {
-        query += ` AND i.created_at >= $${paramCount}`;
-        values.push(filters.startDate);
-        paramCount++;
-      }
-      
-      if (filters.endDate) {
-        query += ` AND i.created_at <= $${paramCount}`;
-        values.push(filters.endDate);
-        paramCount++;
-      }
-      
-      if (filters.search) {
-        query += ` AND (i.description ILIKE $${paramCount} OR e.name ILIKE $${paramCount} OR e.email ILIKE $${paramCount})`;
-        const searchTerm = `%${filters.search}%`;
-        values.push(searchTerm, searchTerm, searchTerm);
-        paramCount += 3;
-      }
-      
-      query += ' ORDER BY i.created_at DESC';
-      
-      const result = await client.query(query, values);
-      
-      // Parse JSON attachments
-      const issues = result.rows.map(row => ({
-        ...row,
-        attachments: row.attachments ? JSON.parse(row.attachments) : null
-      }));
-      
-      return issues;
-    } catch (error) {
-      console.error('Error fetching issues:', error);
-      throw error;
-    } finally {
-      client.release();
+    const pool = getPool();
+    let query = `
+      SELECT i.*, 
+             e.emp_name, e.emp_email, e.emp_code, e.cluster as cluster_name, e.city as city_name,
+             u1.full_name as created_by_name,
+             u2.full_name as assigned_to_name
+      FROM issues i 
+      LEFT JOIN employees e ON i.employee_id = e.id
+      LEFT JOIN dashboard_users u1 ON i.created_by = u1.id
+      LEFT JOIN dashboard_users u2 ON i.assigned_to = u2.id
+      WHERE 1=1
+    `;
+    const params = [];
+    
+    if (filters.status) {
+      query += ' AND i.status = ?';
+      params.push(filters.status);
     }
+    
+    if (filters.priority) {
+      query += ' AND i.priority = ?';
+      params.push(filters.priority);
+    }
+    
+    if (filters.assignedTo) {
+      query += ' AND i.assigned_to = ?';
+      params.push(filters.assignedTo);
+    }
+    
+    if (filters.city) {
+      query += ' AND e.city = ?';
+      params.push(filters.city);
+    }
+    
+    if (filters.cluster) {
+      query += ' AND e.cluster = ?';
+      params.push(filters.cluster);
+    }
+    
+    if (filters.dateFrom) {
+      query += ' AND i.created_at >= ?';
+      params.push(filters.dateFrom);
+    }
+    
+    if (filters.dateTo) {
+      query += ' AND i.created_at <= ?';
+      params.push(filters.dateTo);
+    }
+    
+    query += ' ORDER BY i.created_at DESC';
+    
+    if (filters.limit) {
+      query += ' LIMIT ?';
+      params.push(parseInt(filters.limit));
+      
+      if (filters.offset) {
+        query += ' OFFSET ?';
+        params.push(parseInt(filters.offset));
+      }
+    }
+    
+    const [rows] = await pool.execute(query, params);
+    
+    return rows.map(issue => {
+      if (issue.additional_details) {
+        issue.additional_details = JSON.parse(issue.additional_details);
+      }
+      if (issue.attachment_urls) {
+        issue.attachment_urls = JSON.parse(issue.attachment_urls);
+      }
+      return issue;
+    });
   }
 
-  // Update issue
   static async update(id, updates) {
-    const client = await pool.connect();
-    try {
-      const fields = [];
-      const values = [];
-      let paramCount = 1;
-
-      const allowedFields = [
-        'description', 'status', 'priority', 'type_id', 'sub_type_id',
-        'assigned_to', 'attachment_url', 'attachments', 'mapped_type_id',
-        'mapped_sub_type_id', 'mapped_by', 'mapped_at', 'closed_at'
-      ];
-
-      allowedFields.forEach(field => {
-        if (updates[field] !== undefined) {
-          if (field === 'attachments') {
-            fields.push(`${field} = $${paramCount}`);
-            values.push(JSON.stringify(updates[field]));
-          } else {
-            fields.push(`${field} = $${paramCount}`);
-            values.push(updates[field]);
-          }
-          paramCount++;
+    const pool = getPool();
+    const allowedFields = [
+      'title', 'description', 'status', 'priority', 'assigned_to', 
+      'resolved_at', 'additional_details', 'attachment_urls'
+    ];
+    const fields = [];
+    const values = [];
+    
+    Object.keys(updates).forEach(key => {
+      if (allowedFields.includes(key) && updates[key] !== undefined) {
+        if (key === 'additional_details' || key === 'attachment_urls') {
+          fields.push(`${key} = ?`);
+          values.push(updates[key] ? JSON.stringify(updates[key]) : null);
+        } else {
+          fields.push(`${key} = ?`);
+          values.push(updates[key]);
         }
-      });
-
-      if (fields.length === 0) {
-        throw new Error('No fields to update');
       }
-
-      fields.push(`updated_at = CURRENT_TIMESTAMP`);
-      values.push(id);
-
-      const result = await client.query(
-        `UPDATE issues SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-        values
-      );
-
-      if (result.rows.length === 0) {
-        throw new Error('Issue not found');
-      }
-
-      return this.findById(id);
-    } catch (error) {
-      console.error('Error updating issue:', error);
-      throw error;
-    } finally {
-      client.release();
+    });
+    
+    if (fields.length === 0) {
+      throw new Error('No valid fields to update');
     }
+    
+    values.push(id);
+    
+    await pool.execute(
+      `UPDATE issues SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`,
+      values
+    );
+    
+    return this.findById(id);
   }
 
-  // Delete issue
   static async delete(id) {
-    const client = await pool.connect();
-    try {
-      const result = await client.query(
-        'DELETE FROM issues WHERE id = $1',
-        [id]
-      );
-      return result.rowCount > 0;
-    } catch (error) {
-      console.error('Error deleting issue:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+    const pool = getPool();
+    await pool.execute('DELETE FROM issues WHERE id = ?', [id]);
   }
 
-  // Get issue statistics
-  static async getStats(filters = {}) {
-    const client = await pool.connect();
-    try {
-      let baseQuery = `
-        FROM issues i 
-        LEFT JOIN employees e ON i.employee_id = e.id
-        WHERE 1=1
-      `;
-      
-      const values = [];
-      let paramCount = 1;
-      
-      if (filters.city) {
-        baseQuery += ` AND e.city = $${paramCount}`;
-        values.push(filters.city);
-        paramCount++;
-      }
-      
-      if (filters.cluster) {
-        baseQuery += ` AND e.cluster = $${paramCount}`;
-        values.push(filters.cluster);
-        paramCount++;
-      }
-      
-      if (filters.startDate) {
-        baseQuery += ` AND i.created_at >= $${paramCount}`;
-        values.push(filters.startDate);
-        paramCount++;
-      }
-      
-      if (filters.endDate) {
-        baseQuery += ` AND i.created_at <= $${paramCount}`;
-        values.push(filters.endDate);
-        paramCount++;
-      }
-
-      // Total count
-      const totalResult = await client.query(
-        `SELECT COUNT(*) as total ${baseQuery}`,
-        values
-      );
-
-      // Status stats
-      const statusResult = await client.query(
-        `SELECT status, COUNT(*) as count ${baseQuery} GROUP BY status`,
-        values
-      );
-
-      // Priority stats
-      const priorityResult = await client.query(
-        `SELECT priority, COUNT(*) as count ${baseQuery} GROUP BY priority`,
-        values
-      );
-
-      // Type stats
-      const typeResult = await client.query(
-        `SELECT type_id, COUNT(*) as count ${baseQuery} GROUP BY type_id`,
-        values
-      );
-
-      return {
-        total: parseInt(totalResult.rows[0].total),
-        byStatus: statusResult.rows,
-        byPriority: priorityResult.rows,
-        byType: typeResult.rows
-      };
-    } catch (error) {
-      console.error('Error fetching issue stats:', error);
-      throw error;
-    } finally {
-      client.release();
+  static async getCount(filters = {}) {
+    const pool = getPool();
+    let query = 'SELECT COUNT(*) as count FROM issues i LEFT JOIN employees e ON i.employee_id = e.id WHERE 1=1';
+    const params = [];
+    
+    if (filters.status) {
+      query += ' AND i.status = ?';
+      params.push(filters.status);
     }
+    
+    if (filters.priority) {
+      query += ' AND i.priority = ?';
+      params.push(filters.priority);
+    }
+    
+    if (filters.city) {
+      query += ' AND e.city = ?';
+      params.push(filters.city);
+    }
+    
+    const [rows] = await pool.execute(query, params);
+    return rows[0].count;
   }
 
-  // Get issues assigned to a specific user
-  static async findByAssignee(assigneeId, filters = {}) {
-    const client = await pool.connect();
-    try {
-      let query = `
-        SELECT i.*, e.name as employee_name, e.email as employee_email
-        FROM issues i 
-        LEFT JOIN employees e ON i.employee_id = e.id
-        WHERE i.assigned_to = $1
-      `;
-      
-      const values = [assigneeId];
-      let paramCount = 2;
-
-      if (filters.status) {
-        query += ` AND i.status = $${paramCount}`;
-        values.push(filters.status);
-        paramCount++;
-      }
-
-      query += ' ORDER BY i.created_at DESC';
-
-      const result = await client.query(query, values);
-      return result.rows;
-    } catch (error) {
-      console.error('Error fetching issues by assignee:', error);
-      throw error;
-    } finally {
-      client.release();
-    }
+  static async getStatistics() {
+    const pool = getPool();
+    
+    const [statusStats] = await pool.execute(`
+      SELECT 
+        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
+        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed,
+        COUNT(*) as total
+      FROM issues
+    `);
+    
+    const [avgResolution] = await pool.execute(`
+      SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)) as avgResolutionTime
+      FROM issues 
+      WHERE resolved_at IS NOT NULL
+    `);
+    
+    return {
+      ...statusStats[0],
+      avgResolutionTime: avgResolution[0]?.avgResolutionTime || 0
+    };
   }
 }
 

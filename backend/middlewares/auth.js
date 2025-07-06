@@ -1,71 +1,63 @@
-const jwt = require('jsonwebtoken');
-const { pool } = require('../config/db');
 
-// JWT Authentication middleware
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { JWT, HTTP_STATUS } = require('../config/constants');
+
 const authenticateToken = async (req, res, next) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Access token required' 
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Access token required'
       });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ 
-          success: false, 
-          message: 'Invalid or expired token' 
-        });
-      }
+    const decoded = jwt.verify(token, JWT.SECRET);
+    const user = await User.findById(decoded.id);
 
-      // Get user details from database
-      const connection = await pool.getConnection();
-      try {
-        const [users] = await connection.execute(
-          'SELECT id, username, role FROM users WHERE id = ?',
-          [decoded.userId]
-        );
+    if (!user) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Invalid token'
+      });
+    }
 
-        if (users.length === 0) {
-          return res.status(404).json({ 
-            success: false, 
-            message: 'User not found' 
-          });
-        }
+    if (!user.is_active) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Account is deactivated'
+      });
+    }
 
-        req.user = users[0];
-        next();
-      } finally {
-        connection.release();
-      }
-    });
+    // Remove password from user object
+    const { password_hash, ...userWithoutPassword } = user;
+    req.user = userWithoutPassword;
+    next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Internal server error' 
+    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      success: false,
+      error: 'Invalid token'
     });
   }
 };
 
-// Role-based authorization middleware
-const authorizeRoles = (...roles) => {
+const requireRole = (roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User not authenticated' 
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Authentication required'
       });
     }
 
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied. Insufficient permissions' 
+      return res.status(HTTP_STATUS.FORBIDDEN).json({
+        success: false,
+        error: 'Insufficient permissions'
       });
     }
 
@@ -73,45 +65,38 @@ const authorizeRoles = (...roles) => {
   };
 };
 
-// Optional authentication (for public routes that can benefit from user context)
-const optionalAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      req.user = null;
-      return next();
+const requirePermission = (permission) => {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        success: false,
+        error: 'Authentication required'
+      });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-      if (err) {
-        req.user = null;
-        return next();
+    try {
+      const userPermissions = await User.getUserPermissions(req.user.id);
+      
+      if (!userPermissions.includes(permission)) {
+        return res.status(HTTP_STATUS.FORBIDDEN).json({
+          success: false,
+          error: 'Insufficient permissions'
+        });
       }
 
-      // Get user details from database
-      const connection = await pool.getConnection();
-      try {
-        const [users] = await connection.execute(
-          'SELECT id, username, role FROM users WHERE id = ?',
-          [decoded.userId]
-        );
-
-        req.user = users.length > 0 ? users[0] : null;
-        next();
-      } finally {
-        connection.release();
-      }
-    });
-  } catch (error) {
-    req.user = null;
-    next();
-  }
+      next();
+    } catch (error) {
+      console.error('Permission check error:', error);
+      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        error: 'Permission check failed'
+      });
+    }
+  };
 };
 
 module.exports = {
   authenticateToken,
-  authorizeRoles,
-  optionalAuth
+  requireRole,
+  requirePermission
 };
